@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeFileSystem } from "@effect/platform-node";
 import type { RspressPlugin, UserConfig } from "@rspress/core";
+import { SnapshotServiceLive } from "@tsdoctor/snapshot";
 import { Effect, FileSystem, Layer, ManagedRuntime, Ref, Schema } from "effect";
 import type { GenerateApiDocsResult } from "./build-program.js";
 import { generateApiDocs } from "./build-program.js";
@@ -14,12 +15,9 @@ import { classifyApiConfig, mergeLlmsPluginConfig } from "./config-utils.js";
 import { ConfigServiceLive } from "./layers/ConfigServiceLive.js";
 import { buildEventBus, logBuildSummary, makeSummaryLoggerLayer } from "./layers/ObservabilityLive.js";
 import { PathDerivationServiceLive } from "./layers/PathDerivationServiceLive.js";
-import { SnapshotServiceLive } from "./layers/SnapshotServiceLive.js";
 import { TypeRegistryServiceLive } from "./layers/TypeRegistryServiceLive.js";
-import { setLoaderEventEmitter } from "./loader.js";
 import type { ShikiThemeConfig } from "./markdown/shiki-utils.js";
 import { DEFAULT_SHIKI_THEMES, setShikiUtilsEventEmitter } from "./markdown/shiki-utils.js";
-import { setModelLoaderEventEmitter } from "./model-loader.js";
 import { emit, makeRuntimeEmitter } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
 import type { ProgressPhase } from "./observability/heartbeat.js";
@@ -129,14 +127,12 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 	const effectRuntime = ManagedRuntime.make(EffectAppLayer);
 	const emitSync = makeRuntimeEmitter(effectRuntime);
 	setEventEmitter(emitSync, buildId);
-	setLoaderEventEmitter(emitSync, buildId);
 	setShikiUtilsEventEmitter(emitSync, buildId);
 	setPrettierEventEmitter(emitSync, buildId);
 	setOgResolverEventEmitter(emitSync, buildId);
 	setRemarkWithApiEventEmitter(emitSync, buildId, obs.thresholds.slowCodeBlock);
 	setRemarkApiCodeblocksEventEmitter(emitSync, buildId);
 	setBuildStagesEventEmitter(emitSync, buildId);
-	setModelLoaderEventEmitter(emitSync, buildId);
 
 	// File context map (shared across hooks)
 	const fileContextMap = new Map<string, { api?: string; version?: string; file: string }>();

@@ -1,31 +1,32 @@
-import type { PathLike } from "node:fs";
 import fs from "node:fs";
 import path from "node:path";
 import type { ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
-import { loadApiModel } from "@tsdoctor/model";
+import { Model } from "@tsdoctor/model";
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LoadedModel, PackageJson } from "../src/internal-types.js";
-import { ApiModelLoader, setModelLoaderEventEmitter } from "../src/model-loader.js";
-import type { PluginEvent } from "../src/observability/events.js";
-import type { SourceConfig, VersionConfig } from "../src/schemas/index.js";
+import { loadApiModel, loadPackageJson, loadVersionModel } from "../src/model-loader.js";
+import type { VersionConfig } from "../src/schemas/index.js";
 
 /**
- * Tests for ApiModelLoader static class
+ * Tests for the adapter-local model-loader functions. The path-based model
+ * load delegates to @tsdoctor/model's `Model.load` (typed errors on the Effect
+ * error channel); package.json loading stays a promise helper over node:fs.
  */
 
 // Mock modules
 vi.mock("node:fs");
 vi.mock("node:path");
-// loadFromPath delegates the actual model parse to api-extractor-llms'
-// loadApiModel. That package is externalized in node_modules, so its own
-// fs/path access bypasses the node:fs/node:path mocks above — stub the
-// delegated function directly to exercise the plugin's path-based loading.
+// Path-based loads delegate to Model.load, whose own fs access bypasses the
+// node:fs mock above — stub the delegated function directly.
 vi.mock("@tsdoctor/model", async (importActual) => {
 	const actual = await importActual<typeof import("@tsdoctor/model")>();
-	return { ...actual, loadApiModel: vi.fn() };
+	return { ...actual, Model: { ...actual.Model, load: vi.fn() } };
 });
 
-describe("ApiModelLoader", () => {
+const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(Effect.result(effect));
+
+describe("model-loader", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
@@ -35,18 +36,15 @@ describe("ApiModelLoader", () => {
 	});
 
 	describe("loadPackageJson", () => {
-		it("should load package.json from file path", async () => {
+		it("loads package.json from a file path", async () => {
 			const mockPath = "/path/to/package.json";
-			const mockPackageJson: PackageJson = {
-				name: "test-package",
-				version: "1.0.0",
-			};
+			const mockPackageJson: PackageJson = { name: "test-package", version: "1.0.0" };
 
 			vi.mocked(path.resolve).mockReturnValue(mockPath);
 			vi.mocked(fs.existsSync).mockReturnValue(true);
 			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockPackageJson));
 
-			const result = await ApiModelLoader.loadPackageJson(mockPath);
+			const result = await loadPackageJson(mockPath);
 
 			expect(result).toEqual(mockPackageJson);
 			expect(path.resolve).toHaveBeenCalledWith(mockPath);
@@ -54,475 +52,164 @@ describe("ApiModelLoader", () => {
 			expect(fs.readFileSync).toHaveBeenCalledWith(mockPath, "utf-8");
 		});
 
-		it("should load package.json from async function", async () => {
-			const mockPackageJson: PackageJson = {
-				name: "test-package",
-				version: "2.0.0",
-				dependencies: { foo: "^1.0.0" },
-			};
-
-			const loader = async (): Promise<PackageJson> => mockPackageJson;
-			const result = await ApiModelLoader.loadPackageJson(loader);
-
+		it("loads package.json from an async function", async () => {
+			const mockPackageJson: PackageJson = { name: "test-package", version: "2.0.0" };
+			const result = await loadPackageJson(async () => mockPackageJson);
 			expect(result).toEqual(mockPackageJson);
-			expect(path.resolve).not.toHaveBeenCalled();
-			expect(fs.existsSync).not.toHaveBeenCalled();
 		});
 
-		it("should throw error if package.json file not found", async () => {
-			const mockPath = "/path/to/missing.json";
-
-			vi.mocked(path.resolve).mockReturnValue(mockPath);
+		it("throws when the package.json file is not found", async () => {
+			vi.mocked(path.resolve).mockReturnValue("/missing/package.json");
 			vi.mocked(fs.existsSync).mockReturnValue(false);
-
-			await expect(ApiModelLoader.loadPackageJson(mockPath)).rejects.toThrow(
-				`Package.json file not found: ${mockPath}`,
-			);
+			await expect(loadPackageJson("/missing/package.json")).rejects.toThrow(/not found/);
 		});
 
-		it("should throw error if package.json has invalid JSON", async () => {
-			const mockPath = "/path/to/invalid.json";
-			const invalidJson = "{ invalid json }";
-
-			vi.mocked(path.resolve).mockReturnValue(mockPath);
+		it("throws when the package.json has invalid JSON", async () => {
+			vi.mocked(path.resolve).mockReturnValue("/bad/package.json");
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(invalidJson);
-
-			await expect(ApiModelLoader.loadPackageJson(mockPath)).rejects.toThrow(/Failed to parse package\.json at/);
-		});
-
-		it("should handle PathLike types (URL, Buffer)", async () => {
-			const mockPath = new URL("file:///path/to/package.json");
-			const mockPackageJson: PackageJson = { name: "url-package" };
-
-			vi.mocked(path.resolve).mockReturnValue("/path/to/package.json");
-			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockPackageJson));
-
-			const result = await ApiModelLoader.loadPackageJson(mockPath as PathLike);
-
-			expect(result).toEqual(mockPackageJson);
-			expect(path.resolve).toHaveBeenCalledWith("file:///path/to/package.json");
+			vi.mocked(fs.readFileSync).mockReturnValue("not json");
+			await expect(loadPackageJson("/bad/package.json")).rejects.toThrow(/Failed to parse/);
 		});
 	});
 
 	describe("loadApiModel", () => {
-		it("should load API model from file path", async () => {
-			const mockPath = "/path/to/model.api.json";
-			const mockPackage = { name: "test-package" } as ApiPackage;
+		it("loads an API model from a file path via Model.load", async () => {
+			const mockPackage = { name: "test" } as unknown as ApiPackage;
+			vi.mocked(Model.load).mockReturnValue(Effect.succeed(mockPackage));
 
-			vi.mocked(path.resolve).mockReturnValue(mockPath);
-			vi.mocked(fs.existsSync).mockReturnValue(true);
-
-			vi.mocked(loadApiModel).mockResolvedValue(mockPackage);
-
-			const result = await ApiModelLoader.loadApiModel(mockPath);
+			const result = await Effect.runPromise(loadApiModel("/models/test.api.json"));
 
 			expect(result).toEqual({ apiPackage: mockPackage });
-			expect(path.resolve).toHaveBeenCalledWith(mockPath);
-			expect(fs.existsSync).toHaveBeenCalledWith(mockPath);
-			expect(loadApiModel).toHaveBeenCalledWith(mockPath);
+			expect(Model.load).toHaveBeenCalledWith("/models/test.api.json");
 		});
 
-		it("should throw error if API model file not found", async () => {
-			const mockPath = "/path/to/missing.api.json";
+		it("propagates typed load failures on the error channel", async () => {
+			const failure = new Model.ModelNotFoundError({ modelPath: "/models/missing.api.json" });
+			vi.mocked(Model.load).mockReturnValue(Effect.fail(failure));
 
-			vi.mocked(path.resolve).mockReturnValue(mockPath);
-			vi.mocked(fs.existsSync).mockReturnValue(false);
-
-			await expect(ApiModelLoader.loadApiModel(mockPath)).rejects.toThrow(`API model file not found: ${mockPath}`);
-		});
-
-		it("preserves the original load error when the ModelLoadFailed emitter throws", async () => {
-			const mockPath = "/path/to/missing.api.json";
-			vi.mocked(path.resolve).mockReturnValue(mockPath);
-			vi.mocked(fs.existsSync).mockReturnValue(false);
-			setModelLoaderEventEmitter(() => {
-				throw new Error("emitter boom");
-			}, "b");
-			try {
-				// The guarded emit must not let the sink's failure replace the real error.
-				await expect(ApiModelLoader.loadApiModel(mockPath)).rejects.toThrow(`API model file not found: ${mockPath}`);
-			} finally {
-				setModelLoaderEventEmitter(() => {});
+			const result = await run(loadApiModel("/models/missing.api.json"));
+			expect(result._tag).toBe("Failure");
+			if (result._tag === "Failure") {
+				expect(result.failure._tag).toBe("ModelNotFoundError");
 			}
 		});
 
-		it("should load API model from async function returning ApiModel", async () => {
-			const mockPackage = { name: "test-package" } as ApiPackage;
-			const mockApiModel = {
-				packages: [mockPackage],
-			} as unknown as ApiModel;
+		it("loads an API model from an async function returning an ApiModel", async () => {
+			const mockPackage = { name: "test" } as unknown as ApiPackage;
+			const mockModel = { packages: [mockPackage] } as unknown as ApiModel;
 
-			const loader = async (): Promise<ApiModel> => mockApiModel;
-			const result = await ApiModelLoader.loadApiModel(loader);
-
+			const result = await Effect.runPromise(loadApiModel(async () => mockModel));
 			expect(result).toEqual({ apiPackage: mockPackage });
 		});
 
-		it("should load API model from async function returning LoadedModel with source", async () => {
-			const mockPackage = { name: "test-package" } as ApiPackage;
-			const mockSource: SourceConfig = {
-				url: "https://github.com/owner/repo",
-				ref: "blob/main",
-			};
-			const mockLoadedModel: LoadedModel = {
-				model: {
-					packages: [mockPackage],
-				} as unknown as ApiModel,
-				source: mockSource,
+		it("loads an API model from an async function returning a LoadedModel with source", async () => {
+			const mockPackage = { name: "test" } as unknown as ApiPackage;
+			const mockModel = { packages: [mockPackage] } as unknown as ApiModel;
+			const loaded: LoadedModel = {
+				model: mockModel,
+				source: { url: "https://github.com/owner/repo", ref: "blob/main" },
 			};
 
-			const loader = async (): Promise<LoadedModel> => mockLoadedModel;
-			const result = await ApiModelLoader.loadApiModel(loader);
-
-			expect(result).toEqual({
-				apiPackage: mockPackage,
-				source: mockSource,
-			});
+			const result = await Effect.runPromise(loadApiModel(async () => loaded));
+			expect(result.apiPackage).toBe(mockPackage);
+			expect(result.source).toEqual({ url: "https://github.com/owner/repo", ref: "blob/main" });
 		});
 
-		it("should throw error if async function returns ApiModel with empty packages", async () => {
-			const mockApiModel = {
-				packages: [],
-			} as unknown as ApiModel;
-
-			const loader = async (): Promise<ApiModel> => mockApiModel;
-
-			await expect(ApiModelLoader.loadApiModel(loader)).rejects.toThrow(
-				"API model returned by function contains no packages",
-			);
+		it("fails with EmptyModelError when an async function returns an ApiModel with no packages", async () => {
+			const mockModel = { packages: [] } as unknown as ApiModel;
+			const result = await run(loadApiModel(async () => mockModel));
+			expect(result._tag).toBe("Failure");
+			if (result._tag === "Failure") {
+				expect(result.failure._tag).toBe("EmptyModelError");
+				expect(result.failure.message).toMatch(/contains no packages/);
+			}
 		});
 
-		it("should throw error if async function returns LoadedModel with empty packages", async () => {
-			const mockLoadedModel: LoadedModel = {
-				model: {
-					packages: [],
-				} as unknown as ApiModel,
-			};
-
-			const loader = async (): Promise<LoadedModel> => mockLoadedModel;
-
-			await expect(ApiModelLoader.loadApiModel(loader)).rejects.toThrow(
-				"API model returned by function contains no packages",
-			);
+		it("fails with EmptyModelError when an async function returns a LoadedModel with no packages", async () => {
+			const loaded: LoadedModel = { model: { packages: [] } as unknown as ApiModel };
+			const result = await run(loadApiModel(async () => loaded));
+			expect(result._tag).toBe("Failure");
+			if (result._tag === "Failure") {
+				expect(result.failure._tag).toBe("EmptyModelError");
+			}
 		});
 
-		it("should throw error if async function returns invalid object (no packages)", async () => {
-			const loader = async (): Promise<ApiModel> =>
-				({
-					notAModel: true,
-				}) as unknown as ApiModel;
-
-			await expect(ApiModelLoader.loadApiModel(loader)).rejects.toThrow(
-				"API model loader function must return an ApiModel or LoadedModel",
-			);
-		});
-
-		it("should throw error if async function returns null", async () => {
-			const loader = async (): Promise<ApiModel> => null as unknown as ApiModel;
-
-			await expect(ApiModelLoader.loadApiModel(loader)).rejects.toThrow(
-				"API model loader function must return an ApiModel or LoadedModel",
-			);
-		});
-
-		it("should throw error if LoadedModel has invalid model property", async () => {
-			const mockLoadedModel: LoadedModel = {
-				model: {
-					notPackages: [],
-				} as unknown as ApiModel,
-			};
-
-			const loader = async (): Promise<LoadedModel> => mockLoadedModel;
-
-			await expect(ApiModelLoader.loadApiModel(loader)).rejects.toThrow(
-				"API model loader function must return an ApiModel",
-			);
-		});
-	});
-
-	describe("ModelLoadFailed event emission (sync-island seam)", () => {
-		afterEach(() => {
-			setModelLoaderEventEmitter(() => {});
-		});
-
-		it("emits ModelLoadFailed and still rethrows when the model file is not found", async () => {
-			const mockPath = "/path/to/missing.api.json";
-
-			vi.mocked(path.resolve).mockReturnValue(mockPath);
-			vi.mocked(fs.existsSync).mockReturnValue(false);
-
-			const emitted: PluginEvent[] = [];
-			setModelLoaderEventEmitter((event) => emitted.push(event), "test-build-id");
-
-			await expect(ApiModelLoader.loadApiModel(mockPath)).rejects.toThrow(`API model file not found: ${mockPath}`);
-
-			const failedEvents = emitted.filter((event) => event._tag === "ModelLoadFailed");
-			expect(failedEvents).toHaveLength(1);
-			const [event] = failedEvents;
-			if (event?._tag !== "ModelLoadFailed") throw new Error("expected a ModelLoadFailed event");
-			expect(event.ctx.buildId).toBe("test-build-id");
-			expect(event.level).toBe("error");
-			expect(event.modelPath).toBe(mockPath);
-			expect(event.reason).toContain("not found");
-		});
-
-		it("emits ModelLoadFailed and still rethrows when the delegated parse fails", async () => {
-			const mockPath = "/path/to/broken.api.json";
-
-			vi.mocked(path.resolve).mockReturnValue(mockPath);
-			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(loadApiModel).mockRejectedValue(new Error("malformed model"));
-
-			const emitted: PluginEvent[] = [];
-			setModelLoaderEventEmitter((event) => emitted.push(event), "test-build-id");
-
-			await expect(ApiModelLoader.loadApiModel(mockPath)).rejects.toThrow("malformed model");
-
-			const failedEvents = emitted.filter((event) => event._tag === "ModelLoadFailed");
-			expect(failedEvents).toHaveLength(1);
-			const [event] = failedEvents;
-			if (event?._tag !== "ModelLoadFailed") throw new Error("expected a ModelLoadFailed event");
-			expect(event.reason).toBe("malformed model");
-			expect(event.modelPath).toBe(mockPath);
+		it("fails with EmptyModelError when an async function returns an invalid object", async () => {
+			const result = await run(loadApiModel(async () => ({}) as unknown as ApiModel));
+			expect(result._tag).toBe("Failure");
+			if (result._tag === "Failure") {
+				expect(result.failure._tag).toBe("EmptyModelError");
+				expect(result.failure.message).toMatch(/must return an ApiModel/);
+			}
 		});
 	});
 
 	describe("loadVersionModel", () => {
-		it("should load version model from PathLike", async () => {
-			const mockPath = "/path/to/version.api.json";
-			const mockPackage = { name: "version-package" } as ApiPackage;
+		it("loads a version model from a PathLike", async () => {
+			const mockPackage = { name: "v1" } as unknown as ApiPackage;
+			vi.mocked(Model.load).mockReturnValue(Effect.succeed(mockPackage));
 
-			vi.mocked(path.resolve).mockReturnValue(mockPath);
-			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(loadApiModel).mockResolvedValue(mockPackage);
-
-			const result = await ApiModelLoader.loadVersionModel(mockPath);
-
+			const result = await Effect.runPromise(loadVersionModel("/models/v1.api.json"));
 			expect(result).toEqual({ apiPackage: mockPackage });
 		});
 
-		it("should load version model from async function", async () => {
-			const mockPackage = { name: "async-package" } as ApiPackage;
-			const mockApiModel = {
-				packages: [mockPackage],
-			} as unknown as ApiModel;
+		it("loads a version model from an async function", async () => {
+			const mockPackage = { name: "v2" } as unknown as ApiPackage;
+			const mockModel = { packages: [mockPackage] } as unknown as ApiModel;
 
-			const loader = async (): Promise<ApiModel> => mockApiModel;
-			const result = await ApiModelLoader.loadVersionModel(loader);
-
-			expect(result).toEqual({ apiPackage: mockPackage });
+			const result = await Effect.runPromise(loadVersionModel(async () => mockModel));
+			expect(result.apiPackage).toBe(mockPackage);
 		});
 
-		it("should load version model from async function with source", async () => {
-			const mockPackage = { name: "source-package" } as ApiPackage;
-			const mockSource: SourceConfig = {
-				url: "https://github.com/owner/repo",
-				ref: "blob/v1.0.0",
-			};
-			const mockLoadedModel: LoadedModel = {
-				model: {
-					packages: [mockPackage],
-				} as unknown as ApiModel,
-				source: mockSource,
-			};
-
-			const loader = async (): Promise<LoadedModel> => mockLoadedModel;
-			const result = await ApiModelLoader.loadVersionModel(loader);
-
-			expect(result).toEqual({
-				apiPackage: mockPackage,
-				source: mockSource,
-			});
-		});
-
-		it("should load version model from VersionConfig with all properties", async () => {
-			const mockPackage = { name: "config-package" } as ApiPackage;
-			const mockApiModel = {
-				packages: [mockPackage],
-			} as unknown as ApiModel;
-			const mockPackageJson: PackageJson = {
-				name: "config-package",
-				version: "1.0.0",
-			};
-			const mockSource: SourceConfig = {
-				url: "https://github.com/owner/repo",
-				ref: "blob/main",
-			};
-
-			const versionConfig: VersionConfig = {
-				model: async (): Promise<ApiModel> => mockApiModel,
-				packageJson: async (): Promise<PackageJson> => mockPackageJson,
-				categories: {
-					custom: {
-						displayName: "Custom",
-						singularName: "Custom",
-						folderName: "custom",
-						collapsible: true,
-						collapsed: true,
-						overviewHeaders: [2],
-					},
-				},
-				source: mockSource,
-				externalPackages: [{ name: "zod", version: "3.22.4" }],
-				ogImage: "/images/og.png",
-				llmsPlugin: {
-					enabled: true,
-					scopes: true,
-					apiTxt: true,
-					showCopyButton: true,
-					showViewOptions: true,
-					copyButtonText: "Copy",
-					viewOptions: ["chatgpt", "claude", "markdownLink"] as Array<"chatgpt" | "claude" | "markdownLink">,
-				},
-			};
-
-			const result = await ApiModelLoader.loadVersionModel(versionConfig);
-
-			expect(result).toEqual({
-				apiPackage: mockPackage,
-				packageJson: mockPackageJson,
-				categories: versionConfig.categories,
-				source: mockSource,
-				externalPackages: versionConfig.externalPackages,
-				ogImage: versionConfig.ogImage,
-				llmsPlugin: versionConfig.llmsPlugin,
-			});
-		});
-
-		it("should load version model from VersionConfig with minimal properties", async () => {
-			const mockPackage = { name: "minimal-package" } as ApiPackage;
-			const mockApiModel = {
-				packages: [mockPackage],
-			} as unknown as ApiModel;
-
-			const versionConfig: VersionConfig = {
-				model: async (): Promise<ApiModel> => mockApiModel,
-			};
-
-			const result = await ApiModelLoader.loadVersionModel(versionConfig);
-
-			expect(result).toEqual({
-				apiPackage: mockPackage,
-				packageJson: undefined,
-				categories: undefined,
-				source: undefined,
-				externalPackages: undefined,
-				ogImage: undefined,
-				llmsPlugin: undefined,
-			});
-		});
-
-		it("should prioritize loader source over config source", async () => {
-			const mockPackage = { name: "priority-package" } as ApiPackage;
-			const loaderSource: SourceConfig = {
-				url: "https://github.com/loader/repo",
-				ref: "blob/loader",
-			};
-			const configSource: SourceConfig = {
-				url: "https://github.com/config/repo",
-				ref: "blob/config",
-			};
-			const mockLoadedModel: LoadedModel = {
-				model: {
-					packages: [mockPackage],
-				} as unknown as ApiModel,
-				source: loaderSource,
-			};
-
-			const versionConfig: VersionConfig = {
-				model: async (): Promise<LoadedModel> => mockLoadedModel,
-				source: configSource,
-			};
-
-			const result = await ApiModelLoader.loadVersionModel(versionConfig);
-
-			// Loader source should take precedence
-			expect(result.source).toEqual(loaderSource);
-		});
-
-		it("should use config source if loader does not provide source", async () => {
-			const mockPackage = { name: "config-only-package" } as ApiPackage;
-			const configSource: SourceConfig = {
-				url: "https://github.com/config/repo",
-				ref: "blob/main",
-			};
-			const mockApiModel = {
-				packages: [mockPackage],
-			} as unknown as ApiModel;
-
-			const versionConfig: VersionConfig = {
-				model: async (): Promise<ApiModel> => mockApiModel,
-				source: configSource,
-			};
-
-			const result = await ApiModelLoader.loadVersionModel(versionConfig);
-
-			expect(result.source).toEqual(configSource);
-		});
-
-		it("should load package.json from PathLike in VersionConfig", async () => {
-			const mockPackage = { name: "pkg-path-package" } as ApiPackage;
-			const mockApiModel = {
-				packages: [mockPackage],
-			} as unknown as ApiModel;
-			const mockPackageJson: PackageJson = {
-				name: "pkg-path-package",
-				version: "1.0.0",
-			};
-			const pkgPath = "/path/to/package.json";
-
-			vi.mocked(path.resolve).mockReturnValue(pkgPath);
+		it("loads a full VersionConfig, carrying its extra properties through", async () => {
+			const mockPackage = { name: "v3" } as unknown as ApiPackage;
+			vi.mocked(Model.load).mockReturnValue(Effect.succeed(mockPackage));
+			const mockPackageJson: PackageJson = { name: "pkg", version: "3.0.0" };
+			vi.mocked(path.resolve).mockReturnValue("/pkg/package.json");
 			vi.mocked(fs.existsSync).mockReturnValue(true);
 			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockPackageJson));
 
 			const versionConfig: VersionConfig = {
-				model: async (): Promise<ApiModel> => mockApiModel,
-				packageJson: pkgPath,
+				model: "/models/v3.api.json",
+				packageJson: "/pkg/package.json",
+				source: { url: "https://github.com/owner/repo" },
+				externalPackages: [{ name: "zod", version: "^3.0.0" }],
 			};
 
-			const result = await ApiModelLoader.loadVersionModel(versionConfig);
-
+			const result = await Effect.runPromise(loadVersionModel(versionConfig));
+			expect(result.apiPackage).toBe(mockPackage);
 			expect(result.packageJson).toEqual(mockPackageJson);
+			expect(result.source).toEqual({ url: "https://github.com/owner/repo" });
+			expect(result.externalPackages).toEqual([{ name: "zod", version: "^3.0.0" }]);
 		});
 
-		it("should load package.json from async function in VersionConfig", async () => {
-			const mockPackage = { name: "pkg-func-package" } as ApiPackage;
-			const mockApiModel = {
-				packages: [mockPackage],
-			} as unknown as ApiModel;
-			const mockPackageJson: PackageJson = {
-				name: "pkg-func-package",
-				version: "2.0.0",
-				dependencies: { bar: "^2.0.0" },
+		it("prioritizes loader-supplied source over config source", async () => {
+			const mockPackage = { name: "v4" } as unknown as ApiPackage;
+			const loaded: LoadedModel = {
+				model: { packages: [mockPackage] } as unknown as ApiModel,
+				source: { url: "https://github.com/loader/repo" },
 			};
 
 			const versionConfig: VersionConfig = {
-				model: async (): Promise<ApiModel> => mockApiModel,
-				packageJson: async (): Promise<PackageJson> => mockPackageJson,
+				model: async () => loaded,
+				source: { url: "https://github.com/config/repo" },
 			};
 
-			const result = await ApiModelLoader.loadVersionModel(versionConfig);
-
-			expect(result.packageJson).toEqual(mockPackageJson);
+			const result = await Effect.runPromise(loadVersionModel(versionConfig));
+			expect(result.source).toEqual({ url: "https://github.com/loader/repo" });
 		});
 
-		it("should handle VersionConfig with model as PathLike", async () => {
-			const mockPath = "/path/to/config.api.json";
-			const mockPackage = { name: "config-path-package" } as ApiPackage;
-
-			vi.mocked(path.resolve).mockReturnValue(mockPath);
-			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(loadApiModel).mockResolvedValue(mockPackage);
+		it("uses config source when the loader provides none", async () => {
+			const mockPackage = { name: "v5" } as unknown as ApiPackage;
+			const mockModel = { packages: [mockPackage] } as unknown as ApiModel;
 
 			const versionConfig: VersionConfig = {
-				model: mockPath,
+				model: async () => mockModel,
+				source: { url: "https://github.com/config/repo" },
 			};
 
-			const result = await ApiModelLoader.loadVersionModel(versionConfig);
-
-			expect(result.apiPackage).toEqual(mockPackage);
+			const result = await Effect.runPromise(loadVersionModel(versionConfig));
+			expect(result.source).toEqual({ url: "https://github.com/config/repo" });
 		});
 	});
 });

@@ -9,6 +9,7 @@
  * @packageDocumentation
  */
 
+import { emitFrontmatterBlock } from "../frontmatter.js";
 import { formatCode } from "../prettier-formatter.js";
 import { classifyCutDirective, isTwoslashDirective } from "../twoslash-patterns.js";
 import type { ImportStatement } from "../type-reference-extractor.js";
@@ -117,12 +118,26 @@ export function sanitizeId(displayName: string, prefix: string = ""): string {
  * escapeYamlString("@pkg/name。:");          // "\"@pkg/name。:\""
  * ```
  */
-export function escapeYamlString(value: string): string {
-	// Normalize whitespace
-	const cleaned = value
+/**
+ * Normalize a string for use as a YAML frontmatter value: collapse newlines
+ * and repeated whitespace to single spaces and trim.
+ *
+ * This is the cleaning half of the former hand-rolled YAML escaping. It is
+ * applied to every frontmatter value BEFORE serialization so the parsed data
+ * (and therefore the snapshot frontmatter hash — see `@tsdoctor/snapshot`)
+ * is byte-identical to what the previous emitter produced; the quoting half
+ * is now owned by the real YAML emitter in `../frontmatter.ts`.
+ */
+function cleanYamlValue(value: string): string {
+	return value
 		.replace(/[\r\n]+/g, " ")
 		.replace(/\s+/g, " ")
 		.trim();
+}
+
+export function escapeYamlString(value: string): string {
+	// Normalize whitespace
+	const cleaned = cleanYamlValue(value);
 
 	// Check if string needs quoting:
 	// 1. Contains YAML special characters: : # | > & * ! % @ ` [ ] { } , ? -
@@ -225,8 +240,8 @@ function buildPageTitle(entityName: string, singularName: string, apiName?: stri
  * );
  * // Returns:
  * // ---
- * // title: MyClass | Class | API | My Package
- * // description: A utility class for...
+ * // title: "MyClass | Class | API | My Package"
+ * // description: "A utility class for..."
  * // ---
  * ```
  */
@@ -239,72 +254,74 @@ export function generateFrontmatter(
 ): string {
 	const title = buildPageTitle(entityName, singularName, apiName);
 
+	// Every value is whitespace-normalized exactly as the previous hand-rolled
+	// emitter did (via escapeYamlString), so the PARSED data — and therefore
+	// the snapshot frontmatter hash — is unchanged by the move to a real YAML
+	// emitter. Quoting/escaping is now the emitter's job (@effected/yaml with
+	// all string values double-quoted; see frontmatter.ts).
+	const meta = (property: string, content: string): [string, Record<string, string>] => [
+		"meta",
+		{ property, content: cleanYamlValue(content) },
+	];
+
 	// Build head array for OG tags
 	const headEntries: [string, Record<string, string>][] = [];
 
 	if (ogMetadata) {
 		// Canonical URL
-		headEntries.push(["meta", { property: "og:url", content: `${ogMetadata.siteUrl}${ogMetadata.pageRoute}` }]);
+		headEntries.push(meta("og:url", `${ogMetadata.siteUrl}${ogMetadata.pageRoute}`));
 
 		// OG Type
-		headEntries.push(["meta", { property: "og:type", content: ogMetadata.ogType }]);
+		headEntries.push(meta("og:type", ogMetadata.ogType));
 
 		// OG Description
-		headEntries.push(["meta", { property: "og:description", content: ogMetadata.description }]);
+		headEntries.push(meta("og:description", ogMetadata.description));
 
 		// OG Image metadata
 		if (ogMetadata.ogImage) {
-			headEntries.push(["meta", { property: "og:image", content: ogMetadata.ogImage.url }]);
+			headEntries.push(meta("og:image", ogMetadata.ogImage.url));
 
 			if (ogMetadata.ogImage.secureUrl) {
-				headEntries.push(["meta", { property: "og:image:secure_url", content: ogMetadata.ogImage.secureUrl }]);
+				headEntries.push(meta("og:image:secure_url", ogMetadata.ogImage.secureUrl));
 			}
 
 			if (ogMetadata.ogImage.type) {
-				headEntries.push(["meta", { property: "og:image:type", content: ogMetadata.ogImage.type }]);
+				headEntries.push(meta("og:image:type", ogMetadata.ogImage.type));
 			}
 
 			if (ogMetadata.ogImage.width) {
-				headEntries.push(["meta", { property: "og:image:width", content: String(ogMetadata.ogImage.width) }]);
+				headEntries.push(meta("og:image:width", String(ogMetadata.ogImage.width)));
 			}
 
 			if (ogMetadata.ogImage.height) {
-				headEntries.push(["meta", { property: "og:image:height", content: String(ogMetadata.ogImage.height) }]);
+				headEntries.push(meta("og:image:height", String(ogMetadata.ogImage.height)));
 			}
 
 			if (ogMetadata.ogImage.alt) {
-				headEntries.push(["meta", { property: "og:image:alt", content: ogMetadata.ogImage.alt }]);
+				headEntries.push(meta("og:image:alt", ogMetadata.ogImage.alt));
 			}
 		}
 
 		// Article metadata
-		headEntries.push(["meta", { property: "article:published_time", content: ogMetadata.publishedTime }]);
-		headEntries.push(["meta", { property: "article:modified_time", content: ogMetadata.modifiedTime }]);
-		headEntries.push(["meta", { property: "article:section", content: ogMetadata.section }]);
+		headEntries.push(meta("article:published_time", ogMetadata.publishedTime));
+		headEntries.push(meta("article:modified_time", ogMetadata.modifiedTime));
+		headEntries.push(meta("article:section", ogMetadata.section));
 
 		// Article tags
 		for (const tag of ogMetadata.tags) {
-			headEntries.push(["meta", { property: "article:tag", content: tag }]);
+			headEntries.push(meta("article:tag", tag));
 		}
 	}
 
-	// Build YAML frontmatter
-	let frontmatter = `---\ntitle: ${escapeYamlString(title)}\n`;
-	frontmatter += `description: ${escapeYamlString(description)}\n`;
-
+	const data: Record<string, unknown> = {
+		title: cleanYamlValue(title),
+		description: cleanYamlValue(description),
+	};
 	if (headEntries.length > 0) {
-		frontmatter += "head:\n";
-		for (const [tag, attrs] of headEntries) {
-			frontmatter += `  - - ${tag}\n`;
-			frontmatter += "    - ";
-			const attrPairs = Object.entries(attrs).map(([key, value]) => `${key}: ${escapeYamlString(value)}`);
-			frontmatter += attrPairs.join("\n      ");
-			frontmatter += "\n";
-		}
+		data.head = headEntries;
 	}
 
-	frontmatter += "---\n\n";
-	return frontmatter;
+	return emitFrontmatterBlock(data);
 }
 
 /**

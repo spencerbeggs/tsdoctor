@@ -47,7 +47,9 @@ changeset target for this plugin — a change under `plugin/` gets a changeset f
 | `hooks/lib/hook-output.sh` | `emit_noop` / `emit_allow` / `emit_deny` / `emit_context` |
 | `hooks/lib/hook-debug.sh` | `hook_error` / `hook_debug` |
 | `hooks/fixtures/` | Hook envelope fixtures for tests |
-| `__test__/*.bats` | bats coverage for the hooks |
+| `monitors/monitors.json` | Background monitor registration (`doc-build-issues`) |
+| `monitors/watch-issues.mjs` | Polls `**/.api-docs/build/issues.json`; notifies once a non-zero issue count settles |
+| `__test__/*.bats` | bats coverage for the hooks and monitors |
 
 ## Conventions
 

@@ -7,7 +7,7 @@ import { createHighlighter } from "shiki";
 import { describe, expect, it } from "vitest";
 import { generateApiDocs } from "../src/build-program.js";
 import { CategoryResolver } from "../src/category-resolver.js";
-import { ApiModelLoader } from "../src/model-loader.js";
+import { loadApiModel } from "../src/model-loader.js";
 import { DEFAULT_CATEGORIES } from "../src/schemas/index.js";
 import type { ResolvedApiConfig, ResolvedBuildContext } from "../src/services/ConfigService.js";
 import { ShikiCrossLinker } from "../src/shiki-transformer.js";
@@ -16,7 +16,7 @@ import { MockSnapshotServiceLayer } from "./utils/layers.js";
 describe("generateApiDocs (Effect program)", () => {
 	it("generates docs for fixture model and populates crossLinkData + fileContextMap", async () => {
 		const modelPath = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
-		const { apiPackage } = await ApiModelLoader.loadApiModel(modelPath);
+		const { apiPackage } = await Effect.runPromise(loadApiModel(modelPath));
 		const resolver = new CategoryResolver();
 		const categories = resolver.mergeCategories(DEFAULT_CATEGORIES, undefined);
 

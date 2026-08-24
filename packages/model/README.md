@@ -1,102 +1,105 @@
 # @tsdoctor/model
 
-[![npm](https://img.shields.io/npm/v/@tsdoctor/model?label=npm&color=cb3837)](https://www.npmjs.com/package/@tsdoctor/model)
+[![npm](https://img.shields.io/npm/v/@tsdoctor%2Fmodel?label=npm&color=cb3837)](https://www.npmjs.com/package/@tsdoctor/model)
 [![License: MIT](https://img.shields.io/badge/License-MIT-4caf50.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-5fa04e.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6.svg)](https://www.typescriptlang.org/)
+[![Node.js %3E%3D24.11.0](https://img.shields.io/badge/Node.js-%3E%3D24.11.0-5fa04e.svg)](https://nodejs.org/)
+[![TypeScript 6.0](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg)](https://www.typescriptlang.org/)
 
-Turn a Microsoft API Extractor `.api.json` model into plain markdown that reads cleanly for both people and language models. You get one markdown document per top-level export — an H1, the summary, a fenced `ts` signature, parameters, returns, container members and examples — with no site chrome, no HTML and no framework coupling.
+Framework-neutral analysis and rendering for Microsoft API Extractor `.api.json` models: Effect-typed loading, pure TSDoc extraction, categorization, multi-entry-point resolution, route/collision computation, synthetic-base detection, type-signature formatting, prose cross-linking and markdown rendering.
 
 ## Why @tsdoctor/model
 
-API Extractor already understands your `.d.ts` surface. What it will not do is hand you docs you can drop into a prompt, a wiki or a static site. That is the gap this package closes. The body of every rendered doc stays the same no matter where it ends up. Two things change between consumers: the frontmatter block at the top and the URL scheme for cross-links. You inject both, so one renderer feeds an RSPress site, an MCP server or a folder of bare `.md` files.
+API Extractor's `.api.json` gives you a full symbol graph but no opinion on what to do with it. Turning that graph into documentation means walking TSDoc comments, formatting signatures, deduplicating re-exports across entry points, and deciding where each item's page lives — the same handful of problems every static-doc adapter (RSPress, VitePress, an MCP server, a folder of plain markdown) solves independently. This package solves them once, as pure functions and namespace modules with no I/O beyond loading the model file, so an adapter supplies only the two things that actually differ between consumers: frontmatter and the URL scheme.
 
 ## Install
 
 ```bash
 npm install @tsdoctor/model
-# or
+```
+
+```bash
 pnpm add @tsdoctor/model
 ```
 
-The package is also published to GitHub Packages as `@spencerbeggs/@tsdoctor/model` if you prefer the scoped name; point your registry at `https://npm.pkg.github.com` for that scope and install it the same way.
+Requires Node.js >=24.11.0. This is an ESM-only package.
 
-This is an ESM-only package. Import it from a module context (`"type": "module"` or `.mjs`).
+`@effected/markdown` and `effect` are required peers (`Render` builds its output as `@effected/markdown` node trees). `@effected/package-json` is an optional peer, needed only by the `StructuredData` seam.
 
 ## Quick start
 
-Load a model, render it, then write each doc wherever you want. The library does no I/O of its own. File writing is yours.
+Load a model, render every top-level export to markdown, and write the files wherever you want — the library does no file I/O beyond the `Model.load` read itself.
 
 ```ts
 import { mkdir, writeFile } from "node:fs/promises";
-import { loadApiModel, renderPackage } from "@tsdoctor/model";
+import { Effect } from "effect";
+import { Model, Render } from "@tsdoctor/model";
 
-const pkg = await loadApiModel("./temp/my-pkg.api.json");
+const program = Effect.gen(function* () {
+  const pkg = yield* Model.load("./temp/my-pkg.api.json");
 
-const docs = renderPackage(pkg, {
-  packageName: "my-pkg",
-  routeFor: (ref) => `/api/${ref.slug}`,
+  const docs = Render.docs(pkg, {
+    packageName: "my-pkg",
+    routeFor: (ref) => `/api/${ref.slug}`,
+    frontmatter: (meta) => `---\ntitle: ${meta.name}\nkind: ${meta.kind}\n---\n\n`,
+  });
+
+  yield* Effect.promise(() => mkdir("./out", { recursive: true }));
+  for (const doc of docs) {
+    yield* Effect.promise(() => writeFile(`./out/${doc.slug}.md`, doc.markdown));
+  }
+
+  return docs;
 });
 
-await mkdir("./out", { recursive: true });
-for (const doc of docs) {
-  await writeFile(`./out/${doc.slug}.md`, doc.markdown);
-}
-
+const docs = await Effect.runPromise(program);
 console.log(docs.map((d) => `${d.kind}: ${d.name}`));
-// e.g. [ 'function: loadApiModel', 'class: CrossLinker', 'type: RenderedDoc' ]
+// e.g. [ 'function: load', 'class: CrossLinker', 'interface: RenderedDoc' ]
 // (the actual list depends on your model's exports)
 ```
 
-Each entry in the returned array is a `RenderedDoc` with `name`, `kind`, `slug`, `summary`, `packageName` and the assembled `markdown`.
+`Model.load` fails with `ModelNotFoundError` or `ModelParseError` on the Effect error channel rather than throwing — a missing or malformed `.api.json` is an expected failure mode for a build pipeline, not a defect. `Render.docs` returns one `RenderedDoc` (`name`, `kind`, `slug`, `summary`, `packageName`, `markdown`) per top-level, emittable export.
 
-### Inject frontmatter
+`routeFor` and `frontmatter` are independent — supply either, both, or neither. Without `routeFor`, item names in prose are left unlinked; without `frontmatter`, `markdown` is the bare body.
 
-Pass a `frontmatter` function to prepend a block — YAML, TOML or whatever your target expects. Omit it for bare bodies.
+### Render a single item
 
-```ts
-const docs = renderPackage(pkg, {
-  packageName: "my-pkg",
-  frontmatter: (meta) => `---\ntitle: ${meta.name}\nkind: ${meta.kind}\n---\n\n`,
-});
-
-console.log(docs[0].markdown.startsWith("---"));
-// true
-```
-
-`routeFor` and `frontmatter` are independent. Supply either, both or neither.
-
-### Filter exports
-
-By default `renderPackage` drops compiler-synthetic forgotten exports — the `*_base` classes TypeScript hoists for Effect class mixins, which API Extractor keeps in the model when it runs with `includeForgottenExports: true`. They stay in the `.api.json` (downstream `.d.ts` reconstruction needs them) but never reach the rendered markdown. That default lives in the exported `isEmittable` predicate.
-
-Pass your own `filter` to change which top-level items are emitted. A filter that returns `true` keeps the item, both as a rendered doc and as a crosslink target. Supplying a `filter` fully replaces the default, so compose it with `isEmittable` when you want to keep the forgotten-export drop alongside your own rule.
+`Render.item` renders one `ApiItem` without walking the whole package — useful when a caller already has categorized items (via `ApiItems.categorize`) and wants to drive its own page-assembly loop.
 
 ```ts
-import { isEmittable, renderPackage } from "@tsdoctor/model";
+import { Render } from "@tsdoctor/model";
 
-const docs = renderPackage(pkg, {
-  packageName: "my-pkg",
-  filter: (item) => isEmittable(item) && !item.displayName.startsWith("Internal"),
-});
-
-console.log(docs.every((d) => !d.name.startsWith("Internal")));
-// true
+const body = Render.item(apiItem, { packageName: "my-pkg" });
+console.log(body.startsWith("#"));
+// true — every rendered body opens with an H1 of the item's display name
 ```
+
+### Filter which items get a page
+
+By default `Render.docs` drops compiler-synthetic forgotten exports — the `*_base` declarations TypeScript hoists for Effect class mixins (`Schema.Class`, `Data.TaggedError`), which stay in the model under `includeForgottenExports: true` but should never be their own page. That default lives in the exported `Render.isEmittable` predicate; `SyntheticBases.detect` finds the same declarations for adapters that want to inline them on the owning class's page instead of dropping them silently.
+
+```ts
+import { Render } from "@tsdoctor/model";
+
+const docs = Render.docs(pkg, {
+  packageName: "my-pkg",
+  filter: (item) => Render.isEmittable(item) && !item.displayName.startsWith("Internal"),
+});
+```
+
+Supplying `filter` fully replaces the default, so compose it with `Render.isEmittable` to keep the forgotten-export drop.
 
 ## Features
 
-- `loadApiModel(path)` reads a `.api.json` file from disk and returns its `ApiPackage`.
-- `renderPackage(pkg, opts)` walks the first entry point and returns one `RenderedDoc` per top-level member, dropping compiler-synthetic forgotten exports unless you pass your own `filter`.
-- `renderItem(item, opts)` renders a single API item to a markdown body, with an optional `CrossLinker`.
-- `isEmittable(item)` is the default emit rule — it drops forgotten exports (`isExported === false`) and keeps everything else; compose it into a custom `filter` to keep that behaviour.
-- `CrossLinker` wraps known item names in prose with links, skipping code spans and existing links, using your injected route scheme.
-- `TypeSignatureFormatter` formats an API Extractor `Excerpt` into a clean type signature, wrapping long unions across lines.
-- TSDoc helpers — `getSummary`, `getParams`, `getReturns`, `getExamples`, `getDeprecation`, `getReleaseTag`, `hasModifierTag` and `extractPlainText` — pull plain data off an `ApiItem` with no rendering.
-
-## Generating a model
-
-This package consumes the JSON that [Microsoft API Extractor](https://api-extractor.com/) produces. Run API Extractor against your project first with `docModel.enabled` set in your `api-extractor.json`, then feed the resulting `.api.json` to `loadApiModel`.
+- **`Model`** — Effect-typed `.api.json` loading. `Model.load(path)` returns the package's `ApiPackage` or fails with `ModelNotFoundError` / `ModelParseError`; `Model.firstPackage(apiModel)` extracts a package from a caller-constructed `ApiModel`, failing with `EmptyModelError` if it has none.
+- **`Tsdoc`** — pure extraction off an `ApiItem`: `summary`, `params`, `returns`, `examples`, `deprecation`, `releaseTag`, `hasModifier`, `seeReferences`, plus `plainText`/`toMarkdown` for walking a raw TSDoc `DocNode` tree yourself.
+- **`ApiItems`** — `categorize(items, categories)` groups top-level items by category key (returning `{ items, uncategorized }` so the caller decides how to handle the leftovers), `namespaceMembers` flattens namespace contents with qualified names, `inheritance` reads extends/implements, `sourceLink` builds a source-code URL.
+- **`EntryPoints`** — `resolve(apiPackage)` deduplicates items re-exported from more than one entry point (e.g. `.` and `./testing`) into a flat list, recording every entry point each item is available from.
+- **`Routes`** — `RouteCandidate`, `detectCollisions`, and the typed `RouteCollisionError` for failing a build when two distinct items would resolve to the same output route; `sanitizeId` is the single anchor-id sanitizer for member routes.
+- **`SyntheticBases`** — `detect(items)` finds the unexported `*_base` declarations an exported class's `extends` clause references, so an adapter can inline them instead of generating (or silently dropping) a page for them; `BASE_CLASS_ANCHOR` is the matching anchor id.
+- **`Signature`** — `format(excerpt)` turns an API Extractor `Excerpt` into a clean, line-wrapped type signature string; `stripExportDeclare` strips `export`/`declare` modifiers from declaration text.
+- **`CrossLinker`** — an immutable class that wraps known item names in prose with links, skipping code spans and existing links. Build one per build from a precomputed route map (`CrossLinker.fromRoutes`) or from item refs plus an injected URL scheme (`CrossLinker.fromRefs`); `link` returns markdown links, `linkHtml` returns `<a>` anchors.
+- **`Render`** — the markdown output system. `Render.docs(pkg, opts)` renders a whole package; `Render.item(apiItem, opts)` renders one item; `Render.isEmittable` is the default emit rule. `Render.tree` (`@alpha`) exposes the pre-serialization `@effected/markdown` node tree for a future page-IR consumer.
+- **`StructuredData`** (`@alpha`) — a reserved seam for schema.org JSON-LD derivation. `StructuredData.derive` is not implemented yet and throws if called.
 
 ## License
 

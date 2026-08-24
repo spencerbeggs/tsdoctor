@@ -1,11 +1,10 @@
 /* v8 ignore start -- page generator, tested via build-stages integration tests */
+
 import type { ApiDeclaredItem, ApiItem, ApiNamespace } from "@microsoft/api-extractor-model";
 import { ApiItemKind } from "@microsoft/api-extractor-model";
-import { TypeSignatureFormatter } from "../../formatter.js";
-import { ApiParser } from "../../loader.js";
+import { ApiItems, Signature, Tsdoc } from "@tsdoctor/model";
 import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
 import { TypeReferenceExtractor } from "../../type-reference-extractor.js";
-import { markdownCrossLinker } from "../cross-linker.js";
 import {
 	escapeMdxGenerics,
 	formatExampleCode,
@@ -15,6 +14,7 @@ import {
 	prependHiddenImports,
 	stripTwoslashDirectives,
 } from "../helpers.js";
+import { linkProse } from "../prose-linker.js";
 
 /**
  * Grouped namespace members by type for organized documentation rendering.
@@ -51,9 +51,9 @@ interface GroupedMembers {
  *
  * **Relationships:**
  * - Created and invoked by {@link ApiExtractorPlugin} during page generation
- * - Uses {@link TypeSignatureFormatter} for formatting type signatures
- * - Uses {@link ApiParser} for extracting documentation from API models
- * - Uses {@link MarkdownCrossLinker} for adding type reference links
+ * - Uses `Signature.format` from `@tsdoctor/model` for formatting type signatures
+ * - Uses the `Tsdoc` / `ApiItems` modules from `@tsdoctor/model` for extracting documentation
+ * - Uses the per-build prose linker (`linkProse`) for adding type reference links
  *
  * @example
  * ```ts
@@ -75,8 +75,6 @@ interface GroupedMembers {
  * @see {@link InterfacePageGenerator} for interface documentation
  */
 export class NamespacePageGenerator {
-	private readonly typeFormatter: TypeSignatureFormatter = new TypeSignatureFormatter();
-
 	/**
 	 * Generate a markdown page for a namespace
 	 *
@@ -96,8 +94,8 @@ export class NamespacePageGenerator {
 	): Promise<{ routePath: string; content: string }> {
 		const shouldSuppressErrors = suppressExampleErrors ?? true;
 		const name = apiNamespace.displayName;
-		const summary = ApiParser.getSummary(apiNamespace) || "No description available.";
-		const releaseTag = ApiParser.getReleaseTag(apiNamespace);
+		const summary = Tsdoc.summary(apiNamespace) || "No description available.";
+		const releaseTag = Tsdoc.releaseTag(apiNamespace);
 
 		let content = generateFrontmatter(name, summary, singularName, apiName);
 		content += `import { SourceCode } from "@rspress/core/theme";\n`;
@@ -106,9 +104,9 @@ export class NamespacePageGenerator {
 		content += `# ${name}\n\n`;
 
 		// Add deprecation warning if present
-		const deprecation = ApiParser.getDeprecation(apiNamespace);
+		const deprecation = Tsdoc.deprecation(apiNamespace);
 		if (deprecation) {
-			const message = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(deprecation.message));
+			const message = escapeMdxGenerics(linkProse(deprecation.message));
 			content += `> **Deprecated:** ${message}\n\n`;
 		}
 
@@ -124,7 +122,7 @@ export class NamespacePageGenerator {
 		content += generateAvailableFrom(packageName, availableFrom);
 
 		// Add toolbar with source code badge
-		const sourceLink = ApiParser.getSourceLink(apiNamespace, sourceConfig);
+		const sourceLink = ApiItems.sourceLink(apiNamespace, sourceConfig);
 		if (sourceLink) {
 			content += `<div className="api-docs-toolbar">\n`;
 			content += `  <div className="api-docs-toolbar-left">\n`;
@@ -156,7 +154,7 @@ export class NamespacePageGenerator {
 		content += this.renderMemberSection("Namespaces", grouped.namespaces, baseRoute, "namespace", name);
 
 		// Add examples using ApiExample component
-		const examples = ApiParser.getExamples(apiNamespace);
+		const examples = Tsdoc.examples(apiNamespace);
 		if (examples.length > 0) {
 			content += `## Examples\n\n`;
 			for (const example of examples) {
@@ -179,11 +177,11 @@ export class NamespacePageGenerator {
 		}
 
 		// Add see also references
-		const seeReferences = ApiParser.getSeeReferences(apiNamespace);
+		const seeReferences = Tsdoc.seeReferences(apiNamespace);
 		if (seeReferences.length > 0) {
 			content += `## See Also\n\n`;
 			for (const reference of seeReferences) {
-				const refText = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(reference.text));
+				const refText = escapeMdxGenerics(linkProse(reference.text));
 				content += `- ${refText}\n`;
 			}
 			content += `\n`;
@@ -261,13 +259,13 @@ export class NamespacePageGenerator {
 		let section = `## ${title}\n\n`;
 		for (const member of members) {
 			const memberName = member.displayName;
-			const memberSummary = ApiParser.getSummary(member);
+			const memberSummary = Tsdoc.summary(member);
 			// Use qualified name (namespace.member) for the route
 			const qualifiedName = `${namespaceName}.${memberName}`.toLowerCase();
 			const memberRoute = `${baseRoute}/${categoryFolder}/${qualifiedName}`;
 
 			if (memberSummary) {
-				const escapedSummary = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(memberSummary));
+				const escapedSummary = escapeMdxGenerics(linkProse(memberSummary));
 				section += `- [${memberName}](${memberRoute}) - ${escapedSummary}\n`;
 			} else {
 				section += `- [${memberName}](${memberRoute})\n`;
@@ -313,7 +311,7 @@ export class NamespacePageGenerator {
 		for (const cls of grouped.classes) {
 			const clsItem = cls as ApiDeclaredItem;
 			if (clsItem.excerpt?.text) {
-				const signature = this.typeFormatter.format(clsItem.excerpt).trim();
+				const signature = Signature.format(clsItem.excerpt).trim();
 				// Show abbreviated class declaration
 				lines.push(`    ${this.abbreviateDeclaration(signature, "class")} { }`);
 			}
@@ -323,7 +321,7 @@ export class NamespacePageGenerator {
 		for (const iface of grouped.interfaces) {
 			const ifaceItem = iface as ApiDeclaredItem;
 			if (ifaceItem.excerpt?.text) {
-				const signature = this.typeFormatter.format(ifaceItem.excerpt).trim();
+				const signature = Signature.format(ifaceItem.excerpt).trim();
 				// Show abbreviated interface declaration
 				lines.push(`    ${this.abbreviateDeclaration(signature, "interface")} { }`);
 			}
@@ -333,7 +331,7 @@ export class NamespacePageGenerator {
 		for (const func of grouped.functions) {
 			const funcItem = func as ApiDeclaredItem;
 			if (funcItem.excerpt?.text) {
-				const signature = this.typeFormatter.format(funcItem.excerpt).trim();
+				const signature = Signature.format(funcItem.excerpt).trim();
 				lines.push(`    ${signature}`);
 			}
 		}
@@ -342,7 +340,7 @@ export class NamespacePageGenerator {
 		for (const variable of grouped.variables) {
 			const varItem = variable as ApiDeclaredItem;
 			if (varItem.excerpt?.text) {
-				const signature = this.typeFormatter.format(varItem.excerpt).trim();
+				const signature = Signature.format(varItem.excerpt).trim();
 				lines.push(`    ${signature}`);
 			}
 		}
@@ -351,7 +349,7 @@ export class NamespacePageGenerator {
 		for (const typeAlias of grouped.typeAliases) {
 			const typeItem = typeAlias as ApiDeclaredItem;
 			if (typeItem.excerpt?.text) {
-				const signature = this.typeFormatter.format(typeItem.excerpt).trim();
+				const signature = Signature.format(typeItem.excerpt).trim();
 				lines.push(`    ${signature}`);
 			}
 		}
@@ -360,7 +358,7 @@ export class NamespacePageGenerator {
 		for (const enumItem of grouped.enums) {
 			const enumDeclItem = enumItem as ApiDeclaredItem;
 			if (enumDeclItem.excerpt?.text) {
-				const signature = this.typeFormatter.format(enumDeclItem.excerpt).trim();
+				const signature = Signature.format(enumDeclItem.excerpt).trim();
 				// Show abbreviated enum declaration
 				lines.push(`    ${this.abbreviateDeclaration(signature, "enum")} { }`);
 			}
@@ -370,7 +368,7 @@ export class NamespacePageGenerator {
 		for (const ns of grouped.namespaces) {
 			const nsItem = ns as ApiDeclaredItem;
 			if (nsItem.excerpt?.text) {
-				const signature = this.typeFormatter.format(nsItem.excerpt).trim();
+				const signature = Signature.format(nsItem.excerpt).trim();
 				// Show abbreviated namespace declaration
 				lines.push(`    ${this.abbreviateDeclaration(signature, "namespace")} { }`);
 			}

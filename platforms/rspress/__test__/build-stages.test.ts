@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { ApiModel } from "@microsoft/api-extractor-model";
+import { SnapshotServiceLive } from "@tsdoctor/snapshot";
 import { Effect, Layer, References } from "effect";
 import { describe, expect, it } from "vitest";
 import type {
@@ -23,9 +24,7 @@ import {
 	writeSingleFile,
 } from "../src/build-stages.js";
 import { CategoryResolver } from "../src/category-resolver.js";
-import { SnapshotServiceLive } from "../src/layers/SnapshotServiceLive.js";
-import { MarkdownCrossLinker } from "../src/markdown/cross-linker.js";
-import { ApiModelLoader } from "../src/model-loader.js";
+import { loadApiModel } from "../src/model-loader.js";
 import type { PluginEvent } from "../src/observability/events.js";
 import type { CategoryConfig } from "../src/schemas/index.js";
 import { DEFAULT_CATEGORIES } from "../src/schemas/index.js";
@@ -74,7 +73,7 @@ describe("build-stages types", () => {
 describe("prepareWorkItems", () => {
 	it("returns work items and cross-link data from fixture API model", async () => {
 		const modelPath = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
-		const { apiPackage } = await ApiModelLoader.loadApiModel(modelPath);
+		const { apiPackage } = await Effect.runPromise(loadApiModel(modelPath));
 		const resolver = new CategoryResolver();
 		const categories = resolver.mergeCategories(DEFAULT_CATEGORIES, undefined);
 
@@ -97,7 +96,7 @@ describe("prepareWorkItems", () => {
 
 	it("returns empty arrays for empty categories", async () => {
 		const modelPath = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
-		const { apiPackage } = await ApiModelLoader.loadApiModel(modelPath);
+		const { apiPackage } = await Effect.runPromise(loadApiModel(modelPath));
 		const result = prepareWorkItems({
 			apiPackage,
 			categories: {},
@@ -395,7 +394,7 @@ describe("writeMetadata", () => {
 		const statBefore = await fs.promises.stat(metaPath);
 
 		// Build the existingSnapshots by reading the snapshot DB via SnapshotService
-		const { SnapshotService } = await import("../src/services/SnapshotService.js");
+		const { SnapshotService } = await import("@tsdoctor/snapshot");
 		const existingSnapshots = await Effect.runPromise(
 			Effect.gen(function* () {
 				const svc = yield* SnapshotService;
@@ -495,44 +494,6 @@ describe("writeMetadata", () => {
 	});
 });
 
-describe("MarkdownCrossLinker accumulation", () => {
-	const categories = { classes: { folderName: "class" } };
-
-	it("addRoutes accumulates routes across multiple calls", () => {
-		const linker = new MarkdownCrossLinker();
-
-		linker.addRoutes({ classes: [{ displayName: "Foo", kind: "Class", members: [] }] }, "/api1", categories);
-		linker.addRoutes({ classes: [{ displayName: "Bar", kind: "Class", members: [] }] }, "/api2", categories);
-
-		// Both routes should be present
-		const result = linker.addCrossLinks("Returns a Foo or Bar instance");
-		expect(result).toContain("[Foo](/api1/class/foo)");
-		expect(result).toContain("[Bar](/api2/class/bar)");
-	});
-
-	it("clear removes all accumulated routes", () => {
-		const linker = new MarkdownCrossLinker();
-		linker.addRoutes({ classes: [{ displayName: "Foo", kind: "Class", members: [] }] }, "/api1", categories);
-
-		linker.clear();
-
-		const result = linker.addCrossLinks("Returns a Foo instance");
-		expect(result).toBe("Returns a Foo instance");
-	});
-
-	it("initialize clears then adds (backward compat)", () => {
-		const linker = new MarkdownCrossLinker();
-		linker.addRoutes({ classes: [{ displayName: "Foo", kind: "Class", members: [] }] }, "/api1", categories);
-
-		// initialize should clear Foo and add Bar
-		linker.initialize({ classes: [{ displayName: "Bar", kind: "Class", members: [] }] }, "/api2", categories);
-
-		const result = linker.addCrossLinks("Returns a Foo or Bar instance");
-		expect(result).not.toContain("[Foo]");
-		expect(result).toContain("[Bar](/api2/class/bar)");
-	});
-});
-
 describe("cleanupAndCommit", () => {
 	it("batch upserts snapshots for written files only", async () => {
 		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "cleanup-test-"));
@@ -589,7 +550,7 @@ describe("cleanupAndCommit", () => {
 		);
 
 		// Only written file should have a snapshot (not unchanged)
-		const { SnapshotService } = await import("../src/services/SnapshotService.js");
+		const { SnapshotService } = await import("@tsdoctor/snapshot");
 		const snapshots = await Effect.runPromise(
 			Effect.gen(function* () {
 				const svc = yield* SnapshotService;
@@ -706,7 +667,7 @@ describe("cleanupAndCommit", () => {
 describe("generateSinglePage", () => {
 	it("generates a page result with valid hashes", async () => {
 		const modelPath = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
-		const { apiPackage } = await ApiModelLoader.loadApiModel(modelPath);
+		const { apiPackage } = await Effect.runPromise(loadApiModel(modelPath));
 		const resolver = new CategoryResolver();
 		const categories = resolver.mergeCategories(DEFAULT_CATEGORIES, undefined);
 		const { workItems } = prepareWorkItems({
@@ -769,7 +730,7 @@ describe("generateSinglePage", () => {
 
 	it("marks unchanged when snapshot hashes match", async () => {
 		const modelPath = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
-		const { apiPackage } = await ApiModelLoader.loadApiModel(modelPath);
+		const { apiPackage } = await Effect.runPromise(loadApiModel(modelPath));
 		const resolver = new CategoryResolver();
 		const categories = resolver.mergeCategories(DEFAULT_CATEGORIES, undefined);
 		const { workItems } = prepareWorkItems({
@@ -820,7 +781,7 @@ describe("generateSinglePage", () => {
 
 	it("routes qualified namespace members whose simple name matches the category folder", async () => {
 		const modelPath = path.join(import.meta.dirname, "__fixtures__/qualified-alias/qualified-alias.api.json");
-		const { apiPackage } = await ApiModelLoader.loadApiModel(modelPath);
+		const { apiPackage } = await Effect.runPromise(loadApiModel(modelPath));
 		const resolver = new CategoryResolver();
 		const categories = resolver.mergeCategories(DEFAULT_CATEGORIES, undefined);
 		const { workItems, crossLinkData } = prepareWorkItems({
@@ -958,7 +919,7 @@ describe("writeSingleFile", () => {
 describe("Stream pipeline (native)", () => {
 	it("streams items through generate → write → fold", async () => {
 		const modelPath = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
-		const { apiPackage } = await ApiModelLoader.loadApiModel(modelPath);
+		const { apiPackage } = await Effect.runPromise(loadApiModel(modelPath));
 		const resolver = new CategoryResolver();
 		const categories = resolver.mergeCategories(DEFAULT_CATEGORIES, undefined);
 		const { workItems } = prepareWorkItems({
@@ -1001,7 +962,7 @@ describe("Stream pipeline (native)", () => {
 
 	it("includes unchanged files in results when snapshots match", async () => {
 		const modelPath = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
-		const { apiPackage } = await ApiModelLoader.loadApiModel(modelPath);
+		const { apiPackage } = await Effect.runPromise(loadApiModel(modelPath));
 		const resolver = new CategoryResolver();
 		const categories = resolver.mergeCategories(DEFAULT_CATEGORIES, undefined);
 		const { workItems } = prepareWorkItems({

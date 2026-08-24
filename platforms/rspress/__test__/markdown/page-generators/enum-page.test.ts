@@ -1,25 +1,31 @@
 import type { ApiEnum, ApiEnumMember } from "@microsoft/api-extractor-model";
+import { ApiItems, Tsdoc } from "@tsdoctor/model";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiParser } from "../../../src/loader.js";
 import { EnumPageGenerator } from "../../../src/markdown/page-generators/enum-page.js";
 import type { LlmsPlugin, SourceConfig } from "../../../src/schemas/index.js";
 
 // Mock dependencies
-vi.mock("../../../src/loader.js", () => ({
-	ApiParser: {
-		getSummary: vi.fn(),
-		getReleaseTag: vi.fn(),
-		getDeprecation: vi.fn(),
-		getSourceLink: vi.fn(),
-		getExamples: vi.fn(),
-		getSeeReferences: vi.fn(),
-	},
-}));
+vi.mock("@tsdoctor/model", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@tsdoctor/model")>();
+	return {
+		...actual,
+		Tsdoc: {
+			...actual.Tsdoc,
+			summary: vi.fn(),
+			releaseTag: vi.fn(),
+			deprecation: vi.fn(),
+			examples: vi.fn(),
+			seeReferences: vi.fn(),
+		},
+		ApiItems: {
+			...actual.ApiItems,
+			sourceLink: vi.fn(),
+		},
+	};
+});
 
-vi.mock("../../../src/markdown/cross-linker.js", () => ({
-	markdownCrossLinker: {
-		addCrossLinks: vi.fn((text: string) => text),
-	},
+vi.mock("../../../src/markdown/prose-linker.js", () => ({
+	linkProse: vi.fn((text: string) => text),
 }));
 
 vi.mock("../../../src/markdown/helpers.js", () => ({
@@ -59,12 +65,12 @@ describe("EnumPageGenerator", () => {
 		vi.clearAllMocks();
 
 		// Set default mock returns
-		vi.mocked(ApiParser.getSummary).mockReturnValue("Status enumeration");
-		vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Public");
-		vi.mocked(ApiParser.getDeprecation).mockReturnValue(null);
-		vi.mocked(ApiParser.getSourceLink).mockReturnValue(null);
-		vi.mocked(ApiParser.getExamples).mockReturnValue([]);
-		vi.mocked(ApiParser.getSeeReferences).mockReturnValue([]);
+		vi.mocked(Tsdoc.summary).mockReturnValue("Status enumeration");
+		vi.mocked(Tsdoc.releaseTag).mockReturnValue("Public");
+		vi.mocked(Tsdoc.deprecation).mockReturnValue(null);
+		vi.mocked(ApiItems.sourceLink).mockReturnValue(null);
+		vi.mocked(Tsdoc.examples).mockReturnValue([]);
+		vi.mocked(Tsdoc.seeReferences).mockReturnValue([]);
 	});
 
 	describe("generate", () => {
@@ -92,7 +98,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should handle no summary", async () => {
-			vi.mocked(ApiParser.getSummary).mockReturnValue("");
+			vi.mocked(Tsdoc.summary).mockReturnValue("");
 
 			const result = await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope");
 
@@ -100,7 +106,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should include deprecation warning", async () => {
-			vi.mocked(ApiParser.getDeprecation).mockReturnValue({
+			vi.mocked(Tsdoc.deprecation).mockReturnValue({
 				message: "Use NewStatus instead",
 			});
 
@@ -110,7 +116,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should include release tag for non-Public items", async () => {
-			vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Beta");
+			vi.mocked(Tsdoc.releaseTag).mockReturnValue("Beta");
 
 			const result = await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope");
 
@@ -118,7 +124,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should not include release tag for Public items", async () => {
-			vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Public");
+			vi.mocked(Tsdoc.releaseTag).mockReturnValue("Public");
 
 			const result = await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope");
 
@@ -126,7 +132,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should include source link toolbar", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/enums.ts#L10");
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/enums.ts#L10");
 
 			const result = await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope");
 
@@ -135,7 +141,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should not include toolbar when no source link", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue(null);
+			vi.mocked(ApiItems.sourceLink).mockReturnValue(null);
 
 			const result = await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope");
 
@@ -143,7 +149,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should include LLMS plugin section when enabled", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/enums.ts");
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/enums.ts");
 			const llmsPlugin: LlmsPlugin = {
 				enabled: true,
 				showCopyButton: true,
@@ -168,7 +174,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should not include LLMS plugin section when disabled", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/enums.ts");
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/enums.ts");
 			const llmsPlugin: LlmsPlugin = {
 				enabled: false,
 				showCopyButton: false,
@@ -220,7 +226,7 @@ describe("EnumPageGenerator", () => {
 		it("should include members table using EnumMembersTable component", async () => {
 			// Mock getSummary to return different values for different calls
 			let callCount = 0;
-			vi.mocked(ApiParser.getSummary).mockImplementation((item: unknown) => {
+			vi.mocked(Tsdoc.summary).mockImplementation((item: unknown) => {
 				if (callCount === 0) {
 					callCount++;
 					return "Status enumeration";
@@ -248,7 +254,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should handle members without descriptions", async () => {
-			vi.mocked(ApiParser.getSummary).mockImplementation((item: unknown) => {
+			vi.mocked(Tsdoc.summary).mockImplementation((item: unknown) => {
 				// Return summary for enum, empty for members
 				if ((item as ApiEnum).members) {
 					return "Status enumeration";
@@ -275,7 +281,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should include examples section", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([
+			vi.mocked(Tsdoc.examples).mockReturnValue([
 				{ language: "typescript", code: "import { Status } from 'my-package';\nconst status = Status.Active;" },
 				{ language: "typescript", code: "// Another example\nif (status === Status.Inactive) { }" },
 			]);
@@ -288,7 +294,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should not include examples section when empty", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([]);
+			vi.mocked(Tsdoc.examples).mockReturnValue([]);
 
 			const result = await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope");
 
@@ -296,7 +302,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should include see also section", async () => {
-			vi.mocked(ApiParser.getSeeReferences).mockReturnValue([
+			vi.mocked(Tsdoc.seeReferences).mockReturnValue([
 				{ text: "See {@link RelatedEnum}" },
 				{ text: "See the enum documentation" },
 			]);
@@ -309,7 +315,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should not include see also section when empty", async () => {
-			vi.mocked(ApiParser.getSeeReferences).mockReturnValue([]);
+			vi.mocked(Tsdoc.seeReferences).mockReturnValue([]);
 
 			const result = await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope");
 
@@ -317,7 +323,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should use suppressExampleErrors parameter", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([{ language: "typescript", code: "example code" }]);
+			vi.mocked(Tsdoc.examples).mockReturnValue([{ language: "typescript", code: "example code" }]);
 
 			await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope", undefined, undefined, false);
 
@@ -331,7 +337,7 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should default suppressExampleErrors to true", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([{ language: "typescript", code: "example code" }]);
+			vi.mocked(Tsdoc.examples).mockReturnValue([{ language: "typescript", code: "example code" }]);
 
 			await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope");
 
@@ -352,7 +358,7 @@ describe("EnumPageGenerator", () => {
 
 			await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope", undefined, sourceConfig);
 
-			expect(ApiParser.getSourceLink).toHaveBeenCalledWith(mockApiEnum, sourceConfig);
+			expect(ApiItems.sourceLink).toHaveBeenCalledWith(mockApiEnum, sourceConfig);
 		});
 
 		it("should generate correct route path with lowercase name", async () => {
@@ -370,12 +376,12 @@ describe("EnumPageGenerator", () => {
 		});
 
 		it("should format complete page with all sections", async () => {
-			vi.mocked(ApiParser.getSummary).mockReturnValue("An enum");
-			vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Alpha");
-			vi.mocked(ApiParser.getDeprecation).mockReturnValue({ message: "Deprecated message" });
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/enums.ts");
-			vi.mocked(ApiParser.getExamples).mockReturnValue([{ language: "typescript", code: "example code" }]);
-			vi.mocked(ApiParser.getSeeReferences).mockReturnValue([{ text: "See something" }]);
+			vi.mocked(Tsdoc.summary).mockReturnValue("An enum");
+			vi.mocked(Tsdoc.releaseTag).mockReturnValue("Alpha");
+			vi.mocked(Tsdoc.deprecation).mockReturnValue({ message: "Deprecated message" });
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/enums.ts");
+			vi.mocked(Tsdoc.examples).mockReturnValue([{ language: "typescript", code: "example code" }]);
+			vi.mocked(Tsdoc.seeReferences).mockReturnValue([{ text: "See something" }]);
 			(mockApiEnum as unknown as { members: ApiEnumMember[] }).members = [{ displayName: "Active" } as ApiEnumMember];
 
 			const result = await generator.generate(mockApiEnum, "/api", "my-package", "enum", "test-scope", "API");

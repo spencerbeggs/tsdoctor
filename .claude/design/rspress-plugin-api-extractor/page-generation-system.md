@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-07-21
-last-synced: 2026-07-21
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 85
 related:
   - rspress-plugin-api-extractor/build-architecture.md
@@ -37,12 +37,14 @@ class-based generators for each API item category.
 
 - **Effect Stream pipeline** for concurrent page generation and writing
 - **5-stage build process** orchestrated by `build-program.ts`
-- **Multi-entry point resolution** via `MultiEntryResolver` for
-  deduplication and collision detection
+- **Multi-entry point resolution** via `@tsdoctor/model`'s `EntryPoints`
+  module for deduplication and collision detection
 - **Class-based generators** for each API category (class, interface,
-  function, type alias, enum, variable, namespace)
-- **Snapshot-tracked writes** for incremental builds
-- **Cross-linking** via ShikiCrossLinker and MarkdownCrossLinker
+  function, type alias, enum, variable, namespace), consuming
+  `Tsdoc.*`/`Signature.*` from `@tsdoctor/model` directly
+- **Snapshot-tracked writes** for incremental builds (`@tsdoctor/snapshot`)
+- **Cross-linking** via ShikiCrossLinker and the `@tsdoctor/model`
+  `CrossLinker` (installed through `markdown/prose-linker.ts`)
 - **Effect Metrics** for build statistics
 
 ## Stream Pipeline Architecture
@@ -86,7 +88,7 @@ interface WorkItem {
   item: ApiItem;
   categoryKey: string;
   categoryConfig: CategoryConfig;
-  namespaceMember?: NamespaceMember;
+  namespaceMember?: ApiItems.NamespaceMember;  // from @tsdoctor/model
   /** Entry points this item is available from */
   availableFrom?: string[];
   /** Unexported base declaration to inline on this class page */
@@ -124,23 +126,26 @@ interface FileWriteResult {
 
 **Location:** `build-stages.ts` `prepareWorkItems()`
 
-Runs before the Stream pipeline. Produces:
+Runs before the Stream pipeline. The pure logic lives in `@tsdoctor/model`'s namespace modules (`EntryPoints`, `SyntheticBases`, `ApiItems`, `Routes` — extracted from the former plugin files in the phase-2 model migration); `prepareWorkItems` is the adapter orchestration over them. Produces:
 
-1. **Multi-entry resolution** -- `resolveEntryPoints()` from
-   `multi-entry-resolver.ts` deduplicates re-exports across entry
-   points. Each item receives `availableFrom`.
-2. **Synthetic base detection** -- `detectSyntheticBases()` from `synthetic-bases.ts` finds unexported items (hoisted into the model via `includeForgottenExports`, `isExported === false` per `ApiExportedMixin`) that an exported class's extends clause references — the `Foo_base` declarations TypeScript emits for class-factory heritage (Effect `Schema.Class`, `Data.TaggedError`, mixins). Detected bases are **excluded** from categorization, collision detection and work items: they get no page and no sidebar entry. Instead the owning class's `WorkItem` carries `syntheticBase`, and the class page renders the declaration inline in a "Base Class" section (anchor `BASE_CLASS_ANCHOR` = `#base-class`). The base's cross-link route points at that anchor, so the `extends Foo_base` reference in signatures stays clickable. Unexported items NOT referenced by a class extends clause (genuine forgotten exports) keep the previous behavior, as do dangling extends references whose base is absent from the model.
+1. **Multi-entry resolution** -- `EntryPoints.resolve(apiPackage)`
+   deduplicates re-exports across entry points. Each item receives
+   `availableFrom`.
+2. **Synthetic base detection** -- `SyntheticBases.detect()` finds unexported items (hoisted into the model via `includeForgottenExports`, `isExported === false` per `ApiExportedMixin`) that an exported class's extends clause references — the `Foo_base` declarations TypeScript emits for class-factory heritage (Effect `Schema.Class`, `Data.TaggedError`, mixins). Detected bases are **excluded** from categorization, collision detection and work items: they get no page and no sidebar entry. Instead the owning class's `WorkItem` carries `syntheticBase`, and the class page renders the declaration inline in a "Base Class" section (anchor `SyntheticBases.BASE_CLASS_ANCHOR` = `#base-class`). The base's cross-link route points at that anchor, so the `extends Foo_base` reference in signatures stays clickable. Unexported items NOT referenced by a class extends clause (genuine forgotten exports) keep the previous behavior, as do dangling extends references whose base is absent from the model.
 3. **Categorized items** -- API items grouped by category key via
-   `ApiParser.categorizeApiItems()`, which accepts
-   `ResolvedEntryItem[]` (multi-entry) or `ApiPackage` (legacy)
-4. **Route collision detection** -- `assertNoRouteCollisions()` from
-   `route-collisions.ts` builds `RouteCandidate` records for all
-   top-level items and namespace members, then asserts that no two
-   distinct items share the same lowercased `categoryFolder/name` path.
-   If a collision is found the build **throws** with a clear error
-   naming both items, their kinds, canonical references, and the shared
-   route, with guidance to rename the items or remap categories. There
-   is no automatic suffix or silent disambiguation.
+   `ApiItems.categorize(items, categories)`, which returns
+   `{ items, uncategorized }`; the adapter emits an `ItemSkipped`
+   event for each uncategorized item (see
+   `performance-observability.md`). Namespace members come from
+   `ApiItems.namespaceMembers(items)`.
+4. **Route collision detection** -- `Routes.RouteCandidate` records are
+   built for all top-level items and namespace members and checked with
+   `Routes.detectCollisions()`; any collision **throws**
+   `Routes.RouteCollisionError` (a `Schema.TaggedError`) with a clear
+   message naming both items, their kinds, canonical references, and the
+   shared lowercased `categoryFolder/name` route, with guidance to
+   rename the items or remap categories. There is no automatic suffix
+   or silent disambiguation.
 5. **Cross-link routes** -- Map of type name to route path (always the lowercased path, never suffixed); synthetic base names map to the owner class route plus `#base-class`
 6. **Cross-link kinds** -- Map of type name to API item kind
 7. **Namespace member extraction** with collision detection
@@ -154,7 +159,7 @@ For each WorkItem:
 
 1. Dispatch to the appropriate page generator based on `item.kind`
 2. For namespace members, rewrite the route by replacing ONLY the final segment with the lowercased qualified name (e.g. `.../type/type` → `.../type/compileroptions.type`). Only the last segment may be touched: a member whose lowercased simple name equals its category folder (a type alias named `Type` in the `type` folder — the Effect Schema companion-namespace pattern) would otherwise have the category segment corrupted by a first-occurrence replace, producing colliding `_meta.json` entries that break RSPress auto-nav-sidebar. The resulting file path is identical to the cross-link route built in `prepareWorkItems` by construction (asserted by a regression test against the `qualified-alias` fixture)
-3. Parse generated content with `gray-matter`
+3. Parse generated content with `parseFrontmatter` (`src/frontmatter.ts` — the gray-matter-parity split over `@effected/yaml` that replaced the `gray-matter` dependency; YAML 1.2 parse, hash-stable, characterization-tested against gray-matter's boundary semantics)
 4. Normalize markdown spacing
 5. Hash content and frontmatter via `content-hash.ts`
 6. Compare hashes against pre-loaded snapshot map
@@ -241,7 +246,7 @@ class XxxPageGenerator {
 
 The `availableFrom` parameter is passed from `WorkItem.availableFrom`. When the item is exported from multiple entry points, the generator calls `generateAvailableFrom()` to emit an "Available from" line listing all entry point import paths.
 
-`ClassPageGenerator.generate` takes one additional trailing parameter, `syntheticBase?: ApiItem` (from `WorkItem.syntheticBase`). When present it renders a `## Base Class` section after the signature — an explanatory note plus the base declaration's formatted signature as an `ApiSignature` block with hidden Twoslash imports prepended. The heading slugs to `BASE_CLASS_ANCHOR` (`synthetic-bases.ts`), which is where the base name's cross-link route points (see `cross-linking-architecture.md`).
+`ClassPageGenerator.generate` takes one additional trailing parameter, `syntheticBase?: ApiItem` (from `WorkItem.syntheticBase`). When present it renders a `## Base Class` section after the signature — an explanatory note plus the base declaration's formatted signature as an `ApiSignature` block with hidden Twoslash imports prepended. The heading slugs to `SyntheticBases.BASE_CLASS_ANCHOR` (`@tsdoctor/model`), which is where the base name's cross-link route points (see `cross-linking-architecture.md`).
 
 The generators are called via `Effect.promise()` in `generateSinglePage`
 since they use async operations (Shiki highlighting, Prettier formatting)
@@ -292,7 +297,9 @@ more than one entry point.
 
 - `generateAvailableFrom()` -- Renders "Available from" line for
   multi-entry items (returns empty string for single-entry)
-- `generateFrontmatter()` -- YAML frontmatter with OG tags
+- `generateFrontmatter()` -- YAML frontmatter with OG tags, emitted via
+  `emitFrontmatterBlock` (`src/frontmatter.ts`, `@effected/yaml`
+  `Yaml.stringify` with double-quoted scalars for js-yaml 1.1 consumers)
 - `prepareExampleCode()` -- Adds imports and `// @noErrors` for Twoslash
 - `stripTwoslashDirectives()` -- Removes directives for copy button
 - `sanitizeId()` -- URL-safe HTML IDs
@@ -356,7 +363,7 @@ Cross-linkers are initialized in `build-program.ts` with data from
 `prepareWorkItems`:
 
 ```typescript
-markdownCrossLinker.setRoutes(crossLinkData.routes);
+setProseLinker(crossLinkData.routes);  // installs the @tsdoctor/model CrossLinker
 shikiCrossLinker.reinitialize(crossLinkData.routes, crossLinkData.kinds, apiScope);
 TwoslashManager.addTypeRoutes(crossLinkData.routes);
 ```

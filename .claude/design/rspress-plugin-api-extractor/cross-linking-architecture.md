@@ -21,7 +21,7 @@ dependencies: []
 
 - [Overview](#overview)
 - [Architecture](#architecture)
-- [MarkdownCrossLinker](#markdowncrosslinker)
+- [Prose Cross-Linking](#prose-cross-linking)
 - [ShikiCrossLinker](#shikicrosslinker)
 - [URL Generation](#url-generation)
 - [Type Matching Algorithm](#type-matching-algorithm)
@@ -38,16 +38,18 @@ dependencies: []
 The cross-linking system turns type references into clickable links
 throughout generated API documentation. It operates at two levels:
 
-1. **Markdown text** -- `MarkdownCrossLinker` replaces type names in
-   prose descriptions with `[TypeName](/route)` links during page
-   generation.
+1. **Markdown text** -- the immutable `CrossLinker` from
+   `@tsdoctor/model`, installed per build through the
+   `markdown/prose-linker.ts` holder, replaces type names in prose
+   descriptions with `[TypeName](/route)` links during page generation.
 2. **Code blocks** -- `ShikiCrossLinker` post-processes Shiki HAST
    output to wrap type identifiers in `<a>` tags, including inside
    Twoslash hover tooltips.
 
-Both cross-linkers use module-level singleton instances, initialized
-once per API scope during the build, and shared across all page
-generators and remark plugins.
+Both are installed once per API scope during the build and shared across
+all page generators and remark plugins — the prose side via a
+module-level holder (page generators run synchronously outside any
+service context), the code side via the `VfsRegistry`.
 
 ### Key Design Decisions
 
@@ -70,14 +72,16 @@ generators and remark plugins.
 
 ```text
 prepareWorkItems (build-stages.ts)
-  ├─> resolveEntryPoints() for multi-entry deduplication
+  ├─> EntryPoints.resolve() for multi-entry deduplication
   ├─> Build routes Map: typeName → routePath (bare names owned by
   │     highest-priority kind via crossLinkKindPriority)
   ├─> Build kinds Map: typeName → apiItemKind
   └─> Return crossLinkData: { routes, kinds }
          │
-         ├─> markdownCrossLinker.setRoutes(crossLinkData.routes)
-         │     Both cross-linkers share the single route map
+         ├─> setProseLinker(crossLinkData.routes)
+         │     Installs CrossLinker.fromRoutes(routes) in the
+         │     prose-linker holder; both cross-linkers share the
+         │     single route map
          │
          ├─> shikiCrossLinker.reinitialize(routes, kinds, apiScope)
          │     Stores routes/kinds per scope, builds classMembersMap
@@ -86,7 +90,7 @@ prepareWorkItems (build-stages.ts)
                Makes cross-linker available to remark plugins
 
 Page generation (page-generators/*.ts)
-  └─> markdownCrossLinker.addCrossLinks(descriptionText)
+  └─> linkProse(descriptionText)
         Markdown text → markdown text with [TypeName](/route) links
 
 Code block rendering (remark-api-codeblocks.ts)
@@ -96,69 +100,79 @@ Code block rendering (remark-api-codeblocks.ts)
 
 Both cross-linkers consume the same `crossLinkData.routes` map built once in `prepareWorkItems`, so a given name resolves to the same page in prose and in code blocks.
 
-### Singleton Instances
+### Instances
 
 ```typescript
-// src/markdown/cross-linker.ts
-export const markdownCrossLinker: MarkdownCrossLinker =
-  new MarkdownCrossLinker();
+// src/markdown/prose-linker.ts — module-level holder
+let current: CrossLinker = CrossLinker.empty;
 
 // src/shiki-transformer.ts — instantiated per plugin call
 const shikiCrossLinker = new ShikiCrossLinker();
 ```
 
-The `MarkdownCrossLinker` is a true module-level singleton. The
-`ShikiCrossLinker` is created per plugin instantiation and passed
-into the `VfsRegistry` for scope-keyed retrieval by remark plugins.
+The prose side is a module-level holder over the immutable model
+`CrossLinker` (swapped per build). The `ShikiCrossLinker` is created per
+plugin instantiation and passed into the `VfsRegistry` for scope-keyed
+retrieval by remark plugins.
 
 ---
 
-## MarkdownCrossLinker
+## Prose Cross-Linking
 
-**Location:** `src/markdown/cross-linker.ts`
+**Locations:** `packages/model/src/CrossLinker.ts` (the linker) and
+`platforms/rspress/src/markdown/prose-linker.ts` (the adapter holder).
 
 Transforms type references in plain markdown text into clickable links.
 Used by page generators to cross-link descriptions, parameter docs, and
-remarks. The class is a thin plugin-local shell: `addCrossLinks` delegates
-the actual link injection to the immutable `CrossLinker` from the shared
-`@tsdoctor/model` library (see [addCrossLinks](#addcrosslinks)). The
-route-map management (`setRoutes`/`addRoutes`/`clear`/`sanitizeId`) and the
-test-only `addCrossLinksHtml` stay plugin-local because the library has no
-HTML link variant.
+remarks. The phase-2 model redesign deleted the former
+`MarkdownCrossLinker` shell (`markdown/cross-linker.ts`); the plugin now
+consumes the `@tsdoctor/model` `CrossLinker` class directly through a
+15-line holder — adapter wiring, not logic.
 
-### Interface
+### CrossLinker (the model class)
 
 ```typescript
-class MarkdownCrossLinker {
-  clear(): void;
-  setRoutes(routes: Map<string, string>): void;  // primary path
-  addRoutes(items, baseRoute, categories): { routes, kinds };  // legacy
-  addCrossLinks(text: string): string;
-  addCrossLinksHtml(text: string): string;
+class CrossLinker {
+  static fromRoutes(routes: ReadonlyMap<string, string>): CrossLinker;
+  static fromRefs(refs: ReadonlyArray<ApiItemRef>, routeFor: RouteFormatter): CrossLinker;
+  static readonly empty: CrossLinker;  // identity: link(text) === text
+  link(text: string): string;          // markdown [Name](/route) links
+  linkHtml(text: string): string;      // <a href="…">Name</a> links
 }
 ```
 
-The build pipeline calls `setRoutes(crossLinkData.routes)` to install the route map built in `prepareWorkItems`. The `addRoutes` path (which builds its own route map from categorized items) and the deprecated `initialize` remain for standalone use and tests. See `src/markdown/cross-linker.ts`.
+Immutable: built once per build from the precomputed name → route map
+(`fromRoutes`, the pipeline path — member anchors and
+namespace-qualified names already baked into the routes) or from item
+refs plus an injected URL scheme (`fromRefs`). The class owns the
+longest-first matching, word-boundary regex and backtick/existing-link
+skipping, and (unlike the phase-1 library) has a first-class HTML
+variant, `linkHtml`.
 
-### State
+### The prose-linker holder
 
-Single `Map<string, string>` mapping display names to route paths:
+```typescript
+// src/markdown/prose-linker.ts
+export function setProseLinker(routes: ReadonlyMap<string, string>): void;
+export function clearProseLinker(): void;  // reset to CrossLinker.empty
+export function linkProse(text: string): string;
+```
+
+`build-program.ts` calls `setProseLinker(crossLinkData.routes)` per API
+build; page generators call `linkProse(text)`. Page generators run
+synchronously outside any service context, hence the module-level
+holder — the same shape as the sync-island event emitters
+(`performance-observability.md`).
+
+### Route map contents
+
+The routes map maps display names to route paths:
 
 - **Top-level items:** `"MyClass"` → `"/api/classes/myclass"`
 - **Class/interface members:** `"MyClass.method"` → `"/api/classes/myclass#method"`
 
-Member routes use `sanitizeId()` for the anchor fragment. Only classes and interfaces register member routes.
-
-### addCrossLinks
-
-Replaces standalone type names in text with markdown links. The plugin no longer hand-rolls the matching: it builds the library's immutable `CrossLinker` from the current route map and calls its `addLinks(text)`. Each route-map key becomes an `ApiItemRef` whose `name` is the key; `kind`/`slug` are placeholders because the resolver callback reads only `ref.name` and returns the precomputed route (member anchors and namespace-qualified names already baked in). The library owns the longest-first matching, word-boundary regex and backtick/existing-link skipping — the same conflict-avoidance behavior previously implemented in this class.
-
-If the route map is empty the method returns the input unchanged without constructing a `CrossLinker`.
-
-### addCrossLinksHtml
-
-Same logic but produces `<a href="${route}">${name}</a>`. Detects
-existing HTML `<a>` tags instead of markdown link syntax.
+Member routes use `Routes.sanitizeId()` (`@tsdoctor/model`) for the
+anchor fragment. Only classes and interfaces register member routes.
 
 ---
 
@@ -299,9 +313,9 @@ Class and interface members use fragment anchors:
 /api/interfaces/iconfig#timeout
 ```
 
-Anchor IDs are generated by `sanitizeId(displayName, prefix?)`:
-lowercase, spaces/underscores → hyphens, strip special chars,
-optional prefix for disambiguation (e.g., `"static"`).
+Anchor IDs are generated by `Routes.sanitizeId(displayName, prefix?)`
+from `@tsdoctor/model`: lowercase, spaces/underscores → hyphens, strip
+special chars, optional prefix for disambiguation (e.g., `"static"`).
 
 ### Companion Name Cross-Link Priority
 
@@ -335,7 +349,7 @@ Unexported base declarations referenced by an exported class's extends clause (t
 Person_base → /api/class/person#base-class
 ```
 
-The anchor is `BASE_CLASS_ANCHOR` (`synthetic-bases.ts`), matching the slug of the `## Base Class` heading the class page generator emits. The route is registered only when the base name is not already owned by a real page and the owner class has a route. Because both cross-linkers consume the same routes map, the underlined `Foo_base` in signature code blocks jumps to the inline section.
+The anchor is `SyntheticBases.BASE_CLASS_ANCHOR` (`@tsdoctor/model`), matching the slug of the `## Base Class` heading the class page generator emits. The route is registered only when the base name is not already owned by a real page and the owner class has a route. Because both cross-linkers consume the same routes map, the underlined `Foo_base` in signature code blocks jumps to the inline section.
 
 ### Namespace Members
 
@@ -357,7 +371,7 @@ The generated file path matches this route by construction: `generateSinglePage`
 const route = `${baseRoute}/${folderName}/${displayName.toLowerCase()}`;
 
 // Class/interface member
-const memberRoute = `${itemRoute}#${sanitizeId(memberName)}`;
+const memberRoute = `${itemRoute}#${Routes.sanitizeId(memberName)}`;
 
 // Namespace member (qualified)
 const qualifiedRoute = `${baseRoute}/${folderName}/${qualifiedName.toLowerCase()}`;
@@ -392,7 +406,7 @@ const regex = new RegExp(`\\b${name}\\b(?![a-zA-Z])`, "g");
 
 ### Conflict Avoidance
 
-**MarkdownCrossLinker** (now performed by the library `CrossLinker` it delegates to):
+**Prose linking** (the model `CrossLinker` behind `linkProse`):
 
 - Skips matches inside existing markdown links (checks for `](` or `[`
   prefix before the match offset).
@@ -419,7 +433,7 @@ false matches in multi-API builds.
 
 ## Backtick Code Span Safety
 
-Both the cross-linking path behind `addCrossLinks()` and the `escapeMdxGenerics()` helper detect backtick code spans and skip processing inside them. The backtick-safety logic for cross-linking now lives in the library `CrossLinker` that `addCrossLinks` delegates to; the algorithm below describes its behavior.
+Both the cross-linking path behind `linkProse()` and the `escapeMdxGenerics()` helper detect backtick code spans and skip processing inside them. The backtick-safety logic for cross-linking lives in the `@tsdoctor/model` `CrossLinker`; the algorithm below describes its behavior.
 
 ### Problem
 
@@ -473,7 +487,7 @@ Cross-linkers are initialized in `generateApiDocs` using data from
 const { workItems, crossLinkData } = prepareWorkItems({ ... });
 
 // Both cross-linkers share the same pre-built route map
-markdownCrossLinker.setRoutes(crossLinkData.routes);
+setProseLinker(crossLinkData.routes);
 shikiCrossLinker.reinitialize(
   crossLinkData.routes,
   crossLinkData.kinds,
@@ -494,15 +508,15 @@ VfsRegistry.register(apiScope, {
 
 **Location:** `src/markdown/page-generators/*.ts`
 
-All page generators import the singleton `markdownCrossLinker` and apply
-cross-linking to description text:
+All page generators import `linkProse` from the prose-linker holder and
+apply cross-linking to description text:
 
 ```typescript
-import { markdownCrossLinker } from "../cross-linker.js";
+import { linkProse } from "../prose-linker.js";
 
 // In generator methods:
-const summary = markdownCrossLinker.addCrossLinks(rawSummary);
-const description = markdownCrossLinker.addCrossLinks(rawDescription);
+const summary = linkProse(rawSummary);
+const description = linkProse(rawDescription);
 ```
 
 Cross-linking is applied to:
@@ -574,9 +588,9 @@ interface VfsConfig {
 
 | Subject | Test file |
 | --- | --- |
-| MarkdownCrossLinker (routes, `addCrossLinks`, `addCrossLinksHtml`) | `__test__/markdown/cross-linker.test.ts` |
-| ShikiCrossLinker (three-phase HAST transform, scope isolation) | `__test__/shiki-transformer.test.ts` |
-| VfsRegistry (scope registration, `getByFilePath`) | `__test__/vfs-registry.test.ts` |
+| `CrossLinker` (`link`, `linkHtml`, matching/backtick behavior) | `packages/model/__test__/cross-linker.test.ts`, `cross-linker-behavior.test.ts` |
+| ShikiCrossLinker (three-phase HAST transform, scope isolation) | `platforms/rspress/__test__/shiki-transformer.test.ts` |
+| VfsRegistry (scope registration, `getByFilePath`) | `platforms/rspress/__test__/vfs-registry.test.ts` |
 
 ---
 
@@ -584,12 +598,14 @@ interface VfsConfig {
 
 | File | Purpose |
 | --- | --- |
-| `src/markdown/cross-linker.ts` | MarkdownCrossLinker class + singleton |
+| `packages/model/src/CrossLinker.ts` | The immutable `CrossLinker` class (`fromRoutes`/`fromRefs`/`empty`/`link`/`linkHtml`) |
+| `packages/model/src/Routes.ts` | `RouteCandidate`, `detectCollisions`, `RouteCollisionError`, `sanitizeId` |
+| `packages/model/src/SyntheticBases.ts` | `SyntheticBases.detect` + `BASE_CLASS_ANCHOR` |
+| `src/markdown/prose-linker.ts` | Module-level prose-linker holder (`setProseLinker`/`linkProse`) |
 | `src/shiki-transformer.ts` | ShikiCrossLinker class + HAST transformation |
 | `src/vfs-registry.ts` | VfsRegistry connecting cross-linker to remark |
 | `src/build-program.ts` | Cross-linker initialization |
 | `src/build-stages.ts` | Route/kinds map construction in prepareWorkItems |
-| `src/synthetic-bases.ts` | `detectSyntheticBases` + `BASE_CLASS_ANCHOR` |
 | `src/markdown/helpers.ts` | `escapeMdxGenerics()` with backtick safety |
 | `src/remark-api-codeblocks.ts` | Generated code block cross-linking |
 | `src/remark-with-api.ts` | User-authored code block cross-linking |
@@ -614,9 +630,13 @@ interface VfsConfig {
 1. **No external package links** -- Only types from the documented
    package are linked; external types (e.g., `ZodType`) are not
    cross-linked
-2. **Sanitization duplication** -- `sanitizeId()` logic exists in both
-   `build-stages.ts` and `cross-linker.ts`; divergence would break
-   member anchor links
+2. **Sanitization duplication — RETIRED** -- the hazard of `sanitizeId()`
+   logic duplicated between `build-stages.ts` and the cross-linker is
+   gone: `Routes.sanitizeId` (`@tsdoctor/model`) is now the single
+   route-side sanitizer used for member anchor routes. (The separate
+   `sanitizeId` in `markdown/helpers.ts` remains for page-side HTML ids
+   — a different concern with a slightly different algorithm, unchanged
+   from before.)
 3. **HTML cross-links in tooltips** -- Phase 2 Twoslash tooltip parsing
    uses a regex that may not match all TypeScript declaration forms
 

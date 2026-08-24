@@ -11,12 +11,12 @@ import type {
 	ApiVariable,
 } from "@microsoft/api-extractor-model";
 import { ApiItemKind } from "@microsoft/api-extractor-model";
+import { ApiItems, EntryPoints, Routes, SyntheticBases } from "@tsdoctor/model";
+import type { FileSnapshot } from "@tsdoctor/snapshot";
+import { SnapshotService, hashContent, hashFrontmatter } from "@tsdoctor/snapshot";
 import { Effect, FileSystem, Metric, Stream } from "effect";
-import matter from "gray-matter";
-import { hashContent, hashFrontmatter } from "./content-hash.js";
+import { parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
 import { BuildMetrics } from "./layers/ObservabilityLive.js";
-import type { NamespaceMember } from "./loader.js";
-import { ApiParser } from "./loader.js";
 import { generateFrontmatter } from "./markdown/helpers.js";
 import {
 	ClassPageGenerator,
@@ -28,19 +28,12 @@ import {
 	TypeAliasPageGenerator,
 	VariablePageGenerator,
 } from "./markdown/index.js";
-import type { ResolvedEntryItem } from "./multi-entry-resolver.js";
-import { resolveEntryPoints } from "./multi-entry-resolver.js";
 import { emit } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
 import { OpenGraphResolver } from "./og-resolver.js";
-import type { RouteCandidate } from "./route-collisions.js";
-import { detectRouteCollisions, formatRouteCollisionError } from "./route-collisions.js";
 import type { CategoryConfig, LlmsPlugin, SourceConfig } from "./schemas/index.js";
-import type { FileSnapshot } from "./services/SnapshotService.js";
-import { SnapshotService } from "./services/SnapshotService.js";
-import { BASE_CLASS_ANCHOR, detectSyntheticBases } from "./synthetic-bases.js";
 
-export type { FileSnapshot } from "./services/SnapshotService.js";
+export type { FileSnapshot } from "@tsdoctor/snapshot";
 
 /**
  * Cross-link priority by API item kind (lower = higher priority). When a bare
@@ -87,7 +80,7 @@ export interface WorkItem {
 	readonly item: ApiItem;
 	readonly categoryKey: string;
 	readonly categoryConfig: CategoryConfig;
-	readonly namespaceMember?: NamespaceMember;
+	readonly namespaceMember?: ApiItems.NamespaceMember;
 	/** Entry points this item is available from */
 	readonly availableFrom?: string[];
 	/**
@@ -140,27 +133,15 @@ export interface PrepareWorkItemsResult {
 }
 
 /**
- * Sanitize a display name to create a valid HTML ID.
- * Mirrors the logic in MarkdownCrossLinker.sanitizeId().
- */
-function sanitizeId(displayName: string): string {
-	return displayName
-		.toLowerCase()
-		.replace(/[\s_]+/g, "-")
-		.replace(/[^a-z0-9-]/g, "")
-		.replace(/^-+|-+$/g, "");
-}
-
-/**
  * Prepare the flat list of WorkItems to process and the cross-link data maps.
  *
  * This function:
  * 1. Categorizes API items from the model
- * 2. Builds cross-link routes and kinds maps (replicating MarkdownCrossLinker.initialize())
+ * 2. Builds cross-link routes and kinds maps for the prose and Shiki cross-linkers
  * 3. Extracts namespace members and adds their routes (with collision detection)
  * 4. Flattens all items into a single WorkItem[]
  *
- * NOTE: This function does NOT call the markdownCrossLinker singleton. The caller
+ * NOTE: This function does NOT install the prose linker. The caller
  * is responsible for passing the returned crossLinkData to the cross-linker and
  * Shiki cross-linker as needed.
  */
@@ -168,47 +149,62 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 	const { apiPackage, categories, baseRoute } = input;
 
 	// 0. Resolve entry points into deduplicated items
-	const resolvedItems = resolveEntryPoints(apiPackage);
+	const resolvedItems = EntryPoints.resolve(apiPackage);
 
 	// 0b. Detect synthetic base declarations (unexported items referenced by an
 	//     exported class's extends clause, e.g. `Foo_base` from Schema.Class
 	//     patterns). They get no page of their own — the owning class page
 	//     renders them inline — so they are excluded from categorization,
 	//     collision detection and work items below.
-	const syntheticBases = detectSyntheticBases(resolvedItems.map((r) => r.item));
+	const syntheticBases = SyntheticBases.detect(resolvedItems.map((r) => r.item));
 	const docItems = syntheticBases.bases.size
 		? resolvedItems.filter((r) => !syntheticBases.bases.has(r.item))
 		: resolvedItems;
 
 	// Build a lookup map from "displayName::kind" to ResolvedEntryItem
-	const resolvedLookup = new Map<string, ResolvedEntryItem>();
+	const resolvedLookup = new Map<string, EntryPoints.ResolvedEntryItem>();
 	for (const resolved of docItems) {
 		const key = `${resolved.item.displayName}::${resolved.item.kind}`;
 		resolvedLookup.set(key, resolved);
 	}
 
-	// 1. Categorize API items by category key (pass resolved items)
-	const items = ApiParser.categorizeApiItems(docItems, categories);
+	// 1. Categorize API items by category key (pass resolved items). Items no
+	//    category matched come back as data; surface each as an ItemSkipped
+	//    warning through the sync-island seam.
+	const { items, uncategorized } = ApiItems.categorize(docItems, categories);
+	for (const skipped of uncategorized) {
+		emitEvent(
+			PluginEvent.ItemSkipped({
+				ctx: { buildId: currentBuildId },
+				item: skipped.displayName,
+				kind: String(skipped.kind),
+				reason: "uncategorized",
+				level: "warn",
+			}),
+		);
+	}
 
 	// 1b. Extract namespace members (needed for both candidates and routes below)
-	const namespaceMembers = ApiParser.extractNamespaceMembers(docItems);
+	const namespaceMembers = ApiItems.namespaceMembers(docItems);
 
 	// 1c. Detect genuine route collisions (same folder + baseName among distinct
 	//     items) and fail the build if any exist. Two distinct API items resolving
 	//     to the same lowercased category route is a user naming/config problem.
 	//     The companion const+type pattern routes to different folders and is NOT a
 	//     collision.
-	const candidates: RouteCandidate[] = [];
+	const candidates: Routes.RouteCandidate[] = [];
 	for (const [categoryKey, categoryConfig] of Object.entries(categories)) {
 		for (const item of items[categoryKey] || []) {
-			candidates.push({
-				id: `${item.displayName}::${item.kind}`,
-				displayName: item.displayName,
-				folder: categoryConfig.folderName,
-				baseName: item.displayName.toLowerCase(),
-				kind: String(item.kind),
-				canonicalRef: item.canonicalReference?.toString() ?? item.displayName,
-			});
+			candidates.push(
+				new Routes.RouteCandidate({
+					id: `${item.displayName}::${item.kind}`,
+					displayName: item.displayName,
+					folder: categoryConfig.folderName,
+					baseName: item.displayName.toLowerCase(),
+					kind: String(item.kind),
+					canonicalRef: item.canonicalReference?.toString() ?? item.displayName,
+				}),
+			);
 		}
 	}
 	for (const nsMember of namespaceMembers) {
@@ -217,20 +213,22 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 		);
 		if (!nsCategoryEntry) continue;
 		const [, nsCategoryConfig] = nsCategoryEntry;
-		candidates.push({
-			id: nsMember.qualifiedName,
-			displayName: nsMember.qualifiedName,
-			folder: nsCategoryConfig.folderName,
-			baseName: nsMember.qualifiedName.toLowerCase(),
-			kind: String(nsMember.item.kind),
-			canonicalRef: nsMember.item.canonicalReference?.toString() ?? nsMember.qualifiedName,
-		});
+		candidates.push(
+			new Routes.RouteCandidate({
+				id: nsMember.qualifiedName,
+				displayName: nsMember.qualifiedName,
+				folder: nsCategoryConfig.folderName,
+				baseName: nsMember.qualifiedName.toLowerCase(),
+				kind: String(nsMember.item.kind),
+				canonicalRef: nsMember.item.canonicalReference?.toString() ?? nsMember.qualifiedName,
+			}),
+		);
 	}
 	// Fail fast: two distinct items must never resolve to the same output route.
 	// Emit a typed RouteCollisionDetected event per collision (via the sync-island
 	// seam above) before throwing, so the fatal build path still surfaces the
 	// collision in .api-docs/build/issues.json (see plugin.ts's config() catch).
-	const collisions = detectRouteCollisions(candidates);
+	const collisions = Routes.detectCollisions(candidates);
 	if (collisions.length > 0) {
 		// Guard the emit so a throwing event sink cannot replace the collision
 		// error — the fatal route-collision contract must survive here.
@@ -247,11 +245,11 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 		} catch {
 			// event-delivery failure must not mask the route-collision error
 		}
-		throw new Error(formatRouteCollisionError(collisions, baseRoute));
+		throw new Routes.RouteCollisionError({ baseRoute, collisions });
 	}
 
 	// 2. Build cross-link routes and kinds maps directly
-	//    (mirrors MarkdownCrossLinker.initialize() logic)
+	//    (consumed by setProseLinker and the Shiki cross-linker)
 	const routes = new Map<string, string>();
 	const kinds = new Map<string, string>();
 	// Tracks the cross-link kind priority that currently owns each bare-name route,
@@ -275,7 +273,7 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 				const itemWithMembers = item as ApiClass | ApiInterface;
 				for (const member of itemWithMembers.members) {
 					const memberName = member.displayName;
-					const memberId = sanitizeId(memberName);
+					const memberId = Routes.sanitizeId(memberName);
 					const fullMemberName = `${item.displayName}.${memberName}`;
 					const memberRoute = `${itemRoute}#${memberId}`;
 					routes.set(fullMemberName, memberRoute);
@@ -326,7 +324,7 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 		const owner = syntheticBase.ownerClasses[0];
 		const ownerRoute = owner ? routes.get(owner.displayName) : undefined;
 		if (!ownerRoute) continue;
-		routes.set(baseName, `${ownerRoute}#${BASE_CLASS_ANCHOR}`);
+		routes.set(baseName, `${ownerRoute}#${SyntheticBases.BASE_CLASS_ANCHOR}`);
 		kinds.set(baseName, baseItem.kind);
 	}
 
@@ -635,7 +633,7 @@ export function generateSinglePage(
 		);
 
 		// Parse the generated content to extract frontmatter and body
-		const parsed = matter(page.content);
+		const parsed = parseFrontmatter(page.content);
 		// Normalize markdown spacing to remove excessive blank lines
 		const bodyContent = normalizeMarkdownSpacing(parsed.content);
 		const frontmatterData = parsed.data;
@@ -667,7 +665,7 @@ export function generateSinglePage(
 					.pipe(Effect.orElseSucceed(() => null as string | null));
 
 				if (existingContent !== null) {
-					const { data: existingFrontmatter, content: existingBody } = matter(existingContent);
+					const { data: existingFrontmatter, content: existingBody } = parseFrontmatter(existingContent);
 					// Apply same normalization as generated content for accurate comparison
 					const normalizedExistingBody = normalizeMarkdownSpacing(existingBody);
 					const existingContentHash = hashContent(normalizedExistingBody);
@@ -801,7 +799,7 @@ export function writeSingleFile(
 		}
 
 		// Build final file content
-		let finalContent = matter.stringify(bodyContent, frontmatter);
+		let finalContent = stringifyFrontmatter(bodyContent, frontmatter);
 
 		if (ogResolver && siteUrl && packageName) {
 			// Resolve OG image metadata (auto-detect dimensions from local files if possible)

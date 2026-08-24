@@ -149,7 +149,7 @@ No error line is printed when both counters are zero.
 
 ## Persisted to `issues.json`
 
-Every event in this document is also collected by the fourth EventBus sink, the issues collector (`makeIssuesSink`, `src/observability/sinks/issues-sink.ts`), and written to `<cwd>/.api-docs/build/issues.json` on production builds. The same sync-island pattern used here for Twoslash/Prettier (a module-level `emitEvent`, wired via a `set*EventEmitter` call in `plugin.ts`) was extended to two more previously-unemitted events, `RouteCollisionDetected` and `ModelLoadFailed`, so route collisions and model-load failures also land in the artifact as `errors` rather than only `warnings`. Full schema, the event-to-bucket mapping and the monitor that reads the artifact are documented in `build-progress-and-issues.md`.
+Every event in this document is also collected by the fourth EventBus sink, the issues collector (`makeIssuesSink`, `src/observability/sinks/issues-sink.ts`), and written to `<cwd>/.api-docs/build/issues.json` on production builds. Route collisions and model-load failures also land in the artifact as `errors` rather than only `warnings`: `RouteCollisionDetected` uses the same sync-island pattern as Twoslash/Prettier (a module-level `emitEvent`, wired via `setBuildStagesEventEmitter` in `plugin.ts`), while `ModelLoadFailed` — since the phase-2 model redesign made loading Effect-typed (`Model.load` from `@tsdoctor/model`) — is emitted inside the Effect pipeline via `Effect.tapError` + `Effect.orDie` in `ConfigServiceLive`; the former `setModelLoaderEventEmitter` seam is deleted. Full schema, the event-to-bucket mapping and the monitor that reads the artifact are documented in `build-progress-and-issues.md`.
 
 ---
 

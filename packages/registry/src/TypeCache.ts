@@ -397,7 +397,7 @@ const make = (cacheDir: string): Effect.Effect<TypeCacheShape, never, Cache | Fi
  *
  * @public
  */
-export class TypeCache extends Context.Service<TypeCache, TypeCacheShape>()("type-registry-effect/TypeCache") {
+export class TypeCache extends Context.Service<TypeCache, TypeCacheShape>()("@tsdoctor/registry/TypeCache") {
 	/**
 	 * A cache rooted at an explicit directory.
 	 *

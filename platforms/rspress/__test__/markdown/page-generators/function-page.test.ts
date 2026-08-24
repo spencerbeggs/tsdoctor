@@ -1,27 +1,33 @@
 import type { ApiFunction } from "@microsoft/api-extractor-model";
+import { ApiItems, Tsdoc } from "@tsdoctor/model";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiParser } from "../../../src/loader.js";
 import { FunctionPageGenerator } from "../../../src/markdown/page-generators/function-page.js";
 import type { LlmsPlugin, SourceConfig } from "../../../src/schemas/index.js";
 
 // Mock dependencies
-vi.mock("../../../src/loader.js", () => ({
-	ApiParser: {
-		getSummary: vi.fn(),
-		getReleaseTag: vi.fn(),
-		getDeprecation: vi.fn(),
-		getSourceLink: vi.fn(),
-		getParams: vi.fn(),
-		getReturns: vi.fn(),
-		getExamples: vi.fn(),
-		getSeeReferences: vi.fn(),
-	},
-}));
+vi.mock("@tsdoctor/model", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@tsdoctor/model")>();
+	return {
+		...actual,
+		Tsdoc: {
+			...actual.Tsdoc,
+			summary: vi.fn(),
+			releaseTag: vi.fn(),
+			deprecation: vi.fn(),
+			params: vi.fn(),
+			returns: vi.fn(),
+			examples: vi.fn(),
+			seeReferences: vi.fn(),
+		},
+		ApiItems: {
+			...actual.ApiItems,
+			sourceLink: vi.fn(),
+		},
+	};
+});
 
-vi.mock("../../../src/markdown/cross-linker.js", () => ({
-	markdownCrossLinker: {
-		addCrossLinks: vi.fn((text: string) => text),
-	},
+vi.mock("../../../src/markdown/prose-linker.js", () => ({
+	linkProse: vi.fn((text: string) => text),
 }));
 
 vi.mock("../../../src/markdown/helpers.js", () => ({
@@ -60,14 +66,14 @@ describe("FunctionPageGenerator", () => {
 		vi.clearAllMocks();
 
 		// Set default mock returns
-		vi.mocked(ApiParser.getSummary).mockReturnValue("A useful function");
-		vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Public");
-		vi.mocked(ApiParser.getDeprecation).mockReturnValue(null);
-		vi.mocked(ApiParser.getSourceLink).mockReturnValue(null);
-		vi.mocked(ApiParser.getParams).mockReturnValue([]);
-		vi.mocked(ApiParser.getReturns).mockReturnValue(null);
-		vi.mocked(ApiParser.getExamples).mockReturnValue([]);
-		vi.mocked(ApiParser.getSeeReferences).mockReturnValue([]);
+		vi.mocked(Tsdoc.summary).mockReturnValue("A useful function");
+		vi.mocked(Tsdoc.releaseTag).mockReturnValue("Public");
+		vi.mocked(Tsdoc.deprecation).mockReturnValue(null);
+		vi.mocked(ApiItems.sourceLink).mockReturnValue(null);
+		vi.mocked(Tsdoc.params).mockReturnValue([]);
+		vi.mocked(Tsdoc.returns).mockReturnValue(null);
+		vi.mocked(Tsdoc.examples).mockReturnValue([]);
+		vi.mocked(Tsdoc.seeReferences).mockReturnValue([]);
 	});
 
 	describe("generate", () => {
@@ -95,7 +101,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should handle no summary", async () => {
-			vi.mocked(ApiParser.getSummary).mockReturnValue("");
+			vi.mocked(Tsdoc.summary).mockReturnValue("");
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -103,7 +109,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should include deprecation warning", async () => {
-			vi.mocked(ApiParser.getDeprecation).mockReturnValue({
+			vi.mocked(Tsdoc.deprecation).mockReturnValue({
 				message: "Use newFunction instead",
 			});
 
@@ -113,7 +119,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should include release tag for non-Public items", async () => {
-			vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Beta");
+			vi.mocked(Tsdoc.releaseTag).mockReturnValue("Beta");
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -121,7 +127,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should not include release tag for Public items", async () => {
-			vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Public");
+			vi.mocked(Tsdoc.releaseTag).mockReturnValue("Public");
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -129,7 +135,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should include source link toolbar", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/utils.ts#L20");
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/utils.ts#L20");
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -138,7 +144,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should not include toolbar when no source link", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue(null);
+			vi.mocked(ApiItems.sourceLink).mockReturnValue(null);
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -146,7 +152,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should include LLMS plugin section when enabled", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/utils.ts");
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/utils.ts");
 			const llmsPlugin: LlmsPlugin = {
 				enabled: true,
 				showCopyButton: true,
@@ -171,7 +177,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should not include LLMS plugin section when disabled", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/utils.ts");
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/utils.ts");
 			const llmsPlugin: LlmsPlugin = {
 				enabled: false,
 				showCopyButton: false,
@@ -211,7 +217,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should include parameters section", async () => {
-			vi.mocked(ApiParser.getParams).mockReturnValue([
+			vi.mocked(Tsdoc.params).mockReturnValue([
 				{ name: "input", description: "The input string" },
 				{ name: "options", description: "Configuration options" },
 			]);
@@ -227,7 +233,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should not include parameters section when empty", async () => {
-			vi.mocked(ApiParser.getParams).mockReturnValue([]);
+			vi.mocked(Tsdoc.params).mockReturnValue([]);
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -236,7 +242,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should include returns section", async () => {
-			vi.mocked(ApiParser.getReturns).mockReturnValue({
+			vi.mocked(Tsdoc.returns).mockReturnValue({
 				description: "The result value as a number",
 			});
 
@@ -247,7 +253,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should not include returns section when null", async () => {
-			vi.mocked(ApiParser.getReturns).mockReturnValue(null);
+			vi.mocked(Tsdoc.returns).mockReturnValue(null);
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -255,7 +261,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should include examples section", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([
+			vi.mocked(Tsdoc.examples).mockReturnValue([
 				{
 					language: "typescript",
 					code: "import { myFunction } from 'my-package';\nconst result = myFunction('test');",
@@ -271,7 +277,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should not include examples section when empty", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([]);
+			vi.mocked(Tsdoc.examples).mockReturnValue([]);
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -279,7 +285,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should include see also section", async () => {
-			vi.mocked(ApiParser.getSeeReferences).mockReturnValue([
+			vi.mocked(Tsdoc.seeReferences).mockReturnValue([
 				{ text: "See {@link relatedFunction}" },
 				{ text: "See the function documentation" },
 			]);
@@ -292,7 +298,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should not include see also section when empty", async () => {
-			vi.mocked(ApiParser.getSeeReferences).mockReturnValue([]);
+			vi.mocked(Tsdoc.seeReferences).mockReturnValue([]);
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -300,7 +306,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should use suppressExampleErrors parameter", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([{ language: "typescript", code: "example code" }]);
+			vi.mocked(Tsdoc.examples).mockReturnValue([{ language: "typescript", code: "example code" }]);
 
 			await generator.generate(
 				mockApiFunction,
@@ -323,7 +329,7 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should default suppressExampleErrors to true", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([{ language: "typescript", code: "example code" }]);
+			vi.mocked(Tsdoc.examples).mockReturnValue([{ language: "typescript", code: "example code" }]);
 
 			await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope");
 
@@ -352,7 +358,7 @@ describe("FunctionPageGenerator", () => {
 				sourceConfig,
 			);
 
-			expect(ApiParser.getSourceLink).toHaveBeenCalledWith(mockApiFunction, sourceConfig);
+			expect(ApiItems.sourceLink).toHaveBeenCalledWith(mockApiFunction, sourceConfig);
 		});
 
 		it("should generate correct route path with lowercase name", async () => {
@@ -370,14 +376,14 @@ describe("FunctionPageGenerator", () => {
 		});
 
 		it("should format complete page with all sections", async () => {
-			vi.mocked(ApiParser.getSummary).mockReturnValue("A function");
-			vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Internal");
-			vi.mocked(ApiParser.getDeprecation).mockReturnValue({ message: "Deprecated message" });
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/utils.ts");
-			vi.mocked(ApiParser.getParams).mockReturnValue([{ name: "arg", description: "An argument" }]);
-			vi.mocked(ApiParser.getReturns).mockReturnValue({ description: "The return value" });
-			vi.mocked(ApiParser.getExamples).mockReturnValue([{ language: "typescript", code: "example code" }]);
-			vi.mocked(ApiParser.getSeeReferences).mockReturnValue([{ text: "See something" }]);
+			vi.mocked(Tsdoc.summary).mockReturnValue("A function");
+			vi.mocked(Tsdoc.releaseTag).mockReturnValue("Internal");
+			vi.mocked(Tsdoc.deprecation).mockReturnValue({ message: "Deprecated message" });
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/utils.ts");
+			vi.mocked(Tsdoc.params).mockReturnValue([{ name: "arg", description: "An argument" }]);
+			vi.mocked(Tsdoc.returns).mockReturnValue({ description: "The return value" });
+			vi.mocked(Tsdoc.examples).mockReturnValue([{ language: "typescript", code: "example code" }]);
+			vi.mocked(Tsdoc.seeReferences).mockReturnValue([{ text: "See something" }]);
 
 			const result = await generator.generate(mockApiFunction, "/api", "my-package", "function", "test-scope", "API");
 

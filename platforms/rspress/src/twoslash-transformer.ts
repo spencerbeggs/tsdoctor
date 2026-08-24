@@ -294,7 +294,7 @@ function renderMarkdownInline(markdown: string, context: string): ElementContent
  * **VFS Integration:**
  * The VFS is populated by {@link TypeRegistryService} with:
  * - The documented package's own type definitions (from API Extractor)
- * - External package types (fetched via type-registry-effect)
+ * - External package types (fetched via @tsdoctor/registry)
  *
  * **Error Handling:**
  * TypeScript errors in code blocks are captured (not thrown) and:

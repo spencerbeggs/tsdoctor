@@ -29,13 +29,14 @@ The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned via `catalog:eff
 
 - `ConfigServiceLive` — resolves plugin options + RSPress config into build
   context (model loading, type resolution, highlighter creation)
-- `SnapshotServiceLive` — SQLite via `@effect/sql-sqlite-node` over
-  `effect/unstable/sql`, with managed migrations and WAL lifecycle
+- `SnapshotServiceLive` — from `@tsdoctor/snapshot`; SQLite via
+  `@effected/store`'s `Store.layerSqlite` (migrations applied at layer
+  construction, WAL checkpoint finalizer)
 - `TypeRegistryServiceLive` — external package type loading; edge-composes the
   `@tsdoctor/registry` stack itself (the library ships no platform layer)
 - `PathDerivationServiceLive` — route and output path computation
 - `EventBus` layer (from `buildEventBus`) — synchronous fan-out event bus
-  wiring console, metrics, and optional JSONL trace sinks
+  wiring console, metrics, issues, and optional JSONL trace sinks
 - `NodeFileSystem.layer` (`@effect/platform-node`) — Node implementation of the
   core `effect` FileSystem service
 
@@ -62,15 +63,17 @@ The plugin emits structured `PluginEvent` values through a **synchronous
 fan-out EventBus** (`src/observability/EventBus.ts`) rather than writing
 directly to the console or incrementing metrics inline.
 
-`buildEventBus(obs)` (`layers/ObservabilityLive.ts`) composes three sinks:
+`buildEventBus(obs)` (`layers/ObservabilityLive.ts`) composes four sinks:
 
 - **Console sink** — human-readable one-liners (or JSON at `logLevel: "debug"`),
   filtered by the configured level
 - **Metrics sink** — translates events to `BuildMetrics` counters/histograms
   via `Effect.runSync`; exact counts are available when `logBuildSummary` runs
   in `afterBuild`
-- **Trace sink** (opt-in) — full-fidelity JSONL written to `observability.trace`
-  path; `minLevel: "trace"`, independent of console level
+- **Issues sink** — accumulates diagnostic events; written to
+  `.api-docs/build/issues.json` on production builds
+- **Trace sink** (opt-in) — full-fidelity JSONL under `.api-docs/build/`;
+  `minLevel: "trace"`, independent of console level
 
 Twoslash and Prettier error callbacks fire outside Effect fibers.
 `makeRuntimeEmitter(runtime)` creates a sync bridge (`runtime.runSync(emit(event))`);
@@ -91,24 +94,31 @@ docs for the full architecture.
 - `effect` (v4, `catalog:effect`) — core runtime plus the merged-in `FileSystem`
   and `effect/unstable/sql` modules. `@effect/platform` and `@effect/sql` no
   longer exist as separate packages; do not add them back.
-- `@effect/platform-node` — Node platform implementation (`NodeFileSystem`)
-- `@effect/sql-sqlite-node` — SQLite driver for `effect/unstable/sql`
-- `ioredis` + `@effected/semver`/`store`/`tsconfig-json`/`xdg` +
-  `@typescript/vfs` — peer-closure deps (some imported directly by
-  `layers/TypeRegistryServiceLive.ts`). Do NOT prune as "unused" — see the peer
-  dependency closure section in `build-architecture.md`. The four `@effected/*`
-  deps are declared as `catalog:effected` (supplied by
-  `@effected/pnpm-plugin-effect`; see "@effected Distribution and Dogfooding"
-  in the root CLAUDE.md) — never hand-pin an `@effected` version range.
-- `@tsdoctor/registry` (`workspace:*`, `packages/registry/`) — npm package type
-  definition loading; formerly the npm dep `type-registry-effect@2` (same API;
-  its `Context.Service` tag id strings still read `type-registry-effect/...`
-  deliberately, per the phase 1 no-behavior-change gate)
-- `@tsdoctor/model` (`workspace:*`, `packages/model/`) — shared pure renderer:
-  model loading, TSDoc extraction, type-signature formatting, prose
-  cross-linking (the plugin delegates these to it); formerly the npm dep
-  `api-extractor-llms`
-- `@microsoft/api-extractor-model` — `.api.json` model parsing (direct dep; model loading now flows through `@tsdoctor/model`'s `loadApiModel`)
+- `@effect/platform-node` — Node platform implementation (`NodeFileSystem`).
+  `@effect/sql-sqlite-node` is **gone** — SQLite moved behind
+  `@tsdoctor/snapshot`; `gray-matter` is gone too (see `src/frontmatter.ts`)
+- `ioredis` + the `@effected/*` closure (`semver`/`store`/`tsconfig-json`/
+  `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`) +
+  `@typescript/vfs` — peer-closure deps (some imported directly, e.g. by
+  `layers/TypeRegistryServiceLive.ts`, `sync-node-fs.ts`, `frontmatter.ts`).
+  Do NOT prune as "unused" — see the peer dependency closure section in
+  `build-architecture.md`. `@effected/*` deps are declared as
+  `catalog:effected` (supplied by `@effected/pnpm-plugin-effect`; see
+  "@effected Distribution and Dogfooding" in the root CLAUDE.md) — never
+  hand-pin an `@effected` version range.
+- `@tsdoctor/registry` (`workspace:*`) — npm package type definition loading;
+  tag ids read `"@tsdoctor/registry/..."` and the XDG cache namespace is
+  `"tsdoctor"` since phase 2
+- `@tsdoctor/model` (`workspace:*`) — consumed **directly** as Effect v4
+  namespace modules (`Model`, `Tsdoc`, `ApiItems`, `EntryPoints`, `Routes`,
+  `SyntheticBases`, `Signature`, `CrossLinker`); the four phase-1 shims are
+  deleted (see "Core Package Consumption" in `build-architecture.md`)
+- `@tsdoctor/bundle` (`workspace:*`) — bundle discovery for the
+  `fromDir`/`fromParentDir` config helpers, plus npm/GitHub bundle fetchers
+- `@tsdoctor/snapshot` (`workspace:*`) — `SnapshotService`/`SnapshotServiceLive`
+  and the `hashContent`/`hashFrontmatter` helpers
+- `@microsoft/api-extractor-model` — `.api.json` model parsing (direct dep;
+  model loading flows through `@tsdoctor/model`'s `Model.load`)
 - `@shikijs/twoslash` — syntax highlighting with type information
 - `open` — best-effort browser launch for the `serve()` dev/preview runner
 
@@ -126,26 +136,27 @@ which the global biome rule would rewrite to `.js`.
 - `src/build-program.ts` — doc generation orchestration (5-stage pipeline)
 - `src/build-stages.ts` — Stream pipeline, page gen, file writes (~1380 lines)
 - `src/config-utils.ts` — pure config helpers shared by `ConfigServiceLive` and `plugin.ts`: `classifyApiConfig` (inert detection), `mergeLlmsPluginConfig`, dependency extraction
-- `src/multi-entry-resolver.ts` — multi-entry point deduplication and collision detection
-- `src/synthetic-bases.ts` — `detectSyntheticBases` + `BASE_CLASS_ANCHOR`: unexported `Foo_base` class heritage (Effect `Schema.Class`, mixins) gets no page; it is inlined on the owner class page's "Base Class" section
-- `src/content-hash.ts` — SHA-256 hashing (pure, standalone)
-- `src/observability/` — EventBus, PluginEvent taxonomy, sinks (console/trace/metrics), span helpers, stream tee
+- `src/config-helpers.ts` — `fromDir`/`fromParentDir` config builders, delegating discovery to `@tsdoctor/bundle`
+- `src/sync-node-fs.ts` — sync `FileSystem` bridge so bundle discovery runs under the sync helper API
+- `src/model-loader.ts` — plain functions over `@tsdoctor/model`'s `Model.load` (typed `ModelLoadError`)
+- `src/frontmatter.ts` — gray-matter-parity frontmatter split/join over `@effected/yaml` (the `gray-matter` dep is gone)
+- `src/observability/` — EventBus, PluginEvent taxonomy, sinks, heartbeat, span helpers, stream tee
   - `events.ts` — `PluginEvent` taggedEnum, `EventLevel`, `EventContext`, `levelOf`
   - `EventBus.ts` — synchronous fan-out bus, `makeRuntimeEmitter`, `EventBusNoop`
-  - `sinks/` — `console-sink.ts`, `trace-sink.ts`, `metrics-sink.ts`, `types.ts`
+  - `sinks/` — `console-sink.ts`, `trace-sink.ts`, `metrics-sink.ts`, `issues-sink.ts`, `types.ts`
+  - `heartbeat.ts` — production-only `BuildProgress` heartbeat fiber
   - `spans.ts` — `withPhase`, `withOp`, `PHASE_THRESHOLD_KEY`
   - `stream.ts` — best-effort sliding-queue stream tee (exported, not wired to live plugin)
 - `src/schemas/` — Effect Schema definitions (config, opengraph, performance, observability)
 - `src/services/` — Effect service interfaces (`Context.Service`)
 - `src/layers/` — Effect Layer implementations
-- `src/migrations/` — SQLite schema migrations
 - `src/internal-types.ts` — internal type definitions
 - `src/errors.ts` — tagged error types
-- `src/markdown/` — page generators (class, enum, function, interface, etc.)
+- `src/markdown/` — page generators (class, enum, function, interface, etc.) plus `prose-linker.ts`, the module-level holder over the `@tsdoctor/model` `CrossLinker` (`setProseLinker`/`linkProse`)
 - `src/runtime/` — React components for SSG-compatible rendering
 - `src/runtime/components/` — UI components (SignatureBlock, etc.)
 
-`model-loader.ts`, `formatter.ts`, the `ApiParser` TSDoc statics in `loader.ts`, and `MarkdownCrossLinker.addCrossLinks` are thin adapters over `@tsdoctor/model`. Page generators, call sites, and `ApiExtractedPackage.extractPlainText` (a distinct `.d.ts` algorithm preserving `{@link}` and code fences) stay plugin-local.
+The former shims over `@tsdoctor/model` (`loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`, the class-based `model-loader.ts`) are **deleted** — call sites consume the model's namespace modules directly. `multi-entry-resolver.ts`, `route-collisions.ts` and `synthetic-bases.ts` migrated into `@tsdoctor/model` (`EntryPoints`/`Routes`/`SyntheticBases`); `content-hash.ts` and `migrations/` moved to `@tsdoctor/snapshot`. Page generators and `ApiExtractedPackage.extractPlainText` (a distinct `.d.ts` algorithm preserving `{@link}` and code fences) stay plugin-local.
 
 ## Testing
 

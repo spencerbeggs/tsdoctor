@@ -10,7 +10,7 @@ import type { ShikiTransformer } from "shiki";
  * class member references (e.g., `ClassName.methodName`).
  *
  * **How it works:**
- * 1. The transformer is initialized with route and kind maps from {@link MarkdownCrossLinker}
+ * 1. The transformer is initialized with route and kind maps from `prepareWorkItems`
  * 2. During Shiki rendering, it walks the HAST tree looking for type names
  * 3. When a match is found, it wraps the text node in an anchor tag with the route
  * 4. Semantic CSS classes are added based on the API item kind (class, interface, etc.)
@@ -22,7 +22,7 @@ import type { ShikiTransformer } from "shiki";
  *
  * **Relationships:**
  * - Initialized by {@link ApiExtractorPlugin} during the beforeBuild hook
- * - Receives route data from {@link MarkdownCrossLinker.initialize}
+ * - Receives route data from the cross-link maps built in `prepareWorkItems`
  * - Used alongside {@link TwoslashManager} for type-aware code blocks
  * - Works with the hide-cut transformer for member signatures
  *
@@ -46,7 +46,7 @@ import type { ShikiTransformer } from "shiki";
  * });
  * ```
  *
- * @see {@link MarkdownCrossLinker} for the markdown equivalent
+ * @see the `@tsdoctor/model` CrossLinker for the markdown equivalent
  * @see {@link TwoslashManager} for type-aware documentation features
  */
 export class ShikiCrossLinker {

@@ -24,18 +24,6 @@ export class ApiModelLoadError extends ApiModelLoadErrorBase<{
 	}
 }
 
-export const SnapshotDbErrorBase = Data.TaggedError("SnapshotDbError");
-
-export class SnapshotDbError extends SnapshotDbErrorBase<{
-	readonly operation: string;
-	readonly dbPath: string;
-	readonly reason: string;
-}> {
-	get message(): string {
-		return `Snapshot DB error during '${this.operation}' at '${this.dbPath}': ${this.reason}`;
-	}
-}
-
 export const PathDerivationErrorBase = Data.TaggedError("PathDerivationError");
 
 export class PathDerivationError extends PathDerivationErrorBase<{

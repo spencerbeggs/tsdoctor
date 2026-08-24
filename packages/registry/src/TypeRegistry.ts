@@ -432,7 +432,7 @@ const make: Effect.Effect<TypeRegistryShape, never, TypeCache | PackageFetcher> 
  * @public
  */
 export class TypeRegistry extends Context.Service<TypeRegistry, TypeRegistryShape>()(
-	"type-registry-effect/TypeRegistry",
+	"@tsdoctor/registry/TypeRegistry",
 ) {
 	/** The live facade over {@link TypeCache} and {@link PackageFetcher}. */
 	static readonly layer: Layer.Layer<TypeRegistry, never, TypeCache | PackageFetcher> = Layer.effect(

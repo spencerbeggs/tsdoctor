@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-05-26
-updated: 2026-07-12
-last-synced: 2026-07-12
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 90
 related:
   - rspress-plugin-api-extractor/multi-entry-point-support.md
@@ -18,13 +18,13 @@ dependencies: []
 
 ## Overview
 
-When a package exposes more than one entry point (e.g. `.` and `./testing`), the same API item is often re-exported from several of them. The doc generation pipeline must deduplicate these re-exports into a single page, record which entry points each item is available from, and fail the build if two genuinely distinct items would write to the same output route. This is handled by two pure helpers feeding `prepareWorkItems`: `resolveEntryPoints` (`multi-entry-resolver.ts`) and `assertNoRouteCollisions` (`route-collisions.ts`).
+When a package exposes more than one entry point (e.g. `.` and `./testing`), the same API item is often re-exported from several of them. The doc generation pipeline must deduplicate these re-exports into a single page, record which entry points each item is available from, and fail the build if two genuinely distinct items would write to the same output route. This is handled by two pure `@tsdoctor/model` modules feeding `prepareWorkItems`: `EntryPoints` (`packages/model/src/EntryPoints.ts`) and `Routes` (`packages/model/src/Routes.ts`) — the former plugin files `multi-entry-resolver.ts` and `route-collisions.ts`, migrated into the model package (under those new module names) in the phase-2 redesign.
 
 For VFS `.d.ts` generation per entry point, see `multi-entry-vfs.md`.
 
-## MultiEntryResolver
+## EntryPoints resolution
 
-`resolveEntryPoints(apiPackage)` (`src/multi-entry-resolver.ts`) is a pure function that flattens one or more `ApiEntryPoint` instances into deduplicated `ResolvedEntryItem` records:
+`EntryPoints.resolve(apiPackage)` (`packages/model/src/EntryPoints.ts`) is a pure function that flattens one or more `ApiEntryPoint` instances into deduplicated `ResolvedEntryItem` records:
 
 ```typescript
 interface ResolvedEntryItem {
@@ -45,11 +45,12 @@ The main entry point (empty `displayName` in the API model) is normalized to the
 
 ## Route collisions
 
-A route is `${categoryFolder}/${sanitized-lowercased-name}`. Two distinct items resolving to the same route is a user naming or category-config problem and fails the build immediately. `src/route-collisions.ts` provides three pure helpers:
+A route is `${categoryFolder}/${sanitized-lowercased-name}`. Two distinct items resolving to the same route is a user naming or category-config problem and fails the build immediately. `packages/model/src/Routes.ts` provides the pure surface:
 
-- `detectRouteCollisions(candidates)` — groups `RouteCandidate[]` by route key and returns the groups with more than one distinct item, ordered deterministically.
-- `formatRouteCollisionError(collisions, baseRoute)` — renders an actionable error naming each colliding item, its kind and canonical reference, plus guidance to rename the item or remap categories.
-- `assertNoRouteCollisions(candidates, baseRoute)` — throws `formatRouteCollisionError` output when any collision exists.
+- `Routes.RouteCandidate` — a `Schema.Class` record for each candidate route (identity, display name, folder, lowercased base name, kind, canonical reference).
+- `Routes.detectCollisions(candidates)` — groups `RouteCandidate[]` by route key and returns the groups with more than one distinct item, ordered deterministically.
+- `Routes.RouteCollisionError` — a `Schema.TaggedError` carrying `{ baseRoute, collisions }`; its message names each colliding item, its kind and canonical reference, plus guidance to rename the item or remap categories. `prepareWorkItems` throws it when `detectCollisions` returns anything.
+- `Routes.sanitizeId(displayName, prefix?)` — the single route-side sanitizer (member anchors, route segments).
 
 Detection runs on the **lowercased** path so it catches what a case-insensitive filesystem (macOS, Windows) would silently merge. There is no synthetic `-kind` suffix, no `routeSuffix` field and no entry-point segment — the only outcomes are "distinct routes" or "build fails".
 
@@ -59,10 +60,10 @@ The companion `const`+`type` pattern routes to `/variable/<name>` and `/type/<na
 
 `prepareWorkItems` (`src/build-stages.ts`) drives the pipeline:
 
-1. Call `resolveEntryPoints` and build a lookup from `displayName::kind` to `ResolvedEntryItem`.
-2. Filter out synthetic base declarations detected by `detectSyntheticBases` (`src/synthetic-bases.ts`) — unexported `Foo_base` items referenced by an exported class's extends clause get no page, no sidebar entry and no route candidate; see `page-generation-system.md`.
-3. Categorize items and extract namespace members via `ApiParser.categorizeApiItems` / `ApiParser.extractNamespaceMembers`, both of which accept `ApiPackage | ResolvedEntryItem[]` (resolved items for multi-entry, `entryPoints[0]` for legacy single-entry).
-4. Build `RouteCandidate[]` for all top-level items and namespace members and call `assertNoRouteCollisions`.
+1. Call `EntryPoints.resolve` and build a lookup from `displayName::kind` to `ResolvedEntryItem`.
+2. Filter out synthetic base declarations detected by `SyntheticBases.detect` (`@tsdoctor/model`) — unexported `Foo_base` items referenced by an exported class's extends clause get no page, no sidebar entry and no route candidate; see `page-generation-system.md`.
+3. Categorize items and extract namespace members via `ApiItems.categorize` / `ApiItems.namespaceMembers` (`@tsdoctor/model`); `categorize` returns `{ items, uncategorized }` and the adapter emits an `ItemSkipped` event per uncategorized item.
+4. Build `Routes.RouteCandidate[]` for all top-level items and namespace members, run `Routes.detectCollisions`, and throw `Routes.RouteCollisionError` on any collision.
 5. Build the cross-link routes/kinds maps (lowercased paths, no suffix), with bare names owned by the highest-priority kind.
 6. Construct `WorkItem[]`, attaching `availableFrom` from the resolved data (and `syntheticBase` on classes whose extends clause references a detected base).
 
@@ -71,7 +72,7 @@ interface WorkItem {
   readonly item: ApiItem;
   readonly categoryKey: string;
   readonly categoryConfig: CategoryConfig;
-  readonly namespaceMember?: NamespaceMember;
+  readonly namespaceMember?: ApiItems.NamespaceMember;
   /** Entry points this item is available from */
   readonly availableFrom?: string[];
   /** Unexported base declaration to inline on this class page */
@@ -96,14 +97,16 @@ The `"default"` entry maps to the bare package name; named entries become subpat
 ```text
 ApiPackage (1+ entry points)
          |
-resolveEntryPoints()
+EntryPoints.resolve()   [@tsdoctor/model]
   → deduplicate re-exports by displayName::kind
   → ResolvedEntryItem[] (availableFrom per item)
          |
 prepareWorkItems()
-  → filter out synthetic base declarations (detectSyntheticBases)
-  → categorize items + namespace members
-  → build RouteCandidate[] → assertNoRouteCollisions() (throws on collision)
+  → filter out synthetic base declarations (SyntheticBases.detect)
+  → categorize items + namespace members (ApiItems; ItemSkipped per
+    uncategorized item)
+  → build Routes.RouteCandidate[] → Routes.detectCollisions()
+    (throws Routes.RouteCollisionError on collision)
   → build cross-link routes/kinds maps (lowercased, no suffix)
   → construct WorkItem[] with availableFrom
          |

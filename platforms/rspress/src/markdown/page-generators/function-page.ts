@@ -1,9 +1,7 @@
 import type { ApiFunction } from "@microsoft/api-extractor-model";
-import { TypeSignatureFormatter } from "../../formatter.js";
-import { ApiParser } from "../../loader.js";
+import { ApiItems, Signature, Tsdoc } from "@tsdoctor/model";
 import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
 import { TypeReferenceExtractor } from "../../type-reference-extractor.js";
-import { markdownCrossLinker } from "../cross-linker.js";
 import {
 	escapeMdxGenerics,
 	formatExampleCode,
@@ -13,6 +11,7 @@ import {
 	prependHiddenImports,
 	stripTwoslashDirectives,
 } from "../helpers.js";
+import { linkProse } from "../prose-linker.js";
 
 /**
  * Generates MDX documentation pages for TypeScript/JavaScript functions.
@@ -34,16 +33,14 @@ import {
  *
  * **Relationships:**
  * - Created and invoked by {@link ApiExtractorPlugin} during page generation
- * - Uses {@link TypeSignatureFormatter} for formatting type signatures
- * - Uses {@link ApiParser} for extracting documentation from API models
- * - Uses {@link MarkdownCrossLinker} for adding type reference links
+ * - Uses `Signature.format` from `@tsdoctor/model` for formatting type signatures
+ * - Uses the `Tsdoc` / `ApiItems` modules from `@tsdoctor/model` for extracting documentation
+ * - Uses the per-build prose linker (`linkProse`) for adding type reference links
  *
  * @see {@link ClassPageGenerator} for class documentation
  * @see {@link TypeAliasPageGenerator} for type alias documentation
  */
 export class FunctionPageGenerator {
-	private readonly typeFormatter: TypeSignatureFormatter = new TypeSignatureFormatter();
-
 	/**
 	 * Generate a markdown page for a function
 	 *
@@ -63,8 +60,8 @@ export class FunctionPageGenerator {
 	): Promise<{ routePath: string; content: string }> {
 		const shouldSuppressErrors = suppressExampleErrors ?? true;
 		const name = apiFunction.displayName;
-		const summary = ApiParser.getSummary(apiFunction) || "No description available.";
-		const releaseTag = ApiParser.getReleaseTag(apiFunction);
+		const summary = Tsdoc.summary(apiFunction) || "No description available.";
+		const releaseTag = Tsdoc.releaseTag(apiFunction);
 
 		let content = generateFrontmatter(name, summary, singularName, apiName);
 		content += `import { SourceCode } from "@rspress/core/theme";\n`;
@@ -74,9 +71,9 @@ export class FunctionPageGenerator {
 		content += `# ${name}\n\n`;
 
 		// Add deprecation warning if present
-		const deprecation = ApiParser.getDeprecation(apiFunction);
+		const deprecation = Tsdoc.deprecation(apiFunction);
 		if (deprecation) {
-			const message = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(deprecation.message));
+			const message = escapeMdxGenerics(linkProse(deprecation.message));
 			content += `> ⚠️ **Deprecated:** ${message}\n\n`;
 		}
 
@@ -92,7 +89,7 @@ export class FunctionPageGenerator {
 		content += generateAvailableFrom(packageName, availableFrom);
 
 		// Add toolbar with source code badge
-		const sourceLink = ApiParser.getSourceLink(apiFunction, sourceConfig);
+		const sourceLink = ApiItems.sourceLink(apiFunction, sourceConfig);
 		if (sourceLink) {
 			content += `<div className="api-docs-toolbar">\n`;
 			content += `  <div className="api-docs-toolbar-left">\n`;
@@ -108,11 +105,11 @@ export class FunctionPageGenerator {
 		}
 
 		// Add signature using ApiSignature component
-		const params = ApiParser.getParams(apiFunction);
+		const params = Tsdoc.params(apiFunction);
 		const hasParameters = params.length > 0;
 
 		if (apiFunction.excerpt.text) {
-			const signature = this.typeFormatter.format(apiFunction.excerpt).trim();
+			const signature = Signature.format(apiFunction.excerpt).trim();
 
 			// Extract imports for external type references in this function
 			let signatureWithImports = signature;
@@ -132,20 +129,20 @@ export class FunctionPageGenerator {
 			const parametersData = params.map((param) => ({
 				name: param.name,
 				type: param.type,
-				description: escapeMdxGenerics(markdownCrossLinker.addCrossLinks(param.description)),
+				description: escapeMdxGenerics(linkProse(param.description)),
 			}));
 			content += `<ParametersTable parameters={${JSON.stringify(parametersData)}} />\n\n`;
 		}
 
 		// Add returns documentation
-		const returns = ApiParser.getReturns(apiFunction);
+		const returns = Tsdoc.returns(apiFunction);
 		if (returns) {
-			const description = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(returns.description));
+			const description = escapeMdxGenerics(linkProse(returns.description));
 			content += `## Returns\n\n${description}\n\n`;
 		}
 
 		// Add examples using ApiExample component
-		const examples = ApiParser.getExamples(apiFunction);
+		const examples = Tsdoc.examples(apiFunction);
 		if (examples.length > 0) {
 			content += `## Examples\n\n`;
 			for (const example of examples) {
@@ -168,11 +165,11 @@ export class FunctionPageGenerator {
 		}
 
 		// Add see also references
-		const seeReferences = ApiParser.getSeeReferences(apiFunction);
+		const seeReferences = Tsdoc.seeReferences(apiFunction);
 		if (seeReferences.length > 0) {
 			content += `## See Also\n\n`;
 			for (const reference of seeReferences) {
-				const refText = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(reference.text));
+				const refText = escapeMdxGenerics(linkProse(reference.text));
 				content += `- ${refText}\n`;
 			}
 			content += `\n`;

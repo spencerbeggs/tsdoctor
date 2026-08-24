@@ -11,15 +11,14 @@ API Extractor models, organized into core `@tsdoctor/*` libraries
 documentation sites. The source repository is
 <https://github.com/spencerbeggs/tsdoctor> (renamed from
 `spencerbeggs/rspress-plugin-api-extractor`; GitHub redirects the old URL);
-phase 1 of the roadmap consolidation has landed. The npm package name
+phases 1 and 2 of the roadmap consolidation have landed. The npm package name
 `rspress-plugin-api-extractor` is unchanged.
 
 **Naming caution:** `packages/` = core `@tsdoctor/*` libraries; `platforms/` =
 framework adapters (`platforms/rspress/` is the publishable
-`rspress-plugin-api-extractor`; phase 5 adds `platforms/vitepress`); the
-repo-root `plugin/` folder is the **api-docs Claude Code plugin** — not a pnpm
-workspace, not the RSPress plugin. See
-[plugin/](#plugin-claude-code-plugin).
+`rspress-plugin-api-extractor`); the repo-root `plugin/` folder is the
+**api-docs Claude Code plugin** — not a pnpm workspace, not the RSPress
+plugin. See [plugin/](#plugin-claude-code-plugin).
 
 ## Getting Started
 
@@ -38,9 +37,11 @@ Workspace globs (`pnpm-workspace.yaml`): `modules/*`, `packages/*`,
 | --------- | ------------ | ------- | ------- |
 | `platforms/rspress/` | `rspress-plugin-api-extractor` | Publishable | The RSPress adapter (main plugin) |
 | `packages/registry/` | `@tsdoctor/registry` | Publishable | External type loading, VFS, Twoslash environments |
-| `packages/model/` | `@tsdoctor/model` | Publishable | Pure api.json loading, TSDoc extraction, formatting, markdown rendering |
+| `packages/model/` | `@tsdoctor/model` | Publishable | api.json loading, TSDoc extraction, routes, signatures, markdown rendering |
+| `packages/bundle/` | `@tsdoctor/bundle` | Publishable | Bundle spec: `tsdoctor.json` manifest, provenance resolver, discovery, fetchers |
+| `packages/snapshot/` | `@tsdoctor/snapshot` | Publishable | Incremental-build snapshot store (SQLite via `@effected/store`) + content hashing |
 | `modules/kitchensink/` | `@modules/kitchensink` | Yes | Full API Extractor feature coverage |
-| `modules/effect-kit/` | `@modules/effect-kit` | Yes | Effect-TS API patterns (Schema.Class, synthetic bases, companion namespaces) |
+| `modules/effect-kit/` | `@modules/effect-kit` | Yes | Effect-TS API patterns (Schema.Class, synthetic bases) |
 | `modules/versioned-v1/` | `@modules/versioned-v1` | Yes | Version testing — v1 baseline |
 | `modules/versioned-v2/` | `@modules/versioned-v2` | Yes | Version testing — v2 breaking changes |
 | `sites/basic/` | `@sites/basic` | Yes | Single API, no versioning, no i18n |
@@ -58,35 +59,38 @@ The publishable plugin (`rspress-plugin-api-extractor`). Builds via
 `build()` from `@savvy-web/rspress-builder`
 (`platforms/rspress/savvy.build.ts`); the runtime is emitted bundleless
 per-file under `dist/<mode>/pkg/runtime/` (see `platforms/rspress/CLAUDE.md`).
-Depends on `@tsdoctor/registry` and `@tsdoctor/model` via `workspace:*` (the
-old npm deps `type-registry-effect` and `api-extractor-llms` are gone).
+Depends on all four `@tsdoctor/*` core workspaces via `workspace:*`.
 Exports three entry points:
 
 - `.` — Main plugin (per-file output under `dist/<mode>/pkg/`)
-- `./runtime` — React components for SSG-compatible rendering, bundleless per-file under `dist/<mode>/pkg/runtime/`
-- `./tsconfig/rspress.json` — RSPress tsconfig that sites extend from (`platforms/rspress/public/tsconfig/rspress.json`)
+- `./runtime` — React components for SSG-compatible rendering (bundleless per-file)
+- `./tsconfig/rspress.json` — RSPress tsconfig that sites extend from
 
 ### packages/
 
-Core `@tsdoctor/*` libraries, framework-neutral and publishable, moved in
-during phase 1 of the consolidation with no behavior change:
+Core `@tsdoctor/*` libraries, framework-neutral and publishable, versioned
+via changesets on fresh 0.x lines:
 
-**registry** — `@tsdoctor/registry`, the renamed
-`type-registry-effect@2.3.5` (same API; its `Context.Service` tag id strings
-still read `type-registry-effect/...` deliberately). See
+**registry** — the renamed `type-registry-effect@2.3.5` (same API; tag ids
+now `"@tsdoctor/registry/..."` since phase 2). See
 `packages/registry/CLAUDE.md`.
 
-**model** — `@tsdoctor/model`, seeded from the dissolved
-`api-extractor-llms`; deps only `@microsoft/api-extractor-model` +
-`@microsoft/tsdoc`. See `packages/model/CLAUDE.md`.
+**model** — redesigned in phase 2 as Effect v4 namespace modules (`Model`,
+`Tsdoc`, `ApiItems`, `EntryPoints`, `Routes`, `SyntheticBases`, `Signature`,
+`Render`, `CrossLinker`). See `packages/model/CLAUDE.md`.
 
-Both start fresh at 0.x, versioned via changesets.
+**bundle** — the versioned bundle spec (phase 2): `tsdoctor.json` sidecar
+manifest, provenance resolver, discovery, npm/GitHub fetchers. See
+`packages/bundle/CLAUDE.md`.
+
+**snapshot** — the snapshot store extracted from the plugin (phase 2), on
+`@effected/store`'s `Store.layerSqlite`. See `packages/snapshot/CLAUDE.md`.
 
 ### plugin/ (Claude Code plugin)
 
-The **api-docs Claude Code plugin** — a stub, not a pnpm workspace and not part
-of the build. Ships a `.claude-plugin/plugin.json` manifest and a SessionStart
-orientation hook (`hooks/`); bats tests live in `plugin/__test__/`. Load it with
+The **api-docs Claude Code plugin** — not a pnpm workspace, not part of the
+build. Ships skills, the `rspress-docs` agent, slash commands, hooks and
+background monitors; bats tests in `plugin/__test__/`. Load with
 `pnpm claude` (`claude --plugin-dir=plugin`). See `plugin/CLAUDE.md`.
 
 ### modules/
@@ -98,19 +102,17 @@ outputs:
 - `dist/dev/` — Development build with source maps
 - `dist/prod/` — Production build with API Extractor model (`.api.json` under `dist/<mode>/meta/`)
 
-**kitchensink** — Comprehensive module exercising all API Extractor item kinds
-(classes, interfaces, enums, functions, type aliases, variables, namespaces).
-Exports a `./testing` entry point for multi-entry point documentation testing.
+**kitchensink** — Comprehensive module exercising all API Extractor item
+kinds. Exports a `./testing` entry point for multi-entry point testing.
 
 **versioned-v1 / versioned-v2** — Paired modules for testing multiVersion
-documentation. v1 provides a baseline API; v2 introduces breaking changes.
+documentation: v1 baseline, v2 breaking changes.
 
 ### sites/
 
-RSPress 2.0 documentation sites that consume the plugin with different
-configurations (see the workspace table for what each exercises). Each site
-depends on `rspress-plugin-api-extractor` via `workspace:*` and one or more
-modules.
+RSPress 2.0 documentation sites consuming the plugin with different
+configurations (see the workspace table). Each depends on the plugin via
+`workspace:*` plus one or more modules.
 
 ## Effect-TS Architecture
 
@@ -118,19 +120,21 @@ The plugin uses **Effect v4** (`effect@4.0.0-rc.109`, pinned through the
 `catalog:effect` catalog) for all build orchestration. Key patterns:
 
 - **Services** in the Layer stack, declared as
-  `Context.Service<Self, Shape>()("id")`: `ConfigService`, `SnapshotService`,
-  `TypeRegistryService`, `PathDerivationService`
+  `Context.Service<Self, Shape>()("id")`: `ConfigService`, `SnapshotService`
+  (from `@tsdoctor/snapshot`), `TypeRegistryService`, `PathDerivationService`
 - **Stream pipeline** for concurrent page generation (`build-stages.ts`)
 - **Effect Schema** for config validation (`src/schemas/`)
 - **Core `effect` FileSystem** for cross-platform I/O, with
   `@effect/platform-node` supplying the Node implementation (`@effect/platform`
   merged into the core in v4)
-- **`@effect/sql-sqlite-node`** over `effect/unstable/sql` for snapshot
-  tracking DB (`@effect/sql` also merged into the core)
+- **Snapshot SQLite DB** behind `@tsdoctor/snapshot`'s `Store.layerSqlite`
+  (`@effected/store`); the plugin no longer depends on
+  `@effect/sql-sqlite-node` directly
 
 See `platforms/rspress/CLAUDE.md` for detailed service layer documentation.
 External type loading flows through the `@tsdoctor/registry` workspace,
-model/TSDoc concerns through `@tsdoctor/model`.
+model/TSDoc concerns through `@tsdoctor/model`, bundle discovery/fetching
+through `@tsdoctor/bundle`, snapshot tracking through `@tsdoctor/snapshot`.
 
 ### @effected Distribution and Dogfooding
 
@@ -143,11 +147,10 @@ Effect-org packages (`effect`, `@effect/platform-node`, `@effect/sql-sqlite-node
 - Declare every `@effected/*` dependency in this repo as `"catalog:effected"`
   (`"catalog:effected:peers"` under `peerDependencies`). Never hand-pin an
   `@effected` version range.
-- Upstream effected CI/CD bumps the `@effected/pnpm-plugin-effect` version in
-  this repo's `pnpm-workspace.yaml`, builds, tests, verifies peer-dependency
-  integrity, and handles changesets/deployment. A plugin release carries the
-  whole `@effected` dependency/peer graph — never manage effected's internal
-  dependency complexity by hand.
+- Upstream effected CI/CD bumps `@effected/pnpm-plugin-effect` in
+  `pnpm-workspace.yaml` and handles the release train. A plugin release
+  carries the whole `@effected` dependency/peer graph — never manage
+  effected's internal dependency complexity by hand.
 - To dogfood unreleased `@effected` work: add `overrides:` entries in
   `pnpm-workspace.yaml` pointing the tinkered packages — **and their peers** —
   at the local sibling `effected` checkout's built artifacts (`file:` links);
@@ -200,10 +203,9 @@ tracking, the progress heartbeat, or the `issues.json` artifact:
 - @./.claude/design/rspress-plugin-api-extractor/error-observability.md
 - @./.claude/design/rspress-plugin-api-extractor/build-progress-and-issues.md
 
-**Roadmap & @tsdoctor consolidation (planned, not current state)** — load when
-working on the road to 1.0.0, the `@tsdoctor/*` package split, or the
-monorepo consolidation; these docs describe planned architecture, not the
-current implementation:
+**Roadmap & @tsdoctor consolidation** — load when working on the road to
+1.0.0, the `@tsdoctor/*` package architecture, or consolidation history
+(phases 1–2 executed; later phases are planned, not current state):
 
 - @./.claude/design/rspress-plugin-api-extractor/roadmap-1.0.md
 - @./.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
@@ -213,8 +215,8 @@ current implementation:
 
 ### How `private: true` Works
 
-The source `package.json` in each publishable workspace (`platforms/rspress/`,
-`packages/registry/`, `packages/model/`) is marked `"private": true` — **this
+The source `package.json` in each publishable workspace (`platforms/rspress/`
+and the four `packages/*`) is marked `"private": true` — **this
 is intentional and correct**. `publishConfig` controls publishing; never
 manually set `"private": false` in the source `package.json`. The savvy-web
 builders transform `package.json` during build — set `"private": false` from
@@ -222,7 +224,7 @@ builders transform `package.json` during build — set `"private": false` from
 
 ### Publish Targets
 
-All three publishable workspaces publish to the **npm registry** only
+All five publishable workspaces publish to the **npm registry** only
 (`publishConfig.targets` = `{ npm: true }`), with provenance attestation
 enabled.
 
@@ -233,15 +235,14 @@ enabled.
 - `build:dev` depends on `^build:dev` (upstream workspaces build first)
 - `build:prod` depends on `types:check` and `build:dev`
 - `types:check` depends on `^build:dev`
-- The root `build` script runs `build:dev build:prod` unfiltered; sites are
-  excluded because they define only a `build` task, not `build:dev`/`build:prod`
+- The root `build` script runs `build:dev build:prod`; sites define only a
+  `build` task, so they are excluded
 - Environment pass-through: `GITHUB_ACTIONS`, `CI`
 
 ## Savvy-Web Tool References
 
-This project depends on several `@savvy-web/*` packages. These are in active
-development — if behavior seems unexpected, explore both the GitHub docs and the
-installed source.
+These `@savvy-web/*` packages are in active development — if behavior seems
+unexpected, explore both the GitHub docs and the installed source.
 
 | Package | Purpose | GitHub | Local Source |
 | ------- | ------- | ------ | ------------ |
@@ -261,7 +262,7 @@ TypeScript configurations extend per workspace type:
 
 ## Reference Repositories
 
-Upstream source for the frameworks this plugin builds on is vendored under `.repos/` as pinned, shallow git submodules (sparse checkouts of source + official docs), each pinned to the installed version — treat them as the authority when framework behavior is unclear. Populate one with `git submodule update --init .repos/<name>`; `.repos/config.json` records each repo's `ref`, `purpose`, sparse paths, and an `orientation` map.
+Upstream source for the frameworks this plugin builds on is vendored under `.repos/` as shallow git submodules (sparse checkouts of source + official docs), each pinned to the installed version — treat them as the authority when framework behavior is unclear. Populate one with `git submodule update --init .repos/<name>`; `.repos/config.json` records each repo's `ref`, `purpose`, sparse paths, and an `orientation` map.
 
 | Submodule | Pinned ref | Authority for |
 | --------- | ---------- | ------------- |
@@ -312,7 +313,6 @@ pnpm preview:<site>        # basic | versioned | i18n | multi | effect
 pnpm --filter rspress-plugin-api-extractor run build:dev   # Build the plugin only
 pnpm --filter @modules/kitchensink run build:dev           # Build the kitchensink module only
 pnpm --filter @sites/basic run dev                         # Start basic site dev server
-pnpm --filter @sites/basic run preview                     # Preview basic site production build
 ```
 
 ### Running a Specific Test
@@ -321,7 +321,7 @@ pnpm --filter @sites/basic run preview                     # Preview basic site 
 pnpm vitest run platforms/rspress/__test__/build-stages.test.ts
 ```
 
-The `plugin/` Claude Code plugin's hooks are covered by bats, not Vitest:
+The `plugin/` Claude Code plugin is covered by bats, not Vitest:
 
 ```bash
 bats plugin/__test__
@@ -331,8 +331,8 @@ bats plugin/__test__
 
 ### Biome
 
-Unified linter and formatter replacing ESLint + Prettier. Configuration in
-`biome.jsonc` extends `@savvy-web/silk/biome`.
+Unified linter/formatter. Configuration in `biome.jsonc` extends
+`@savvy-web/silk/biome`.
 
 ### Commitlint
 
@@ -345,7 +345,7 @@ Enforces conventional commit format with DCO signoff. Configuration in
 | ---- | ------ |
 | `pre-commit` | Runs lint-staged (Biome on staged files) |
 | `commit-msg` | Validates commit message format via commitlint |
-| `pre-push` | Runs tests for affected packages using Turbo |
+| `post-commit` | Normalizes exec bits on `*.sh` files (savvy-hooks managed) |
 | `post-checkout` | Package manager setup |
 | `post-merge` | Package manager setup |
 

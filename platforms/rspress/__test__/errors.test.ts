@@ -5,7 +5,6 @@ import {
 	PageGenerationError,
 	PathDerivationError,
 	PrettierFormatError,
-	SnapshotDbError,
 	TwoslashProcessingError,
 	TypeRegistryError,
 } from "../src/errors.js";
@@ -31,19 +30,6 @@ describe("TaggedError types", () => {
 		expect(err.modelPath).toBe("/path/to/model.api.json");
 		expect(err.reason).toBe("File not found");
 		expect(err.message).toBe("Failed to load API model at '/path/to/model.api.json': File not found");
-	});
-
-	it("SnapshotDbError has correct tag, fields, and message", () => {
-		const err = new SnapshotDbError({
-			operation: "upsert",
-			dbPath: "/path/to/db",
-			reason: "SQLITE_BUSY",
-		});
-		expect(err._tag).toBe("SnapshotDbError");
-		expect(err.operation).toBe("upsert");
-		expect(err.dbPath).toBe("/path/to/db");
-		expect(err.reason).toBe("SQLITE_BUSY");
-		expect(err.message).toBe("Snapshot DB error during 'upsert' at '/path/to/db': SQLITE_BUSY");
 	});
 
 	it("PathDerivationError has correct tag, fields, and message", () => {

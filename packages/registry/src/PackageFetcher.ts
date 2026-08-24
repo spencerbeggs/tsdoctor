@@ -369,7 +369,7 @@ const make: Effect.Effect<PackageFetcherShape, never, HttpClient.HttpClient> = E
  * @public
  */
 export class PackageFetcher extends Context.Service<PackageFetcher, PackageFetcherShape>()(
-	"type-registry-effect/PackageFetcher",
+	"@tsdoctor/registry/PackageFetcher",
 ) {
 	/** The jsDelivr-backed layer; requires an `HttpClient`. */
 	static readonly layer: Layer.Layer<PackageFetcher, never, HttpClient.HttpClient> = Layer.effect(PackageFetcher, make);
