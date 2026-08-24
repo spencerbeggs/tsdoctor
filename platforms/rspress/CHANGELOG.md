@@ -1,5 +1,42 @@
 # rspress-plugin-api-extractor
 
+## 0.9.0
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/sql-sqlite-node | dependency | removed | 4.0.0-rc.109 | — |
+| gray-matter | dependency | removed | ^4.0.3 | — |
+| @tsdoctor/model | dependency | updated | 0.1.0 | 0.2.0 |
+| @tsdoctor/registry | dependency | updated | 0.1.0 | 0.2.0 |
+| @effected/github | dependency | added | — | ^0.8.0 |
+| @effected/glob | dependency | added | — | ^0.4.0 |
+| @effected/npm | dependency | added | — | ^0.12.0 |
+| @effected/package-json | dependency | added | — | ^0.11.0 |
+| @effected/walker | dependency | added | — | ^0.5.0 |
+| @effected/yaml | dependency | added | — | ^0.11.0 |
+| @tsdoctor/bundle | dependency | added | — | 0.1.0 |
+| @tsdoctor/snapshot | dependency | added | — | 0.1.0 |
+
+[#165][#165]
+
+### Maintenance
+
+- The plugin's internals were reorganized around the four `@tsdoctor/*` core packages (`@tsdoctor/model`, `@tsdoctor/registry`, `@tsdoctor/bundle`, `@tsdoctor/snapshot`); generated documentation output and the public plugin configuration API are unchanged. Two effects are visible on upgrade:
+
+- **One-time type-cache invalidation.** The XDG cache namespace used for external type loading is renamed from `"type-registry-effect"` to `"tsdoctor"`, so the first build after upgrading does a cold refetch of any cached external package types. Subsequent builds are unaffected.
+
+- **Frontmatter scalars are now double-quoted.** Frontmatter parsing/emission moved off `gray-matter` onto a YAML 1.2-based implementation; regenerated pages may show a frontmatter diff (double-quoted strings instead of unquoted/single-quoted) even when their content is otherwise unchanged.
+
+- The snapshot database implementation and `fromDir`/`fromParentDir` bundle discovery now live in the new `@tsdoctor/bundle` and `@tsdoctor/snapshot` workspace dependencies. [#165][#165]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#165]: https://github.com/spencerbeggs/tsdoctor/pull/165
+
 ## 0.8.9
 
 ### Dependencies
