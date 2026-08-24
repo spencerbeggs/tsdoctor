@@ -1,25 +1,31 @@
 import type { ApiTypeAlias } from "@microsoft/api-extractor-model";
+import { ApiItems, Tsdoc } from "@tsdoctor/model";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiParser } from "../../../src/loader.js";
 import { TypeAliasPageGenerator } from "../../../src/markdown/page-generators/type-alias-page.js";
 import type { LlmsPlugin, SourceConfig } from "../../../src/schemas/index.js";
 
 // Mock dependencies
-vi.mock("../../../src/loader.js", () => ({
-	ApiParser: {
-		getSummary: vi.fn(),
-		getReleaseTag: vi.fn(),
-		getDeprecation: vi.fn(),
-		getSourceLink: vi.fn(),
-		getExamples: vi.fn(),
-		getSeeReferences: vi.fn(),
-	},
-}));
+vi.mock("@tsdoctor/model", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@tsdoctor/model")>();
+	return {
+		...actual,
+		Tsdoc: {
+			...actual.Tsdoc,
+			summary: vi.fn(),
+			releaseTag: vi.fn(),
+			deprecation: vi.fn(),
+			examples: vi.fn(),
+			seeReferences: vi.fn(),
+		},
+		ApiItems: {
+			...actual.ApiItems,
+			sourceLink: vi.fn(),
+		},
+	};
+});
 
-vi.mock("../../../src/markdown/cross-linker.js", () => ({
-	markdownCrossLinker: {
-		addCrossLinks: vi.fn((text: string) => text),
-	},
+vi.mock("../../../src/markdown/prose-linker.js", () => ({
+	linkProse: vi.fn((text: string) => text),
 }));
 
 vi.mock("../../../src/markdown/helpers.js", () => ({
@@ -58,12 +64,12 @@ describe("TypeAliasPageGenerator", () => {
 		vi.clearAllMocks();
 
 		// Set default mock returns
-		vi.mocked(ApiParser.getSummary).mockReturnValue("A type alias for values");
-		vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Public");
-		vi.mocked(ApiParser.getDeprecation).mockReturnValue(null);
-		vi.mocked(ApiParser.getSourceLink).mockReturnValue(null);
-		vi.mocked(ApiParser.getExamples).mockReturnValue([]);
-		vi.mocked(ApiParser.getSeeReferences).mockReturnValue([]);
+		vi.mocked(Tsdoc.summary).mockReturnValue("A type alias for values");
+		vi.mocked(Tsdoc.releaseTag).mockReturnValue("Public");
+		vi.mocked(Tsdoc.deprecation).mockReturnValue(null);
+		vi.mocked(ApiItems.sourceLink).mockReturnValue(null);
+		vi.mocked(Tsdoc.examples).mockReturnValue([]);
+		vi.mocked(Tsdoc.seeReferences).mockReturnValue([]);
 	});
 
 	describe("generate", () => {
@@ -91,7 +97,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should handle no summary", async () => {
-			vi.mocked(ApiParser.getSummary).mockReturnValue("");
+			vi.mocked(Tsdoc.summary).mockReturnValue("");
 
 			const result = await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope");
 
@@ -99,7 +105,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should include deprecation warning", async () => {
-			vi.mocked(ApiParser.getDeprecation).mockReturnValue({
+			vi.mocked(Tsdoc.deprecation).mockReturnValue({
 				message: "Use NewType instead",
 			});
 
@@ -109,7 +115,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should include release tag for non-Public items", async () => {
-			vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Alpha");
+			vi.mocked(Tsdoc.releaseTag).mockReturnValue("Alpha");
 
 			const result = await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope");
 
@@ -117,7 +123,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should not include release tag for Public items", async () => {
-			vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Public");
+			vi.mocked(Tsdoc.releaseTag).mockReturnValue("Public");
 
 			const result = await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope");
 
@@ -125,7 +131,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should include source link toolbar", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/types.ts#L15");
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/types.ts#L15");
 
 			const result = await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope");
 
@@ -134,7 +140,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should not include toolbar when no source link", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue(null);
+			vi.mocked(ApiItems.sourceLink).mockReturnValue(null);
 
 			const result = await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope");
 
@@ -142,7 +148,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should include LLMS plugin section when enabled", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/types.ts");
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/types.ts");
 			const llmsPlugin: LlmsPlugin = {
 				enabled: true,
 				showCopyButton: true,
@@ -167,7 +173,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should not include LLMS plugin section when disabled", async () => {
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/types.ts");
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/types.ts");
 			const llmsPlugin: LlmsPlugin = {
 				enabled: false,
 				showCopyButton: false,
@@ -207,7 +213,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should include examples section", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([
+			vi.mocked(Tsdoc.examples).mockReturnValue([
 				{ language: "typescript", code: "import type { MyType } from 'my-package';\nconst value: MyType = 'hello';" },
 				{ language: "typescript", code: "// Another example\nconst num: MyType = 42;" },
 			]);
@@ -220,7 +226,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should not include examples section when empty", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([]);
+			vi.mocked(Tsdoc.examples).mockReturnValue([]);
 
 			const result = await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope");
 
@@ -228,7 +234,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should include see also section", async () => {
-			vi.mocked(ApiParser.getSeeReferences).mockReturnValue([
+			vi.mocked(Tsdoc.seeReferences).mockReturnValue([
 				{ text: "See {@link RelatedType}" },
 				{ text: "See the type documentation" },
 			]);
@@ -241,7 +247,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should not include see also section when empty", async () => {
-			vi.mocked(ApiParser.getSeeReferences).mockReturnValue([]);
+			vi.mocked(Tsdoc.seeReferences).mockReturnValue([]);
 
 			const result = await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope");
 
@@ -249,7 +255,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should use suppressExampleErrors parameter", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([{ language: "typescript", code: "example code" }]);
+			vi.mocked(Tsdoc.examples).mockReturnValue([{ language: "typescript", code: "example code" }]);
 
 			await generator.generate(
 				mockApiTypeAlias,
@@ -272,7 +278,7 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should default suppressExampleErrors to true", async () => {
-			vi.mocked(ApiParser.getExamples).mockReturnValue([{ language: "typescript", code: "example code" }]);
+			vi.mocked(Tsdoc.examples).mockReturnValue([{ language: "typescript", code: "example code" }]);
 
 			await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope");
 
@@ -293,7 +299,7 @@ describe("TypeAliasPageGenerator", () => {
 
 			await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope", undefined, sourceConfig);
 
-			expect(ApiParser.getSourceLink).toHaveBeenCalledWith(mockApiTypeAlias, sourceConfig);
+			expect(ApiItems.sourceLink).toHaveBeenCalledWith(mockApiTypeAlias, sourceConfig);
 		});
 
 		it("should generate correct route path with lowercase name", async () => {
@@ -311,12 +317,12 @@ describe("TypeAliasPageGenerator", () => {
 		});
 
 		it("should format complete page with all sections", async () => {
-			vi.mocked(ApiParser.getSummary).mockReturnValue("A type alias");
-			vi.mocked(ApiParser.getReleaseTag).mockReturnValue("Internal");
-			vi.mocked(ApiParser.getDeprecation).mockReturnValue({ message: "Deprecated message" });
-			vi.mocked(ApiParser.getSourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/types.ts");
-			vi.mocked(ApiParser.getExamples).mockReturnValue([{ language: "typescript", code: "example code" }]);
-			vi.mocked(ApiParser.getSeeReferences).mockReturnValue([{ text: "See something" }]);
+			vi.mocked(Tsdoc.summary).mockReturnValue("A type alias");
+			vi.mocked(Tsdoc.releaseTag).mockReturnValue("Internal");
+			vi.mocked(Tsdoc.deprecation).mockReturnValue({ message: "Deprecated message" });
+			vi.mocked(ApiItems.sourceLink).mockReturnValue("https://github.com/user/repo/blob/main/src/types.ts");
+			vi.mocked(Tsdoc.examples).mockReturnValue([{ language: "typescript", code: "example code" }]);
+			vi.mocked(Tsdoc.seeReferences).mockReturnValue([{ text: "See something" }]);
 
 			const result = await generator.generate(mockApiTypeAlias, "/api", "my-package", "type", "test-scope", "API");
 

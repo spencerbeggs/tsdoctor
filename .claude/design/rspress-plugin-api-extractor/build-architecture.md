@@ -24,7 +24,7 @@ dependencies: []
 - [Overview](#overview)
 - [Per-file Plugin and Bundleless Runtime](#per-file-plugin-and-bundleless-runtime)
 - [Effect Service Layer](#effect-service-layer)
-- [Shared Library Delegation](#shared-library-delegation)
+- [Core Package Consumption](#core-package-consumption)
 - [Plugin Lifecycle](#plugin-lifecycle)
 - [Configuration System](#configuration-system)
 - [Build Tooling](#build-tooling)
@@ -73,10 +73,10 @@ plugin.ts (RSPress adapter)
   |     |     Resolves plugin options + RSPress config
   |     |     into ResolvedBuildContext
   |     |
-  |     +-> SnapshotServiceLive
-  |     |     SQLite via @effect/sql-sqlite-node
-  |     |     Migrator/SqlClient from effect/unstable/sql
-  |     |     Managed migrations, WAL lifecycle
+  |     +-> SnapshotServiceLive (from @tsdoctor/snapshot)
+  |     |     SQLite via @effected/store Store.layerSqlite
+  |     |     StoreMigration list applied at layer construction
+  |     |     WAL checkpoint finalizer via store.client
   |     |
   |     +-> TypeRegistryServiceLive
   |     |     External package type loading
@@ -103,7 +103,7 @@ plugin.ts (RSPress adapter)
 | Service | Location | Purpose |
 | --- | --- | --- |
 | `ConfigService` | `services/ConfigService.ts` | Resolve options into build context |
-| `SnapshotService` | `services/SnapshotService.ts` | Incremental build tracking |
+| `SnapshotService` | `@tsdoctor/snapshot` (`packages/snapshot/src/SnapshotService.ts`, tag id `"@tsdoctor/snapshot/SnapshotService"`) | Incremental build tracking |
 | `TypeRegistryService` | `services/TypeRegistryService.ts` | External type loading |
 | `PathDerivationService` | `services/PathDerivationService.ts` | Path computation |
 
@@ -112,7 +112,7 @@ plugin.ts (RSPress adapter)
 | Layer | Location | Key Dependencies |
 | --- | --- | --- |
 | `ConfigServiceLive` | `layers/ConfigServiceLive.ts` | PathDerivation, TypeRegistry |
-| `SnapshotServiceLive` | `layers/SnapshotServiceLive.ts` | `@effect/sql-sqlite-node`, `effect/unstable/sql` |
+| `SnapshotServiceLive` | `@tsdoctor/snapshot` (`packages/snapshot/src/SnapshotServiceLive.ts`) | `@effected/store` (`Store.layerSqlite`) |
 | `TypeRegistryServiceLive` | `layers/TypeRegistryServiceLive.ts` | `@tsdoctor/registry`, `@effected/store`, `@effected/xdg`, `@effect/platform-node` |
 | `PathDerivationServiceLive` | `layers/PathDerivationServiceLive.ts` | (none) |
 | `buildEventBus` (EventBus layer) | `layers/ObservabilityLive.ts` | Synchronous fan-out event bus |
@@ -122,12 +122,13 @@ plugin.ts (RSPress adapter)
 
 The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned through the `catalog:effect` catalog supplied by `@effected/pnpm-plugin-effect`). Two v3 packages are gone because their contents merged into the `effect` core: `@effect/platform` (FileSystem is now the top-level `effect` `FileSystem` module) and `@effect/sql` (now `effect/unstable/sql`). `@effect/platform-node` and `@effect/sql-sqlite-node` remain as separate node-platform packages.
 
-The v3 peer-closure block (`@effect/cluster`, `@effect/experimental`, `@effect/rpc`, `@effect/workflow`) has been **removed**: the v4 peer graph is small enough that issue #69's escaping-peer problem no longer applies in that form. The closure principle still holds, though — because the per-file plugin build leaves `dependencies` external, any unclosed non-optional peer escapes to the consuming workspace where pnpm `autoInstallPeers` can bind it unpredictably. The current closure declares:
+The v3 peer-closure block (`@effect/cluster`, `@effect/experimental`, `@effect/rpc`, `@effect/workflow`) has been **removed**: the v4 peer graph is small enough that issue #69's escaping-peer problem no longer applies in that form. The closure principle still holds, though — because the per-file plugin build leaves `dependencies` external, any unclosed non-optional peer escapes to the consuming workspace where pnpm `autoInstallPeers` can bind it unpredictably. As of phase 2 the closure lives in the plugin's `dependencies` block (only `@rspress/core`/`react`/`react-dom` remain peers):
 
 - `ioredis` — non-optional peer of the `@effect/platform-node` v4 beta.
-- `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg`, `@typescript/vfs` — peers of `@tsdoctor/registry` (the in-repo workspace at `packages/registry`, consumed via `workspace:*`; formerly the external `type-registry-effect@2`).
+- The full `@effected` surface the four `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling), alongside `@typescript/vfs`.
+- The four core workspaces themselves: `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot`, each `workspace:*`.
 
-Do not prune these as "unused"; the plugin imports some of them directly (see `layers/TypeRegistryServiceLive.ts`) and the rest exist to keep the peer graph closed.
+`@effect/sql-sqlite-node` and `gray-matter` are **gone** from the plugin manifest — SQLite moved behind `@tsdoctor/snapshot`'s `Store.layerSqlite`, and frontmatter parsing moved to `@effected/yaml` (see `frontmatter.ts` in [Key Source Files](#key-source-files)). Do not prune the closure entries as "unused"; the plugin imports some of them directly (see `layers/TypeRegistryServiceLive.ts`, `sync-node-fs.ts`, `frontmatter.ts`) and the rest exist to keep the dependency graph closed.
 
 A former `pnpm-workspace.yaml` override pinned `yuku-parser: ^0.6.12` to dodge a broken 0.6.7 publish that crashed `rolldown-plugin-dts` during the declaration build; the ecosystem now resolves a healthy version and the override (plus its `minimumReleaseAgeExclude` entries) has been removed.
 
@@ -174,7 +175,7 @@ export const ApiExtractorPlugin = Object.assign(ApiExtractorPluginImpl, {
 
 ### Config Helpers
 
-`ApiExtractorPlugin.api.fromDir` and `ApiExtractorPlugin.apis.fromDir` (`src/config-helpers.ts`, internally `fromDir` and `fromParentDir`) build `MultiApiConfig` objects by discovering the package name, version, `.api.json` model and `tsconfig.json` from a built module package folder (the per-package model dirs the modules emit via `@savvy-web/bundler`'s `meta.localPaths`). They are exposed under two namespaces matching the plugin option they feed:
+`ApiExtractorPlugin.api.fromDir` and `ApiExtractorPlugin.apis.fromDir` (`src/config-helpers.ts`, internally `fromDir` and `fromParentDir`) build `MultiApiConfig` objects by discovering the package name, version, `.api.json` model and `tsconfig.json` from a built module package folder (the per-package model dirs the modules emit via `@savvy-web/bundler`'s `meta.localPaths`). Since phase 2 the discovery itself delegates to `@tsdoctor/bundle`'s `discoverBundle`, run synchronously over the `SyncDiscoveryLayer` FileSystem bridge (`src/sync-node-fs.ts`) so the public helper API stays sync. Adapter-side and deliberately NOT delegated: the `requirePackageJson` strictness (the plugin requires a `package.json` even though the bundle spec's discovery needs only layer 0 — see `bundle-spec.md`), baseRoute templating, `MultiApiConfig` assembly and the historical error messages (all 21 config-helpers tests pass unmodified). They are exposed under two namespaces matching the plugin option they feed:
 
 - `api.fromDir(dir, overrides?)` -- one config from a single package folder, for use under the `api:` option or as an element of `apis:`. Caller overrides win over discovery.
 - `apis.fromDir(parentDir, options?)` -- scans a parent directory and builds one config per subfolder for the `apis:` option, requiring every non-dotfile subdirectory to be a valid model folder.
@@ -183,18 +184,23 @@ The helpers no longer inject a default `baseRoute`. When the caller omits it the
 
 The helper types (`DirInfo`, `BaseRoute`, `FromDirOptions`) are re-exported from `src/index.ts`; both helpers share `FromDirOptions`.
 
-## Shared Library Delegation
+## Core Package Consumption
 
-The plugin depends on **`@tsdoctor/model`** (the in-repo workspace at `packages/model`, consumed via `workspace:*`; seeded in phase 1 from the former external `api-extractor-llms@0.2.0` package with the same public API) and delegates its pure, reusable logic to it, keeping plugin-specific shells as thin adapters. The delegation happens at four boundaries; the page generators are unaffected because they still consume `ApiParser.*` and `markdownCrossLinker` by the same names. The four shims were deliberately NOT collapsed into direct usage during the phase 1 move — only their import specifiers changed — because the full shim collapse rides the open `@tsdoctor/model` API-shape decision (see `tsdoctor-package-architecture.md`).
+The plugin depends on all four `@tsdoctor/*` core workspaces via `workspace:*` and, since the phase-2 model redesign, consumes **`@tsdoctor/model`** directly — the four phase-1 delegation shims (`loader.ts`, the class-based `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) are **deleted**. The model's v4 surface is namespace modules: `Model` (Effect-typed loading with `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), `Tsdoc` (pure TSDoc accessors), `ApiItems` (categorization + namespace members), `EntryPoints`, `Routes`, `SyntheticBases`, `Signature` (de-classed formatting), `Render`, the `CrossLinker` class and the `@alpha` `StructuredData` stub.
 
-| Plugin shell | Delegates to | Stays plugin-local |
-| --- | --- | --- |
-| `ApiModelLoader.loadFromPath` (`model-loader.ts`) | `loadApiModel(path)` | existence check + not-found error contract |
-| `TypeSignatureFormatter` (`formatter.ts`) | extends the library `TypeSignatureFormatter` (`format`/`stripExportDeclare`/`needsSpaceBefore` inherited) | positional constructor, test-only `addLinks`/`escapeRegExp` |
-| `ApiParser` TSDoc statics (`loader.ts`) | `lib*`-aliased helpers (`getSummary`, `getReleaseTag`, `getParams`, `getReturns`, `getExamples`, `getDeprecation`, `hasModifierTag`, prose `extractPlainText`) | non-TSDoc statics with no library equivalent: `categorizeApiItems`, `extractNamespaceMembers`, `getInheritance`, `getSeeReferences`, `getSourceLink` |
-| `MarkdownCrossLinker.addCrossLinks` (`markdown/cross-linker.ts`) | the library's immutable `CrossLinker` (see `cross-linking-architecture.md`) | class shape (`setRoutes`/`addRoutes`/`clear`/`sanitizeId`) and test-only `addCrossLinksHtml` (library has no HTML variant) |
+How the former shim call sites consume it now:
 
-**Not delegated — looks similar, is not.** `ApiExtractedPackage` (`api-extracted-package.ts`) keeps its OWN private `extractPlainText`. Despite the shared name with the library helper, it is a different algorithm for declaration reconstruction: it PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks for `.d.ts`/JSDoc output, whereas the library's `extractPlainText` flattens `{@link}` to display text and drops code fences. The two are not interchangeable. `CrossLinkerService` (a bare `Context.Service` tag, no Live layer) is also unchanged.
+| Concern | Now |
+| --- | --- |
+| Model loading | `model-loader.ts` is plain functions over `Model.load` (typed `ModelLoadError = Model.ModelNotFoundError \| Model.ModelParseError \| Model.EmptyModelError`); failures emit `ModelLoadFailed` via `Effect.tapError` in `ConfigServiceLive` (see `build-progress-and-issues.md`) |
+| TSDoc extraction | page generators call `Tsdoc.summary`/`Tsdoc.params`/`Tsdoc.releaseTag`/`Tsdoc.deprecation` etc. directly |
+| Signature formatting | `Signature.format(excerpt)` directly (the `TypeSignatureFormatter` class is gone) |
+| Categorization | `ApiItems.categorize(items, categories)` returning `{ items, uncategorized }`; the adapter emits an `ItemSkipped` event per uncategorized item |
+| Prose cross-linking | `markdown/prose-linker.ts`, a 15-line module-level holder (`setProseLinker(routes)` / `linkProse(text)` / `clearProseLinker()`) over the model `CrossLinker` (see `cross-linking-architecture.md`) |
+
+**Not delegated — looks similar, is not.** `ApiExtractedPackage` (`api-extracted-package.ts`) keeps its OWN private `extractPlainText`. Despite the shared name with the library helper, it is a different algorithm for declaration reconstruction: it PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks for `.d.ts`/JSDoc output, whereas the library's prose extraction flattens `{@link}` to display text and drops code fences. The two are not interchangeable. `CrossLinkerService` (a bare `Context.Service` tag, no Live layer) is also unchanged.
+
+**`@tsdoctor/bundle`** supplies discovery for the config helpers (see [Config Helpers](#config-helpers)) plus the npm-tarball and GitHub-release fetchers (`bundle-spec.md`). **`@tsdoctor/snapshot`** supplies the snapshot service (`snapshot-tracking-system.md`). **`@tsdoctor/registry`** is unchanged in role (`type-loading-vfs.md`), with its tag ids renamed to `"@tsdoctor/registry/..."` in phase 2.
 
 ### Stage 2 output convergence (deferred)
 
@@ -415,10 +421,12 @@ The plugin exports a `serve(options?: ServeOptions): Promise<void>` runner (`src
 | `serve.ts` | `serve` dev/preview runner + pure config/readiness helpers |
 | `build-program.ts` | Doc generation orchestration |
 | `build-stages.ts` | Stream pipeline, page gen, file writes |
-| `config-helpers.ts` | `fromDir` / `fromParentDir` config builders |
+| `config-helpers.ts` | `fromDir` / `fromParentDir` config builders (delegating to `@tsdoctor/bundle` discovery) |
 | `config-utils.ts` | `classifyApiConfig`, `mergeLlmsPluginConfig`, dependency extraction |
+| `sync-node-fs.ts` | Sync `FileSystem` bridge for running bundle discovery under the sync helper API |
+| `frontmatter.ts` | gray-matter-parity frontmatter split/join over `@effected/yaml` |
+| `markdown/prose-linker.ts` | Per-build prose cross-linker holder over the model `CrossLinker` |
 | `layers/ConfigServiceLive.ts` | Config resolution, model loading |
-| `layers/SnapshotServiceLive.ts` | SQLite snapshot implementation |
 | `layers/ObservabilityLive.ts` | Metrics, logger, build summary |
 | `schemas/config.ts` | Effect Schema definitions |
 

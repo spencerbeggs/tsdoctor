@@ -61,7 +61,7 @@ export interface RenderedDoc extends DocMeta {
 }
 
 /**
- * Options for {@link renderPackage}: the package name plus the optional injected
+ * Options for `Render.docs`: the package name plus the optional injected
  * route, frontmatter, and filter services.
  *
  * @public
@@ -76,9 +76,9 @@ export interface RenderPackageOptions {
 	/**
 	 * Predicate deciding whether a top-level item is emitted (and registered as a
 	 * crosslink target). Returns `true` to keep the item. Omit → the default rule
-	 * {@link isEmittable} drops compiler-synthetic forgotten exports
-	 * (`isExported === false`). Providing a filter fully replaces the default; compose
-	 * with {@link isEmittable} to retain the forgotten-export drop.
+	 * `Render.isEmittable` drops compiler-synthetic forgotten exports
+	 * (`isExported === false`). Providing a filter fully replaces the default;
+	 * compose with `Render.isEmittable` to retain the forgotten-export drop.
 	 */
 	readonly filter?: (item: ApiItem) => boolean;
 }

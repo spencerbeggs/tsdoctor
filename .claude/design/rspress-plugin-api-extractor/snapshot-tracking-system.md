@@ -3,13 +3,15 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-07-28
-last-synced: 2026-07-28
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 90
 related:
   - rspress-plugin-api-extractor/build-architecture.md
   - rspress-plugin-api-extractor/page-generation-system.md
   - rspress-plugin-api-extractor/performance-observability.md
+  - rspress-plugin-api-extractor/bundle-spec.md
+  - rspress-plugin-api-extractor/tsdoctor-package-architecture.md
 dependencies: []
 ---
 
@@ -37,6 +39,15 @@ It detects which files are new, unchanged, or modified, skipping writes
 for unchanged files to preserve RSPress's cache and avoid unnecessary
 git changes.
 
+As of phase 2 the system lives in its own framework-neutral package,
+**`@tsdoctor/snapshot`** (`packages/snapshot`), consumed by the plugin via
+`workspace:*`. The extraction carried over `SnapshotService`,
+`SnapshotServiceLive`, `content-hash.ts` and `SnapshotDbError`; the plugin
+dropped its direct `@effect/sql-sqlite-node` dependency and its
+`migrations/` directory. The live layer is rebuilt on `@effected/store`'s
+`Store.layerSqlite` (the adoption decision recorded in
+`tsdoctor-package-architecture.md`).
+
 ### Key Features
 
 - **Content-based change detection** using SHA-256 hashing
@@ -45,8 +56,9 @@ git changes.
 - **Disk fallback** when snapshot database is missing (e.g., first clone)
 - **Stale file cleanup** to remove files no longer in the API model
 - **Orphan file cleanup** to remove untracked files from output directory
-- **Effect service architecture** with `@effect/sql-sqlite-node` over
-  `effect/unstable/sql` and managed migrations
+- **Effect service architecture** backed by `@effected/store`'s
+  schema-versioned SQLite `Store` (`Store.layerSqlite`), with migrations
+  applied at layer construction
 - **Batch upserts** within transactions for write efficiency
 - **Pre-loaded snapshot map** for O(1) lookup during build
 
@@ -59,13 +71,13 @@ git changes.
 The snapshot system uses Effect's service pattern with a clean separation
 between interface and implementation:
 
-**Service interface** (`services/SnapshotService.ts`):
+**Service interface** (`packages/snapshot/src/SnapshotService.ts`):
 
 ```typescript
 export class SnapshotService extends Context.Service<
   SnapshotService,
   SnapshotServiceShape
->()("rspress-plugin-api-extractor/SnapshotService") {}
+>()("@tsdoctor/snapshot/SnapshotService") {}
 ```
 
 The `SnapshotServiceShape` defines methods:
@@ -79,25 +91,32 @@ The `SnapshotServiceShape` defines methods:
 - `deleteSnapshot(outputDir, filePath)` -- remove single snapshot
 - `cleanupStale(outputDir, currentFiles)` -- remove stale entries
 
-**Live implementation** (`layers/SnapshotServiceLive.ts`):
+**Live implementation** (`packages/snapshot/src/SnapshotServiceLive.ts`):
 
-Uses `@effect/sql-sqlite-node` `SqliteClient` with managed lifecycle, over the
-`SqlClient` / `Migrator` modules imported from **`effect/unstable/sql`** (in
-Effect v4 the former `@effect/sql` package merged into the core; the member
-names are unchanged). The service is built with `Layer.effect` — v4's
-`Layer.effect` handles resource-owning layers, so the separate `Layer.scoped`
-constructor is no longer used. The WAL checkpoint is still registered as a
-scope finalizer for clean shutdown.
+`SnapshotServiceLive(dbPath)` is built on `@effected/store`'s
+`Store.layerSqlite({ filename: dbPath, migrations })`: layer construction
+opens the SQLite database (via the same `@effect/sql-sqlite-node`
+`SqliteClient` under the hood, WAL on by default) and applies the
+`StoreMigration` list before the service is available. Migration 1 is the
+former `001_create_snapshots` SQL, carried over verbatim. All queries and
+the transactional batch upsert run through `store.client` — the full
+`effect/unstable/sql` tagged-template `SqlClient` — and the WAL checkpoint
+(`PRAGMA wal_checkpoint(TRUNCATE)`) is registered as a scope finalizer via
+that same client for clean shutdown. The layer's error channel carries
+Store's typed `StoreError | StoreMigrationError`. The hand-wired
+`@effect/sql-sqlite-node` + `Migrator` stack this replaces is gone; in
+exchange the package gains Store's `migrate`/`rollback(toId)`/`status`
+surface.
 
 ### Data Flow
 
 ```text
 Plugin initialization (plugin.ts)
     |
-    +-> Create SnapshotServiceLive(dbPath)
-    |   +-> SqliteClient.layer({ filename: dbPath })
-    |   +-> SqliteMigrator runs 001_create_snapshots
-    |   +-> WAL checkpoint registered as scope finalizer
+    +-> SnapshotServiceLive(dbPath)   [from @tsdoctor/snapshot]
+    |   +-> Store.layerSqlite({ filename: dbPath, migrations })
+    |   +-> migration 1 (former 001_create_snapshots) applied at construction
+    |   +-> WAL checkpoint registered as scope finalizer (via store.client)
     |
     +-> Layer composed into EffectAppLayer
     +-> ManagedRuntime.make(EffectAppLayer)
@@ -123,12 +142,11 @@ Build execution (build-program.ts)
 
 | File | Purpose |
 | --- | --- |
-| `services/SnapshotService.ts` | Effect `Context.Service` tag and interface |
-| `layers/SnapshotServiceLive.ts` | SQLite implementation via `effect/unstable/sql` |
-| `migrations/001_create_snapshots.ts` | Schema creation migration |
-| `content-hash.ts` | SHA-256 hashing functions (pure, standalone) |
-| `build-stages.ts` | Change detection in `generateSinglePage` |
-| `build-program.ts` | Orchestrates snapshot loading and cleanup |
+| `packages/snapshot/src/SnapshotService.ts` | Effect `Context.Service` tag and interface |
+| `packages/snapshot/src/SnapshotServiceLive.ts` | `Store.layerSqlite` implementation (migrations inline) |
+| `packages/snapshot/src/content-hash.ts` | SHA-256 hashing functions (pure, standalone) |
+| `platforms/rspress/src/build-stages.ts` | Change detection in `generateSinglePage` (imports `SnapshotService`, `hashContent`, `hashFrontmatter` from `@tsdoctor/snapshot`) |
+| `platforms/rspress/src/build-program.ts` | Orchestrates snapshot loading and cleanup |
 
 ---
 
@@ -155,27 +173,28 @@ CREATE INDEX IF NOT EXISTS idx_file_path
     ON file_snapshots(file_path);
 ```
 
-Migrations are managed by the `effect/unstable/sql` `Migrator`:
+Migrations are `StoreMigration` entries applied by `@effected/store` at
+layer construction:
 
 ```typescript
-const MigratorLive = SqliteMigrator.layer({
-  loader: Migrator.fromRecord({
-    "001_create_snapshots": migration001,
-  }),
-}).pipe(Layer.provide(SqlLive));
+const migrations: ReadonlyArray<StoreMigration> = [
+  { id: 1, /* the former 001_create_snapshots SQL, verbatim */ },
+];
+const StoreLive = Store.layerSqlite({ filename: dbPath, migrations });
 ```
 
-In Effect v4 `SqliteMigrator.layer` requires only the `SqlClient`. The v3
-wiring merged `NodeContext.layer` alongside it; `NodeContext` no longer exists
-in v4 (its role is taken by `NodeServices`), and no such merge is needed here.
-The migration effect itself yields `SqlClient.SqlClient` from
-`effect/unstable/sql` and is otherwise unchanged.
+**Migration-ledger caveat:** Store's ledger table (`_store_migrations`)
+differs from the ledger the previous `effect/unstable/sql` `Migrator` kept,
+so a pre-existing committed `api-docs.db` gets migration 1 re-applied on
+its first Store-backed run. This is harmless — the SQL is
+`CREATE TABLE IF NOT EXISTS` — and the switch happened at the phase-2
+boundary, before any migration 2 exists, which is the safe window.
 
 ### WAL Lifecycle
 
-The SQLite connection uses WAL mode (set automatically by
-`@effect/sql-sqlite-node`). The `SnapshotServiceLive` registers a scope
-finalizer to checkpoint the WAL on close:
+The SQLite connection uses WAL mode (Store's SQLite backing has WAL on by
+default). The `SnapshotServiceLive` registers a scope finalizer via
+`store.client` to checkpoint the WAL on close:
 
 ```typescript
 yield* Effect.addFinalizer(() =>
@@ -213,7 +232,9 @@ This reduces database round-trips from N (one per file) to 1.
 In `generateSinglePage` (build-stages.ts):
 
 1. Generate page content via the appropriate page generator
-2. Parse with `gray-matter` to separate frontmatter and body
+2. Parse with `parseFrontmatter` (`platforms/rspress/src/frontmatter.ts`, a
+   gray-matter-parity split over `@effected/yaml` — see
+   `page-generation-system.md`) to separate frontmatter and body
 3. Normalize markdown spacing (`normalizeMarkdownSpacing`)
 4. Hash body: `hashContent(bodyContent)`
 5. Hash frontmatter: `hashFrontmatter(frontmatterData)`
@@ -274,9 +295,9 @@ date.
 
 ## Hash Calculation
 
-### Location: `content-hash.ts`
+### Location: `packages/snapshot/src/content-hash.ts`
 
-Two pure standalone functions:
+Pure standalone functions, exported from `@tsdoctor/snapshot`:
 
 **`normalizeContent(content)`** -- Prepare content for consistent hashing:
 
@@ -317,7 +338,7 @@ if (fileExists) {
 
   if (existingContent !== null) {
     const { data: existingFrontmatter, content: existingBody } =
-      matter(existingContent);
+      parseFrontmatter(existingContent);
     const normalizedExistingBody =
       normalizeMarkdownSpacing(existingBody);
     const existingContentHash = hashContent(normalizedExistingBody);
@@ -440,3 +461,9 @@ Read at build end by `logBuildSummary` in `ObservabilityLive.ts`.
   `page-generation-system.md` -- Stream pipeline using snapshots
 - **Performance Observability:**
   `performance-observability.md` -- Effect Metrics system
+- **Bundle Spec:**
+  `bundle-spec.md` -- the bundle-fingerprints table planned as migration 2
+  in this store
+- **Package Architecture:**
+  `tsdoctor-package-architecture.md` -- the resolved `@effected/store`
+  adoption decision behind the Store-backed rebuild

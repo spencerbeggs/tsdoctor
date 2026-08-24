@@ -6,10 +6,11 @@ for Effect: fetch, cache and resolve npm type definitions (jsDelivr CDN) and
 build `@typescript/vfs` environments for Twoslash tooling.
 
 Moved in from the sibling `type-registry-effect` repo in phase 1 of the
-consolidation (`monorepo-consolidation.md`); the API is identical to
-`type-registry-effect@2.3.5`. **Do not "fix" the `Context.Service` tag id
-strings** — they still read `type-registry-effect/...` deliberately, per the
-phase 1 no-behavior-change gate.
+consolidation (`monorepo-consolidation.md`); the API is otherwise identical to
+`type-registry-effect@2.3.5`. Phase 2 executed the identity rename: the
+`Context.Service` tag ids now read `"@tsdoctor/registry/..."` (the legacy
+`type-registry-effect/...` strings are gone), and the plugin's XDG cache
+namespace is `"tsdoctor"`.
 
 ## Key Facts
 

@@ -123,7 +123,7 @@ export interface RegistryObserverShape {
  * @public
  */
 export class RegistryObserver extends Context.Service<RegistryObserver, RegistryObserverShape>()(
-	"type-registry-effect/RegistryObserver",
+	"@tsdoctor/registry/RegistryObserver",
 ) {
 	/**
 	 * Build an observer layer from a plain callback — the lowest-friction

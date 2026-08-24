@@ -1,11 +1,10 @@
+import type { FileSnapshot } from "@tsdoctor/snapshot";
+import { SnapshotService, hashContent } from "@tsdoctor/snapshot";
 import { Effect, Layer, Option, Ref } from "effect";
-import { hashContent } from "../../src/content-hash.js";
 import { deriveOutputPaths, normalizeBaseRoute } from "../../src/path-derivation.js";
 import { CrossLinkerService } from "../../src/services/CrossLinkerService.js";
 import { PathDerivationService } from "../../src/services/PathDerivationService.js";
 import { ShikiService } from "../../src/services/ShikiService.js";
-import type { FileSnapshot } from "../../src/services/SnapshotService.js";
-import { SnapshotService } from "../../src/services/SnapshotService.js";
 import { TypeRegistryService } from "../../src/services/TypeRegistryService.js";
 
 /**

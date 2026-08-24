@@ -1,6 +1,6 @@
+import { SnapshotService } from "@tsdoctor/snapshot";
 import { Effect, Option } from "effect";
 import { describe, expect, it } from "vitest";
-import { SnapshotService } from "../../src/services/SnapshotService.js";
 import { MockSnapshotServiceLayer } from "./layers.js";
 
 describe("MockSnapshotServiceLayer", () => {

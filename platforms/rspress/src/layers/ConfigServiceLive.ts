@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import type { ApiEntryPoint, ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
 import type { VirtualFileSystem } from "@tsdoctor/registry";
+import { hashContent } from "@tsdoctor/snapshot";
 import type { Scope } from "effect";
 import { Effect, Layer, Metric } from "effect";
 import type { ShikiTransformer } from "shiki";
@@ -16,14 +17,14 @@ import {
 	mergeLlmsPluginConfig,
 	validateExternalPackages,
 } from "../config-utils.js";
-import { hashContent } from "../content-hash.js";
 import type { ApiModelLoadError, TypeRegistryError } from "../errors.js";
 import { ConfigValidationError } from "../errors.js";
 import { HideCutLinesTransformer, MemberFormatTransformer } from "../hide-cut-transformer.js";
 import type { LoadedModel, PackageJson, TypeResolutionCompilerOptions, TypeScriptConfig } from "../internal-types.js";
 import type { ShikiThemeConfig } from "../markdown/shiki-utils.js";
 import { DEFAULT_SHIKI_THEMES } from "../markdown/shiki-utils.js";
-import { ApiModelLoader } from "../model-loader.js";
+import type { ModelLoadError } from "../model-loader.js";
+import { loadApiModel, loadPackageJson, loadVersionModel } from "../model-loader.js";
 import { emit, wantsLevel } from "../observability/EventBus.js";
 import type { ImportRef } from "../observability/events.js";
 import { PluginEvent } from "../observability/events.js";
@@ -289,6 +290,27 @@ export function ConfigServiceLive(
 						let firstApiCompilerOptions: SingleApiConfig["compilerOptions"] | MultiApiConfig["compilerOptions"];
 
 						/**
+						 * Emit a typed ModelLoadFailed event for a failed model load, then
+						 * convert the typed failure to a defect — a missing or unparsable
+						 * model remains fatal to the build, exactly as before, but the
+						 * event now rides the error channel instead of a sync-island seam.
+						 */
+						const withModelLoadEvents = <A>(self: Effect.Effect<A, ModelLoadError>): Effect.Effect<A> =>
+							self.pipe(
+								Effect.tapError((error) =>
+									emit(
+										PluginEvent.ModelLoadFailed({
+											ctx: { buildId },
+											level: "error",
+											modelPath: "modelPath" in error ? error.modelPath : "<loader function>",
+											reason: error.message,
+										}),
+									),
+								),
+								Effect.orDie,
+							);
+
+						/**
 						 * Helper to process a single API model (shared by single and multi modes).
 						 */
 						const processSimpleApi = (
@@ -298,63 +320,65 @@ export function ConfigServiceLive(
 							fullRoute: string,
 							wantTrace: boolean,
 						) =>
-							Effect.promise(async () => {
-								const { apiPackage, source: loaderSource } = await ApiModelLoader.loadApiModel(
-									model as PathLike | (() => Promise<ApiModel | LoadedModel>),
+							Effect.gen(function* () {
+								const { apiPackage, source: loaderSource } = yield* withModelLoadEvents(
+									loadApiModel(model as PathLike | (() => Promise<ApiModel | LoadedModel>)),
 								);
-								const resolvedCategories = categoryResolver.resolveCategoryConfig(pluginDefaults, api.categories);
-								const resolvedSource = categoryResolver.resolveSourceConfig(api.source, loaderSource);
-								const resolvedLlms = mergeLlmsPluginConfig(options.llmsPlugin, api.llmsPlugin);
+								return yield* Effect.promise(async () => {
+									const resolvedCategories = categoryResolver.resolveCategoryConfig(pluginDefaults, api.categories);
+									const resolvedSource = categoryResolver.resolveSourceConfig(api.source, loaderSource);
+									const resolvedLlms = mergeLlmsPluginConfig(options.llmsPlugin, api.llmsPlugin);
 
-								// Load package.json
-								const packageJson = api.packageJson
-									? await ApiModelLoader.loadPackageJson(api.packageJson as PathLike | (() => Promise<PackageJson>))
-									: undefined;
+									// Load package.json
+									const packageJson = api.packageJson
+										? await loadPackageJson(api.packageJson as PathLike | (() => Promise<PackageJson>))
+										: undefined;
 
-								// Validate that explicit externalPackages don't conflict with peerDependencies
-								validateExternalPackages(api.externalPackages, packageJson);
+									// Validate that explicit externalPackages don't conflict with peerDependencies
+									validateExternalPackages(api.externalPackages, packageJson);
 
-								// Collect external packages
-								const externalPackages =
-									api.externalPackages || extractAutoDetectedPackages(packageJson, api.autoDetectDependencies);
+									// Collect external packages
+									const externalPackages =
+										api.externalPackages || extractAutoDetectedPackages(packageJson, api.autoDetectDependencies);
 
-								// Track external packages
-								if (externalPackages && externalPackages.length > 0) {
-									Effect.runSync(Metric.update(BuildMetrics.externalPackagesTotal, externalPackages.length));
-								}
+									// Track external packages
+									if (externalPackages && externalPackages.length > 0) {
+										Effect.runSync(Metric.update(BuildMetrics.externalPackagesTotal, externalPackages.length));
+									}
 
-								// Generate virtual file system from API model for Twoslash
-								const pkg = ApiExtractedPackage.fromPackage(apiPackage, api.packageName);
-								const vfs = pkg.generateVfs();
-								const vfsPayloads = prependImportsToVfs(vfs, apiPackage, api.packageName, wantTrace);
+									// Generate virtual file system from API model for Twoslash
+									const pkg = ApiExtractedPackage.fromPackage(apiPackage, api.packageName);
+									const vfs = pkg.generateVfs();
+									const vfsPayloads = prependImportsToVfs(vfs, apiPackage, api.packageName, wantTrace);
 
-								// Resolve ogImage with cascading: API > global
-								const resolvedOgImage = api.ogImage ?? options.ogImage;
+									// Resolve ogImage with cascading: API > global
+									const resolvedOgImage = api.ogImage ?? options.ogImage;
 
-								// Normalize theme configuration
-								const resolvedTheme = normalizeThemeConfig(api.theme);
+									// Normalize theme configuration
+									const resolvedTheme = normalizeThemeConfig(api.theme);
 
-								return {
-									vfs,
-									vfsPayloads,
-									externalPackages: externalPackages || [],
-									config: {
-										apiPackage,
-										packageName: api.packageName,
-										...(api.name != null ? { apiName: api.name } : {}),
-										outputDir,
-										baseRoute: fullRoute,
-										categories: resolvedCategories,
-										...(resolvedSource != null ? { source: resolvedSource } : {}),
-										...(packageJson != null ? { packageJson } : {}),
-										...(resolvedLlms != null ? { llmsPlugin: resolvedLlms } : {}),
-										...(options.siteUrl != null ? { siteUrl: options.siteUrl } : {}),
-										...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),
-										docsDir: path.dirname(outputDir),
-										...(docsRoot != null ? { docsRoot } : {}),
-										...(resolvedTheme != null ? { theme: resolvedTheme } : {}),
-									} satisfies ResolvedApiConfig,
-								};
+									return {
+										vfs,
+										vfsPayloads,
+										externalPackages: externalPackages || [],
+										config: {
+											apiPackage,
+											packageName: api.packageName,
+											...(api.name != null ? { apiName: api.name } : {}),
+											outputDir,
+											baseRoute: fullRoute,
+											categories: resolvedCategories,
+											...(resolvedSource != null ? { source: resolvedSource } : {}),
+											...(packageJson != null ? { packageJson } : {}),
+											...(resolvedLlms != null ? { llmsPlugin: resolvedLlms } : {}),
+											...(options.siteUrl != null ? { siteUrl: options.siteUrl } : {}),
+											...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),
+											docsDir: path.dirname(outputDir),
+											...(docsRoot != null ? { docsRoot } : {}),
+											...(resolvedTheme != null ? { theme: resolvedTheme } : {}),
+										} satisfies ResolvedApiConfig,
+									};
+								});
 							});
 
 						// Model loading + VFS reconstruction. These are fused inside the
@@ -402,23 +426,23 @@ export function ConfigServiceLive(
 														};
 													}
 
+													// Normalize version value to VersionConfig
+													const versionConfig: VersionConfig = isVersionConfig(versionValue)
+														? versionValue
+														: { model: versionValue };
+
+													const {
+														apiPackage,
+														packageJson: versionPackageJson,
+														categories: versionCategories,
+														source: versionSource,
+														externalPackages: versionExternalPackages,
+														autoDetectDependencies: versionAutoDetectDependencies,
+														llmsPlugin: versionLlms,
+														ogImage: versionOgImage,
+													} = yield* withModelLoadEvents(loadVersionModel(versionConfig));
+
 													return yield* Effect.promise(async () => {
-														// Normalize version value to VersionConfig
-														const versionConfig: VersionConfig = isVersionConfig(versionValue)
-															? versionValue
-															: { model: versionValue };
-
-														const {
-															apiPackage,
-															packageJson: versionPackageJson,
-															categories: versionCategories,
-															source: versionSource,
-															externalPackages: versionExternalPackages,
-															autoDetectDependencies: versionAutoDetectDependencies,
-															llmsPlugin: versionLlms,
-															ogImage: versionOgImage,
-														} = await ApiModelLoader.loadVersionModel(versionConfig);
-
 														Effect.runSync(Metric.update(BuildMetrics.apiVersionsLoaded, 1));
 														const resolvedCategories = categoryResolver.resolveCategoryConfig(
 															pluginDefaults,
@@ -432,9 +456,7 @@ export function ConfigServiceLive(
 														const packageJson =
 															versionPackageJson ||
 															(api.packageJson
-																? await ApiModelLoader.loadPackageJson(
-																		api.packageJson as PathLike | (() => Promise<PackageJson>),
-																	)
+																? await loadPackageJson(api.packageJson as PathLike | (() => Promise<PackageJson>))
 																: undefined);
 
 														// Validate external packages

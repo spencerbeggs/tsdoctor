@@ -1,0 +1,180 @@
+import { Yaml, YamlStringifyOptions } from "@effected/yaml";
+import { Effect } from "effect";
+
+/**
+ * A parsed frontmatter document: the decoded frontmatter data and the body
+ * content that followed the closing delimiter.
+ *
+ * @public
+ */
+export interface ParsedFrontmatter {
+	/** Decoded frontmatter data (`{}` when there is no frontmatter block). */
+	readonly data: Record<string, unknown>;
+	/** Body content after the closing delimiter (whole input when no block). */
+	readonly content: string;
+}
+
+/**
+ * Stringify options shared by both emit sites.
+ *
+ * `lineWidth: 0` disables wrapping so long titles/descriptions/URLs stay on
+ * one line, and `defaultScalarStyle: "double-quoted"` quotes every string
+ * value. The forced quoting matters for downstream consumers: RSPress parses
+ * the emitted frontmatter with js-yaml (YAML 1.1-flavored), where an unquoted
+ * ISO timestamp such as `2024-01-15T12:00:00.000Z` decodes to a `Date` object
+ * instead of a string. Quoting every value keeps the decoded representation
+ * identical across YAML 1.1 and 1.2 parsers.
+ */
+const STRINGIFY_OPTIONS = YamlStringifyOptions.make({
+	lineWidth: 0,
+	defaultScalarStyle: "double-quoted",
+});
+
+const OPEN_DELIMITER = "---";
+const CLOSE_SEARCH = "\n---";
+
+/**
+ * Split markdown source into frontmatter data and body content, preserving
+ * gray-matter's exact boundary semantics.
+ *
+ * @remarks
+ * This is a byte-for-byte port of the `gray-matter` split contract the
+ * snapshot system's hashes depend on (see `@tsdoctor/snapshot`
+ * `hashContent`/`hashFrontmatter` and the disk-fallback comparison in
+ * `build-stages.ts`), with `@effected/yaml` (`Yaml.parse`, YAML 1.2) as the
+ * YAML engine instead of js-yaml:
+ *
+ * - No opening `---` line at offset 0 → `data: {}` and the whole input as
+ *   `content` (a leading BOM is stripped first, as gray-matter does).
+ * - The closing delimiter is the first `\n---` after the opening line
+ *   (gray-matter uses a plain `indexOf`, so `\n----` also closes and the
+ *   leftover `-` stays in the body — preserved deliberately).
+ * - Exactly one newline (`\n` or `\r\n`) immediately after the closing `---`
+ *   is consumed; everything else is the body verbatim. A build's generated
+ *   page (`---\n…\n---\n\n# Title`) therefore yields a body starting with a
+ *   single `\n`, exactly as gray-matter returned it.
+ * - A block with no closing delimiter is all frontmatter and yields an empty
+ *   body; an empty/blank block yields `data: {}`.
+ * - Invalid YAML throws (a defect), matching gray-matter's js-yaml throw.
+ *
+ * One deliberate delta: gray-matter treats text on the opening line
+ * (`---toml`) as an engine name and throws for unregistered engines; this
+ * split treats such input as "no frontmatter" instead. The plugin never emits
+ * or consumes language-tagged frontmatter.
+ *
+ * Representation parity with js-yaml is verified by characterization tests
+ * (`__test__/frontmatter.test.ts`) pinning hashes captured under gray-matter.
+ * The one input where the engines disagree — an *unquoted* ISO timestamp
+ * (js-yaml: `Date`, YAML 1.2: string) — is unreachable from this plugin's
+ * emitters, which always quote timestamp values, and hashes identically
+ * anyway because `hashFrontmatter` JSON-serializes (a `Date` serializes to
+ * the same ISO string).
+ *
+ * @param source - The markdown source, with or without a frontmatter block
+ * @returns The decoded frontmatter data and the body content
+ *
+ * @public
+ */
+export function parseFrontmatter(source: string): ParsedFrontmatter {
+	// gray-matter strips a leading BOM before delimiter detection.
+	const text = source.charCodeAt(0) === 0xfeff ? source.slice(1) : source;
+
+	if (!text.startsWith(OPEN_DELIMITER)) {
+		return { data: {}, content: text };
+	}
+
+	// The opening line must be exactly `---` (LF, CRLF or EOF after it).
+	const afterOpen = text.charAt(OPEN_DELIMITER.length);
+	if (text === OPEN_DELIMITER) {
+		return { data: {}, content: "" };
+	}
+	if (afterOpen !== "\n" && !(afterOpen === "\r" && text.charAt(OPEN_DELIMITER.length + 1) === "\n")) {
+		// `----`, `---abc` etc. — not a frontmatter block we recognize.
+		return { data: {}, content: text };
+	}
+
+	const fmStart = afterOpen === "\r" ? OPEN_DELIMITER.length + 2 : OPEN_DELIMITER.length + 1;
+	// Search from the opening line's own newline so an immediately-following
+	// closing delimiter (`---\n---`) is found (empty frontmatter block).
+	const closeIndex = text.indexOf(CLOSE_SEARCH, fmStart - 1);
+
+	let frontmatterText: string;
+	let content: string;
+	if (closeIndex === -1) {
+		// No closing delimiter: everything after the opening line is
+		// frontmatter and the body is empty (gray-matter parity).
+		frontmatterText = text.slice(fmStart);
+		content = "";
+	} else {
+		frontmatterText = closeIndex < fmStart ? "" : text.slice(fmStart, closeIndex);
+		let bodyStart = closeIndex + CLOSE_SEARCH.length;
+		// Consume exactly one newline after the closing delimiter.
+		if (text.charAt(bodyStart) === "\r" && text.charAt(bodyStart + 1) === "\n") {
+			bodyStart += 2;
+		} else if (text.charAt(bodyStart) === "\n") {
+			bodyStart += 1;
+		}
+		content = text.slice(bodyStart);
+	}
+
+	if (frontmatterText.trim() === "") {
+		return { data: {}, content };
+	}
+
+	// Invalid YAML dies as a defect, matching gray-matter's synchronous throw.
+	const value = Effect.runSync(Yaml.parse(frontmatterText));
+	// gray-matter maps a null/empty document to {} and passes any other value
+	// (including a scalar document) through unchanged.
+	const data = value == null ? {} : (value as Record<string, unknown>);
+	return { data, content };
+}
+
+/**
+ * Serialize frontmatter data and body content back into a markdown document,
+ * preserving gray-matter's `matter.stringify` contract.
+ *
+ * @remarks
+ * Emits `---\n<yaml>---\n<content>` with the body's trailing newline ensured,
+ * and returns the body unchanged (no fences) when `data` has no keys — both
+ * gray-matter behaviors the write path relied on. The YAML is emitted by
+ * `@effected/yaml` with every string value double-quoted (see
+ * `STRINGIFY_OPTIONS` for why); byte output differs from js-yaml's dump, but
+ * the decoded representation is identical, which is the invariant the
+ * snapshot hashes depend on. Unchanged pages are never rewritten, so the byte
+ * difference only ever lands in files that were being rewritten anyway.
+ *
+ * @param content - The body content
+ * @param data - The frontmatter data to serialize
+ * @returns The combined markdown document
+ *
+ * @public
+ */
+export function stringifyFrontmatter(content: string, data: Record<string, unknown>): string {
+	const body = content.endsWith("\n") ? content : `${content}\n`;
+	if (Object.keys(data).length === 0) {
+		return body;
+	}
+	const yaml = Effect.runSync(Yaml.stringify(data, STRINGIFY_OPTIONS));
+	return `---\n${yaml}---\n${body}`;
+}
+
+/**
+ * Serialize a data object to a YAML frontmatter block (fences included, plus
+ * the trailing blank line the page generators emit before the body).
+ *
+ * @remarks
+ * Used by `generateFrontmatter` (`markdown/helpers.ts`) as the emission half
+ * of the page generators' frontmatter. Every string value is double-quoted
+ * (see `STRINGIFY_OPTIONS`), so values that a YAML 1.1 consumer would
+ * otherwise coerce (timestamps, `yes`/`no`, numeric-looking strings) stay
+ * strings for RSPress's js-yaml parse.
+ *
+ * @param data - The frontmatter data to serialize
+ * @returns A `---`-fenced YAML block ending with a blank line
+ *
+ * @public
+ */
+export function emitFrontmatterBlock(data: Record<string, unknown>): string {
+	const yaml = Effect.runSync(Yaml.stringify(data, STRINGIFY_OPTIONS));
+	return `---\n${yaml}---\n\n`;
+}

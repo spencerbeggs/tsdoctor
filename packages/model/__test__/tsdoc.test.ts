@@ -1,18 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import {
-	extractPlainText,
-	getDeprecation,
-	getExamples,
-	getParams,
-	getReleaseTag,
-	getReturns,
-	getSummary,
-	hasModifierTag,
-} from "../src/tsdoc.js";
+import { Tsdoc } from "../src/index.js";
 import { findItem } from "./utils/kitchensink.js";
 
-// extractPlainText walks any node exposing { kind, getChildNodes } or leaf text.
+// Tsdoc.plainText walks any node exposing { kind, getChildNodes } or leaf text.
 const plain = (text: string) => ({ kind: "PlainText", text });
 const code = (c: string) => ({ kind: "CodeSpan", code: c });
 const section = (children: unknown[]) => ({
@@ -20,40 +11,88 @@ const section = (children: unknown[]) => ({
 	getChildNodes: () => children,
 });
 
-describe("extractPlainText", () => {
+describe("Tsdoc.plainText", () => {
 	it("renders plain text leaves", () => {
-		expect(extractPlainText(plain("hello") as never)).toBe("hello");
+		expect(Tsdoc.plainText(plain("hello") as never)).toBe("hello");
 	});
 
 	it("wraps code spans in backticks", () => {
-		expect(extractPlainText(code("Foo") as never)).toBe("`Foo`");
+		expect(Tsdoc.plainText(code("Foo") as never)).toBe("`Foo`");
 	});
 
 	it("concatenates children of a section node", () => {
 		const node = section([plain("a "), code("B"), plain(" c")]);
-		expect(extractPlainText(node as never)).toBe("a `B` c");
+		expect(Tsdoc.plainText(node as never)).toBe("a `B` c");
 	});
 
 	it("renders a soft break as a single space", () => {
-		expect(extractPlainText({ kind: "SoftBreak" } as never)).toBe(" ");
+		expect(Tsdoc.plainText({ kind: "SoftBreak" } as never)).toBe(" ");
 	});
 });
 
-describe("getSummary", () => {
+describe("Tsdoc.toMarkdown", () => {
+	it("maps a paragraph of inline nodes to a Paragraph with preserved code spans", () => {
+		const node = { kind: "Paragraph", getChildNodes: () => [plain("use "), code("Foo"), plain(" now")] };
+		const out = Tsdoc.toMarkdown(node as never);
+		expect(out).toHaveLength(1);
+		expect(out[0]).toMatchObject({
+			type: "paragraph",
+			children: [
+				{ type: "text", value: "use " },
+				{ type: "inlineCode", value: "Foo" },
+				{ type: "text", value: " now" },
+			],
+		});
+	});
+
+	it("maps fenced code to a Code node with its language", () => {
+		const out = Tsdoc.toMarkdown({ kind: "FencedCode", code: "const x = 1;\n", language: "ts" } as never);
+		expect(out).toHaveLength(1);
+		expect(out[0]).toMatchObject({ type: "code", value: "const x = 1;", lang: "ts" });
+	});
+
+	it("maps a url {@link} to a Link node", () => {
+		const node = { kind: "LinkTag", urlDestination: "https://example.com", linkText: "Example" };
+		const out = Tsdoc.toMarkdown(node as never);
+		expect(out[0]).toMatchObject({
+			type: "link",
+			url: "https://example.com",
+			children: [{ type: "text", value: "Example" }],
+		});
+	});
+
+	it("flattens a code-destination {@link} to display text", () => {
+		const node = {
+			kind: "LinkTag",
+			codeDestination: { memberReferences: [{ memberIdentifier: { identifier: "Pipeline" } }] },
+		};
+		const out = Tsdoc.toMarkdown(node as never);
+		expect(out[0]).toMatchObject({ type: "text", value: "Pipeline" });
+	});
+
+	it("recurses through container nodes", () => {
+		const node = section([{ kind: "Paragraph", getChildNodes: () => [plain("a")] }]);
+		const out = Tsdoc.toMarkdown(node as never);
+		expect(out).toHaveLength(1);
+		expect(out[0]).toMatchObject({ type: "paragraph" });
+	});
+});
+
+describe("Tsdoc.summary", () => {
 	it("extracts a cleaned single-line summary from a documented item", () => {
-		const summary = getSummary(findItem("createPipeline"));
+		const summary = Tsdoc.summary(findItem("createPipeline"));
 		expect(summary).toContain("Creates a new Pipeline connecting a data source");
 		expect(summary).not.toContain("\n");
 	});
 
 	it("returns an empty string for an item with no tsdoc", () => {
-		expect(getSummary({} as never)).toBe("");
+		expect(Tsdoc.summary({} as never)).toBe("");
 	});
 });
 
-describe("getParams", () => {
+describe("Tsdoc.params", () => {
 	it("merges @param descriptions with their declared types", () => {
-		const params = getParams(findItem("createPipeline"));
+		const params = Tsdoc.params(findItem("createPipeline"));
 		expect(params.map((p) => p.name)).toEqual(["source", "transform", "options"]);
 		for (const p of params) {
 			expect(p.type).toBeTruthy();
@@ -63,63 +102,63 @@ describe("getParams", () => {
 	});
 });
 
-describe("getReturns", () => {
+describe("Tsdoc.returns", () => {
 	it("returns null for an item with no tsdoc", () => {
-		expect(getReturns({} as never)).toBeNull();
+		expect(Tsdoc.returns({} as never)).toBeNull();
 	});
 
 	it("extracts the @returns description, preserving code spans", () => {
-		const returns = getReturns(findItem("createPipeline"));
+		const returns = Tsdoc.returns(findItem("createPipeline"));
 		expect(returns).not.toBeNull();
 		expect(returns?.description).toContain("`Pipeline<I, O>`");
 	});
 });
 
-describe("getExamples", () => {
+describe("Tsdoc.examples", () => {
 	it("extracts @example fenced-code blocks with their language", () => {
-		const examples = getExamples(findItem("createPipeline"));
+		const examples = Tsdoc.examples(findItem("createPipeline"));
 		expect(examples).toHaveLength(1);
 		expect(examples[0].language).toBe("typescript");
 		expect(examples[0].code).toContain("createPipeline(");
 	});
 
 	it("returns an empty array for a plain object", () => {
-		expect(getExamples({} as never)).toEqual([]);
+		expect(Tsdoc.examples({} as never)).toEqual([]);
 	});
 });
 
-describe("getDeprecation", () => {
+describe("Tsdoc.deprecation", () => {
 	it("reads the @deprecated message when present", () => {
-		const deprecation = getDeprecation(findItem("CSV"));
+		const deprecation = Tsdoc.deprecation(findItem("CSV"));
 		expect(deprecation).not.toBeNull();
 		expect(deprecation?.message.length).toBeGreaterThan(0);
 	});
 
 	it("returns null for a non-deprecated item", () => {
-		expect(getDeprecation(findItem("createPipeline"))).toBeNull();
+		expect(Tsdoc.deprecation(findItem("createPipeline"))).toBeNull();
 	});
 });
 
-describe("getReleaseTag", () => {
+describe("Tsdoc.releaseTag", () => {
 	it("returns the item's release tag", () => {
-		expect(getReleaseTag(findItem("createPipeline"))).toBe("Public");
+		expect(Tsdoc.releaseTag(findItem("createPipeline"))).toBe("Public");
 	});
 
 	it("defaults to Public for an item without a release-tag mixin", () => {
-		expect(getReleaseTag({} as never)).toBe("Public");
+		expect(Tsdoc.releaseTag({} as never)).toBe("Public");
 	});
 });
 
-describe("hasModifierTag", () => {
+describe("Tsdoc.hasModifier", () => {
 	it("detects a modifier tag carried by the item", () => {
-		expect(hasModifierTag(findItem("JsonSource"), "sealed")).toBe(true);
+		expect(Tsdoc.hasModifier(findItem("JsonSource"), "sealed")).toBe(true);
 	});
 
 	it("returns false for a modifier tag the item does not carry", () => {
-		expect(hasModifierTag(findItem("JsonSource"), "virtual")).toBe(false);
+		expect(Tsdoc.hasModifier(findItem("JsonSource"), "virtual")).toBe(false);
 	});
 
 	it("returns false for a plain object", () => {
-		expect(hasModifierTag({} as never, "sealed")).toBe(false);
+		expect(Tsdoc.hasModifier({} as never, "sealed")).toBe(false);
 	});
 });

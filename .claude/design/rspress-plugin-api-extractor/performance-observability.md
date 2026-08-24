@@ -104,7 +104,7 @@ across seven subsystems:
 | Config parse / merge | `OptionsDecoded`, `DefaultApplied`, `DeprecatedConfigUsed`, `ConfigResolved` |
 | Model loading | `ModelLoaded`, `ModelLoadFailed` |
 | Type loading / VFS | `VfsGenerated`, `ImportsPrepended`, `TypeRegistryEvent` |
-| Multi-entry / routing | `EntryPointResolved`, `RouteCollisionDetected` |
+| Multi-entry / routing | `EntryPointResolved`, `RouteCollisionDetected`, `ItemSkipped` (an item no category matched — surfaced per item from the `ApiItems.categorize` `uncategorized` result) |
 | Page gen / code blocks | `PageGenerated`, `CodeBlockProcessed`, `TwoslashDiagnostic`, `TwoslashCheckFailed`, `PrettierError`, `ShikiError` |
 | Write / snapshot / cleanup | `FileDecision`, `SnapshotUpdated`, `StaleFileRemoved`, `OrphanFileRemoved` |
 | LLMs | `LlmsPackageFilesGenerated`, `LlmsGlobalFilesRewritten` |
@@ -116,11 +116,15 @@ of type `EventLevel`.
 whether `rspress dev` or `rspress build` is running.
 
 `BuildProgress` is emitted only by the production-only heartbeat fiber, not by
-a build-stage emit site — see `build-progress-and-issues.md`. `RouteCollisionDetected`
-and `ModelLoadFailed` were long present in the taxonomy but unemitted; they are
-now emitted through new sync-island seams (`setBuildStagesEventEmitter`,
-`setModelLoaderEventEmitter`) so they feed both the console sink and the issues
-artifact — also documented there.
+a build-stage emit site — see `build-progress-and-issues.md`.
+`RouteCollisionDetected` is emitted through the `setBuildStagesEventEmitter`
+sync-island seam (detect-emit-throw at the route-collision check).
+`ModelLoadFailed` no longer rides a sync-island seam: the phase-2 model
+redesign made loading Effect-typed (`Model.load` in `@tsdoctor/model`), so
+`ConfigServiceLive` emits it via `Effect.tapError` + `Effect.orDie` on the
+load pipeline — the former `setModelLoaderEventEmitter` (and the
+`setLoaderEventEmitter` companion) are deleted. Both events feed the console
+sink and the issues artifact — see `build-progress-and-issues.md`.
 
 ---
 
@@ -395,12 +399,14 @@ The Twoslash transformer and Prettier formatter each maintain a module-level
 events flow through `emitEvent` and into the normal fan-out path. See
 `error-observability.md` for how the error variants are handled.
 
-The same pattern now also covers two previously-silent emit sites:
-`setBuildStagesEventEmitter` (`build-stages.ts`, detect-emit-throw at the
-route-collision check) and `setModelLoaderEventEmitter` (`model-loader.ts`,
-emit-then-rethrow on a failed model load). Both `RouteCollisionDetected` and
-`ModelLoadFailed` existed in the taxonomy from the start but had no emit site
-until these seams were added; see `build-progress-and-issues.md`.
+The same pattern also covers `setBuildStagesEventEmitter` (`build-stages.ts`,
+detect-emit-throw at the route-collision check, plus the `ItemSkipped`
+emissions from categorization) and the Shiki-utils/OG-resolver/remark seams
+wired alongside it in `plugin.ts`. The former `setModelLoaderEventEmitter`
+seam is **deleted**: model loading is now Effect-typed end to end
+(`Model.load`), so `ModelLoadFailed` is emitted inside the Effect pipeline
+via `Effect.tapError` in `ConfigServiceLive` — no sync-island bridge needed;
+see `build-progress-and-issues.md`.
 
 ---
 

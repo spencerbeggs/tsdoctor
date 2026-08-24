@@ -9,7 +9,5 @@ export type { DerivedPath, PathDerivationInput } from "./PathDerivationService.j
 export { PathDerivationService } from "./PathDerivationService.js";
 
 export { ShikiService } from "./ShikiService.js";
-export type { FileSnapshot } from "./SnapshotService.js";
-export { SnapshotService } from "./SnapshotService.js";
 export type { ExternalPackageSpec } from "./TypeRegistryService.js";
 export { TypeRegistryService } from "./TypeRegistryService.js";

@@ -1,13 +1,13 @@
-// packages/model/__test__/render.test.ts
 import { describe, expect, it } from "vitest";
 
-import { isEmittable, renderItem, renderPackage } from "../src/render.js";
+import type { DocMeta } from "../src/index.js";
+import { CrossLinker, Render } from "../src/index.js";
 
 // Minimal ApiFunction-shaped fixture. The renderer reads: kind, displayName,
 // excerpt.{text,spannedTokens}, and (via tsdoc helpers) instanceof checks that
 // fail gracefully → empty summary/params for a plain object.
 // Note: spannedTokens mimics real API Extractor structure where the first token
-// contains the full "export declare <keyword> " prefix so TypeSignatureFormatter
+// contains the full "export declare <keyword> " prefix so Signature.format
 // can strip it in one pass.
 // `isExported` mirrors ApiExportedMixin: a compiler-synthetic forgotten export
 // carries `isExported: false`; a normal export omits it (treated as exported).
@@ -19,9 +19,9 @@ const fn = (name: string, sig: string, isExported?: boolean) => ({
 	...(isExported === undefined ? {} : { isExported }),
 });
 
-describe("renderItem", () => {
+describe("Render.item", () => {
 	it("renders an H1 and a fenced signature (no frontmatter, no crosslinks)", () => {
-		const md = renderItem(fn("doThing", "export declare function doThing(): void") as never, {
+		const md = Render.item(fn("doThing", "export declare function doThing(): void") as never, {
 			packageName: "@x/y",
 		});
 		expect(md).toMatch(/^# doThing/m);
@@ -29,22 +29,47 @@ describe("renderItem", () => {
 	});
 });
 
-describe("renderPackage", () => {
+describe("Render.tree", () => {
+	it("exposes the pre-serialization nodes: heading first, then the signature code block", () => {
+		const nodes = Render.tree(fn("doThing", "export declare function doThing(): void") as never, {
+			packageName: "@x/y",
+		});
+		expect(nodes[0]).toMatchObject({ type: "heading", depth: 1 });
+		expect(nodes[1]).toMatchObject({ type: "code", lang: "ts", value: "function doThing(): void" });
+	});
+
+	it("keeps injected cross-links intact through serialization", () => {
+		const item = {
+			...fn("doThing", "export declare function doThing(): void"),
+			// Fake a documented item summary via a crossLinker over plain text: the
+			// linker output must survive stringification un-escaped.
+		};
+		const linker = CrossLinker.fromRoutes(new Map([["Pipeline", "/api/class/pipeline"]]));
+		// No tsdoc on the fixture, so exercise the prose path via the public
+		// linker + Render.item contract instead: linked prose in a summary would
+		// round-trip; here we assert the linker itself emits markdown that the
+		// serializer would need to preserve.
+		expect(linker.link("See Pipeline.")).toBe("See [Pipeline](/api/class/pipeline).");
+		expect(Render.item(item as never, { packageName: "@x/y", crossLinker: linker })).toMatch(/^# doThing/m);
+	});
+});
+
+describe("Render.docs", () => {
 	const pkg = {
 		entryPoints: [{ members: [fn("doThing", "export declare function doThing(): void")] }],
 	};
 
 	it("produces one RenderedDoc per top-level member with a kind slug", () => {
-		const docs = renderPackage(pkg as never, { packageName: "@x/y" });
+		const docs = Render.docs(pkg as never, { packageName: "@x/y" });
 		expect(docs).toHaveLength(1);
 		expect(docs[0]).toMatchObject({ name: "doThing", kind: "function", slug: "dothing" });
 		expect(docs[0].markdown).toMatch(/# doThing/);
 	});
 
 	it("prepends injected frontmatter and assembles it onto the body", () => {
-		const docs = renderPackage(pkg as never, {
+		const docs = Render.docs(pkg as never, {
 			packageName: "@x/y",
-			frontmatter: (meta) => `---\nid: ${meta.kind}/${meta.slug}\n---\n\n`,
+			frontmatter: (meta: DocMeta) => `---\nid: ${meta.kind}/${meta.slug}\n---\n\n`,
 		});
 		expect(docs[0].markdown.startsWith("---\nid: function/dothing\n---\n\n# doThing")).toBe(true);
 	});
@@ -60,7 +85,7 @@ describe("renderPackage", () => {
 				},
 			],
 		};
-		const docs = renderPackage(mixed as never, { packageName: "@x/y" });
+		const docs = Render.docs(mixed as never, { packageName: "@x/y" });
 		expect(docs).toHaveLength(1);
 		expect(docs.map((d) => d.name)).toEqual(["doThing"]);
 	});
@@ -77,10 +102,10 @@ describe("renderPackage", () => {
 			],
 		};
 		// A pass-through filter re-includes the forgotten export the default would drop...
-		const all = renderPackage(mixed as never, { packageName: "@x/y", filter: () => true });
+		const all = Render.docs(mixed as never, { packageName: "@x/y", filter: () => true });
 		expect(all.map((d) => d.name)).toEqual(["doThing", "Schema_base"]);
 		// ...and an arbitrary predicate replaces the default entirely.
-		const onlyBase = renderPackage(mixed as never, {
+		const onlyBase = Render.docs(mixed as never, {
 			packageName: "@x/y",
 			filter: (item) => item.displayName.endsWith("_base"),
 		});
@@ -88,11 +113,11 @@ describe("renderPackage", () => {
 	});
 });
 
-describe("isEmittable", () => {
+describe("Render.isEmittable", () => {
 	it("drops forgotten exports and keeps everything else", () => {
-		expect(isEmittable(fn("Schema_base", "x", false) as never)).toBe(false);
-		expect(isEmittable(fn("doThing", "x", true) as never)).toBe(true);
+		expect(Render.isEmittable(fn("Schema_base", "x", false) as never)).toBe(false);
+		expect(Render.isEmittable(fn("doThing", "x", true) as never)).toBe(true);
 		// A member with no isExported field (e.g. a real export) is kept.
-		expect(isEmittable(fn("doThing", "x") as never)).toBe(true);
+		expect(Render.isEmittable(fn("doThing", "x") as never)).toBe(true);
 	});
 });

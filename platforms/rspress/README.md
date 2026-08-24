@@ -56,17 +56,17 @@ The plugin reads your `.api.json` model and writes one MDX page per public API i
 
 ## Documentation
 
-- [Getting started](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/01-getting-started.md) — Install, minimal config, first build.
-- [Configuration](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/02-configuration.md) — Full plugin-options reference.
-- [Config helpers](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/03-config-helpers.md) — `api.fromDir` and `apis.fromDir` for discovering config from package folders.
-- [Single package](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/04-single-package.md) — The single-API recipe.
-- [Multi-package](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/05-multi-package.md) — The multi-API portal recipe.
-- [Versioned](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/06-versioned.md) — Documenting major versions side by side.
-- [i18n](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/07-i18n.md) — Internationalized documentation.
-- [Multi-entry points](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/08-multi-entry-points.md) — Deduplication, "Available from" and route collisions.
-- [LLMs](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/09-llms.md) — Per-package `llms*.txt` files and assistant actions.
-- [Runtime components](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/10-runtime-components.md) — The runtime components and live `with-api` code blocks.
-- [Troubleshooting](https://github.com/spencerbeggs/rspress-plugin-api-extractor/blob/main/docs/11-troubleshooting.md) — Route collisions, forgotten exports, Twoslash errors and stale caches.
+- [Getting started](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/01-getting-started.md) — Install, minimal config, first build.
+- [Configuration](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/02-configuration.md) — Full plugin-options reference.
+- [Config helpers](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/03-config-helpers.md) — `api.fromDir` and `apis.fromDir` for discovering config from package folders.
+- [Single package](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/04-single-package.md) — The single-API recipe.
+- [Multi-package](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/05-multi-package.md) — The multi-API portal recipe.
+- [Versioned](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/06-versioned.md) — Documenting major versions side by side.
+- [i18n](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/07-i18n.md) — Internationalized documentation.
+- [Multi-entry points](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/08-multi-entry-points.md) — Deduplication, "Available from" and route collisions.
+- [LLMs](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/09-llms.md) — Per-package `llms*.txt` files and assistant actions.
+- [Runtime components](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/10-runtime-components.md) — The runtime components and live `with-api` code blocks.
+- [Troubleshooting](https://github.com/spencerbeggs/tsdoctor/blob/main/docs/11-troubleshooting.md) — Route collisions, forgotten exports, Twoslash errors and stale caches.
 
 ## License
 

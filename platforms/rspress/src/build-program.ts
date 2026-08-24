@@ -1,11 +1,11 @@
 import path from "node:path";
+import { SnapshotService } from "@tsdoctor/snapshot";
 import { Effect, FileSystem } from "effect";
 import type { CrossLinkData } from "./build-stages.js";
 import { buildPipelineForApi, cleanupAndCommit, prepareWorkItems, writeMetadata } from "./build-stages.js";
-import { markdownCrossLinker } from "./markdown/index.js";
+import { setProseLinker } from "./markdown/index.js";
 import { withPhase } from "./observability/spans.js";
 import type { ResolvedApiConfig, ResolvedBuildContext } from "./services/ConfigService.js";
-import { SnapshotService } from "./services/SnapshotService.js";
 import { TwoslashManager } from "./twoslash-transformer.js";
 import type { VfsConfig } from "./vfs-registry.js";
 import { VfsRegistry } from "./vfs-registry.js";
@@ -107,7 +107,7 @@ export function generateApiDocs(
 		// Initialize cross-linkers with the prepared data
 		// Use crossLinkData.routes directly so both cross-linkers share the same
 		// routes (including disambiguation suffixes for genuine route collisions)
-		markdownCrossLinker.setRoutes(crossLinkData.routes);
+		setProseLinker(crossLinkData.routes);
 		// API scope is derived from baseRoute to match file path inference in remark plugins
 		// e.g., baseRoute "/example-module" -> scope "example-module"
 		// When baseRoute is "/" (single-API mode), fall back to packageName to ensure a non-empty scope

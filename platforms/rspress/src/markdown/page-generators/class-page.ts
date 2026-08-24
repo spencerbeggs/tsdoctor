@@ -1,10 +1,9 @@
 /* v8 ignore start -- page generator, tested via build-stages integration tests */
+
 import type { ApiClass, ApiDeclaredItem, ApiItem } from "@microsoft/api-extractor-model";
-import { TypeSignatureFormatter } from "../../formatter.js";
-import { ApiParser } from "../../loader.js";
+import { ApiItems, Signature, Tsdoc } from "@tsdoctor/model";
 import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
 import { TypeReferenceExtractor } from "../../type-reference-extractor.js";
-import { markdownCrossLinker } from "../cross-linker.js";
 import {
 	escapeMdxGenerics,
 	formatExampleCode,
@@ -15,6 +14,7 @@ import {
 	sanitizeId,
 	stripTwoslashDirectives,
 } from "../helpers.js";
+import { linkProse } from "../prose-linker.js";
 
 /**
  * Grouped class members by type for organized documentation rendering.
@@ -52,9 +52,9 @@ interface GroupedMembers {
  *
  * **Relationships:**
  * - Created and invoked by {@link ApiExtractorPlugin} during page generation
- * - Uses {@link TypeSignatureFormatter} for formatting type signatures
- * - Uses {@link ApiParser} for extracting documentation from API models
- * - Uses {@link MarkdownCrossLinker} for adding type reference links
+ * - Uses `Signature.format` from `@tsdoctor/model` for formatting type signatures
+ * - Uses the `Tsdoc` / `ApiItems` modules from `@tsdoctor/model` for extracting documentation
+ * - Uses the per-build prose linker (`linkProse`) for adding type reference links
  *
  * @example
  * ```ts
@@ -76,8 +76,6 @@ interface GroupedMembers {
  * @see {@link FunctionPageGenerator} for function documentation
  */
 export class ClassPageGenerator {
-	private readonly typeFormatter: TypeSignatureFormatter = new TypeSignatureFormatter();
-
 	/**
 	 * Generate a markdown page for a class
 	 *
@@ -98,8 +96,8 @@ export class ClassPageGenerator {
 	): Promise<{ routePath: string; content: string }> {
 		const shouldSuppressErrors = suppressExampleErrors ?? true;
 		const name = apiClass.displayName;
-		const summary = ApiParser.getSummary(apiClass) || "No description available.";
-		const releaseTag = ApiParser.getReleaseTag(apiClass);
+		const summary = Tsdoc.summary(apiClass) || "No description available.";
+		const releaseTag = Tsdoc.releaseTag(apiClass);
 
 		let content = generateFrontmatter(name, summary, singularName, apiName);
 		content += `import { SourceCode } from "@rspress/core/theme";\n`;
@@ -109,9 +107,9 @@ export class ClassPageGenerator {
 		content += `# ${name}\n\n`;
 
 		// Add deprecation warning if present
-		const deprecation = ApiParser.getDeprecation(apiClass);
+		const deprecation = Tsdoc.deprecation(apiClass);
 		if (deprecation) {
-			const message = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(deprecation.message));
+			const message = escapeMdxGenerics(linkProse(deprecation.message));
 			content += `> ⚠️ **Deprecated:** ${message}\n\n`;
 		}
 
@@ -127,7 +125,7 @@ export class ClassPageGenerator {
 		content += generateAvailableFrom(packageName, availableFrom);
 
 		// Add toolbar with source code badge
-		const sourceLink = ApiParser.getSourceLink(apiClass, sourceConfig);
+		const sourceLink = ApiItems.sourceLink(apiClass, sourceConfig);
 		if (sourceLink) {
 			content += `<div className="api-docs-toolbar">\n`;
 			content += `  <div className="api-docs-toolbar-left">\n`;
@@ -160,16 +158,16 @@ export class ClassPageGenerator {
 		if (constructors.length > 0) {
 			content += `## Constructors\n\n`;
 			for (const ctor of constructors) {
-				const ctorSummary = ApiParser.getSummary(ctor);
+				const ctorSummary = Tsdoc.summary(ctor);
 				const ctorId = sanitizeId("constructor");
 				const ctorItem = ctor as ApiDeclaredItem;
-				const params = ApiParser.getParams(ctor);
+				const params = Tsdoc.params(ctor);
 				const hasParameters = params.length > 0;
 
 				if (ctorItem.excerpt?.text) {
-					const memberSignature = this.typeFormatter.format(ctorItem.excerpt).trim();
+					const memberSignature = Signature.format(ctorItem.excerpt).trim();
 					const skeletonWithContext = this.generateClassMemberWithContext(apiClass, ctor, packageName);
-					const summaryMd = ctorSummary ? escapeMdxGenerics(markdownCrossLinker.addCrossLinks(ctorSummary)) : undefined;
+					const summaryMd = ctorSummary ? escapeMdxGenerics(linkProse(ctorSummary)) : undefined;
 					content += `<ApiMember code={${JSON.stringify(memberSignature)}} source={${JSON.stringify(skeletonWithContext)}} apiScope={${JSON.stringify(apiScope)}} memberName="constructor"${summaryMd ? ` summary={${JSON.stringify(summaryMd)}}` : ""} id={${JSON.stringify(ctorId)}} hasParameters={${hasParameters}} />\n\n`;
 				}
 				if (hasParameters) {
@@ -177,7 +175,7 @@ export class ClassPageGenerator {
 						params.map((p) => ({
 							name: p.name,
 							type: p.type,
-							description: markdownCrossLinker.addCrossLinks(p.description),
+							description: linkProse(p.description),
 						})),
 					)}} />\n\n`;
 				}
@@ -216,15 +214,15 @@ export class ClassPageGenerator {
 
 			content += `## ${title}\n\n`;
 			for (const prop of propList) {
-				const propSummary = ApiParser.getSummary(prop);
+				const propSummary = Tsdoc.summary(prop);
 				const baseName = sanitizeId(prop.displayName);
 				const prefix = prefixMap.get(baseName) || "";
 				const propId = sanitizeId(prop.displayName, prefix);
 				const propItem = prop as ApiDeclaredItem;
 				if (propItem.excerpt?.text) {
-					const memberSignature = this.typeFormatter.format(propItem.excerpt).trim();
+					const memberSignature = Signature.format(propItem.excerpt).trim();
 					const skeletonWithContext = this.generateClassMemberWithContext(apiClass, prop, packageName);
-					const summaryMd = propSummary ? escapeMdxGenerics(markdownCrossLinker.addCrossLinks(propSummary)) : undefined;
+					const summaryMd = propSummary ? escapeMdxGenerics(linkProse(propSummary)) : undefined;
 					content += `<ApiMember code={${JSON.stringify(memberSignature)}} source={${JSON.stringify(skeletonWithContext)}} apiScope={${JSON.stringify(apiScope)}} memberName={${JSON.stringify(prop.displayName)}}${summaryMd ? ` summary={${JSON.stringify(summaryMd)}}` : ""} id={${JSON.stringify(propId)}} />\n\n`;
 				}
 			}
@@ -236,20 +234,18 @@ export class ClassPageGenerator {
 
 			content += `## ${title}\n\n`;
 			for (const method of methodList) {
-				const methodSummary = ApiParser.getSummary(method);
+				const methodSummary = Tsdoc.summary(method);
 				const baseName = sanitizeId(method.displayName);
 				const prefix = prefixMap.get(baseName) || "";
 				const methodId = sanitizeId(method.displayName, prefix);
 				const methodItem = method as ApiDeclaredItem;
-				const params = ApiParser.getParams(method);
+				const params = Tsdoc.params(method);
 				const hasParameters = params.length > 0;
 
 				if (methodItem.excerpt?.text) {
-					const memberSignature = this.typeFormatter.format(methodItem.excerpt).trim();
+					const memberSignature = Signature.format(methodItem.excerpt).trim();
 					const skeletonWithContext = this.generateClassMemberWithContext(apiClass, method, packageName);
-					const summaryMd = methodSummary
-						? escapeMdxGenerics(markdownCrossLinker.addCrossLinks(methodSummary))
-						: undefined;
+					const summaryMd = methodSummary ? escapeMdxGenerics(linkProse(methodSummary)) : undefined;
 					content += `<ApiMember code={${JSON.stringify(memberSignature)}} source={${JSON.stringify(skeletonWithContext)}} apiScope={${JSON.stringify(apiScope)}} memberName={${JSON.stringify(method.displayName)}}${summaryMd ? ` summary={${JSON.stringify(summaryMd)}}` : ""} id={${JSON.stringify(methodId)}} hasParameters={${hasParameters}} />\n\n`;
 				}
 				if (hasParameters) {
@@ -257,13 +253,13 @@ export class ClassPageGenerator {
 						params.map((p) => ({
 							name: p.name,
 							type: p.type,
-							description: markdownCrossLinker.addCrossLinks(p.description),
+							description: linkProse(p.description),
 						})),
 					)}} />\n\n`;
 				}
-				const returns = ApiParser.getReturns(method);
+				const returns = Tsdoc.returns(method);
 				if (returns) {
-					const description = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(returns.description));
+					const description = escapeMdxGenerics(linkProse(returns.description));
 					content += `**Returns:** ${description}\n\n`;
 				}
 			}
@@ -285,7 +281,7 @@ export class ClassPageGenerator {
 		await renderMethods("Methods", grouped.instanceMethods);
 
 		// Add examples - pre-render with Shiki and Twoslash for better build performance
-		const examples = ApiParser.getExamples(apiClass);
+		const examples = Tsdoc.examples(apiClass);
 		if (examples.length > 0) {
 			content += `## Examples\n\n`;
 			for (const example of examples) {
@@ -308,11 +304,11 @@ export class ClassPageGenerator {
 		}
 
 		// Add see also references
-		const seeReferences = ApiParser.getSeeReferences(apiClass);
+		const seeReferences = Tsdoc.seeReferences(apiClass);
 		if (seeReferences.length > 0) {
 			content += `## See Also\n\n`;
 			for (const reference of seeReferences) {
-				const refText = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(reference.text));
+				const refText = escapeMdxGenerics(linkProse(reference.text));
 				content += `- ${refText}\n`;
 			}
 			content += `\n`;
@@ -330,8 +326,8 @@ export class ClassPageGenerator {
 	 * `Foo_base` variable TypeScript emits for `Schema.Class`-style patterns).
 	 *
 	 * The `## Base Class` heading slugs to `BASE_CLASS_ANCHOR` from
-	 * `synthetic-bases.ts`, which is where the cross-link route for the base
-	 * name points.
+	 * `@tsdoctor/model`'s `SyntheticBases`, which is where the cross-link
+	 * route for the base name points.
 	 */
 	private generateBaseClassSection(
 		apiClass: ApiClass,
@@ -347,7 +343,7 @@ export class ClassPageGenerator {
 		let section = `## Base Class\n\n`;
 		section += `\`${apiClass.displayName}\` extends \`${baseDecl.displayName}\`, a compiler-generated declaration that is not exported from \`${packageName}\`.\n\n`;
 
-		const signature = this.typeFormatter.format(baseDecl.excerpt).trim();
+		const signature = Signature.format(baseDecl.excerpt).trim();
 		let source = signature;
 		const apiPackage = apiClass.getAssociatedPackage?.();
 		if (apiPackage) {
@@ -469,7 +465,7 @@ export class ClassPageGenerator {
 		const className = apiClass.displayName;
 
 		// Build class declaration
-		const inheritance = ApiParser.getInheritance(apiClass);
+		const inheritance = ApiItems.inheritance(apiClass);
 		let declaration = `class ${className}`;
 		if (inheritance.extends && inheritance.extends.length > 0) {
 			declaration += ` extends ${inheritance.extends.join(", ")}`;
@@ -481,7 +477,7 @@ export class ClassPageGenerator {
 
 		// Get the target member signature
 		const memberItem = targetMember as ApiDeclaredItem;
-		const memberSignature = memberItem.excerpt?.text ? this.typeFormatter.format(memberItem.excerpt).trim() : "";
+		const memberSignature = memberItem.excerpt?.text ? Signature.format(memberItem.excerpt).trim() : "";
 
 		// Build the simplified structure: class opening, target member, closing
 		// The hide-cut transformer will hide the first and third lines
@@ -524,7 +520,7 @@ export class ClassPageGenerator {
 		const className = apiClass.displayName;
 
 		// Class declaration with extends/implements clauses
-		const inheritance = ApiParser.getInheritance(apiClass);
+		const inheritance = ApiItems.inheritance(apiClass);
 		let declaration = `class ${className}`;
 		if (inheritance.extends && inheritance.extends.length > 0) {
 			declaration += ` extends ${inheritance.extends.join(", ")}`;
@@ -541,7 +537,7 @@ export class ClassPageGenerator {
 			for (const ctor of constructors) {
 				const ctorItem = ctor as ApiDeclaredItem;
 				if (ctorItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(ctorItem.excerpt).trim();
+					const signature = Signature.format(ctorItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}
@@ -561,7 +557,7 @@ export class ClassPageGenerator {
 			for (const prop of staticProperties) {
 				const propItem = prop as ApiDeclaredItem;
 				if (propItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(propItem.excerpt).trim();
+					const signature = Signature.format(propItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}
@@ -572,7 +568,7 @@ export class ClassPageGenerator {
 			for (const method of grouped.staticMethods) {
 				const methodItem = method as ApiDeclaredItem;
 				if (methodItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(methodItem.excerpt).trim();
+					const signature = Signature.format(methodItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}
@@ -589,7 +585,7 @@ export class ClassPageGenerator {
 			for (const prop of instanceProperties) {
 				const propItem = prop as ApiDeclaredItem;
 				if (propItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(propItem.excerpt).trim();
+					const signature = Signature.format(propItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}
@@ -600,7 +596,7 @@ export class ClassPageGenerator {
 			for (const method of grouped.getters) {
 				const methodItem = method as ApiDeclaredItem;
 				if (methodItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(methodItem.excerpt).trim();
+					const signature = Signature.format(methodItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}
@@ -611,7 +607,7 @@ export class ClassPageGenerator {
 			for (const method of grouped.instanceMethods) {
 				const methodItem = method as ApiDeclaredItem;
 				if (methodItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(methodItem.excerpt).trim();
+					const signature = Signature.format(methodItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}

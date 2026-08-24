@@ -73,11 +73,12 @@ consts — never rebuilt per call, per the v4 layer memoization discipline:
 ```typescript
 const PlatformLive = Layer.mergeAll(NodeFileSystem.layer, Path.layer);
 
-/** XDG app dirs under the library's shared namespace. The namespace string
- *  deliberately remains "type-registry-effect" after the @tsdoctor/registry
- *  rename so existing on-disk caches stay shared (phase 1 no-behavior-change
- *  gate); revisiting it is flagged for the phase-2 model-API decision window. */
-const AppDirsLive = AppDirs.layer({ namespace: "type-registry-effect" }).pipe(
+/** XDG app dirs under the tsdoctor-wide namespace. Renamed from the legacy
+ *  "type-registry-effect" namespace in phase 2 per the resolved identity
+ *  decision (see tsdoctor-package-architecture.md) — a deliberate one-time
+ *  on-disk cache invalidation (cold refetch), accepted. The @tsdoctor/bundle
+ *  fetch caches share the same namespace. */
+const AppDirsLive = AppDirs.layer({ namespace: "tsdoctor" }).pipe(
   Layer.provide(Layer.mergeAll(Xdg.layer, PlatformLive)),
 );
 

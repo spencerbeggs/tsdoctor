@@ -21,9 +21,10 @@ realistic enough to produce idiomatic TSDoc.
 ## Build Commands
 
 ```bash
-pnpm --filter kitchensink run build       # Build both entry points
-pnpm --filter kitchensink run types:check # Type-check
-pnpm vitest run modules/kitchensink/      # Run tests
+pnpm --filter @modules/kitchensink run build:dev   # Dev build (both entry points)
+pnpm --filter @modules/kitchensink run build:prod  # Prod build + API Extractor model
+pnpm --filter @modules/kitchensink run types:check # Type-check
+pnpm vitest run modules/kitchensink/               # Run tests
 ```
 
 ## TSDoc and API Extractor Test Matrix

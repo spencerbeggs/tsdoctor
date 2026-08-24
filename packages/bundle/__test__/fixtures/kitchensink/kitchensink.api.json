@@ -1,0 +1,14 @@
+{
+	"metadata": {
+		"toolPackage": "@microsoft/api-extractor",
+		"toolVersion": "7.59.0",
+		"schemaVersion": 1011,
+		"oldestForwardsCompatibleVersion": 1001
+	},
+	"kind": "Package",
+	"canonicalReference": "@modules/kitchensink!",
+	"docComment": "",
+	"name": "@modules/kitchensink",
+	"preserveMemberOrder": false,
+	"members": []
+}

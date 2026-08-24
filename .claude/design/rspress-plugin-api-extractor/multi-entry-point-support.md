@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-05-26
-last-synced: 2026-05-26
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 90
 related:
   - rspress-plugin-api-extractor/multi-entry-resolution.md
@@ -30,7 +30,7 @@ Modern npm packages expose multiple entry points for different audiences — tes
 
 The plugin supports these end-to-end, detecting the entry point count and adjusting generation while staying fully backward compatible with single-entry packages. The support spans two independent subsystems, each documented separately:
 
-- **Doc generation pipeline** — `multi-entry-resolution.md` covers the `MultiEntryResolver` (`resolveEntryPoints`), re-export deduplication, the `route-collisions.ts` fail-fast collision detector, and how `prepareWorkItems` attaches `availableFrom` to work items and renders the "Available from" line.
+- **Doc generation pipeline** — `multi-entry-resolution.md` covers `@tsdoctor/model`'s `EntryPoints.resolve` deduplication, the `Routes` fail-fast collision detector, and how `prepareWorkItems` attaches `availableFrom` to work items and renders the "Available from" line.
 - **Virtual TypeScript environment** — `multi-entry-vfs.md` covers `ApiExtractedPackage`, per-entry `.d.ts` generation, and the synthetic `package.json` (`types` for single entry, `exports` for multiple) produced via `VirtualPackage`.
 
 ## How the subsystems relate

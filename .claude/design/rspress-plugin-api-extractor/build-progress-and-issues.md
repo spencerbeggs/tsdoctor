@@ -108,12 +108,10 @@ Every other event tag returns `null` from `eventToIssue` and is not collected. T
 
 ### Newly-emitted events
 
-`RouteCollisionDetected` and `ModelLoadFailed` existed in the `PluginEvent` taxonomy from early on but had no emit site — this work added one to each, following the same sync-island pattern as the Twoslash/Prettier error flow (`error-observability.md`):
+`RouteCollisionDetected` and `ModelLoadFailed` existed in the `PluginEvent` taxonomy from early on but had no emit site — each now has one, though after the phase-2 model redesign they reach the bus by different routes:
 
-- `setBuildStagesEventEmitter` (`build-stages.ts`) — the route-collision check now emits `RouteCollisionDetected` before throwing.
-- `setModelLoaderEventEmitter` (`model-loader.ts`) — a failed model load now emits `ModelLoadFailed` before rethrowing.
-
-Both seams are wired in `plugin.ts` immediately after the runtime emitter is created, alongside the existing Twoslash/Prettier/OG/remark seams.
+- `setBuildStagesEventEmitter` (`build-stages.ts`) — the route-collision check emits `RouteCollisionDetected` before throwing (sync-island pattern, same as the Twoslash/Prettier error flow in `error-observability.md`). The seam is wired in `plugin.ts` immediately after the runtime emitter is created, alongside the existing Twoslash/Prettier/Shiki-utils/OG/remark seams.
+- `ModelLoadFailed` — emitted inside the Effect pipeline: model loading is Effect-typed since the phase-2 redesign (`Model.load` from `@tsdoctor/model`, typed `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), so `ConfigServiceLive` attaches `Effect.tapError` (emit) + `Effect.orDie` to the load. The former `setModelLoaderEventEmitter` and `setLoaderEventEmitter` sync-island seams are **deleted** — no bridge is needed when the failure already flows through a fiber.
 
 ### Schema
 
@@ -195,7 +193,7 @@ This is a real observability gap, not a nice-to-have: on a large site the heartb
 | `src/layers/ObservabilityLive.ts` | `buildEventBus` wiring the issues sink + eager trace path |
 | `src/schemas/observability.ts` | `progressInterval` → `progressIntervalMs` resolution, eager `tracePath` derivation |
 | `src/build-stages.ts` | `setBuildStagesEventEmitter`, `RouteCollisionDetected` emit site |
-| `src/model-loader.ts` | `setModelLoaderEventEmitter`, `ModelLoadFailed` emit site |
+| `src/layers/ConfigServiceLive.ts` | `ModelLoadFailed` emit site (`Effect.tapError` + `Effect.orDie` on `Model.load`) |
 | `src/plugin.ts` | Real `isProd` threading, phase `Ref`, heartbeat fork, issues write (`afterBuild` + fatal-path `catch`) |
 | `plugin/monitors/monitors.json` | Registers the `doc-build-issues` monitor |
 | `plugin/monitors/watch-issues.mjs` | Poll loop, `diagnose` debounce, notification copy |

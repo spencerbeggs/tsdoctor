@@ -1,7 +1,6 @@
 import type { ApiDeclaredItem, ApiEnum, ApiEnumMember } from "@microsoft/api-extractor-model";
-import { ApiParser } from "../../loader.js";
+import { ApiItems, Tsdoc } from "@tsdoctor/model";
 import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
-import { markdownCrossLinker } from "../cross-linker.js";
 import {
 	escapeMdxGenerics,
 	formatExampleCode,
@@ -10,6 +9,7 @@ import {
 	prepareExampleCode,
 	stripTwoslashDirectives,
 } from "../helpers.js";
+import { linkProse } from "../prose-linker.js";
 
 /**
  * Generates MDX documentation pages for TypeScript enums.
@@ -31,9 +31,9 @@ import {
  *
  * **Relationships:**
  * - Created and invoked by {@link ApiExtractorPlugin} during page generation
- * - Uses {@link TypeSignatureFormatter} for formatting type signatures
- * - Uses {@link ApiParser} for extracting documentation from API models
- * - Uses {@link MarkdownCrossLinker} for adding type reference links
+ * - Uses `Signature.format` from `@tsdoctor/model` for formatting type signatures
+ * - Uses the `Tsdoc` / `ApiItems` modules from `@tsdoctor/model` for extracting documentation
+ * - Uses the per-build prose linker (`linkProse`) for adding type reference links
  *
  * @see {@link TypeAliasPageGenerator} for type alias documentation
  * @see {@link VariablePageGenerator} for variable/constant documentation
@@ -58,8 +58,8 @@ export class EnumPageGenerator {
 	): Promise<{ routePath: string; content: string }> {
 		const shouldSuppressErrors = suppressExampleErrors ?? true;
 		const name = apiEnum.displayName;
-		const summary = ApiParser.getSummary(apiEnum) || "No description available.";
-		const releaseTag = ApiParser.getReleaseTag(apiEnum);
+		const summary = Tsdoc.summary(apiEnum) || "No description available.";
+		const releaseTag = Tsdoc.releaseTag(apiEnum);
 
 		let content = generateFrontmatter(name, summary, singularName, apiName);
 		content += `import { SourceCode } from "@rspress/core/theme";\n`;
@@ -69,9 +69,9 @@ export class EnumPageGenerator {
 		content += `# ${name}\n\n`;
 
 		// Add deprecation warning if present
-		const deprecation = ApiParser.getDeprecation(apiEnum);
+		const deprecation = Tsdoc.deprecation(apiEnum);
 		if (deprecation) {
-			const message = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(deprecation.message));
+			const message = escapeMdxGenerics(linkProse(deprecation.message));
 			content += `> ⚠️ **Deprecated:** ${message}\n\n`;
 		}
 
@@ -87,7 +87,7 @@ export class EnumPageGenerator {
 		content += generateAvailableFrom(packageName, availableFrom);
 
 		// Add toolbar with source code badge
-		const sourceLink = ApiParser.getSourceLink(apiEnum, sourceConfig);
+		const sourceLink = ApiItems.sourceLink(apiEnum, sourceConfig);
 		if (sourceLink) {
 			content += `<div className="api-docs-toolbar">\n`;
 			content += `  <div className="api-docs-toolbar-left">\n`;
@@ -117,7 +117,7 @@ export class EnumPageGenerator {
 		if (hasMembers) {
 			const membersData = apiEnum.members.map((member) => {
 				const memberItem = member as ApiDeclaredItem;
-				const memberSummary = ApiParser.getSummary(member) || "";
+				const memberSummary = Tsdoc.summary(member) || "";
 
 				// Extract value from excerpt text
 				let value: string | undefined;
@@ -135,7 +135,7 @@ export class EnumPageGenerator {
 				return {
 					name: member.displayName,
 					value,
-					description: markdownCrossLinker.addCrossLinks(memberSummary),
+					description: linkProse(memberSummary),
 				};
 			});
 
@@ -143,7 +143,7 @@ export class EnumPageGenerator {
 		}
 
 		// Add examples using ApiExample component
-		const examples = ApiParser.getExamples(apiEnum);
+		const examples = Tsdoc.examples(apiEnum);
 		if (examples.length > 0) {
 			content += `## Examples\n\n`;
 			for (const example of examples) {
@@ -166,11 +166,11 @@ export class EnumPageGenerator {
 		}
 
 		// Add see also references
-		const seeReferences = ApiParser.getSeeReferences(apiEnum);
+		const seeReferences = Tsdoc.seeReferences(apiEnum);
 		if (seeReferences.length > 0) {
 			content += `## See Also\n\n`;
 			for (const reference of seeReferences) {
-				const refText = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(reference.text));
+				const refText = escapeMdxGenerics(linkProse(reference.text));
 				content += `- ${refText}\n`;
 			}
 			content += `\n`;

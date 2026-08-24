@@ -16,7 +16,7 @@ dependencies: []
 
 # Monorepo Consolidation (Phase 1)
 
-> **Executed.** Phase 1 was executed on branch `feat/tsdoctor-phase-1` (2026-08-24) and this document now records what actually happened, including the deviations from the original plan. The npm release and old-package deprecations are still pending. Phasing and gates are governed by `roadmap-1.0.md`; the target package architecture is in `tsdoctor-package-architecture.md`.
+> **Executed and released.** Phase 1 was executed on branch `feat/tsdoctor-phase-1`, merged to `main` via PR #163 and released (all 2026-08-24); this document records what actually happened, including the deviations from the original plan. The npm release shipped (`@tsdoctor/registry@0.1.0`, `@tsdoctor/model@0.1.0`, `rspress-plugin-api-extractor@0.8.9`) and the old packages are deprecated with their repos archived — phase 1 is fully closed out. Phasing and gates are governed by `roadmap-1.0.md`; the target package architecture is in `tsdoctor-package-architecture.md`.
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@ dependencies: []
 - [Plugin Dependency Swap](#plugin-dependency-swap)
 - [Gate Verification](#gate-verification)
 - [Versioning](#versioning)
-- [Deprecation of the Old Packages (Pending)](#deprecation-of-the-old-packages-pending)
+- [Deprecation of the Old Packages (Executed)](#deprecation-of-the-old-packages-executed)
 - [Release Tooling](#release-tooling)
 - [Deliberately Unchanged (Phase 1 No-Behavior-Change Gate)](#deliberately-unchanged-phase-1-no-behavior-change-gate)
 - [Resolved Questions](#resolved-questions)
@@ -90,16 +90,16 @@ The phase 1 gate — the existing test suite proves no behavior change — **hel
 
 **User decision during execution, overriding the original plan** (the plan called for `@tsdoctor/registry@3.0.0`, a major-on-rename): both new packages start fresh at 0.x.
 
-- `@tsdoctor/registry` restarts at **0.x** — its manifest sits at `0.0.0` and the first release lands at **0.1.0** via a minor changeset. The version line does not continue `type-registry-effect@2.3.5`; the new org gets a coherent fresh semver line.
-- `@tsdoctor/model` likewise sits at `0.0.0` with its first release landing at **0.1.0** via a minor changeset — a new package whose API may be redesigned (the open decision in `tsdoctor-package-architecture.md`).
+- `@tsdoctor/registry` restarts at **0.x** — its manifest sat at `0.0.0` pre-release and the first release landed at **0.1.0** via a minor changeset. The version line does not continue `type-registry-effect@2.3.5`; the new org gets a coherent fresh semver line.
+- `@tsdoctor/model` likewise moved from `0.0.0` to its first release at **0.1.0** via a minor changeset — a new package whose API may be redesigned (the open decision in `tsdoctor-package-architecture.md`).
 
-## Deprecation of the Old Packages (Pending)
+## Deprecation of the Old Packages (Executed)
 
-Still to do, at or after the first release from this repo: `npm deprecate` on `type-registry-effect@2` and `api-extractor-llms`, each with a pointer at its successor (`@tsdoctor/registry` / `@tsdoctor/model`). The owner is the only known consumer of both, so this is low-ceremony — no migration guide beyond the deprecation message and a README note is planned.
+Done at the first release (2026-08-24): `type-registry-effect` and `api-extractor-llms` are `npm deprecate`d, each with a pointer at its successor (`@tsdoctor/registry` / `@tsdoctor/model`), and both GitHub repos are archived — they remain only as historical provenance. The owner is the only known consumer of both, so this was low-ceremony — no migration guide beyond the deprecation message and a README note.
 
 ## Release Tooling
 
-Both new packages release from this monorepo via the existing `@savvy-web/changesets` flow, matching how `platforms/rspress/` publishes today. Every publishable workspace's `publishConfig.targets` is `{ npm: true }` — publishing targets npm only; the former GitHub Packages target (and the plugin's per-registry package-rename `transform`) is gone. The npm and CI/CD systems were prepared ahead of the move: the next release from this repo releases `rspress-plugin-api-extractor`, `@tsdoctor/registry` and `@tsdoctor/model` together. That release has **not happened yet** — phase 1 is executed on the branch, pending release.
+Both new packages release from this monorepo via the existing `@savvy-web/changesets` flow, matching how `platforms/rspress/` publishes today. Every publishable workspace's `publishConfig.targets` is `{ npm: true }` — publishing targets npm only; the former GitHub Packages target (and the plugin's per-registry package-rename `transform`) is gone. The npm and CI/CD systems were prepared ahead of the move, and the first release from this repo **shipped on 2026-08-24**: `rspress-plugin-api-extractor@0.8.9`, `@tsdoctor/registry@0.1.0` and `@tsdoctor/model@0.1.0` released together to npm and GitHub Releases, tagged in the new `<package>@<version>` format. Historical release tags were migrated to the `rspress-plugin-api-extractor@<version>` format during phase 1 and the old bare-semver tags deleted, so the tag namespace is uniform across the org's packages.
 
 ## Deliberately Unchanged (Phase 1 No-Behavior-Change Gate)
 
@@ -107,6 +107,8 @@ Two identity strings were deliberately NOT renamed during the move; both are fla
 
 - The registry library's `Context.Service` tag id strings remain `"type-registry-effect/..."` (e.g. `"type-registry-effect/TypeCache"`).
 - The plugin's XDG cache namespace remains `AppDirs.layer({ namespace: "type-registry-effect" })` in `TypeRegistryServiceLive.ts`, so existing on-disk caches stay shared across the rename.
+
+**Post-phase-1 note (2026-08-24):** the decision has since been made AND executed — phase 2 renamed both identity strings to tsdoctor-native identities (`"@tsdoctor/registry/..."` tag ids; XDG namespace `"tsdoctor"`), accepting the one-time cache invalidation (see `tsdoctor-package-architecture.md` and `roadmap-1.0.md`).
 
 ## Resolved Questions
 

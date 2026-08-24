@@ -1,10 +1,9 @@
 /* v8 ignore start -- page generator, tested via build-stages integration tests */
+
 import type { ApiDeclaredItem, ApiInterface, ApiItem } from "@microsoft/api-extractor-model";
-import { TypeSignatureFormatter } from "../../formatter.js";
-import { ApiParser } from "../../loader.js";
+import { ApiItems, Signature, Tsdoc } from "@tsdoctor/model";
 import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
 import { TypeReferenceExtractor } from "../../type-reference-extractor.js";
-import { markdownCrossLinker } from "../cross-linker.js";
 import {
 	escapeMdxGenerics,
 	formatExampleCode,
@@ -15,6 +14,7 @@ import {
 	sanitizeId,
 	stripTwoslashDirectives,
 } from "../helpers.js";
+import { linkProse } from "../prose-linker.js";
 
 /**
  * Generates MDX documentation pages for TypeScript interfaces.
@@ -43,9 +43,9 @@ import {
  *
  * **Relationships:**
  * - Created and invoked by {@link ApiExtractorPlugin} during page generation
- * - Uses {@link TypeSignatureFormatter} for formatting type signatures
- * - Uses {@link ApiParser} for extracting documentation from API models
- * - Uses {@link MarkdownCrossLinker} for adding type reference links
+ * - Uses `Signature.format` from `@tsdoctor/model` for formatting type signatures
+ * - Uses the `Tsdoc` / `ApiItems` modules from `@tsdoctor/model` for extracting documentation
+ * - Uses the per-build prose linker (`linkProse`) for adding type reference links
  *
  * @example
  * ```ts
@@ -67,8 +67,6 @@ import {
  * @see {@link TypeAliasPageGenerator} for type alias documentation
  */
 export class InterfacePageGenerator {
-	private readonly typeFormatter: TypeSignatureFormatter = new TypeSignatureFormatter();
-
 	/**
 	 * Generate a markdown page for an interface
 	 *
@@ -88,8 +86,8 @@ export class InterfacePageGenerator {
 	): Promise<{ routePath: string; content: string }> {
 		const shouldSuppressErrors = suppressExampleErrors ?? true;
 		const name = apiInterface.displayName;
-		const summary = ApiParser.getSummary(apiInterface) || "No description available.";
-		const releaseTag = ApiParser.getReleaseTag(apiInterface);
+		const summary = Tsdoc.summary(apiInterface) || "No description available.";
+		const releaseTag = Tsdoc.releaseTag(apiInterface);
 
 		let content = generateFrontmatter(name, summary, singularName, apiName);
 		content += `import { SourceCode } from "@rspress/core/theme";\n`;
@@ -99,9 +97,9 @@ export class InterfacePageGenerator {
 		content += `# ${name}\n\n`;
 
 		// Add deprecation warning if present
-		const deprecation = ApiParser.getDeprecation(apiInterface);
+		const deprecation = Tsdoc.deprecation(apiInterface);
 		if (deprecation) {
-			const message = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(deprecation.message));
+			const message = escapeMdxGenerics(linkProse(deprecation.message));
 			content += `> ⚠️ **Deprecated:** ${message}\n\n`;
 		}
 
@@ -117,7 +115,7 @@ export class InterfacePageGenerator {
 		content += generateAvailableFrom(packageName, availableFrom);
 
 		// Add toolbar with source code badge
-		const sourceLink = ApiParser.getSourceLink(apiInterface, sourceConfig);
+		const sourceLink = ApiItems.sourceLink(apiInterface, sourceConfig);
 		if (sourceLink) {
 			content += `<div className="api-docs-toolbar">\n`;
 			content += `  <div className="api-docs-toolbar-left">\n`;
@@ -145,16 +143,14 @@ export class InterfacePageGenerator {
 		if (callSignatures.length > 0) {
 			content += `## Call Signatures\n\n`;
 			for (const callSig of callSignatures) {
-				const callSigSummary = ApiParser.getSummary(callSig);
+				const callSigSummary = Tsdoc.summary(callSig);
 				const callSigId = sanitizeId("call-signature");
 				// Add call signature if available
 				const callSigItem = callSig as ApiDeclaredItem;
 				if (callSigItem.excerpt?.text) {
-					const memberSignature = this.typeFormatter.format(callSigItem.excerpt).trim();
+					const memberSignature = Signature.format(callSigItem.excerpt).trim();
 					const skeletonWithContext = this.generateInterfaceMemberWithContext(apiInterface, callSig, packageName);
-					const summaryMd = callSigSummary
-						? escapeMdxGenerics(markdownCrossLinker.addCrossLinks(callSigSummary))
-						: undefined;
+					const summaryMd = callSigSummary ? escapeMdxGenerics(linkProse(callSigSummary)) : undefined;
 					content += `<ApiMember code={${JSON.stringify(memberSignature)}} source={${JSON.stringify(skeletonWithContext)}} apiScope={${JSON.stringify(apiScope)}} memberName="Call Signature"${summaryMd ? ` summary={${JSON.stringify(summaryMd)}}` : ""} id={${JSON.stringify(callSigId)}} />\n\n`;
 				}
 			}
@@ -165,16 +161,14 @@ export class InterfacePageGenerator {
 		if (constructSignatures.length > 0) {
 			content += `## Construct Signatures\n\n`;
 			for (const constructSig of constructSignatures) {
-				const constructSigSummary = ApiParser.getSummary(constructSig);
+				const constructSigSummary = Tsdoc.summary(constructSig);
 				const constructSigId = sanitizeId("construct-signature");
 				// Add construct signature if available
 				const constructSigItem = constructSig as ApiDeclaredItem;
 				if (constructSigItem.excerpt?.text) {
-					const memberSignature = this.typeFormatter.format(constructSigItem.excerpt).trim();
+					const memberSignature = Signature.format(constructSigItem.excerpt).trim();
 					const skeletonWithContext = this.generateInterfaceMemberWithContext(apiInterface, constructSig, packageName);
-					const summaryMd = constructSigSummary
-						? escapeMdxGenerics(markdownCrossLinker.addCrossLinks(constructSigSummary))
-						: undefined;
+					const summaryMd = constructSigSummary ? escapeMdxGenerics(linkProse(constructSigSummary)) : undefined;
 					content += `<ApiMember code={${JSON.stringify(memberSignature)}} source={${JSON.stringify(skeletonWithContext)}} apiScope={${JSON.stringify(apiScope)}} memberName="Construct Signature"${summaryMd ? ` summary={${JSON.stringify(summaryMd)}}` : ""} id={${JSON.stringify(constructSigId)}} />\n\n`;
 				}
 			}
@@ -185,16 +179,14 @@ export class InterfacePageGenerator {
 		if (indexSignatures.length > 0) {
 			content += `## Index Signature\n\n`;
 			for (const indexSig of indexSignatures) {
-				const indexSigSummary = ApiParser.getSummary(indexSig);
+				const indexSigSummary = Tsdoc.summary(indexSig);
 				const indexSigId = sanitizeId("index-signature");
 				// Add index signature if available
 				const indexSigItem = indexSig as ApiDeclaredItem;
 				if (indexSigItem.excerpt?.text) {
-					const memberSignature = this.typeFormatter.format(indexSigItem.excerpt).trim();
+					const memberSignature = Signature.format(indexSigItem.excerpt).trim();
 					const skeletonWithContext = this.generateInterfaceMemberWithContext(apiInterface, indexSig, packageName);
-					const summaryMd = indexSigSummary
-						? escapeMdxGenerics(markdownCrossLinker.addCrossLinks(indexSigSummary))
-						: undefined;
+					const summaryMd = indexSigSummary ? escapeMdxGenerics(linkProse(indexSigSummary)) : undefined;
 					content += `<ApiMember code={${JSON.stringify(memberSignature)}} source={${JSON.stringify(skeletonWithContext)}} apiScope={${JSON.stringify(apiScope)}} memberName="Index Signature"${summaryMd ? ` summary={${JSON.stringify(summaryMd)}}` : ""} id={${JSON.stringify(indexSigId)}} />\n\n`;
 				}
 			}
@@ -205,14 +197,14 @@ export class InterfacePageGenerator {
 		if (properties.length > 0) {
 			content += `## Properties\n\n`;
 			for (const prop of properties) {
-				const propSummary = ApiParser.getSummary(prop);
+				const propSummary = Tsdoc.summary(prop);
 				const propId = sanitizeId(prop.displayName);
 				// Add property signature if available
 				const propItem = prop as ApiDeclaredItem;
 				if (propItem.excerpt?.text) {
-					const memberSignature = this.typeFormatter.format(propItem.excerpt).trim();
+					const memberSignature = Signature.format(propItem.excerpt).trim();
 					const skeletonWithContext = this.generateInterfaceMemberWithContext(apiInterface, prop, packageName);
-					const summaryMd = propSummary ? escapeMdxGenerics(markdownCrossLinker.addCrossLinks(propSummary)) : undefined;
+					const summaryMd = propSummary ? escapeMdxGenerics(linkProse(propSummary)) : undefined;
 					content += `<ApiMember code={${JSON.stringify(memberSignature)}} source={${JSON.stringify(skeletonWithContext)}} apiScope={${JSON.stringify(apiScope)}} memberName={${JSON.stringify(prop.displayName)}}${summaryMd ? ` summary={${JSON.stringify(summaryMd)}}` : ""} id={${JSON.stringify(propId)}} />\n\n`;
 				}
 			}
@@ -223,42 +215,40 @@ export class InterfacePageGenerator {
 		if (methods.length > 0) {
 			content += `## Methods\n\n`;
 			for (const method of methods) {
-				const methodSummary = ApiParser.getSummary(method);
+				const methodSummary = Tsdoc.summary(method);
 				const methodId = sanitizeId(method.displayName);
 				// Add method signature if available
 				const methodItem = method as ApiDeclaredItem;
 				if (methodItem.excerpt?.text) {
-					const memberSignature = this.typeFormatter.format(methodItem.excerpt).trim();
+					const memberSignature = Signature.format(methodItem.excerpt).trim();
 					const skeletonWithContext = this.generateInterfaceMemberWithContext(apiInterface, method, packageName);
-					const params = ApiParser.getParams(method);
+					const params = Tsdoc.params(method);
 					const hasParameters = params.length > 0;
-					const summaryMd = methodSummary
-						? escapeMdxGenerics(markdownCrossLinker.addCrossLinks(methodSummary))
-						: undefined;
+					const summaryMd = methodSummary ? escapeMdxGenerics(linkProse(methodSummary)) : undefined;
 					content += `<ApiMember code={${JSON.stringify(memberSignature)}} source={${JSON.stringify(skeletonWithContext)}} apiScope={${JSON.stringify(apiScope)}} memberName={${JSON.stringify(method.displayName)}}${summaryMd ? ` summary={${JSON.stringify(summaryMd)}}` : ""} id={${JSON.stringify(methodId)}} hasParameters={${hasParameters}} />\n\n`;
 				}
 				// Add parameters documentation
-				const params = ApiParser.getParams(method);
+				const params = Tsdoc.params(method);
 				if (params.length > 0) {
 					content += `<ParametersTable parameters={${JSON.stringify(
 						params.map((p) => ({
 							name: p.name,
 							type: p.type,
-							description: markdownCrossLinker.addCrossLinks(p.description),
+							description: linkProse(p.description),
 						})),
 					)}} />\n\n`;
 				}
 				// Add returns documentation
-				const returns = ApiParser.getReturns(method);
+				const returns = Tsdoc.returns(method);
 				if (returns) {
-					const description = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(returns.description));
+					const description = escapeMdxGenerics(linkProse(returns.description));
 					content += `**Returns:** ${description}\n\n`;
 				}
 			}
 		}
 
 		// Add examples - pre-render with Shiki and Twoslash for better build performance
-		const examples = ApiParser.getExamples(apiInterface);
+		const examples = Tsdoc.examples(apiInterface);
 		if (examples.length > 0) {
 			content += `## Examples\n\n`;
 			for (const example of examples) {
@@ -281,11 +271,11 @@ export class InterfacePageGenerator {
 		}
 
 		// Add see also references
-		const seeReferences = ApiParser.getSeeReferences(apiInterface);
+		const seeReferences = Tsdoc.seeReferences(apiInterface);
 		if (seeReferences.length > 0) {
 			content += `## See Also\n\n`;
 			for (const reference of seeReferences) {
-				const refText = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(reference.text));
+				const refText = escapeMdxGenerics(linkProse(reference.text));
 				content += `- ${refText}\n`;
 			}
 			content += `\n`;
@@ -310,7 +300,7 @@ export class InterfacePageGenerator {
 		const interfaceName = apiInterface.displayName;
 
 		// Build interface declaration with type parameters
-		const inheritance = ApiParser.getInheritance(apiInterface);
+		const inheritance = ApiItems.inheritance(apiInterface);
 		let declaration = `interface ${interfaceName}`;
 
 		// Add type parameters if present
@@ -326,7 +316,7 @@ export class InterfacePageGenerator {
 
 		// Get the target member signature
 		const memberItem = targetMember as ApiDeclaredItem;
-		const memberSignature = memberItem.excerpt?.text ? this.typeFormatter.format(memberItem.excerpt).trim() : "";
+		const memberSignature = memberItem.excerpt?.text ? Signature.format(memberItem.excerpt).trim() : "";
 
 		// Build the simplified structure: interface opening, target member, closing
 		// The hide-cut transformer will hide the first and third lines
@@ -369,7 +359,7 @@ export class InterfacePageGenerator {
 		const interfaceName = apiInterface.displayName;
 
 		// Interface declaration with type parameters and extends clause
-		const inheritance = ApiParser.getInheritance(apiInterface);
+		const inheritance = ApiItems.inheritance(apiInterface);
 		let declaration = `interface ${interfaceName}`;
 
 		// Add type parameters if present
@@ -390,7 +380,7 @@ export class InterfacePageGenerator {
 			for (const callSig of callSignatures) {
 				const callSigItem = callSig as ApiDeclaredItem;
 				if (callSigItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(callSigItem.excerpt).trim();
+					const signature = Signature.format(callSigItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}
@@ -402,7 +392,7 @@ export class InterfacePageGenerator {
 			for (const constructSig of constructSignatures) {
 				const constructSigItem = constructSig as ApiDeclaredItem;
 				if (constructSigItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(constructSigItem.excerpt).trim();
+					const signature = Signature.format(constructSigItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}
@@ -414,7 +404,7 @@ export class InterfacePageGenerator {
 			for (const indexSig of indexSignatures) {
 				const indexSigItem = indexSig as ApiDeclaredItem;
 				if (indexSigItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(indexSigItem.excerpt).trim();
+					const signature = Signature.format(indexSigItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}
@@ -426,7 +416,7 @@ export class InterfacePageGenerator {
 			for (const prop of properties) {
 				const propItem = prop as ApiDeclaredItem;
 				if (propItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(propItem.excerpt).trim();
+					const signature = Signature.format(propItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}
@@ -438,7 +428,7 @@ export class InterfacePageGenerator {
 			for (const method of methods) {
 				const methodItem = method as ApiDeclaredItem;
 				if (methodItem.excerpt?.text) {
-					const signature = this.typeFormatter.format(methodItem.excerpt).trim();
+					const signature = Signature.format(methodItem.excerpt).trim();
 					lines.push(`    ${signature}`);
 				}
 			}

@@ -31,9 +31,9 @@
 			],
 			"designDocsPath": ".claude/design/rspress-plugin-api-extractor",
 			"maintainer": "Spencer Beggs",
-			"path": "package",
+			"path": "platforms/rspress",
 			"userDocs": {
-				"readme": "package/README.md",
+				"readme": "platforms/rspress/README.md",
 				"repoDocs": null,
 				"siteDocs": null
 			}

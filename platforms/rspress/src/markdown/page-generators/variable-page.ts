@@ -1,9 +1,7 @@
 import type { ApiVariable } from "@microsoft/api-extractor-model";
-import { TypeSignatureFormatter } from "../../formatter.js";
-import { ApiParser } from "../../loader.js";
+import { ApiItems, Signature, Tsdoc } from "@tsdoctor/model";
 import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
 import { TypeReferenceExtractor } from "../../type-reference-extractor.js";
-import { markdownCrossLinker } from "../cross-linker.js";
 import {
 	escapeMdxGenerics,
 	formatExampleCode,
@@ -13,6 +11,7 @@ import {
 	prependHiddenImports,
 	stripTwoslashDirectives,
 } from "../helpers.js";
+import { linkProse } from "../prose-linker.js";
 
 /**
  * Generates MDX documentation pages for exported variables and constants.
@@ -32,16 +31,14 @@ import {
  *
  * **Relationships:**
  * - Created and invoked by {@link ApiExtractorPlugin} during page generation
- * - Uses {@link TypeSignatureFormatter} for formatting type signatures
- * - Uses {@link ApiParser} for extracting documentation from API models
- * - Uses {@link MarkdownCrossLinker} for adding type reference links
+ * - Uses `Signature.format` from `@tsdoctor/model` for formatting type signatures
+ * - Uses the `Tsdoc` / `ApiItems` modules from `@tsdoctor/model` for extracting documentation
+ * - Uses the per-build prose linker (`linkProse`) for adding type reference links
  *
  * @see {@link FunctionPageGenerator} for function documentation
  * @see {@link EnumPageGenerator} for enum documentation
  */
 export class VariablePageGenerator {
-	private readonly typeFormatter: TypeSignatureFormatter = new TypeSignatureFormatter();
-
 	/**
 	 * Generate a markdown page for a variable
 	 *
@@ -61,8 +58,8 @@ export class VariablePageGenerator {
 	): Promise<{ routePath: string; content: string }> {
 		const shouldSuppressErrors = suppressExampleErrors ?? true;
 		const name = apiVariable.displayName;
-		const summary = ApiParser.getSummary(apiVariable) || "No description available.";
-		const releaseTag = ApiParser.getReleaseTag(apiVariable);
+		const summary = Tsdoc.summary(apiVariable) || "No description available.";
+		const releaseTag = Tsdoc.releaseTag(apiVariable);
 
 		let content = generateFrontmatter(name, summary, singularName, apiName);
 		content += `import { SourceCode } from "@rspress/core/theme";\n`;
@@ -72,9 +69,9 @@ export class VariablePageGenerator {
 		content += `# ${name}\n\n`;
 
 		// Add deprecation warning if present
-		const deprecation = ApiParser.getDeprecation(apiVariable);
+		const deprecation = Tsdoc.deprecation(apiVariable);
 		if (deprecation) {
-			const message = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(deprecation.message));
+			const message = escapeMdxGenerics(linkProse(deprecation.message));
 			content += `> ⚠️ **Deprecated:** ${message}\n\n`;
 		}
 
@@ -90,7 +87,7 @@ export class VariablePageGenerator {
 		content += generateAvailableFrom(packageName, availableFrom);
 
 		// Add toolbar with source code badge
-		const sourceLink = ApiParser.getSourceLink(apiVariable, sourceConfig);
+		const sourceLink = ApiItems.sourceLink(apiVariable, sourceConfig);
 		if (sourceLink) {
 			content += `<div className="api-docs-toolbar">\n`;
 			content += `  <div className="api-docs-toolbar-left">\n`;
@@ -107,7 +104,7 @@ export class VariablePageGenerator {
 
 		// Add signature using ApiSignature component
 		if (apiVariable.excerpt.text) {
-			const signature = this.typeFormatter.format(apiVariable.excerpt).trim();
+			const signature = Signature.format(apiVariable.excerpt).trim();
 
 			// Extract imports for external type references in this variable
 			let signatureWithImports = signature;
@@ -123,7 +120,7 @@ export class VariablePageGenerator {
 		}
 
 		// Add examples using ApiExample component
-		const examples = ApiParser.getExamples(apiVariable);
+		const examples = Tsdoc.examples(apiVariable);
 		if (examples.length > 0) {
 			content += `## Examples\n\n`;
 			for (const example of examples) {
@@ -146,11 +143,11 @@ export class VariablePageGenerator {
 		}
 
 		// Add see also references
-		const seeReferences = ApiParser.getSeeReferences(apiVariable);
+		const seeReferences = Tsdoc.seeReferences(apiVariable);
 		if (seeReferences.length > 0) {
 			content += `## See Also\n\n`;
 			for (const reference of seeReferences) {
-				const refText = escapeMdxGenerics(markdownCrossLinker.addCrossLinks(reference.text));
+				const refText = escapeMdxGenerics(linkProse(reference.text));
 				content += `- ${refText}\n`;
 			}
 			content += `\n`;

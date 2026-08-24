@@ -10,7 +10,7 @@ import { PluginEvent } from "../observability/events.js";
 import { TypeRegistryService } from "../services/TypeRegistryService.js";
 
 /**
- * Forward type-registry-effect's typed `RegistryEvent`s to the plugin's Effect
+ * Forward @tsdoctor/registry's typed `RegistryEvent`s to the plugin's Effect
  * logger. Since v1 the library emits no logs of its own — observers are the only
  * diagnostic surface — so this restores the build output and routes it through
  * the plugin's configured log level/format (a single source, no duplication).
@@ -115,7 +115,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 });
 
 /**
- * type-registry-effect v2 composes at the edge: the library ships no platform
+ * @tsdoctor/registry composes at the edge: the library ships no platform
  * layer of its own, so the plugin wires FileSystem/Path, the XDG directories,
  * the sqlite metadata Cache and the HTTP client here.
  *
@@ -124,8 +124,13 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
  */
 const PlatformLive = Layer.mergeAll(NodeFileSystem.layer, Path.layer);
 
-/** XDG app directories under the library's shared namespace (cache is shared across consumers). */
-const AppDirsLive = AppDirs.layer({ namespace: "type-registry-effect" }).pipe(
+/**
+ * XDG app directories under the tsdoctor-wide namespace. Renamed from the
+ * legacy "type-registry-effect" namespace in phase 2 per the resolved identity
+ * decision (see tsdoctor-package-architecture.md) — a deliberate one-time
+ * on-disk cache invalidation: existing caches go cold and refetch.
+ */
+const AppDirsLive = AppDirs.layer({ namespace: "tsdoctor" }).pipe(
 	Layer.provide(Layer.mergeAll(Xdg.layer, PlatformLive)),
 );
 
@@ -151,7 +156,7 @@ const RegistryLayer = TypeRegistry.layer.pipe(
 );
 
 /**
- * TypeRegistryServiceLive: uses type-registry-effect Effect programs directly.
+ * TypeRegistryServiceLive: uses @tsdoctor/registry Effect programs directly.
  */
 export const TypeRegistryServiceLive = Layer.succeed(TypeRegistryService, {
 	resolveVersions: (packages) =>

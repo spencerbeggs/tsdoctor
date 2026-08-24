@@ -1,0 +1,10 @@
+{
+	"spec": 1,
+	"name": "Kitchen Sink",
+	"tagline": "Every API Extractor feature in one module",
+	"openGraph": {
+		"images": [{ "path": "assets/og.png", "width": 1200, "height": 630 }],
+		"themeColor": "#7c3aed"
+	},
+	"registries": [{ "type": "npm", "name": "npm", "url": "https://www.npmjs.com/package/@modules/kitchensink" }]
+}

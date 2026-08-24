@@ -45,7 +45,7 @@ Declaration excerpts are rendered through a private `renderExcerpt` (token-by-to
 - **Abstract modifier** — `abstract` is propagated onto reconstructed class headers (and through the namespace-nested class path that strips `declare`). The class body keeps abstract members, so dropping the modifier on the header produces `TS1244`/`TS1253` ("abstract member in a non-abstract class") in the VFS `.d.ts`.
 - **dts-rollup `$N` alias normalization** — `normalizeTokenText` strips dts-rollup disambiguation suffixes from reference tokens. The rollup renames a re-imported symbol as `Name$1` while its canonical reference stays the un-suffixed `Name`; because the import prepender (see `import-generation-system.md`) imports the canonical name, emitting the suffixed text would leave `Name$1` undefined (`TS2304`). The suffix is stripped only when the de-suffixed text matches the token's canonical symbol (or its leaf), so identifiers that genuinely end in `$N` are untouched.
 
-`ApiExtractedPackage` keeps its OWN private `extractPlainText` and does NOT delegate to the `@tsdoctor/model` library helper of the same name. The two share a name but are different algorithms: this one PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks (needed for faithful `.d.ts`/JSDoc reconstruction), whereas the library helper flattens `{@link}` to display text and drops code fences (for prose TSDoc extraction). They are not interchangeable. The plugin's other shells that DO delegate to the library are summarized in `build-architecture.md`.
+`ApiExtractedPackage` keeps its OWN private `extractPlainText` and does NOT use the `@tsdoctor/model` prose extraction. The two look similar but are different algorithms: this one PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks (needed for faithful `.d.ts`/JSDoc reconstruction), whereas the library's prose extraction flattens `{@link}` to display text and drops code fences. They are not interchangeable. How the rest of the plugin consumes the model package directly is summarized in `build-architecture.md` ("Core Package Consumption").
 
 ## VFS layout
 
@@ -87,4 +87,4 @@ Single-entry packages are detected automatically (`entries.size === 1`) and use 
 - **Multi-Entry Resolution:** `multi-entry-resolution.md` — deduplication and route collisions
 - **Type Loading & VFS:** `type-loading-vfs.md` — external package type loading and VFS consumption
 - **Import Generation System:** `import-generation-system.md` — prepending external imports to entry declarations
-- **Build Architecture:** `build-architecture.md` — `@tsdoctor/model` delegation boundaries (and why this doc's `extractPlainText` is not one of them)
+- **Build Architecture:** `build-architecture.md` — direct `@tsdoctor/model` consumption (and why this doc's `extractPlainText` is not part of it)

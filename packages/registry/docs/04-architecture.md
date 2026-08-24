@@ -28,11 +28,11 @@ The cost is a longer wiring block on first use, which [getting started](01-getti
 
 ## Service pattern
 
-Services are `Context.Service` classes paired with an exported `*Shape` interface, and their tag IDs are namespaced under `type-registry-effect/` (unchanged across the @tsdoctor/registry rename):
+Services are `Context.Service` classes paired with an exported `*Shape` interface, and their tag IDs are namespaced under `@tsdoctor/registry/`:
 
 ```ts
 export class TypeRegistry extends Context.Service<TypeRegistry, TypeRegistryShape>()(
-  "type-registry-effect/TypeRegistry",
+  "@tsdoctor/registry/TypeRegistry",
 ) {
   static readonly layer: Layer.Layer<TypeRegistry, never, TypeCache | PackageFetcher>;
 }
