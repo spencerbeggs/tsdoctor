@@ -1,5 +1,17 @@
 # @tsdoctor/registry
 
+## 0.2.0
+
+### Breaking Changes
+
+- The four `Context.Service` tag identifiers are renamed from `"type-registry-effect/..."` to `"@tsdoctor/registry/..."` (matching the package's new name). This is an observable service-identity change: consumers that reference a tag id string directly (rather than importing the tag itself) need to update it. Consumers of the exported service tags (`TypeRegistry`, `TypeCache`, `PackageFetcher`, …) are unaffected — only the underlying id string changed. [#165][#165]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#165]: https://github.com/spencerbeggs/tsdoctor/pull/165
+
 ## 0.1.0
 
 ### Features

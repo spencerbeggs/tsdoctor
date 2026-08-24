@@ -9,5 +9,5 @@
 	"license": "MIT",
 	"name": "api-docs",
 	"repository": "https://github.com/spencerbeggs/rspress-plugin-api-extractor.git",
-	"version": "0.8.9"
+	"version": "0.9.0"
 }
