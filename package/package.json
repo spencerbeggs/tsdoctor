@@ -4,10 +4,10 @@
 	"private": true,
 	"description": "RSPress plugin for generating API documentation from TypeScript API Extractor models",
 	"keywords": ["rspress", "plugin", "api-extractor", "documentation", "typescript"],
-	"homepage": "https://github.com/spencerbeggs/rspress-plugin-api-extractor#readme",
+	"homepage": "https://github.com/spencerbeggs/tsdoctor#readme",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/spencerbeggs/rspress-plugin-api-extractor.git",
+		"url": "git+https://github.com/spencerbeggs/tsdoctor.git",
 		"directory": "package"
 	},
 	"license": "MIT",
@@ -30,10 +30,10 @@
 	"dependencies": {
 		"@effect/platform-node": "catalog:effect",
 		"@effect/sql-sqlite-node": "catalog:effect",
-		"@effected/semver": "^0.5.0",
-		"@effected/store": "^0.4.0",
-		"@effected/tsconfig-json": "^0.6.0",
-		"@effected/xdg": "^0.3.0",
+		"@effected/semver": "catalog:effected",
+		"@effected/store": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected",
+		"@effected/xdg": "catalog:effected",
 		"@microsoft/api-extractor-model": "^7.33.11",
 		"@shikijs/twoslash": "^4.4.3",
 		"@typescript/vfs": "^1.6.4",

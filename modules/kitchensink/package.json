@@ -6,7 +6,7 @@
 	"keywords": [],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/spencerbeggs/rspress-plugin-api-extractor.git",
+		"url": "git+https://github.com/spencerbeggs/tsdoctor.git",
 		"directory": "modules/kitchensink"
 	},
 	"license": "MIT",

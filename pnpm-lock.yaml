@@ -82,6 +82,19 @@ catalogs:
     effect:
       specifier: 4.0.0-rc.109
       version: 4.0.0-rc.109
+  effected:
+    '@effected/semver':
+      specifier: ^0.5.0
+      version: 0.5.0
+    '@effected/store':
+      specifier: ^0.4.0
+      version: 0.4.0
+    '@effected/tsconfig-json':
+      specifier: ^0.6.0
+      version: 0.6.0
+    '@effected/xdg':
+      specifier: ^0.3.0
+      version: 0.3.0
 
 overrides:
   '@microsoft/api-extractor>typescript': ^6.0.3
@@ -164,16 +177,16 @@ importers:
         specifier: catalog:effect
         version: 4.0.0-rc.109(effect@4.0.0-rc.109)
       '@effected/semver':
-        specifier: ^0.5.0
+        specifier: catalog:effected
         version: 0.5.0(effect@4.0.0-rc.109)
       '@effected/store':
-        specifier: ^0.4.0
+        specifier: catalog:effected
         version: 0.4.0(effect@4.0.0-rc.109)
       '@effected/tsconfig-json':
-        specifier: ^0.6.0
+        specifier: catalog:effected
         version: 0.6.0(@effected/jsonc@0.7.0(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
       '@effected/xdg':
-        specifier: ^0.3.0
+        specifier: catalog:effected
         version: 0.3.0(@effected/config-file@0.5.1(@effected/jsonc@0.7.0(effect@4.0.0-rc.109))(@effected/toml@0.5.0(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(@effected/yaml@0.11.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
       '@microsoft/api-extractor-model':
         specifier: ^7.33.11

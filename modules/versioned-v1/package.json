@@ -5,7 +5,7 @@
 	"description": "Versioned module v1 — baseline API for version testing",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/spencerbeggs/rspress-plugin-api-extractor.git",
+		"url": "git+https://github.com/spencerbeggs/tsdoctor.git",
 		"directory": "modules/versioned-v1"
 	},
 	"license": "MIT",

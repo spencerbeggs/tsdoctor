@@ -95,7 +95,10 @@ docs for the full architecture.
 - `ioredis` + `@effected/semver`/`store`/`tsconfig-json`/`xdg` +
   `@typescript/vfs` — peer-closure deps (some imported directly by
   `layers/TypeRegistryServiceLive.ts`). Do NOT prune as "unused" — see the peer
-  dependency closure section in `build-architecture.md`.
+  dependency closure section in `build-architecture.md`. The four `@effected/*`
+  deps are declared as `catalog:effected` (supplied by
+  `@effected/pnpm-plugin-effect`; see "@effected Distribution and Dogfooding"
+  in the root CLAUDE.md) — never hand-pin an `@effected` version range.
 - `type-registry-effect` (v2) — npm package type definition loading
 - `api-extractor-llms` — shared pure renderer: model loading, TSDoc extraction, type-signature formatting, prose cross-linking (the plugin delegates these to it)
 - `@microsoft/api-extractor-model` — `.api.json` model parsing (direct dep; model loading now flows through `api-extractor-llms`'s `loadApiModel`)

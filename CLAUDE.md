@@ -7,7 +7,11 @@ repository.
 
 RSPress plugin for generating API documentation from TypeScript API Extractor
 models. This is a **monorepo with multiple workspaces** organized into the
-publishable package, test fixture modules, and documentation sites.
+publishable package, test fixture modules, and documentation sites. The source
+repository is <https://github.com/spencerbeggs/tsdoctor> (renamed from
+`spencerbeggs/rspress-plugin-api-extractor`; GitHub redirects the old URL) —
+the repo is becoming the tsdoctor monorepo per the roadmap design docs. The
+npm package name `rspress-plugin-api-extractor` is unchanged.
 
 **Naming caution:** the publishable npm package lives in `package/`. The
 repo-root `plugin/` folder is the **api-docs Claude Code plugin** — not a pnpm
@@ -107,6 +111,30 @@ The plugin uses **Effect v4** (`effect@4.0.0-rc.109`, pinned through the
 
 See `package/CLAUDE.md` for detailed service layer documentation.
 
+### @effected Distribution and Dogfooding
+
+`@effected/*` packages are distributed through the `@effected/pnpm-plugin-effect`
+config dependency declared in `pnpm-workspace.yaml` (`configDependencies:`). The
+plugin supplies the pnpm catalogs: `catalog:effect` / `catalog:effect:peers` for
+Effect-org packages (`effect`, `@effect/platform-node`, `@effect/sql-sqlite-node`,
+…) and `catalog:effected` / `catalog:effected:peers` for `@effected/*` packages.
+
+- Declare every `@effected/*` dependency in this repo as `"catalog:effected"`
+  (`"catalog:effected:peers"` under `peerDependencies`). Never hand-pin an
+  `@effected` version range.
+- Upstream effected CI/CD automatically bumps the `@effected/pnpm-plugin-effect`
+  version in this repo's `pnpm-workspace.yaml`, builds, tests, verifies
+  peer-dependency integrity, and handles changesets/deployment. A new plugin
+  release carries the whole `@effected` dependency/peer graph — never manage
+  effected's internal dependency complexity by hand.
+- To dogfood unreleased `@effected` work: add `overrides:` entries in
+  `pnpm-workspace.yaml` pointing the packages being tinkered with — **and
+  their peers** — at the local sibling `effected` checkout's built artifacts
+  (`file:` links). Build there, rebuild here — a 1:1 view of the next release.
+  When effected releases, the next `pnpm-plugin-effect` bump lands and the
+  overrides come out. This flows through the `/silk:dogfood` protocol; note a
+  repo hook blocks pushes while `file:` overrides are linked.
+
 ## Design Documentation
 
 Design docs live in `.claude/design/rspress-plugin-api-extractor/`. Load the
@@ -152,6 +180,15 @@ tracking, the progress heartbeat, or the `issues.json` artifact:
 - @./.claude/design/rspress-plugin-api-extractor/performance-observability.md
 - @./.claude/design/rspress-plugin-api-extractor/error-observability.md
 - @./.claude/design/rspress-plugin-api-extractor/build-progress-and-issues.md
+
+**Roadmap & @tsdoctor consolidation (planned, not current state)** — load when
+working on the road to 1.0.0, the `@tsdoctor/*` package split, or the
+monorepo consolidation; these docs describe planned architecture, not the
+current implementation:
+
+- @./.claude/design/rspress-plugin-api-extractor/roadmap-1.0.md
+- @./.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
+- @./.claude/design/rspress-plugin-api-extractor/monorepo-consolidation.md
 
 ## Build Pipeline
 

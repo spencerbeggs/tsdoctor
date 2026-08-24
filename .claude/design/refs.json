@@ -4,8 +4,8 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/build-architecture.md",
-			"hash": "697d76d52bfc418733545d8b2c542246e0675f5e9dff29b872e4271ad9d262a8",
-			"recordedAt": "2026-07-28"
+			"hash": "f4bab3574e05a31743f190e00c6c703458afba0c651ed7dad48ca14e9214b91a",
+			"recordedAt": "2026-08-24"
 		},
 		{
 			"source": "CLAUDE.md",
@@ -45,6 +45,12 @@
 		},
 		{
 			"source": "CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/monorepo-consolidation.md",
+			"hash": "cfb41259603e5402f542ab062ffe659567b95fd0bc3f4f3f6615b04fde440250",
+			"recordedAt": "2026-08-24"
+		},
+		{
+			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/multi-entry-point-support.md",
 			"hash": "2ea7b05c0bfd13165824a5cfa77558890635ca3bd40bb8e7dc12cacd554b361b",
 			"recordedAt": "2026-06-26"
@@ -75,6 +81,12 @@
 		},
 		{
 			"source": "CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/roadmap-1.0.md",
+			"hash": "91477e4a4a3b739fcaf6ef4d598e2289ac4fe3146988e931a0489f18dec55c0b",
+			"recordedAt": "2026-08-24"
+		},
+		{
+			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/snapshot-tracking-system.md",
 			"hash": "b54a0098c57d1e32c58e5e606e733e69cdd3dbc333073e22cea8713e0bfc28a3",
 			"recordedAt": "2026-07-28"
@@ -93,6 +105,12 @@
 		},
 		{
 			"source": "CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md",
+			"hash": "dd423317ac626e39c45ee7336ea9fc4ca8b8a939f6221cae5104f8970d93c89b",
+			"recordedAt": "2026-08-24"
+		},
+		{
+			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/type-loading-vfs.md",
 			"hash": "4c9d5f5fce7fa5714dbc5725cd3576e2b4a22491cff7d1ac04e8f613a4ed6b36",
 			"recordedAt": "2026-07-21"
@@ -100,8 +118,8 @@
 		{
 			"source": "package/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/build-architecture.md",
-			"hash": "697d76d52bfc418733545d8b2c542246e0675f5e9dff29b872e4271ad9d262a8",
-			"recordedAt": "2026-07-28"
+			"hash": "f4bab3574e05a31743f190e00c6c703458afba0c651ed7dad48ca14e9214b91a",
+			"recordedAt": "2026-08-24"
 		},
 		{
 			"source": "package/CLAUDE.md",

@@ -3,10 +3,10 @@
 	"version": "0.0.0",
 	"private": true,
 	"description": "Monorepo for rspress-plugin-api-extractor plugin development",
-	"homepage": "https://github.com/spencerbeggs/rspress-plugin-api-extractor#readme",
+	"homepage": "https://github.com/spencerbeggs/tsdoctor#readme",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/spencerbeggs/rspress-plugin-api-extractor.git"
+		"url": "git+https://github.com/spencerbeggs/tsdoctor.git"
 	},
 	"license": "MIT",
 	"author": {
