@@ -4,7 +4,7 @@ module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-08-24
 updated: 2026-08-24
-last-synced: never
+last-synced: 2026-08-24
 completeness: 70
 related:
   - rspress-plugin-api-extractor/roadmap-1.0.md
@@ -21,7 +21,7 @@ dependencies: []
 
 # @tsdoctor Package Architecture
 
-> **Forward-looking document.** This describes the TARGET package architecture for the `@tsdoctor` org, not the current implementation. Today all of this code lives in the plugin's `package/` workspace and two sibling repos; see `build-architecture.md` for what actually exists. Phasing is governed by `roadmap-1.0.md`; phase 1 mechanics are in `monorepo-consolidation.md`.
+> **Forward-looking document.** This describes the TARGET package architecture for the `@tsdoctor` org, not the current implementation. Phase 1 has landed: `@tsdoctor/registry` and `@tsdoctor/model` now exist as workspaces under `packages/`, and the adapter lives at `platforms/rspress/`; the remaining packages are still future work. See `build-architecture.md` for what actually exists. Phasing is governed by `roadmap-1.0.md`; the phase 1 executed record is in `monorepo-consolidation.md`.
 
 ## Table of Contents
 
@@ -44,22 +44,24 @@ The end state is a set of framework-neutral `@tsdoctor/*` core packages plus thi
 
 ## Current State
 
-As of 2026-08-24 none of these packages exist. The source material is spread across three places:
+As of 2026-08-24 phase 1 has been executed (branch `feat/tsdoctor-phase-1`, pending release — see `monorepo-consolidation.md`). Two of the packages now exist as in-repo workspaces:
 
-- This repo's `package/` workspace: the whole plugin, including framework-neutral code slated for extraction (multi-entry resolution, route collisions, synthetic bases, snapshot system, page generators).
-- `../type-registry-effect` (sibling repo): `type-registry-effect@2.3.5`, ~2,550 LOC, already Effect v4. Consumed here by six files (listed in `monorepo-consolidation.md`).
-- `../api-extractor-llms` (sibling repo): 629 LOC across 7 files (`cross-linker.ts`, `formatter.ts`, `index.ts`, `model-loader.ts`, `render.ts`, `tsdoc.ts`, `types.ts`), consumed only by this plugin through four thin shims (see "Shared Library Delegation" in `build-architecture.md`).
+- `packages/registry` — `@tsdoctor/registry` (fresh 0.x line, first release 0.1.0), the former sibling-repo `type-registry-effect@2.3.5` (~2,550 LOC, Effect v4) moved in verbatim and renamed. Consumed by the adapter via `workspace:*` in six files (listed in `monorepo-consolidation.md`).
+- `packages/model` — `@tsdoctor/model` (fresh 0.x line, first release 0.1.0), seeded verbatim from the sibling-repo `api-extractor-llms@0.2.0` (629 LOC across 7 files: `cross-linker.ts`, `formatter.ts`, `index.ts`, `model-loader.ts`, `render.ts`, `tsdoc.ts`, `types.ts`), same public API. Consumed only by the adapter, still through the four thin shims (see "Shared Library Delegation" in `build-architecture.md`) — the **shim collapse is deferred** and rides the open model-API-shape decision below.
+- `platforms/rspress/` — the adapter workspace (formerly `package/`): the whole plugin, including framework-neutral code slated for later extraction (multi-entry resolution, route collisions, synthetic bases, snapshot system, page generators).
+
+`@tsdoctor/bundle`, `@tsdoctor/snapshot` and `@tsdoctor/pages` do not exist yet.
 
 ## The Layer Cake
 
 | Package | Contents | Source today |
 | --- | --- | --- |
-| `@tsdoctor/model` | api.json loading, TSDoc extraction, categorization, multi-entry resolution, synthetic bases, route/cross-link model, schema.org derivation (phase 4) | `api-extractor-llms` + plugin `loader.ts`, `model-loader.ts`, `multi-entry-resolver.ts`, `route-collisions.ts`, `synthetic-bases.ts` |
-| `@tsdoctor/registry` | external type loading, VFS, Twoslash environments | `type-registry-effect` renamed |
+| `@tsdoctor/model` | api.json loading, TSDoc extraction, categorization, multi-entry resolution, synthetic bases, route/cross-link model, schema.org derivation (phase 4) | **exists** (`packages/model`, seeded from `api-extractor-llms`); still to absorb plugin `loader.ts`, `model-loader.ts`, `multi-entry-resolver.ts`, `route-collisions.ts`, `synthetic-bases.ts` |
+| `@tsdoctor/registry` | external type loading, VFS, Twoslash environments | **exists** (`packages/registry`, `type-registry-effect` moved in and renamed) |
 | `@tsdoctor/bundle` | bundle spec + fetchers (local dir, npm tarball, GitHub release) | new; formalizes `fromDir` discovery |
 | `@tsdoctor/pages` | framework-neutral doc IR rendered to markdown via mdast (**phase 5, deferred**) | page generators minus JSX emission |
 | `@tsdoctor/snapshot` | SQLite incremental system + per-page metadata (OG/SEO) | `SnapshotService`, already framework-neutral |
-| `rspress-plugin-api-extractor` | thin adapter: RSPress hooks, React runtime, remark plugins, llms.txt wiring | what remains of `package/` |
+| `rspress-plugin-api-extractor` | thin adapter: RSPress hooks, React runtime, remark plugins, llms.txt wiring | what remains of `platforms/rspress/` |
 
 `@tsdoctor/pages` is deliberately last: per the settled decision in `roadmap-1.0.md`, the IR is extracted in phase 5 alongside the VitePress adapter so two live consumers shape it.
 
@@ -77,7 +79,7 @@ Recorded as ideas only — **deliberately unscheduled, no phase, no gate**:
 
 Verified against the `@effected` package index (kit version 0.12.0-era; all kit packages published 0.x):
 
-- **`@tsdoctor/registry`** — already consumes `@effected/semver`, `@effected/store` (`Cache`), `@effected/tsconfig-json`, and `@effected/xdg`; these are its existing peers and the phase 1 move preserves them (see `monorepo-consolidation.md`).
+- **`@tsdoctor/registry`** — already consumes `@effected/semver`, `@effected/store` (`Cache`), `@effected/tsconfig-json`, and `@effected/xdg`; these are its existing peers and the phase 1 move preserved them exactly (see `monorepo-consolidation.md`).
 - **`@tsdoctor/model`** — `@effected/markdown` for TSDoc prose → mdast and for building markdown programmatically (28 constructible node classes, `Markdown.stringify`, frontmatter codecs, section finders); `@effected/package-json` (typed Package model including repository/maintainers — feeds the phase 4 schema.org derivation); `@effected/spdx` (license expressions for attribution and JSON-LD; note `package-json` already delegates license validity to `spdx` — never re-validate downstream).
 - **`@tsdoctor/bundle`** — `@effected/package-json` + `@effected/tsconfig-json` (the bundle's two manifest files); `@effected/github` (typed REST releases/assets for the GitHub-release fetcher); `@effected/npm` (`NpmRegistry` for the npm-tarball fetcher plus the dependency-specifier vocabulary); `@effected/semver` (version specs); `@effected/store` `Cache` + `@effected/xdg` (cached fetched artifacts, the same pattern the registry already uses); `@effected/glob` and/or `@effected/walker` for `fromDir`/`fromParentDir`-style discovery.
 - **`@tsdoctor/snapshot`** — EVALUATE replacing the hand-wired `@effect/sql-sqlite-node` + Migrator stack with `@effected/store`'s SQLite Store. Recorded as an open evaluation for phase 2: does Store's model fit the relational `file_snapshots` table, or does the kit want a tabular capability grown?
@@ -129,7 +131,7 @@ A sketch of the boundary, to be hardened by the VitePress alpha (phase 5):
 Recorded as OPEN — do not treat these as settled. Each has a stated lean.
 
 1. **Bundle manifest shape** (decides in phase 2): a sidecar `tsdoctor.json` in the bundle folder vs a field in the bundle's `package.json`. **Lean: sidecar** — it keeps the spec's versioning independent of `package.json` and tolerates non-npm inputs (e.g. GitHub release assets).
-2. **`@tsdoctor/model` API shape** (decides in phase 1): freeze the current `ApiParser`-style statics for a low-risk move, or use the rename (already breaking) to redesign as idiomatic Effect v4 modules/services. **Lean: redesign** — the rename is the one free breaking window, and the four shims already prove the call sites are few.
+2. **`@tsdoctor/model` API shape** (still OPEN after phase 1): freeze the current `ApiParser`-style statics, or redesign as idiomatic Effect v4 modules/services. Phase 1 punted — the seed was verbatim (`@tsdoctor/model` keeps the `api-extractor-llms` public API) and the four plugin shims were kept with only their import specifiers repointed, so the no-behavior-change gate stayed intact. The shim collapse is deferred and rides this decision. **Lean: redesign** — the package is 0.x, so the breaking window is still open, and the four shims prove the call sites are few.
 
 ## Rationale
 
@@ -137,12 +139,12 @@ Recorded as OPEN — do not treat these as settled. Each has a stated lean.
 - **Why the coupling analysis drives the split:** the three coupled areas (components, markdown pipeline, lifecycle) are exactly what differs between static-site frameworks; drawing the core boundary anywhere else would either leak framework types into core or force adapters to reimplement neutral logic.
 - **Why `@tsdoctor/snapshot` is its own package rather than part of an adapter:** the snapshot DB becomes the durable per-page metadata store (OG images, SEO results in phase 4), which every adapter needs and no adapter should own.
 - **Why `@effected/*` is mandated rather than suggested:** the consolidation exists to shorten the loop between the kit and its consumers; hand-rolling a capability the kit should own would recreate the drift the move eliminates, and the dogfood protocol makes expanding the kit cheaper than maintaining a local fork of the idea.
-- **Why the open decisions stay open:** the manifest shape needs the phase 2 fetcher work to test the sidecar against real non-npm inputs, and the model API redesign is scoped by how phase 1's shim collapse actually lands.
+- **Why the open decisions stay open:** the manifest shape needs the phase 2 fetcher work to test the sidecar against real non-npm inputs, and the model API redesign is scoped by the deferred shim collapse (phase 1 kept the shims verbatim).
 
 ## Related Documentation
 
 - **Umbrella roadmap and phase gates:** `roadmap-1.0.md`
-- **Phase 1 migration mechanics:** `monorepo-consolidation.md`
+- **Phase 1 executed record:** `monorepo-consolidation.md`
 - **Current architecture and the four delegation shims:** `build-architecture.md`
 - **Registry/VFS/Twoslash internals moving to `@tsdoctor/registry`:** `type-loading-vfs.md`
 - **Snapshot system moving to `@tsdoctor/snapshot`:** `snapshot-tracking-system.md`

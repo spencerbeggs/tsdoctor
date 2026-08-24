@@ -1,0 +1,82 @@
+{
+	"name": "@tsdoctor/registry",
+	"version": "0.0.0",
+	"private": true,
+	"description": "TypeScript virtual file systems for Effect: fetch, cache and resolve type definitions from npm via the jsDelivr CDN, and build @typescript/vfs environments for Twoslash-style documentation tooling.",
+	"keywords": ["typescript", "vfs", "twoslash", "types", "jsdelivr", "cache", "effect"],
+	"homepage": "https://github.com/spencerbeggs/tsdoctor#readme",
+	"bugs": {
+		"url": "https://github.com/spencerbeggs/tsdoctor/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/spencerbeggs/tsdoctor.git",
+		"directory": "packages/registry"
+	},
+	"license": "MIT",
+	"author": {
+		"name": "C. Spencer Beggs",
+		"email": "spencer@beggs.codes",
+		"url": "https://spencerbeg.gs"
+	},
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./package.json": "./package.json"
+	},
+	"scripts": {
+		"build:dev": "node savvy.build.ts --target dev",
+		"build:prod": "node savvy.build.ts --target prod",
+		"prepare": "node savvy.build.ts --target dev",
+		"types:check": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@effect/platform-node": "catalog:effect",
+		"@effect/vitest": "catalog:effect",
+		"@effected/semver": "catalog:effected",
+		"@effected/store": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected",
+		"@effected/xdg": "catalog:effected",
+		"@savvy-web/bundler": "^2.1.24",
+		"@types/node": "catalog:build",
+		"@typescript/vfs": "^1.6.4",
+		"effect": "catalog:effect",
+		"typescript": "^6.0.3"
+	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:effect:peers",
+		"@effected/semver": "catalog:effected:peers",
+		"@effected/store": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
+		"@effected/xdg": "catalog:effected:peers",
+		"@typescript/vfs": "^1.6.4",
+		"effect": "catalog:effect:peers",
+		"typescript": "^6.0.3"
+	},
+	"peerDependenciesMeta": {
+		"@effected/tsconfig-json": {
+			"optional": true
+		},
+		"@effected/xdg": {
+			"optional": true
+		},
+		"@typescript/vfs": {
+			"optional": true
+		},
+		"typescript": {
+			"optional": true
+		}
+	},
+	"engines": {
+		"node": ">=24.11.0"
+	},
+	"publishConfig": {
+		"access": "public",
+		"directory": "dist/dev/pkg",
+		"linkDirectory": true,
+		"targets": {
+			"npm": true
+		}
+	}
+}

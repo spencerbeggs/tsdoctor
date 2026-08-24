@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: observability
 created: 2026-01-17
-updated: 2026-07-22
-last-synced: 2026-07-22
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 90
 related:
   - rspress-plugin-api-extractor/build-progress-and-issues.md
@@ -42,7 +42,7 @@ artifact, production builds only), a full-fidelity JSONL trace sink (opt-in,
 captures every event), and a metrics sink (translates events to `BuildMetrics`
 counters and histograms).
 
-The entire observability module lives under `package/src/observability/`. The
+The entire observability module lives under `platforms/rspress/src/observability/`. The
 plugin creates the bus once during initialization and tears it down at the end
 of `afterBuild`. A production-only progress heartbeat and the issues artifact
 are documented in full in `build-progress-and-issues.md`; this document covers
@@ -52,7 +52,7 @@ the EventBus/sink/metrics substrate they ride on.
 
 ## EventBus: Synchronous Fan-Out
 
-**Location:** `package/src/observability/EventBus.ts`
+**Location:** `platforms/rspress/src/observability/EventBus.ts`
 
 The `EventBus` is NOT an async PubSub. `emit` fans out to every registered
 sink inline — by the time the emitting fiber resumes, all sinks have finished.
@@ -93,7 +93,7 @@ observable side effects.
 
 ## PluginEvent Taxonomy
 
-**Location:** `package/src/observability/events.ts`
+**Location:** `platforms/rspress/src/observability/events.ts`
 
 `PluginEvent` is a `Data.TaggedEnum` with approximately 40 variants organized
 across seven subsystems:
@@ -167,7 +167,7 @@ admits events ranked 0–2 — lower rank means higher severity and always emitt
 
 ## Four Sinks
 
-All four implement `EventSink` (`package/src/observability/sinks/types.ts`):
+All four implement `EventSink` (`platforms/rspress/src/observability/sinks/types.ts`):
 
 ```typescript
 interface EventSink {
@@ -184,7 +184,7 @@ interface EventSink {
 
 ### Console Sink
 
-**Location:** `package/src/observability/sinks/console-sink.ts`
+**Location:** `platforms/rspress/src/observability/sinks/console-sink.ts`
 
 `makeConsoleSink(logLevel, opts)` produces an `EventSink` with `minLevel` set
 to the configured `logLevel`. When `logLevel === "none"` the threshold is `-1`
@@ -197,13 +197,13 @@ Mode is selected by the sink's `json` option, which `buildEventBus` passes throu
 
 ### Issues Sink
 
-**Location:** `package/src/observability/sinks/issues-sink.ts`
+**Location:** `platforms/rspress/src/observability/sinks/issues-sink.ts`
 
 `makeIssuesSink()` returns an `EventSink & { snapshot: () => IssuesSnapshot }`. It accumulates a curated subset of diagnostic events (Twoslash, Prettier, Shiki, config-validation, route-collision, model-load-failure, build-failure) into in-memory `warnings`/`errors`/`suppressed` buckets. Collection is always-on (cheap); only the write to `.api-docs/build/issues.json` is gated by production and happens in `afterBuild`. Full schema, event-to-bucket mapping and the monitor that consumes the artifact are documented in `build-progress-and-issues.md`.
 
 ### Trace Sink
 
-**Location:** `package/src/observability/sinks/trace-sink.ts`
+**Location:** `platforms/rspress/src/observability/sinks/trace-sink.ts`
 
 `makeTraceSink(path)` returns
 `EventSink & { flush: () => void; setPath: (p: string) => void }`.
@@ -221,7 +221,7 @@ for the `.api-docs/` directory this trace file now lives in, alongside `issues.j
 
 ### Metrics Sink
 
-**Location:** `package/src/observability/sinks/metrics-sink.ts`
+**Location:** `platforms/rspress/src/observability/sinks/metrics-sink.ts`
 
 `makeMetricsSink()` returns an `EventSink` with `minLevel: "trace"`. It
 translates events to `BuildMetrics` via `Effect.runSync`. The fan-out is
@@ -257,7 +257,7 @@ denominator — see `build-progress-and-issues.md`.
 
 ## Progress Heartbeat
 
-A production-only `forkScoped` fiber (`runHeartbeat`, `package/src/observability/heartbeat.ts`) emits a `BuildProgress` event on a timer so a long, silent build (many APIs, network fetches, hundreds of pages) does not read as hung. It rides the same EventBus as every other event — the console sink renders it via `formatProgress`, the trace sink records it, and the metrics sink ignores it. Full mechanism, configuration (`observability.progressInterval`) and rendered line format are documented in `build-progress-and-issues.md`.
+A production-only `forkScoped` fiber (`runHeartbeat`, `platforms/rspress/src/observability/heartbeat.ts`) emits a `BuildProgress` event on a timer so a long, silent build (many APIs, network fetches, hundreds of pages) does not read as hung. It rides the same EventBus as every other event — the console sink renders it via `formatProgress`, the trace sink records it, and the metrics sink ignores it. Full mechanism, configuration (`observability.progressInterval`) and rendered line format are documented in `build-progress-and-issues.md`.
 
 The heartbeat only covers the `config()` doc-generation phase (`resolve` + `generate`) — it does not run during RSPress's own render pass, where Twoslash type-checking of code blocks is often the dominant cost on a large site. See the Known Limitations section of `build-progress-and-issues.md`.
 
@@ -265,7 +265,7 @@ The heartbeat only covers the `config()` doc-generation phase (`resolve` + `gene
 
 ## Span Substrate
 
-**Location:** `package/src/observability/spans.ts`
+**Location:** `platforms/rspress/src/observability/spans.ts`
 
 Two helpers wrap Effects in `Effect.withSpan` and emit timing events:
 
@@ -295,7 +295,7 @@ plugin.** The spans are a dormant seam for future integration.
 
 ## Build Metrics
 
-**Location:** `package/src/layers/build-metrics.ts`
+**Location:** `platforms/rspress/src/layers/build-metrics.ts`
 
 `BuildMetrics` is extracted from `ObservabilityLive.ts` into its own module to
 avoid circular imports between the metrics sink and the layer that assembles
@@ -329,7 +329,7 @@ formatting.
 
 ## Build Summary
 
-**Location:** `package/src/layers/ObservabilityLive.ts`
+**Location:** `platforms/rspress/src/layers/ObservabilityLive.ts`
 
 `logBuildSummary` is an Effect program that reads all metric snapshots and logs
 a human-readable summary. It is called once in `afterBuild` (skipped on HMR
@@ -365,7 +365,7 @@ so `afterBuild` (and the `config()` catch block, on a fatal build) can read
 
 ## Programmatic Stream Tee (Deferred)
 
-**Location:** `package/src/observability/stream.ts`
+**Location:** `platforms/rspress/src/observability/stream.ts`
 
 `makeStreamSink()` creates a bounded sliding `Queue<PluginEvent>` (capacity
 1024). The returned `EventSink` offers events into the queue; when full, the
@@ -379,7 +379,7 @@ from `makeStreamSink` and pass it to `makeEventBusLayer` at the call site.
 
 ## Sync-Island Bridge
 
-**Location:** `package/src/observability/EventBus.ts`
+**Location:** `platforms/rspress/src/observability/EventBus.ts`
 
 `makeRuntimeEmitter(runtime)` creates a synchronous bridge for callbacks that
 fire outside any Effect fiber:

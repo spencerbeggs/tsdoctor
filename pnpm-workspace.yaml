@@ -1,6 +1,7 @@
 packages:
   - modules/*
-  - package
+  - packages/*
+  - platforms/*
   - sites/*
 autoInstallPeers: true
 configDependencies:

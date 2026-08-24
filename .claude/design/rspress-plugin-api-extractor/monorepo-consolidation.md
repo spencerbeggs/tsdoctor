@@ -1,11 +1,11 @@
 ---
-status: draft
+status: current
 module: rspress-plugin-api-extractor
 category: meta
 created: 2026-08-24
 updated: 2026-08-24
-last-synced: never
-completeness: 70
+last-synced: 2026-08-24
+completeness: 90
 related:
   - rspress-plugin-api-extractor/roadmap-1.0.md
   - rspress-plugin-api-extractor/tsdoctor-package-architecture.md
@@ -16,97 +16,113 @@ dependencies: []
 
 # Monorepo Consolidation (Phase 1)
 
-> **Forward-looking document.** This records the PLANNED phase 1 migration, not work that has happened. The only completed step is the `@tsdoctor` org registration. Phasing and gates are governed by `roadmap-1.0.md`; the target package architecture is in `tsdoctor-package-architecture.md`.
+> **Executed.** Phase 1 was executed on branch `feat/tsdoctor-phase-1` (2026-08-24) and this document now records what actually happened, including the deviations from the original plan. The npm release and old-package deprecations are still pending. Phasing and gates are governed by `roadmap-1.0.md`; the target package architecture is in `tsdoctor-package-architecture.md`.
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Current State](#current-state)
-- [Target Workspace Layout](#target-workspace-layout)
-- [Registry Migration](#registry-migration)
-- [Model Migration](#model-migration)
+- [Executed Workspace Layout](#executed-workspace-layout)
+- [Registry Migration (Executed)](#registry-migration-executed)
+- [Model Migration (Executed)](#model-migration-executed)
+- [Plugin Dependency Swap](#plugin-dependency-swap)
+- [Gate Verification](#gate-verification)
 - [Versioning](#versioning)
-- [Deprecation of the Old Packages](#deprecation-of-the-old-packages)
+- [Deprecation of the Old Packages (Pending)](#deprecation-of-the-old-packages-pending)
 - [Release Tooling](#release-tooling)
-- [Non-Goals for Phase 1](#non-goals-for-phase-1)
-- [Open Questions](#open-questions)
+- [Deliberately Unchanged (Phase 1 No-Behavior-Change Gate)](#deliberately-unchanged-phase-1-no-behavior-change-gate)
+- [Resolved Questions](#resolved-questions)
 - [Rationale](#rationale)
 - [Related Documentation](#related-documentation)
 
 ## Overview
 
-Phase 1 moves the two external support libraries into this monorepo under the `@tsdoctor` org with **no behavior change**: `type-registry-effect` moves in and is renamed `@tsdoctor/registry`; `api-extractor-llms` is dissolved and its contents seed a new `@tsdoctor/model`. The existing ~1,033-test suite is the safety net proving nothing changed.
+Phase 1 moved the two external support libraries into this monorepo under the `@tsdoctor` org with **no behavior change**: `type-registry-effect` moved in and was renamed `@tsdoctor/registry`; `api-extractor-llms`'s contents seeded a new `@tsdoctor/model`. The existing test suite was the safety net proving nothing changed — the gate held (see [Gate Verification](#gate-verification)). Along the way the workspace-layout open question was resolved by the user: the plugin workspace moved from `package/` to `platforms/rspress/`.
 
-## Current State
+Also fixed in the same branch: `.changeset/config.json`'s `repo` field was still `spencerbeggs/rspress-plugin-api-extractor` and now reads `spencerbeggs/tsdoctor`.
 
-- The `@tsdoctor` npm org is registered; the namespace is clear (no `@tsdoctor/*` packages exist, bare `tsdoctor` is unclaimed). The npm and CI/CD systems are prepared for the consolidation: the next release from this repo will release both `rspress-plugin-api-extractor` and `@tsdoctor/registry` (and any other new `@tsdoctor/*` modules), so phase 1's release prerequisite is satisfied.
-- The source repository has been renamed to `https://github.com/spencerbeggs/tsdoctor` (from `spencerbeggs/rspress-plugin-api-extractor`; GitHub redirects the old URL). The git origin and all tracked `package.json` repository/homepage fields are already updated. The rename affects repo identity only — the npm package names keep the strategy in this doc (`rspress-plugin-api-extractor` keeps its npm name; the libraries publish under `@tsdoctor/*`).
-- `../type-registry-effect` is a sibling repo: single-package workspace at `package/`, published as `type-registry-effect@2.3.5`, ~2,550 LOC excluding tests, already Effect v4. Modules: TypeRegistry, TypeCache, TypeResolver, PackageFetcher, PackageSpec, RegistryEvent, TsEnvironment, Vfs, VirtualPackage, internal/.
-- `../api-extractor-llms` is a sibling repo: 629 LOC across 7 files (`cross-linker.ts`, `formatter.ts`, `index.ts`, `model-loader.ts`, `render.ts`, `tsdoc.ts`, `types.ts`). This plugin is its only consumer, via four thin shims (`package/src/loader.ts`, `package/src/model-loader.ts`, `package/src/formatter.ts`, `package/src/markdown/cross-linker.ts`); the delegation boundaries are documented in `build-architecture.md` ("Shared Library Delegation").
-- This monorepo's workspace globs are `package`, `modules/*`, `sites/*` (`pnpm-workspace.yaml`).
+## Executed Workspace Layout
 
-## Target Workspace Layout
-
-Add a `packages/*` glob to `pnpm-workspace.yaml` and create two new workspaces:
+The `pnpm-workspace.yaml` globs are now `modules/*`, `packages/*`, `platforms/*`, `sites/*` (the bare `package` glob is gone):
 
 ```text
-packages/
-  registry/   → @tsdoctor/registry   (moved from ../type-registry-effect/package)
-  model/      → @tsdoctor/model      (seeded from ../api-extractor-llms + four plugin shims)
+packages/                 → core @tsdoctor/* libraries
+  registry/   → @tsdoctor/registry  (moved from ../type-registry-effect/package)
+  model/      → @tsdoctor/model     (seeded from ../api-extractor-llms)
+platforms/                → framework adapters
+  rspress/    → rspress-plugin-api-extractor  (git mv from package/, history preserved)
+plugin/                   → the api-docs Claude Code plugin (unchanged, not a pnpm workspace)
 ```
 
-**Naming caution:** `package/` (singular) is the existing plugin workspace and `plugin/` is the Claude Code plugin, so `packages/` becomes a third, confusingly similar namespace. Whether the plugin workspace should also move under `packages/` (e.g. `packages/rspress/`) is recorded as an [open question](#open-questions), not decided here.
+The old `package/` vs `packages/` naming confusion no longer exists: core libraries live under `packages/`, framework adapters under `platforms/` — the future phase-5 VitePress adapter will be `platforms/vitepress/`.
 
-## Registry Migration
+## Registry Migration (Executed)
 
-1. Move `../type-registry-effect/package` source and tests into `packages/registry`.
-2. Rename the package to `@tsdoctor/registry`; keep the flat module layout and public API unchanged.
-3. Keep the peer closure exactly as it is today — required peers: `effect`, `@effect/platform-node`, `@effected/store`, `@effected/semver`; optional peers: `@effected/xdg`, `@effected/tsconfig-json`, `@typescript/vfs`, `typescript`. The peer-vs-dependency rules (everything that peers on `effect` must stay a peer; optional peers stay behind lazy `import()`) migrate with the code.
-4. Update the six consuming files in the plugin to import from `@tsdoctor/registry`: `package/src/api-extracted-package.ts`, `package/src/twoslash-transformer.ts`, `package/src/layers/TypeRegistryServiceLive.ts`, `package/src/vfs-registry.ts`, `package/src/layers/ConfigServiceLive.ts`, `package/src/services/TypeRegistryService.ts`.
-5. Verify with the existing test suites — the registry's own tests move with it, and the plugin's suite exercises the integration.
+The `type-registry-effect@2.3.5` sibling-repo workspace (`../type-registry-effect/package`) moved in **verbatim** as `packages/registry`: `src/`, `__test__/`, `types/`, `docs/`, `README.md`, `savvy.build.ts`, `tsconfig.json`, `tsdoc.json`, `turbo.json`. The CHANGELOG was deliberately not carried over.
 
-## Model Migration
+Manifest changes: renamed to `@tsdoctor/registry`, version `0.0.0` (the pre-release baseline; the first release lands at 0.1.0 via a minor changeset), `repository.directory` set to `packages/registry`, `publishConfig` targets **npm only**. The peer closure was preserved exactly — `effect` / `@effect/platform-node` via `catalog:effect:peers`, `@effected/*` via `catalog:effected:peers`, `@typescript/vfs` and `typescript` as optional peers. The flat module layout and public API are unchanged.
 
-1. Create `packages/model` (`@tsdoctor/model`) seeded from the 7 `api-extractor-llms` source files.
-2. Absorb the four plugin shims: the shim logic that is genuinely plugin-local (per `build-architecture.md`'s delegation table) stays in the plugin; the delegating shells collapse into direct imports of `@tsdoctor/model`.
-3. `api-extractor-llms` the npm package is dissolved — nothing publishes under that name from this repo.
-4. Verify with the existing plugin test suite; the shim tests become tests against the new package's API.
+**One deviation from the source repo:** the devDependency `typescript` is a direct `^6.0.3` (the classic compiler) instead of the source repo's `catalog:build` (7.x/tsgo) plus a `typescript-classic` npm alias plus a vitest `resolve.alias`. This monorepo's plugin workspace already uses the direct-6.x pattern, so the alias machinery was dropped.
+
+The six consuming files in the plugin now import from `@tsdoctor/registry`: `platforms/rspress/src/api-extracted-package.ts`, `platforms/rspress/src/twoslash-transformer.ts`, `platforms/rspress/src/layers/TypeRegistryServiceLive.ts`, `platforms/rspress/src/vfs-registry.ts`, `platforms/rspress/src/layers/ConfigServiceLive.ts`, `platforms/rspress/src/services/TypeRegistryService.ts`.
+
+## Model Migration (Executed)
+
+`packages/model` (`@tsdoctor/model`, version `0.0.0` — the pre-release baseline; the first release lands at 0.1.0 via a minor changeset) was seeded **verbatim** from `api-extractor-llms@0.2.0`: the 7 src files (`cross-linker.ts`, `formatter.ts`, `index.ts`, `model-loader.ts`, `render.ts`, `tsdoc.ts`, `types.ts`), the tests (including e2e/integration/fixtures/snapshots) and `types/global.d.ts`. The public API is unchanged.
+
+Its manifest drops the old repo's template peers — `@types/node`, `@typescript/native-preview` and `typescript` were silkPeers boilerplate; the library imports only `@microsoft/api-extractor-model`, `@microsoft/tsdoc` and node builtins, which are now plain dependencies.
+
+**Deviation from the original plan:** the four plugin shims (`platforms/rspress/src/loader.ts`, `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) were **NOT dissolved**. They keep their plugin-local logic per the delegation table in `build-architecture.md`; only their import specifiers changed from `api-extractor-llms` to `@tsdoctor/model`. The full shim collapse is deferred to the open model-API-shape decision (`tsdoctor-package-architecture.md`) — collapsing them during the move would have violated the no-behavior-change gate.
+
+## Plugin Dependency Swap
+
+`rspress-plugin-api-extractor` now depends on `@tsdoctor/registry: workspace:*` and `@tsdoctor/model: workspace:*` (previously npm ranges on the old names). In total, 6 registry-consuming src files, the 4 model shims and 2 test files had import specifiers updated. The workspace link resolves to each package's `dist/dev/pkg` (`publishConfig.linkDirectory`), so Turbo's `^build:dev` ordering builds the libraries before the plugin.
+
+## Gate Verification
+
+The phase 1 gate — the existing test suite proves no behavior change — **held**:
+
+- Full monorepo build green (26 Turbo tasks).
+- Typecheck green.
+- Full test suite: **1,236 tests / 0 failures** — the plugin's ~1,033 plus the two libraries' suites, now discovered as workspace projects by the vitest-agent plugin.
+- The registry's e2e jsdelivr test remains env-gated (`TS_VFS_E2E=1`), as in the source repo.
 
 ## Versioning
 
-- `@tsdoctor/registry` starts at **3.0.0** — the rename is a breaking change from `type-registry-effect@2.3.5`.
-- `@tsdoctor/model` starts at **0.x** — it is a new package whose API may be redesigned (the open decision in `tsdoctor-package-architecture.md`).
+**User decision during execution, overriding the original plan** (the plan called for `@tsdoctor/registry@3.0.0`, a major-on-rename): both new packages start fresh at 0.x.
 
-## Deprecation of the Old Packages
+- `@tsdoctor/registry` restarts at **0.x** — its manifest sits at `0.0.0` and the first release lands at **0.1.0** via a minor changeset. The version line does not continue `type-registry-effect@2.3.5`; the new org gets a coherent fresh semver line.
+- `@tsdoctor/model` likewise sits at `0.0.0` with its first release landing at **0.1.0** via a minor changeset — a new package whose API may be redesigned (the open decision in `tsdoctor-package-architecture.md`).
 
-`npm deprecate` on `type-registry-effect@2` and `api-extractor-llms`, each with a pointer at its successor (`@tsdoctor/registry` / `@tsdoctor/model`). The owner is the only known consumer of both, so this is low-ceremony — no migration guide beyond the deprecation message and a README note is planned.
+## Deprecation of the Old Packages (Pending)
+
+Still to do, at or after the first release from this repo: `npm deprecate` on `type-registry-effect@2` and `api-extractor-llms`, each with a pointer at its successor (`@tsdoctor/registry` / `@tsdoctor/model`). The owner is the only known consumer of both, so this is low-ceremony — no migration guide beyond the deprecation message and a README note is planned.
 
 ## Release Tooling
 
-Both new packages release from this monorepo via the existing `@savvy-web/changesets` flow — GitHub Packages + npm with provenance — matching how `package/` publishes today. No new release infrastructure is needed, and none remains to set up: the npm and CI/CD systems are already **prepared** — the next release from this repo releases both `rspress-plugin-api-extractor` and `@tsdoctor/registry`, and any other new `@tsdoctor/*` modules, as they land. The multi-package release path is ready, not future work.
+Both new packages release from this monorepo via the existing `@savvy-web/changesets` flow, matching how `platforms/rspress/` publishes today. Every publishable workspace's `publishConfig.targets` is `{ npm: true }` — publishing targets npm only; the former GitHub Packages target (and the plugin's per-registry package-rename `transform`) is gone. The npm and CI/CD systems were prepared ahead of the move: the next release from this repo releases `rspress-plugin-api-extractor`, `@tsdoctor/registry` and `@tsdoctor/model` together. That release has **not happened yet** — phase 1 is executed on the branch, pending release.
 
-## Non-Goals for Phase 1
+## Deliberately Unchanged (Phase 1 No-Behavior-Change Gate)
 
-Explicitly out of scope; doing any of these in phase 1 would invalidate the "test suite proves no behavior change" gate:
+Two identity strings were deliberately NOT renamed during the move; both are flagged for the phase-2 / model-API-shape decision window:
 
-- **No behavior change** of any kind.
-- **No API redesign** — the `@tsdoctor/model` shape question stays open (see `tsdoctor-package-architecture.md`); phase 1 moves code, it does not reshape it. If the redesign lean is confirmed, it lands as the decision resolves, not as a silent part of the move.
-- **No bundle or snapshot extraction** — `@tsdoctor/bundle` and `@tsdoctor/snapshot` are phase 2 (`roadmap-1.0.md`).
+- The registry library's `Context.Service` tag id strings remain `"type-registry-effect/..."` (e.g. `"type-registry-effect/TypeCache"`).
+- The plugin's XDG cache namespace remains `AppDirs.layer({ namespace: "type-registry-effect" })` in `TypeRegistryServiceLive.ts`, so existing on-disk caches stay shared across the rename.
 
-## Open Questions
+## Resolved Questions
 
-- **Workspace layout:** should the plugin workspace (`package/`) also move under `packages/` so the repo has one package namespace instead of three (`package/`, `plugin/`, `packages/`)? Deferred — it churns every path reference in CI, docs, and design docs for a purely cosmetic gain during a phase whose gate is "nothing changed"; revisit once phase 1 lands.
+- **Workspace layout — RESOLVED by the user during execution.** The plugin workspace did not stay at `package/` and did not move under `packages/`; it moved to `platforms/rspress/` (git mv, history preserved). Core libraries live under `packages/`, framework adapters under `platforms/` — a two-namespace split that also pre-allocates the home for the phase-5 VitePress adapter (`platforms/vitepress/`). The original deferral rationale (path churn during a "nothing changed" phase) was outweighed by doing the churn once, while every path reference was already being touched.
 
 ## Rationale
 
-- **Why move at all:** release cascade pain — a change to `@effected/*` currently requires releasing `type-registry-effect`, then bumping and releasing here. In-repo development eliminates the two hops; workspace boundaries preserve the isolated test surfaces and forced-clean APIs the separate repos provided.
-- **Why dissolve `api-extractor-llms` instead of moving it:** the plugin is its only consumer and already wraps it in four shims; keeping the package shape would preserve an indirection layer that exists only for historical repo boundaries. Seeding `@tsdoctor/model` and collapsing the shims removes the indirection at the same cost as a move.
-- **Why the registry keeps its peer closure:** the peer rules exist for Effect-version resolution safety (a nested `effect` copy strands artifacts at import), and the move changes the repo, not the resolution model.
-- **Why 3.0.0, not 2.x:** the npm rename is inherently breaking for the one known consumer; a clean major on the new name makes the cutover unambiguous.
+- **Why move at all:** release cascade pain — a change to `@effected/*` previously required releasing `type-registry-effect`, then bumping and releasing here. In-repo development eliminates the two hops; workspace boundaries preserve the isolated test surfaces and forced-clean APIs the separate repos provided.
+- **Why seed `@tsdoctor/model` rather than move `api-extractor-llms` as-is:** the plugin is its only consumer and already wraps it in four shims; keeping the old package name would preserve an indirection that exists only for historical repo boundaries. The shim collapse itself was deferred (not dropped) so the move stayed behavior-neutral.
+- **Why the registry keeps its peer closure:** the peer rules exist for Effect-version resolution safety (a nested `effect` copy strands artifacts at import), and the move changed the repo, not the resolution model.
+- **Why restart at 0.x, not 3.0.0:** the new name is a new package, not a continuation of the old version line — a fresh 0.x line keeps the @tsdoctor org's semver coherent, and the old packages are deprecated only after the first release so the cutover stays unambiguous.
+- **Why the tag ids and XDG namespace kept their old strings:** renaming them is observable behavior (cache invalidation, tag identity), which the phase 1 gate forbids; the rename window is phase 2.
 
 ## Related Documentation
 
 - **Umbrella roadmap and the phase 1 gate:** `roadmap-1.0.md`
 - **Target package architecture and the model-API open decision:** `tsdoctor-package-architecture.md`
-- **The four shims and delegation boundaries being absorbed:** `build-architecture.md`
+- **The four shims and delegation boundaries (kept, imports repointed):** `build-architecture.md`
 - **The registry integration surface in the plugin:** `type-loading-vfs.md`

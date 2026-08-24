@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: observability
 created: 2026-07-22
-updated: 2026-07-28
-last-synced: 2026-07-28
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 90
 related:
   - rspress-plugin-api-extractor/performance-observability.md
@@ -29,7 +29,7 @@ dependencies: []
 
 On a large multi-API docs site the production build can run for minutes inside the plugin's `config()` hook with no console output between `BuildStarted` and `BuildCompleted` — at scale this reads as a hang. Separately, Twoslash/Prettier/Shiki diagnostics were only ever rendered to the console, with no durable, machine-readable record an agent could read to locate and fix broken examples.
 
-Both gaps are closed by riding the existing `EventBus` / sink architecture (`performance-observability.md`) rather than adding a new logging path: a production-only heartbeat fiber emits a periodic `BuildProgress` event, and a fourth sink accumulates diagnostic events into a `.api-docs/build/issues.json` artifact that a background monitor in the api-docs Claude Code plugin (`plugin/`) surfaces. Both features are **production-only** — gated on the real `isProd` flag RSPress passes into the `config(config, utils, isProd)` hook (`package/src/plugin.ts`), not a `NODE_ENV` heuristic.
+Both gaps are closed by riding the existing `EventBus` / sink architecture (`performance-observability.md`) rather than adding a new logging path: a production-only heartbeat fiber emits a periodic `BuildProgress` event, and a fourth sink accumulates diagnostic events into a `.api-docs/build/issues.json` artifact that a background monitor in the api-docs Claude Code plugin (`plugin/`) surfaces. Both features are **production-only** — gated on the real `isProd` flag RSPress passes into the `config(config, utils, isProd)` hook (`platforms/rspress/src/plugin.ts`), not a `NODE_ENV` heuristic.
 
 ## The `.api-docs/` Artifact Directory
 
@@ -58,7 +58,7 @@ A production consumer site that wants the DB idempotency benefit instead splits 
 
 ## Progress Heartbeat
 
-**Location:** `package/src/observability/heartbeat.ts`
+**Location:** `platforms/rspress/src/observability/heartbeat.ts`
 
 ### Mechanism
 
@@ -89,7 +89,7 @@ The console sink dispatches `BuildProgress` to `formatProgress` (`console-sink.t
 
 ### Collector sink
 
-**Location:** `package/src/observability/sinks/issues-sink.ts`
+**Location:** `platforms/rspress/src/observability/sinks/issues-sink.ts`
 
 `makeIssuesSink()` is the fourth EventBus sink (alongside console, metrics and trace — see `performance-observability.md`). It is always registered by `buildEventBus` (collection is cheap and side-effect-free); only the **write** to disk is gated by production. The pure `eventToIssue(event)` maps a curated subset of diagnostic `PluginEvent` variants to a typed `Issue`, and the bucket it belongs in:
 

@@ -3,8 +3,9 @@
 The **api-docs Claude Code plugin** for this monorepo.
 
 **Do not confuse this with the npm package.** The publishable RSPress plugin
-(`rspress-plugin-api-extractor`) lives in `package/`, not here. This folder is
-not a pnpm workspace, is not in `pnpm-workspace.yaml`, and is not built by Turbo.
+(`rspress-plugin-api-extractor`) lives in `platforms/rspress/`, not here. This
+folder is not a pnpm workspace, is not in `pnpm-workspace.yaml`, and is not
+built by Turbo.
 
 ## Status
 

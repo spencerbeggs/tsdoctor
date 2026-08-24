@@ -4,7 +4,7 @@ module: rspress-plugin-api-extractor
 category: meta
 created: 2026-08-24
 updated: 2026-08-24
-last-synced: never
+last-synced: 2026-08-24
 completeness: 70
 related:
   - rspress-plugin-api-extractor/tsdoctor-package-architecture.md
@@ -19,7 +19,7 @@ dependencies: []
 
 # Road to 1.0.0
 
-> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done. For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session and should be treated as settled unless a section explicitly labels them open.
+> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done — **phase 1 is done** (executed on `feat/tsdoctor-phase-1`, pending release; see `monorepo-consolidation.md`). For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session and should be treated as settled unless a section explicitly labels them open.
 
 ## Table of Contents
 
@@ -39,17 +39,19 @@ dependencies: []
 
 ## Overview
 
-This is the umbrella roadmap for taking `rspress-plugin-api-extractor` to 1.0.0 while consolidating its two external support libraries into this monorepo under the new `@tsdoctor` npm org (registered by the owner; the namespace is clear — no `@tsdoctor/*` packages exist and bare `tsdoctor` is unclaimed). The long-term goal is to generalize from an RSPress-specific plugin into a shared toolkit for static TypeScript documentation sites — VitePress 2.x for certain, possibly Docusaurus 3.x later — with LLM-first documentation (llms.txt, clean programmatic docs for agents) and proper SEO for human and agent crawlers as core missions. The fundamental contract: "give us an api.json and we transform it into static docs."
+This is the umbrella roadmap for taking `rspress-plugin-api-extractor` to 1.0.0 while consolidating its two external support libraries into this monorepo under the new `@tsdoctor` npm org (registered by the owner; the namespace was clear — no `@tsdoctor/*` packages published, bare `tsdoctor` unclaimed — and the in-repo consolidation of both libraries has now been executed as phase 1). The long-term goal is to generalize from an RSPress-specific plugin into a shared toolkit for static TypeScript documentation sites — VitePress 2.x for certain, possibly Docusaurus 3.x later — with LLM-first documentation (llms.txt, clean programmatic docs for agents) and proper SEO for human and agent crawlers as core missions. The fundamental contract: "give us an api.json and we transform it into static docs."
 
 The target package architecture (what each `@tsdoctor/*` package contains and where its code comes from) is detailed in `tsdoctor-package-architecture.md`. The phase 1 migration mechanics are detailed in `monorepo-consolidation.md`.
 
 ## Current State
 
-As of 2026-08-24, none of the phases below have started beyond the org registration and release-infrastructure preparation:
+As of 2026-08-24, **phase 1 has been executed** on branch `feat/tsdoctor-phase-1` (pending release):
 
-- The `@tsdoctor` npm org is registered (done), and the npm/CI-CD release pipeline is prepared to release both `rspress-plugin-api-extractor` and new `@tsdoctor/*` packages from this repo. No packages are published under the org yet.
-- `type-registry-effect` lives in a sibling repo as a single-package workspace (v2.3.5, ~2,550 LOC excluding tests), consumed here by six files (see `monorepo-consolidation.md`).
-- `api-extractor-llms` lives in a sibling repo (629 LOC, 7 files); this plugin is its only consumer, through four thin shims documented in `build-architecture.md` under "Shared Library Delegation".
+- The `@tsdoctor` npm org is registered, and the npm/CI-CD release pipeline is prepared to release `rspress-plugin-api-extractor` and the new `@tsdoctor/*` packages from this repo. No packages are published under the org yet — the first release carrying the consolidation has not happened.
+- `@tsdoctor/registry` exists at `packages/registry` (the former sibling-repo `type-registry-effect@2.3.5`, moved in verbatim and renamed; fresh 0.x version line, first release 0.1.0 pending), consumed by the plugin via `workspace:*` in six files (see `monorepo-consolidation.md`).
+- `@tsdoctor/model` exists at `packages/model` (seeded verbatim from the sibling-repo `api-extractor-llms@0.2.0`, same public API; fresh 0.x line, first release 0.1.0 pending); the plugin's four thin shims documented in `build-architecture.md` under "Shared Library Delegation" were kept, with only their import specifiers repointed — the full shim collapse rides the open model-API-shape decision.
+- The workspace-layout open question was resolved: the plugin workspace moved from `package/` to `platforms/rspress/` (core libraries under `packages/`, framework adapters under `platforms/`).
+- The phase 1 gate held: full monorepo build green (26 Turbo tasks), typecheck green, 1,236 tests / 0 failures (the plugin's ~1,033 plus the two libraries' suites).
 - The plugin itself is pre-1.0 and RSPress-specific; the bundle "spec" is an informal three-file folder convention (see phase 2).
 
 ## The 1.0 Definition
@@ -62,14 +64,15 @@ Each phase has a gate that must hold before the next phase starts. Phases are or
 
 ### Phase 1 — Consolidation
 
-Move development into this monorepo with **no behavior change**. Full mechanics in `monorepo-consolidation.md`.
+**EXECUTED** (branch `feat/tsdoctor-phase-1`, 2026-08-24; release and old-package deprecations pending). Moved development into this monorepo with **no behavior change**. Full executed record in `monorepo-consolidation.md`.
 
-- Org registration: **done**. Release infrastructure: **prepared** — npm and CI/CD are set up so the next release from this repo releases both `rspress-plugin-api-extractor` and the new `@tsdoctor/*` packages.
-- Move `type-registry-effect`'s `package/` workspace in as `packages/registry`, publishing as `@tsdoctor/registry@3` (the rename is breaking; the library is currently `type-registry-effect@2.3.5`).
-- Dissolve `api-extractor-llms` — it is not moved as-is; its contents seed a new `@tsdoctor/model` package, absorbing the four plugin shims (`loader.ts`, `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`), which collapse into direct usage.
-- Deprecate both old npm packages with pointers to the new names.
-- **@effected surface:** the registry's existing `@effected/semver` / `store` / `tsconfig-json` / `xdg` peers move with it unchanged (`@effected/*` is the mandated foundation throughout — see "Foundation: @effected" in `tsdoctor-package-architecture.md`).
-- **Gate:** the existing ~1,033-test suite passes unchanged; it is the safety net proving no behavior change.
+- Org registration: **done**. Release infrastructure: **prepared** — the next release from this repo releases `rspress-plugin-api-extractor` and the new `@tsdoctor/*` packages together.
+- `type-registry-effect`'s workspace moved in as `packages/registry`, renamed `@tsdoctor/registry` (a fresh 0.x line — first release 0.1.0 — succeeding `type-registry-effect@2.3.5`): **done**.
+- `api-extractor-llms`'s contents seeded `packages/model` (`@tsdoctor/model`, fresh 0.x line — first release 0.1.0): **done** — with one plan deviation: the four plugin shims (`loader.ts`, `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) were NOT collapsed into direct usage; only their import specifiers changed. The collapse is deferred to the open model-API-shape decision.
+- Workspace layout resolved: the plugin workspace moved from `package/` to `platforms/rspress/`; globs are now `modules/*`, `packages/*`, `platforms/*`, `sites/*`.
+- Deprecate both old npm packages with pointers to the new names: **pending**, at/after the first release.
+- **@effected surface:** the registry's existing `@effected/semver` / `store` / `tsconfig-json` / `xdg` peers moved with it unchanged (`@effected/*` is the mandated foundation throughout — see "Foundation: @effected" in `tsdoctor-package-architecture.md`).
+- **Gate: HELD** — full monorepo build green (26 Turbo tasks), typecheck green, 1,236 tests / 0 failures (the plugin's ~1,033 plus the two libraries' suites now running as workspace projects).
 
 ### Phase 2 — Carve the Core
 
@@ -133,7 +136,7 @@ Also idea-stage and deliberately unscheduled (no phase, no gate): `@tsdoctor/cli
 
 ## Rationale
 
-- **Why consolidate:** release cascade pain. A change to `@effected/*` currently requires releasing `type-registry-effect`, then bumping and releasing here — two release hops for one change. Moving development into this monorepo eliminates them. The package split's original benefit (isolated test surfaces, forced-clean APIs) is preserved by workspace boundaries instead of repo boundaries.
+- **Why consolidate:** release cascade pain. A change to `@effected/*` previously required releasing `type-registry-effect`, then bumping and releasing here — two release hops for one change. Moving development into this monorepo eliminates them. The package split's original benefit (isolated test surfaces, forced-clean APIs) is preserved by workspace boundaries instead of repo boundaries.
 - **Why the VitePress-alpha 1.0 gate:** a 1.0 promise on seams only one consumer has exercised is a guess. The alpha is the cheapest honest proof that the adapter contract holds.
 - **Why the doc IR waits for phase 5:** an abstraction extracted from two live consumers is shaped by real needs; one designed up front for a hypothetical second consumer is shaped by speculation and calcifies wrong.
 - **Why instrument before optimizing:** the aggregate evidence says Twoslash-in-render dominates, but the two candidate fixes have very different costs and the data to rank them does not exist yet.
@@ -142,7 +145,7 @@ Also idea-stage and deliberately unscheduled (no phase, no gate): `@tsdoctor/cli
 ## Related Documentation
 
 - **Target package architecture:** `tsdoctor-package-architecture.md`
-- **Phase 1 mechanics:** `monorepo-consolidation.md`
+- **Phase 1 executed record:** `monorepo-consolidation.md`
 - **Current plugin architecture & shared-library delegation:** `build-architecture.md`
 - **Render-phase performance evidence:** `build-progress-and-issues.md`
 - **EventBus/metrics system to extend in phase 3:** `performance-observability.md`
