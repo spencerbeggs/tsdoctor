@@ -19,7 +19,7 @@
 		"build": "turbo run build:dev build:prod --log-order=grouped --output-logs=full --log-prefix=none",
 		"build:basic": "turbo run build:dev build:prod --filter=@sites/basic --ui=stream",
 		"build:multi": "turbo run build:dev build:prod --filter=@sites/multi --ui=stream",
-		"ci:build": "CI=\"true\" turbo run build:dev build:prod --filter=rspress-plugin-api-extractor --filter=@tsdoctor/registry --filter=@tsdoctor/model --log-order=grouped --output-logs=full --log-prefix=none",
+		"ci:build": "CI=\"true\" turbo run build:dev build:prod --filter=rspress-plugin-api-extractor --filter=@tsdoctor/registry --filter=@tsdoctor/model --filter=@tsdoctor/bundle --filter=@tsdoctor/snapshot --log-order=grouped --output-logs=full --log-prefix=none",
 		"ci:test": "CI=\"true\" vitest run --coverage",
 		"claude": "claude --plugin-dir=plugin",
 		"dev": "turbo run dev --filter=@sites/basic",
