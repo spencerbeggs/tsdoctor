@@ -45,9 +45,9 @@ The target package architecture (what each `@tsdoctor/*` package contains and wh
 
 ## Current State
 
-As of 2026-08-24, none of the phases below have started beyond the org registration:
+As of 2026-08-24, none of the phases below have started beyond the org registration and release-infrastructure preparation:
 
-- The `@tsdoctor` npm org is registered (done). No packages are published under it.
+- The `@tsdoctor` npm org is registered (done), and the npm/CI-CD release pipeline is prepared to release both `rspress-plugin-api-extractor` and new `@tsdoctor/*` packages from this repo. No packages are published under the org yet.
 - `type-registry-effect` lives in a sibling repo as a single-package workspace (v2.3.5, ~2,550 LOC excluding tests), consumed here by six files (see `monorepo-consolidation.md`).
 - `api-extractor-llms` lives in a sibling repo (629 LOC, 7 files); this plugin is its only consumer, through four thin shims documented in `build-architecture.md` under "Shared Library Delegation".
 - The plugin itself is pre-1.0 and RSPress-specific; the bundle "spec" is an informal three-file folder convention (see phase 2).
@@ -64,7 +64,7 @@ Each phase has a gate that must hold before the next phase starts. Phases are or
 
 Move development into this monorepo with **no behavior change**. Full mechanics in `monorepo-consolidation.md`.
 
-- Org registration: **done**.
+- Org registration: **done**. Release infrastructure: **prepared** — npm and CI/CD are set up so the next release from this repo releases both `rspress-plugin-api-extractor` and the new `@tsdoctor/*` packages.
 - Move `type-registry-effect`'s `package/` workspace in as `packages/registry`, publishing as `@tsdoctor/registry@3` (the rename is breaking; the library is currently `type-registry-effect@2.3.5`).
 - Dissolve `api-extractor-llms` — it is not moved as-is; its contents seed a new `@tsdoctor/model` package, absorbing the four plugin shims (`loader.ts`, `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`), which collapse into direct usage.
 - Deprecate both old npm packages with pointers to the new names.

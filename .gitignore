@@ -48,3 +48,4 @@ docs/superpowers
 
 # Ephemeral plugin observability artifacts (issues.json, trace JSONL)
 .api-docs/
+.claude/handoffs/

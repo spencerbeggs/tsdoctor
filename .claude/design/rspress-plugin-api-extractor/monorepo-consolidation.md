@@ -39,7 +39,7 @@ Phase 1 moves the two external support libraries into this monorepo under the `@
 
 ## Current State
 
-- The `@tsdoctor` npm org is registered; the namespace is clear (no `@tsdoctor/*` packages exist, bare `tsdoctor` is unclaimed).
+- The `@tsdoctor` npm org is registered; the namespace is clear (no `@tsdoctor/*` packages exist, bare `tsdoctor` is unclaimed). The npm and CI/CD systems are prepared for the consolidation: the next release from this repo will release both `rspress-plugin-api-extractor` and `@tsdoctor/registry` (and any other new `@tsdoctor/*` modules), so phase 1's release prerequisite is satisfied.
 - The source repository has been renamed to `https://github.com/spencerbeggs/tsdoctor` (from `spencerbeggs/rspress-plugin-api-extractor`; GitHub redirects the old URL). The git origin and all tracked `package.json` repository/homepage fields are already updated. The rename affects repo identity only — the npm package names keep the strategy in this doc (`rspress-plugin-api-extractor` keeps its npm name; the libraries publish under `@tsdoctor/*`).
 - `../type-registry-effect` is a sibling repo: single-package workspace at `package/`, published as `type-registry-effect@2.3.5`, ~2,550 LOC excluding tests, already Effect v4. Modules: TypeRegistry, TypeCache, TypeResolver, PackageFetcher, PackageSpec, RegistryEvent, TsEnvironment, Vfs, VirtualPackage, internal/.
 - `../api-extractor-llms` is a sibling repo: 629 LOC across 7 files (`cross-linker.ts`, `formatter.ts`, `index.ts`, `model-loader.ts`, `render.ts`, `tsdoc.ts`, `types.ts`). This plugin is its only consumer, via four thin shims (`package/src/loader.ts`, `package/src/model-loader.ts`, `package/src/formatter.ts`, `package/src/markdown/cross-linker.ts`); the delegation boundaries are documented in `build-architecture.md` ("Shared Library Delegation").
@@ -83,7 +83,7 @@ packages/
 
 ## Release Tooling
 
-Both new packages release from this monorepo via the existing `@savvy-web/changesets` flow — GitHub Packages + npm with provenance — matching how `package/` publishes today. No new release infrastructure.
+Both new packages release from this monorepo via the existing `@savvy-web/changesets` flow — GitHub Packages + npm with provenance — matching how `package/` publishes today. No new release infrastructure is needed, and none remains to set up: the npm and CI/CD systems are already **prepared** — the next release from this repo releases both `rspress-plugin-api-extractor` and `@tsdoctor/registry`, and any other new `@tsdoctor/*` modules, as they land. The multi-package release path is ready, not future work.
 
 ## Non-Goals for Phase 1
 
