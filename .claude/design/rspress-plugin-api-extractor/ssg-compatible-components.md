@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-07-14
-last-synced: 2026-07-14
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 85
 related:
   - rspress-plugin-api-extractor/component-development.md
@@ -51,18 +51,18 @@ The SSG-MD branch returns markdown as a JSX fragment wrapping a string literal �
 
 `import.meta.env.SSG_MD` is only defined when **RSPress** compiles the component during the site build. A single bundled `runtime/index.js` froze `import.meta.env.SSG_MD` to `undefined`, so the dual-mode branch always took the browser path. The fix emits the runtime **bundleless** — each component is transpiled 1:1 into its own `.js` under `runtime/`, mirroring the `src/runtime/...` tree, and `import.meta.env` is left as a runtime expression that RSPress resolves per site build.
 
-The mechanism lives in `@savvy-web/rspress-builder`'s `definePlugin` (built on `@savvy-web/bundler`), not in the plugin. The plugin's `savvy.build.ts` passes `runtime: true` to opt the runtime bundle in; `definePlugin` then produces it. Key properties of the published runtime:
+The mechanism lives in `@savvy-web/rspress-builder`'s `build()` (built on `@savvy-web/bundler`), not in the plugin. The plugin's `savvy.build.ts` passes `runtime: true` to opt the runtime bundle in; `build` then produces it. Key properties of the published runtime:
 
 - Each component compiles to its own `.js` next to its CSS module (e.g. `runtime/components/ApiLlmsPackageActions/index.js`), bundleless with the runtime tree as its out-base.
 - `react`, `react/jsx-runtime` and `@theme` stay **external** (RSPress provides them); JSX is transpiled to `react/jsx-runtime` calls.
-- `import.meta.env` is preserved by an identity `define` applied by `definePlugin`, so `import.meta.env.SSG_MD` stays a runtime expression.
+- `import.meta.env` is preserved by an identity `define` applied by the builder, so `import.meta.env.SSG_MD` stays a runtime expression.
 - A bundled `runtime/index.d.ts` (types only) is still emitted so the published `./runtime` export's `types` condition resolves.
 
-The published `exports["./runtime"]` is `{ "types": "./runtime/index.d.ts", "import": "./runtime/index.js" }`. (The source `package/package.json` keeps `"./runtime": "./src/runtime/index.tsx"` for the dev workspace link; the build rewrites it to the compiled form.) An earlier design shipped both a pre-compiled `./runtime` and a source `./runtime-source`; that split was collapsed, then an interim attempt shipped raw `.tsx` — both are superseded by this bundleless output.
+The published `exports["./runtime"]` is `{ "types": "./runtime/index.d.ts", "import": "./runtime/index.js" }`. (The source `platforms/rspress/package.json` keeps `"./runtime": "./src/runtime/index.tsx"` for the dev workspace link; the build rewrites it to the compiled form.) An earlier design shipped both a pre-compiled `./runtime` and a source `./runtime-source`; that split was collapsed, then an interim attempt shipped raw `.tsx` — both are superseded by this bundleless output.
 
 ### Layout-invariant component paths
 
-The bundleless layout makes the runtime **component paths in `plugin.ts` layout-invariant**. `ApiLlmsPackageActions` (registered via `globalUIComponents`) and `ApiLlmsViewOptions` (registered via `resolve.alias` over RSPress's `LlmsViewOptions.js`) are referenced by an absolute `.js` path computed from `import.meta.url`. Because every emitted package root carries the identical per-file flat shape — the dev/link target `dist/dev/pkg` and each published `dist/prod/<target>/pkg` — the runtime always sits at `runtime/components/.../index.js` next to `index.js`. Those paths are a **zero-level** resolve — `path.resolve(pluginDir, "runtime/components/.../index.js")` — that points at a real file in both the linked and published layouts. RSPress compiles the referenced `.js`, resolving `import.meta.env.SSG_MD`. An earlier `../../src/runtime/...` form only resolved against the source tree, breaking the `globalUIComponents` registration and cascading into an `ESModulesLinkingError` for RSPress's `LlmsViewOptions` re-export under `llms: true`. See `llms-integration.md` for the registration sites and `build-architecture.md` for the output roots.
+The bundleless layout makes the runtime **component paths in `plugin.ts` layout-invariant**. `ApiLlmsPackageActions` (registered via `globalUIComponents`) and `ApiLlmsViewOptions` (registered via `resolve.alias` over RSPress's `LlmsViewOptions.js`) are referenced by an absolute `.js` path computed from `import.meta.url`. Because every emitted package root carries the identical per-file flat shape — the dev/link target `dist/dev/pkg` and the published `dist/prod/npm/pkg` — the runtime always sits at `runtime/components/.../index.js` next to `index.js`. Those paths are a **zero-level** resolve — `path.resolve(pluginDir, "runtime/components/.../index.js")` — that points at a real file in both the linked and published layouts. RSPress compiles the referenced `.js`, resolving `import.meta.env.SSG_MD`. An earlier `../../src/runtime/...` form only resolved against the source tree, breaking the `globalUIComponents` registration and cascading into an `ESModulesLinkingError` for RSPress's `LlmsViewOptions` re-export under `llms: true`. See `llms-integration.md` for the registration sites and `build-architecture.md` for the output roots.
 
 ### Avoid `import * as` of sibling runtime modules
 

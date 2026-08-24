@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-07-21
-last-synced: 2026-07-21
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 85
 related:
   - rspress-plugin-api-extractor/import-generation-system.md
@@ -18,8 +18,11 @@ dependencies: []
 
 ## Overview
 
-The RSPress API Extractor plugin integrates with `type-registry-effect` (v2,
-the Effect v4 port) to load external package type definitions and generate
+The RSPress API Extractor plugin integrates with `@tsdoctor/registry` (the
+in-repo workspace at `packages/registry`, consumed via `workspace:*`; formerly
+the external `type-registry-effect@2`, the Effect v4 port — moved in and
+renamed during the phase 1 consolidation, see `monorepo-consolidation.md`) to
+load external package type definitions and generate
 virtual file systems (VFS) for TypeScript's Twoslash compiler. This enables
 rich hover tooltips and type-checked code examples in generated API
 documentation.
@@ -31,9 +34,9 @@ Type loading uses the Effect service pattern:
 - **`TypeRegistryService`** (`services/TypeRegistryService.ts`) --
   Interface defining `resolveVersions` and `loadPackages`
 - **`TypeRegistryServiceLive`** (`layers/TypeRegistryServiceLive.ts`) --
-  Implementation using `type-registry-effect` Effect programs directly
+  Implementation using `@tsdoctor/registry` Effect programs directly
 
-Library v2 has no `/node` subpath and ships **no platform layer of its own** —
+The library (since v2) has no `/node` subpath and ships **no platform layer of its own** —
 it composes at the edge, so `TypeRegistryServiceLive` wires the whole stack
 itself. Library statics also became instance methods: the service yields the
 `TypeRegistry` tag and calls `registry.getVfs(...)` / `registry.resolveVersion(...)`.
@@ -70,7 +73,10 @@ consts — never rebuilt per call, per the v4 layer memoization discipline:
 ```typescript
 const PlatformLive = Layer.mergeAll(NodeFileSystem.layer, Path.layer);
 
-/** XDG app dirs under the library's shared namespace. */
+/** XDG app dirs under the library's shared namespace. The namespace string
+ *  deliberately remains "type-registry-effect" after the @tsdoctor/registry
+ *  rename so existing on-disk caches stay shared (phase 1 no-behavior-change
+ *  gate); revisiting it is flagged for the phase-2 model-API decision window. */
 const AppDirsLive = AppDirs.layer({ namespace: "type-registry-effect" }).pipe(
   Layer.provide(Layer.mergeAll(Xdg.layer, PlatformLive)),
 );

@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-06-15
-last-synced: 2026-06-15
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 85
 related:
   - rspress-plugin-api-extractor/build-architecture.md
@@ -55,7 +55,7 @@ src/runtime/components/
 └── shared/                # variables.css, _twoslash.css, types.ts
 ```
 
-Colocating logic and styles keeps related files together. The runtime is emitted **bundleless** — `@savvy-web/rspress-builder`'s `definePlugin` transpiles each component to its own `.js` next to its CSS module under `runtime/`, and RSPress does the final per-site compile (resolving `import.meta.env.SSG_MD`); see `ssg-compatible-components.md`. See `src/runtime/components/` for the authoritative tree.
+Colocating logic and styles keeps related files together. The runtime is emitted **bundleless** — `@savvy-web/rspress-builder`'s `build()` transpiles each component to its own `.js` next to its CSS module under `runtime/`, and RSPress does the final per-site compile (resolving `import.meta.env.SSG_MD`); see `ssg-compatible-components.md`. See `src/runtime/components/` for the authoritative tree.
 
 ## Registration
 

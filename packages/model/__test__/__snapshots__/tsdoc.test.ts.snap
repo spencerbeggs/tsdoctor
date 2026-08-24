@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`getParams > merges @param descriptions with their declared types 1`] = `
+[
+  {
+    "description": "The DataSource that supplies raw input records.",
+    "name": "source",
+    "type": "DataSource<I>",
+  },
+  {
+    "description": "The Transform applied to each input record.",
+    "name": "transform",
+    "type": "Transform<I, O>",
+  },
+  {
+    "description": "Optional PipelineOptions controlling batch size, retry count, and timeout behaviour.",
+    "name": "options",
+    "type": "PipelineOptions",
+  },
+]
+`;

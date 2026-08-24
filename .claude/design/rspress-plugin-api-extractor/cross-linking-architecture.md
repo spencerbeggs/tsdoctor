@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: cross-linking
 created: 2026-01-17
-updated: 2026-07-21
-last-synced: 2026-07-21
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 90
 related:
   - rspress-plugin-api-extractor/page-generation-system.md
@@ -121,7 +121,7 @@ Transforms type references in plain markdown text into clickable links.
 Used by page generators to cross-link descriptions, parameter docs, and
 remarks. The class is a thin plugin-local shell: `addCrossLinks` delegates
 the actual link injection to the immutable `CrossLinker` from the shared
-`api-extractor-llms` library (see [addCrossLinks](#addcrosslinks)). The
+`@tsdoctor/model` library (see [addCrossLinks](#addcrosslinks)). The
 route-map management (`setRoutes`/`addRoutes`/`clear`/`sanitizeId`) and the
 test-only `addCrossLinksHtml` stay plugin-local because the library has no
 HTML link variant.

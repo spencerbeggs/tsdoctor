@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: source-mapping
 created: 2026-05-26
-updated: 2026-06-26
-last-synced: 2026-06-26
+updated: 2026-08-24
+last-synced: 2026-08-24
 completeness: 85
 related:
   - rspress-plugin-api-extractor/multi-entry-point-support.md
@@ -25,9 +25,9 @@ For deduplication and route-collision handling in the documentation pipeline, se
 
 ## ApiExtractedPackage
 
-`ApiExtractedPackage` (`src/api-extracted-package.ts`) extends `VirtualPackage` from `type-registry-effect` (v2). It overrides declaration generation to emit high-fidelity `.d.ts` output from an `ApiPackage` — enum values, full JSDoc, namespace members and all interface member kinds — while delegating the VFS map and `package.json` synthesis to the base class.
+`ApiExtractedPackage` (`src/api-extracted-package.ts`) extends `VirtualPackage` from `@tsdoctor/registry` (formerly `type-registry-effect`; "v2" below refers to that library line, whose semantics carry into `@tsdoctor/registry` unchanged). It overrides declaration generation to emit high-fidelity `.d.ts` output from an `ApiPackage` — enum values, full JSDoc, namespace members and all interface member kinds — while delegating the VFS map and `package.json` synthesis to the base class.
 
-In v2, `VirtualPackage` is a **Schema class exported directly** (there is no enclosing namespace, so it is imported as `import { VirtualPackage } from "type-registry-effect"`). Its constructor takes a single props object — `super({ name, version, entries })` — and validates at construction time, which means the entries map must be complete before `super` runs.
+In v2, `VirtualPackage` is a **Schema class exported directly** (there is no enclosing namespace, so it is imported as `import { VirtualPackage } from "@tsdoctor/registry"`). Its constructor takes a single props object — `super({ name, version, entries })` — and validates at construction time, which means the entries map must be complete before `super` runs.
 
 Factory methods:
 
@@ -45,7 +45,7 @@ Declaration excerpts are rendered through a private `renderExcerpt` (token-by-to
 - **Abstract modifier** — `abstract` is propagated onto reconstructed class headers (and through the namespace-nested class path that strips `declare`). The class body keeps abstract members, so dropping the modifier on the header produces `TS1244`/`TS1253` ("abstract member in a non-abstract class") in the VFS `.d.ts`.
 - **dts-rollup `$N` alias normalization** — `normalizeTokenText` strips dts-rollup disambiguation suffixes from reference tokens. The rollup renames a re-imported symbol as `Name$1` while its canonical reference stays the un-suffixed `Name`; because the import prepender (see `import-generation-system.md`) imports the canonical name, emitting the suffixed text would leave `Name$1` undefined (`TS2304`). The suffix is stripped only when the de-suffixed text matches the token's canonical symbol (or its leaf), so identifiers that genuinely end in `$N` are untouched.
 
-`ApiExtractedPackage` keeps its OWN private `extractPlainText` and does NOT delegate to the `api-extractor-llms` library helper of the same name. The two share a name but are different algorithms: this one PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks (needed for faithful `.d.ts`/JSDoc reconstruction), whereas the library helper flattens `{@link}` to display text and drops code fences (for prose TSDoc extraction). They are not interchangeable. The plugin's other shells that DO delegate to the library are summarized in `build-architecture.md`.
+`ApiExtractedPackage` keeps its OWN private `extractPlainText` and does NOT delegate to the `@tsdoctor/model` library helper of the same name. The two share a name but are different algorithms: this one PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks (needed for faithful `.d.ts`/JSDoc reconstruction), whereas the library helper flattens `{@link}` to display text and drops code fences (for prose TSDoc extraction). They are not interchangeable. The plugin's other shells that DO delegate to the library are summarized in `build-architecture.md`.
 
 ## VFS layout
 
@@ -66,7 +66,7 @@ node_modules/my-package/
        "./testing": { "types": "./testing.d.ts" } } }
 ```
 
-The `types`-vs-`exports` decision lives in `VirtualPackage.toPackageJson()` in `type-registry-effect` v2 (v1 called it `generatePackageJson()`), driven by how many entries the package has, and is invoked from `toVfs()`. `ApiExtractedPackage` only supplies the entries map; it does not build `package.json` itself. v2 also throws on two structural errors the plugin must avoid: declaring `package.json` as an entry, and two entry file names that normalize to the same export key.
+The `types`-vs-`exports` decision lives in `VirtualPackage.toPackageJson()` in `@tsdoctor/registry` (since v2; v1 called it `generatePackageJson()`), driven by how many entries the package has, and is invoked from `toVfs()`. `ApiExtractedPackage` only supplies the entries map; it does not build `package.json` itself. v2 also throws on two structural errors the plugin must avoid: declaring `package.json` as an entry, and two entry file names that normalize to the same export key.
 
 ## Import prepending
 
@@ -87,4 +87,4 @@ Single-entry packages are detected automatically (`entries.size === 1`) and use 
 - **Multi-Entry Resolution:** `multi-entry-resolution.md` — deduplication and route collisions
 - **Type Loading & VFS:** `type-loading-vfs.md` — external package type loading and VFS consumption
 - **Import Generation System:** `import-generation-system.md` — prepending external imports to entry declarations
-- **Build Architecture:** `build-architecture.md` — `api-extractor-llms` delegation boundaries (and why this doc's `extractPlainText` is not one of them)
+- **Build Architecture:** `build-architecture.md` — `@tsdoctor/model` delegation boundaries (and why this doc's `extractPlainText` is not one of them)

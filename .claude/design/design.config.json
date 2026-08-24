@@ -26,7 +26,8 @@
 				"observability",
 				"cross-linking",
 				"import-generation",
-				"source-mapping"
+				"source-mapping",
+				"meta"
 			],
 			"designDocsPath": ".claude/design/rspress-plugin-api-extractor",
 			"maintainer": "Spencer Beggs",
@@ -47,8 +48,8 @@
 	},
 	"project": {
 		"maintainer": "C. Spencer Beggs",
-		"name": "spencerbeggs/rspress-plugin-api-extractor",
-		"repository": "https://github.com/spencerbeggs/rspress-plugin-api-extractor",
+		"name": "spencerbeggs/tsdoctor",
+		"repository": "https://github.com/spencerbeggs/tsdoctor",
 		"type": "monorepo"
 	},
 	"quality": {

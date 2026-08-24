@@ -16,7 +16,7 @@
 					]
 				}
 			},
-			"repo": "spencerbeggs/rspress-plugin-api-extractor"
+			"repo": "spencerbeggs/tsdoctor"
 		}
 	],
 	"commit": false,
