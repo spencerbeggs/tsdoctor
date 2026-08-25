@@ -34,16 +34,14 @@ import type {
 } from "@microsoft/api-extractor-model";
 import { ApiModel } from "@microsoft/api-extractor-model";
 import { parseFrontmatter } from "../../../src/frontmatter.js";
-import {
-	ClassPageGenerator,
-	EnumPageGenerator,
-	FunctionPageGenerator,
-	InterfacePageGenerator,
-	MainIndexPageGenerator,
-	NamespacePageGenerator,
-	TypeAliasPageGenerator,
-	VariablePageGenerator,
-} from "../../../src/markdown/index.js";
+import { ClassPageGenerator } from "../../../src/markdown/page-generators/class-page.js";
+import { EnumPageGenerator } from "../../../src/markdown/page-generators/enum-page.js";
+import { FunctionPageGenerator } from "../../../src/markdown/page-generators/function-page.js";
+import { MainIndexPageGenerator } from "../../../src/markdown/page-generators/index-pages.js";
+import { InterfacePageGenerator } from "../../../src/markdown/page-generators/interface-page.js";
+import { NamespacePageGenerator } from "../../../src/markdown/page-generators/namespace-page.js";
+import { TypeAliasPageGenerator } from "../../../src/markdown/page-generators/type-alias-page.js";
+import { VariablePageGenerator } from "../../../src/markdown/page-generators/variable-page.js";
 import { clearProseLinker } from "../../../src/markdown/prose-linker.js";
 
 const fixturesDir = path.join(import.meta.dirname, "..", "..", "__fixtures__");

@@ -13,7 +13,7 @@ import {
 	resolvePackageVersionConflicts,
 } from "../src/config-utils.js";
 import type { PackageJson } from "../src/internal-types.js";
-import type { ExternalPackageSpec } from "../src/schemas/index.js";
+import type { ExternalPackageSpec } from "../src/schemas/config.js";
 
 describe("extractPeerDependencies", () => {
 	it("should extract peerDependencies from package.json", () => {

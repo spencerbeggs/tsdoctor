@@ -4,7 +4,7 @@ import type { BundleDescriptor } from "@tsdoctor/bundle";
 import { discoverBundle } from "@tsdoctor/bundle";
 import { Effect, Result } from "effect";
 import { normalizeBaseRoute } from "./path-derivation.js";
-import type { MultiApiConfig } from "./schemas/index.js";
+import type { MultiApiConfig } from "./schemas/config.js";
 import { SyncDiscoveryLayer } from "./sync-node-fs.js";
 
 /**

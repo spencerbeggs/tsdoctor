@@ -331,8 +331,7 @@ its existence. The singleton that held those environments has since become the
 
 ## Delivered: The Twoslash Result Cache
 
-Fix (a) is implemented (`src/twoslash-cache.ts`, `services/TwoslashCacheService.ts`,
-`layers/TwoslashCacheServiceLive.ts`).
+Fix (a) is implemented in `src/twoslash-cache.ts` and `services/TwoslashCacheService.ts` (which owns its live layer as `TwoslashCacheService.layer`).
 
 ### Shape
 
@@ -340,7 +339,7 @@ Fix (a) is implemented (`src/twoslash-cache.ts`, `services/TwoslashCacheService.
 `read`/`write` around the whole `twoslasher()` invocation — so a hit skips the
 type-check entirely rather than merely speeding it up. Those hooks are
 **synchronous**, so persistence is load-once before the render phase (in
-`ConfigServiceLive`, once the VFS is final) and save-once after it (in
+`registerTypeEnvironments`, `layers/type-environment.ts`, once the VFS is final) and save-once after it (in
 `afterBuild`, since the render phase runs after `config()` returns); every
 lookup in between is an in-memory map hit.
 
@@ -450,8 +449,8 @@ improvement there measures Rspack's cache, not this one.
 | `src/observability/events.ts` | `CodeBlockProcessed` shape, `CodeBlockComponent`, `TwoslashCacheLoaded`/`TwoslashCacheSaved` |
 | `src/twoslash-cache.ts` | `twoslashEnvHash`, `makeTwoslashCache`, encode/decode |
 | `src/services/TwoslashCacheService.ts` | Load/save contract for a stored generation |
-| `src/layers/TwoslashCacheServiceLive.ts` | XDG sqlite-backed persistence via `@effected/store` `Cache`, acquired at layer construction over `layers/xdg.ts` and degrading via `Layer.catchCause` |
-| `src/services/TwoslashEnvironments.ts` / `src/layers/TwoslashEnvironmentsLive.ts` | The environments that own the `typesCache`-carrying transformers |
+| `src/services/TwoslashCacheService.ts` | Contract plus `TwoslashCacheService.layer`: XDG sqlite-backed persistence via `@effected/store` `Cache`, acquired at layer construction over `layers/xdg.ts` and degrading via `Layer.catchCause` |
+| `src/services/TwoslashEnvironments.ts` | The environments that own the `typesCache`-carrying transformers, plus `TwoslashEnvironments.layer` |
 
 ## Related Documentation
 

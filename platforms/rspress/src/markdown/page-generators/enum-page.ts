@@ -1,6 +1,6 @@
 import type { ApiDeclaredItem, ApiEnum, ApiEnumMember } from "@microsoft/api-extractor-model";
 import { ApiItems, Tsdoc } from "@tsdoctor/model";
-import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
+import type { LlmsPlugin, SourceConfig } from "../../schemas/config.js";
 import {
 	escapeMdxGenerics,
 	formatExampleCode,

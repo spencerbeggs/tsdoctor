@@ -98,7 +98,7 @@ export async function generateShikiHast(
  * Accepts a single theme name applied to both modes, an explicit pair, or a
  * raw theme object. Lives beside {@link DEFAULT_SHIKI_THEMES} because it falls
  * back to it; it was previously duplicated byte-for-byte in `plugin.ts` and
- * `ConfigServiceLive.ts`.
+ * `ConfigService.layer.ts`.
  */
 export function normalizeThemeConfig(theme: ShikiThemeOption | undefined): ShikiThemeConfig {
 	if (!theme) {

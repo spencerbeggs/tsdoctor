@@ -18,7 +18,7 @@ import { describe, expect, it } from "@effect/vitest";
 import type { ApiClass } from "@microsoft/api-extractor-model";
 import { ApiModel } from "@microsoft/api-extractor-model";
 import { prepareWorkItems } from "../../src/build-stages.js";
-import { ClassPageGenerator } from "../../src/markdown/index.js";
+import { ClassPageGenerator } from "../../src/markdown/page-generators/class-page.js";
 import { DEFAULT_CATEGORIES } from "../../src/schemas/config.js";
 
 const fixture = path.join(import.meta.dirname, "..", "__fixtures__", "anchor-collision", "anchor-collision.api.json");

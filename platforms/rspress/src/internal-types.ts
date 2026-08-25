@@ -8,9 +8,19 @@ import type ts from "typescript";
  * Subset of TypeScript's CompilerOptions used by the type registry and Twoslash.
  */
 export interface TypeResolutionCompilerOptions {
-	target?: ts.ScriptTarget;
-	module?: ts.ModuleKind;
-	moduleResolution?: ts.ModuleResolutionKind;
+	/**
+	 * Both spellings are accepted and normalized, exactly as {@link lib} is: the
+	 * tsconfig form (`"es2025"`) and the programmatic enum
+	 * (`ts.ScriptTarget.ES2025`). `tsconfig-parser.ts` produces the former
+	 * because the kit loader reports what the file declares; a caller passing
+	 * `compilerOptions` inline may use either. Conversion happens once, at
+	 * `toProgrammaticCompilerOptions` in `twoslash-transformer.ts`.
+	 */
+	target?: ts.ScriptTarget | string;
+	/** Both spellings, as {@link target}. */
+	module?: ts.ModuleKind | string;
+	/** Both spellings, as {@link target}. */
+	moduleResolution?: ts.ModuleResolutionKind | string;
 	/**
 	 * Standard libraries to load. Both spellings are accepted and normalized:
 	 * the tsconfig form (`["ESNext", "DOM"]`) and the file-name form
@@ -34,7 +44,8 @@ export interface TypeResolutionCompilerOptions {
 	skipLibCheck?: boolean;
 	esModuleInterop?: boolean;
 	allowSyntheticDefaultImports?: boolean;
-	jsx?: ts.JsxEmit;
+	/** Both spellings, as {@link target}. */
+	jsx?: ts.JsxEmit | string;
 }
 
 /**
@@ -48,56 +59,6 @@ export interface TypeScriptConfig {
 }
 
 /**
- * Mixin type for TypeScript configuration fields.
- * Add these fields to any configuration interface that needs TypeScript options.
- */
-export interface TypeScriptConfigFields {
-	/**
-	 * Path to tsconfig.json file OR an async function that returns compiler options.
-	 *
-	 * When a path is provided:
-	 * - Supports relative paths (resolved from project root)
-	 * - Supports extends chains in tsconfig.json
-	 * - Uses TypeScript's built-in config parsing
-	 *
-	 * When a function is provided:
-	 * - Called during plugin initialization
-	 * - Should return resolved TypeResolutionCompilerOptions
-	 * - Useful for dynamic configuration or custom loading logic
-	 *
-	 * @example Path string
-	 * ```ts
-	 * tsconfig: "tsconfig.json"
-	 * ```
-	 *
-	 * @example Async function
-	 * ```ts
-	 * tsconfig: async () => {
-	 *   const config = await loadExternalConfig();
-	 *   return { target: config.target, lib: config.libs };
-	 * }
-	 * ```
-	 */
-	tsconfig?: PathLike | (() => Promise<TypeResolutionCompilerOptions>);
-
-	/**
-	 * Direct compiler options to merge on top of tsconfig values.
-	 * When both tsconfig and compilerOptions are provided,
-	 * compilerOptions take precedence.
-	 *
-	 * @example
-	 * ```ts
-	 * compilerOptions: {
-	 *   target: 99,  // ESNext
-	 *   lib: ["ESNext", "DOM"],
-	 *   strict: false  // Lenient for docs
-	 * }
-	 * ```
-	 */
-	compilerOptions?: TypeResolutionCompilerOptions;
-}
-
-/**
  * Result returned by a model loader function.
  *
  * @public
@@ -107,7 +68,7 @@ export interface LoadedModel {
 	model: ApiModel;
 
 	/** Optional source config returned by the loader */
-	source?: import("./schemas/index.js").SourceConfig;
+	source?: import("./schemas/config.js").SourceConfig;
 }
 
 /**

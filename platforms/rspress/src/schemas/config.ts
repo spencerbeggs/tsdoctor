@@ -346,8 +346,6 @@ export const PluginOptions = Schema.Struct({
 	api: Schema.optional(Schema.NullOr(SingleApiConfig)),
 	/** Multi-API portal configuration (mutually exclusive with `api`). `null` or `[]` disables generation. */
 	apis: Schema.optional(Schema.NullOr(Schema.mutable(Schema.Array(MultiApiConfig)))),
-	/** Canonical site URL used for Open Graph absolute URLs. */
-	siteUrl: Schema.optional(Schema.String),
 	/** Global Open Graph image configuration (overridden per-API). */
 	ogImage: Schema.optional(OpenGraphImageConfig),
 	/** Override the default category definitions for all APIs. */

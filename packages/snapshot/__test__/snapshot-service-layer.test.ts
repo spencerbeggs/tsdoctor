@@ -4,9 +4,8 @@ import path from "node:path";
 import { Effect, Option } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SnapshotService } from "../src/SnapshotService.js";
-import { SnapshotServiceLive } from "../src/SnapshotServiceLive.js";
 
-describe("SnapshotServiceLive", () => {
+describe("SnapshotService.layer", () => {
 	let tmpDir: string;
 	let dbPath: string;
 
@@ -20,7 +19,7 @@ describe("SnapshotServiceLive", () => {
 	});
 
 	it("upserts and retrieves a snapshot", async () => {
-		const layer = SnapshotServiceLive(dbPath);
+		const layer = SnapshotService.layer(dbPath);
 		const program = Effect.gen(function* () {
 			const service = yield* SnapshotService;
 
@@ -45,7 +44,7 @@ describe("SnapshotServiceLive", () => {
 	});
 
 	it("returns None for missing snapshots", async () => {
-		const layer = SnapshotServiceLive(dbPath);
+		const layer = SnapshotService.layer(dbPath);
 		const program = Effect.gen(function* () {
 			const service = yield* SnapshotService;
 			const result = yield* service.getSnapshot("docs/api", "nonexistent.mdx");
@@ -56,7 +55,7 @@ describe("SnapshotServiceLive", () => {
 	});
 
 	it("cleans up DB on scope close (no WAL files left)", async () => {
-		const layer = SnapshotServiceLive(dbPath);
+		const layer = SnapshotService.layer(dbPath);
 		const program = Effect.gen(function* () {
 			const service = yield* SnapshotService;
 			yield* service.upsert({

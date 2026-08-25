@@ -10,8 +10,7 @@ The object passed to `ApiExtractorPlugin(...)`. Choose single-API (`api`) or mul
 | --- | --- | --- |
 | `api` | single-API config | Document one package. Mutually exclusive with `apis`. |
 | `apis` | multi-API config array | Document several packages in one portal. |
-| `siteUrl` | string | Absolute site URL, used for Open Graph tags. |
-| `ogImage` | string or object | Default Open Graph image for generated pages. |
+| `ogImage` | string or object | Default Open Graph image. URLs are absolute when RSPress sets `siteOrigin`, root-relative otherwise. |
 | `defaultCategories` | category record | Category overrides applied to every API. |
 | `errors` | object | `{ example: "show" \| "suppress" }` — whether code-example type errors surface. |
 | `llmsPlugin` | boolean or object | Per-package `llms*.txt` generation. See [llms.md](./llms.md). |

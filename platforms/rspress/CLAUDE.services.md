@@ -5,27 +5,31 @@ observability event bus. Loaded from `platforms/rspress/CLAUDE.md`.
 
 ## Effect Service Layer
 
-The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned via `catalog:effect`). `plugin.ts` is a thin RSPress adapter (~615 lines) that wires **two** `ManagedRuntime`s (see below) over a composed `Layer` stack:
+The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned via `catalog:effect`). `plugin.ts` is a thin RSPress adapter (~570 lines); it no longer composes the layer stack itself. `makeAppLayers(input)` (`src/layers/AppLayer.ts`) returns **both** stacks — `app` (the main runtime's) and `emitter` (the sync-island one's) — from one call, deliberately: the two-runtime invariants (one `metrics.layer`, one `BuildEnv` reference set, shared by reference) are then impossible to violate by construction rather than merely discouraged by comment. It is a factory: call it once and bind the result to a `const`.
 
-- `ConfigServiceLive` — a zero-argument module-level **`const`**, not a
-  factory. `resolve()` returns `ReadonlyArray<ResolvedApiConfig>`; the
-  16-field `ResolvedBuildContext` it used to return is **deleted**. Keep it a
-  `const`: layers memoize by reference, so a factory called twice mints two
-  `ConfigService`s.
-- `PluginConfig` — `Layer.succeed` over the decoded `PluginOptions`. A
-  service, not a Reference, because "which APIs?" has no safe default.
-- `HighlighterServiceLive(themes)` — the build's one Shiki highlighter,
-  acquired/released at runtime lifetime. Still a factory (takes themes), so
-  bind its result to a `const` before merging.
-- `TwoslashEnvironmentsLive` — per-compiler-config Twoslash environments and
+`makeAppLayers` tiers the stack by what each tier may reach — platform, then core services that need only the platform, then build-scoped services:
+
+- `ConfigService.layer` — config resolution over `PluginConfig` + the RSPress
+  config; `resolve()` returns `ReadonlyArray<ResolvedApiConfig>` (the 16-field
+  `ResolvedBuildContext` is deleted). Zero-argument, so "call it twice" is a
+  type error. Implementation: `makeConfigService` in
+  `layers/config-resolution.ts`.
+- `PluginConfig` — `Layer.succeed` over the decoded `PluginOptions`. A service,
+  not a Reference, because "which APIs?" has no safe default.
+- `HighlighterService.layer(themes)` — the build's one Shiki highlighter,
+  acquired/released at runtime lifetime. A factory (takes themes), so bind its
+  result to a `const` before merging.
+- `TwoslashEnvironments.layer` — per-compiler-config Twoslash environments and
   transformers, replacing the old `TwoslashManager` singleton
-- `OgServiceLive` — Open Graph image resolution with a typed `OgImageError`
-- `SnapshotServiceLive` — from `@tsdoctor/snapshot`; SQLite via
+- `OgService.layer` — Open Graph image resolution with a typed `OgImageError`;
+  needs `FileSystem`/`Path`, so it is provided `PlatformLive` locally
+- `SnapshotService.layer(dbPath)` — from `@tsdoctor/snapshot`; SQLite via
   `@effected/store`'s `Store.layerSqlite` (migrations applied at layer
-  construction, WAL checkpoint via `checkpointOnClose`)
-- `TypeRegistryServiceLive` — external package type loading; edge-composes the
+  construction, WAL checkpoint via `checkpointOnClose`). Its error channel is
+  NOT erased: a corrupt snapshot DB should stop the build loudly.
+- `TypeRegistryService.layer` — external package type loading; edge-composes the
   `@tsdoctor/registry` stack itself (the library ships no platform layer)
-- `TwoslashCacheServiceLive` — persists Twoslash results between builds in an
+- `TwoslashCacheService.layer` — persists Twoslash results between builds in an
   XDG sqlite `@effected/store` Cache; a hit skips the type-check entirely, which
   is ~97% of render-phase code-block time (`render-phase-instrumentation.md`)
 - `EventBus` layer (from `buildEventBus`) — synchronous fan-out event bus
@@ -33,12 +37,31 @@ The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned via `catalog:eff
 - `NodeFileSystem.layer` (`@effect/platform-node`) — Node implementation of the
   core `effect` FileSystem service
 
+Every service owns its layer as a **static on the service class**, matching the
+core packages. The `layers/*ServiceLive.ts` modules are gone — do not add one
+back; add the static instead.
+
+**Defer any static that names a binding declared below it.** A static
+initializer runs while the module body is still evaluating, so reading such a
+`const` eagerly throws AT IMPORT TIME while typechecking perfectly clean — and
+the only symptom is vitest reporting "0 tests passed" with exit 0. The forms in
+use are `Layer.suspend(() => ...)` and `Layer.effect(this, Effect.suspend(() => make()))`.
+
 `PathDerivationService` is **deleted** — import the pure functions from
 `path-derivation.ts` directly. Both cache-backed layers acquire their stack
 at layer construction (never `Effect.provide` inside a method body — v4 forks
 a child `MemoMap` and rebuilds) and both `Layer.catchCause` down to a cache
 miss: an unreachable cache must never fail a build. They share one platform
 and XDG root, `layers/xdg.ts` — do not re-declare the namespace literal.
+
+`ConfigService`, `OgService`, `TwoslashCacheService`, `TypeRegistryService` and
+`SnapshotService` ship `makeTest(overrides)` / `layerTest(overrides)` in-memory
+doubles; use them instead of hand-writing a stub (the `Mock*Layer` names in
+`__test__/utils/layers.ts` are now mostly thin aliases over them).
+`ConfigService.resolve` and `OgService.resolveImage` deliberately have **no
+default** and throw naming themselves — their natural defaults (an empty array,
+`Option.none`) are indistinguishable from a real answer, so a test that forgot
+to stub them would pass against a build that documented nothing.
 
 ## Two runtimes, and per-build References
 
@@ -72,7 +95,7 @@ The plugin emits structured `PluginEvent` values through a **synchronous
 fan-out EventBus** (`src/observability/EventBus.ts`) rather than writing
 directly to the console or incrementing metrics inline.
 
-`buildEventBus(obs)` (`layers/ObservabilityLive.ts`) composes five sinks:
+`buildEventBus(obs)` (`layers/observability.ts`) composes five sinks:
 
 - **Console sink** — human-readable one-liners (or JSON at `logLevel: "debug"`),
   filtered by the configured level

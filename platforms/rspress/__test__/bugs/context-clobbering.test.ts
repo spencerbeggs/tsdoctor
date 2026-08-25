@@ -1,6 +1,6 @@
 import { Effect, Metric } from "effect";
 import { describe, expect, it } from "vitest";
-import { BuildMetrics } from "../../src/layers/ObservabilityLive.js";
+import { BuildMetrics } from "../../src/layers/build-metrics.js";
 
 describe("Bug: Twoslash error context clobbering (plugin.ts:575)", () => {
 	// TwoslashErrorStatsCollector replaced by Effect Metric.counter("twoslash.errors").

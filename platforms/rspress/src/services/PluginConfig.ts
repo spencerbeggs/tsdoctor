@@ -2,7 +2,7 @@
  * The decoded plugin options, as a service.
  *
  * @remarks
- * `ConfigServiceLive` used to be a factory taking these as an argument, which
+ * `ConfigService.layer` used to be a factory taking these as an argument, which
  * made it a layer-returning function — the shape the house rules warn about,
  * since layers memoize by reference and a second call mints a second layer.
  * It was only ever called once, but "only ever called once" is a property of
@@ -19,7 +19,7 @@
  */
 
 import { Context } from "effect";
-import type { PluginOptions } from "../schemas/index.js";
+import type { PluginOptions } from "../schemas/config.js";
 
 export class PluginConfig extends Context.Service<PluginConfig, PluginOptions>()(
 	"rspress-plugin-api-extractor/PluginConfig",

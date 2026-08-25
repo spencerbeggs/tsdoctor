@@ -21,7 +21,7 @@ import type { EventSink } from "./types.js";
  * such as a file path, belongs in a sample-shaped sink instead.
  *
  * Intentionally NOT derived here: `externalPackagesTotal` and `apiVersionsLoaded`
- * remain inline increments in `ConfigServiceLive`. `externalPackagesTotal` counts
+ * remain inline increments in `ConfigService.layer`. `externalPackagesTotal` counts
  * CONFIGURED packages via `incrementBy(length)`; the only candidate event,
  * `TypeRegistryEvent{BatchComplete}`, carries an unstructured `detail` string and
  * a `loaded` (SUCCEEDED) count — different semantics, so deriving it here would

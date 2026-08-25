@@ -25,8 +25,8 @@ describe("TwoslashCacheService generation", () => {
 	// The live layer builds open/persist over its own load/save, so exercise the
 	// real composition rather than the hand-written stub above.
 	const realLayer = async () => {
-		const { TwoslashCacheServiceLive } = await import("../../src/layers/TwoslashCacheServiceLive.js");
-		return TwoslashCacheServiceLive;
+		const { TwoslashCacheService } = await import("../../src/services/TwoslashCacheService.js");
+		return TwoslashCacheService.layer;
 	};
 
 	// FORBIDS: `persist` returning Some when nothing was opened. plugin.ts emits

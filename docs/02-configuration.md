@@ -8,7 +8,6 @@ Every option the plugin accepts, organized by where it lives. You configure the 
 ApiExtractorPlugin({
   api: { /* single-API config */ },
   apis: [ /* multi-API config[] */ ],
-  siteUrl: "https://example.com",
   ogImage: "./assets/og-default.png",
   defaultCategories: { /* category overrides applied to every API */ },
   errors: { example: "show" },
@@ -21,8 +20,7 @@ ApiExtractorPlugin({
 | --- | --- | --- |
 | `api` | single-API config or `null` | Document one package. Mutually exclusive with a non-empty `apis`. `null` makes the plugin inert. |
 | `apis` | multi-API config array or `null` | Document several packages in one portal. `null` or `[]` makes the plugin inert. |
-| `siteUrl` | string | Absolute site URL, used for Open Graph tags. |
-| `ogImage` | string or object | Default Open Graph image for generated pages. |
+| `ogImage` | string or object | Default Open Graph image for generated pages. Requires RSPress's `siteOrigin` (see below). |
 | `defaultCategories` | category record | Override the built-in categories for every API. |
 | `errors` | object | `{ example: "show" \| "suppress" }` controls whether code-example type errors surface. |
 | `llmsPlugin` | boolean or object | Enable and configure per-package `llms*.txt` generation. |
@@ -39,7 +37,6 @@ Sometimes the plugin has to be in `rspress.config.ts` before there is anything t
 ```ts
 ApiExtractorPlugin({
   apis: [],
-  siteUrl: "https://docs.example.com",
   llmsPlugin: { scopes: true },
 });
 // Options are validated; the build produces no API pages.
@@ -245,11 +242,23 @@ An unreadable or missing cache degrades to a full type-check rather than failing
 
 ## Open Graph images
 
+Open Graph tags need an absolute URL, and that comes from RSPress rather than from this plugin. Set [`siteOrigin`](https://rspress.rs/api/config/config-basic#siteorigin) in `rspress.config.ts`; the plugin joins it with `base` exactly as RSPress does (`siteOrigin + base + routePath`):
+
+```ts title="rspress.config.ts"
+export default defineConfig({
+  siteOrigin: "https://docs.example.com",
+  base: "/",
+});
+```
+
+Without `siteOrigin`, the tags are still emitted but their URLs stay **root-relative** (`/api/class/foo`), matching RSPress's own documented `base + routePath` fallback. That keeps them inspectable under `rspress dev` on localhost, where no configured origin could be correct. Set `siteOrigin` for production, where absolute URLs are what crawlers need.
+
+There is deliberately no plugin-level override for the origin: a second answer could disagree with the site's own and silently advertise a host the site is not served from.
+
 `ogImage` accepts a string path/URL or a metadata object. Set it at the top level as a site-wide default, or per-API to override:
 
 ```ts
 ApiExtractorPlugin({
-  siteUrl: "https://docs.example.com",
   ogImage: {
     url: "https://docs.example.com/og.png",
     width: 1200,

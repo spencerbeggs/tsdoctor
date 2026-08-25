@@ -140,7 +140,7 @@ level, i.e. only visible in debug or trace mode) and the JSONL trace.
 
 ## Build Summary Integration
 
-`logBuildSummary` (`platforms/rspress/src/layers/ObservabilityLive.ts`) reads error
+`logBuildSummary` (`platforms/rspress/src/layers/observability.ts`) reads error
 metric snapshots at the end of `afterBuild`:
 
 ```text
@@ -153,7 +153,7 @@ No error line is printed when both counters are zero.
 
 ## Persisted to `issues.json`
 
-Every event in this document is also collected by the fourth EventBus sink, the issues collector (`makeIssuesSink`, `src/observability/sinks/issues-sink.ts`), and written to `<cwd>/.api-docs/build/issues.json` on production builds. Route collisions and model-load failures also land in the artifact as `errors` rather than only `warnings`: `RouteCollisionDetected` uses the same sync-island bridge as Twoslash/Prettier (`emitSync` in `build-stages.ts`), while `ModelLoadFailed` — since the phase-2 model redesign made loading Effect-typed (`Model.load` from `@tsdoctor/model`) — is emitted inside the Effect pipeline via `Effect.tapError` + `Effect.orDie` in `ConfigServiceLive`; the former `setModelLoaderEventEmitter` seam is deleted. Full schema, the event-to-bucket mapping and the monitor that reads the artifact are documented in `build-progress-and-issues.md`.
+Every event in this document is also collected by the fourth EventBus sink, the issues collector (`makeIssuesSink`, `src/observability/sinks/issues-sink.ts`), and written to `<cwd>/.api-docs/build/issues.json` on production builds. Route collisions and model-load failures also land in the artifact as `errors` rather than only `warnings`: `RouteCollisionDetected` uses the same sync-island bridge as Twoslash/Prettier (`emitSync` in `build-stages.ts`), while `ModelLoadFailed` — since the phase-2 model redesign made loading Effect-typed (`Model.load` from `@tsdoctor/model`) — is emitted inside the Effect pipeline via `Effect.tapError` + `Effect.orDie` in `layers/config-resolution.ts`; the former `setModelLoaderEventEmitter` seam is deleted. Three configuration failures — a bad `package.json`, an `externalPackages` conflict, a malformed tsconfig — reach the artifact for the first time as well: they used to throw from inside `Effect.promise` bodies and escape as untyped DEFECTS, which killed the build with no `issues.json` entry at all, and now fail as typed `ConfigValidationError`s. Full schema, the event-to-bucket mapping and the monitor that reads the artifact are documented in `build-progress-and-issues.md`.
 
 ---
 
@@ -169,7 +169,7 @@ Every event in this document is also collected by the fourth EventBus sink, the 
 | `src/twoslash-transformer.ts` | Emits `TwoslashDiagnostic` + `TwoslashCheckFailed` via `emitSync` |
 | `src/prettier-formatter.ts` | Emits `PrettierError` via `emitSync` |
 | `src/layers/build-metrics.ts` | `twoslashDiagnostics`, `twoslashErrors`, `prettierErrors` counters |
-| `src/layers/ObservabilityLive.ts` | `logBuildSummary` reads error counters |
+| `src/layers/observability.ts` | `logBuildSummary` reads error counters |
 
 ---
 

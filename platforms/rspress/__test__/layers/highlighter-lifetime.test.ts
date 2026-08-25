@@ -12,7 +12,6 @@
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect, Layer, ManagedRuntime, References } from "effect";
 import { describe, expect, it } from "vitest";
-import { HighlighterServiceLive } from "../../src/layers/HighlighterServiceLive.js";
 import { DEFAULT_SHIKI_THEMES } from "../../src/markdown/shiki-utils.js";
 import { HighlighterService } from "../../src/services/HighlighterService.js";
 
@@ -24,7 +23,7 @@ describe("HighlighterServiceLive", () => {
 	// which is the leak the service exists to fix and which nothing else
 	// reports.
 	it("acquires ONE highlighter no matter how many times it is used", async () => {
-		const layer = HighlighterServiceLive([DEFAULT_SHIKI_THEMES.light, DEFAULT_SHIKI_THEMES.dark]);
+		const layer = HighlighterService.layer([DEFAULT_SHIKI_THEMES.light, DEFAULT_SHIKI_THEMES.dark]);
 		const runtime = ManagedRuntime.make(Layer.mergeAll(layer, NodeFileSystem.layer, Silent));
 		try {
 			const read = Effect.map(HighlighterService, (s) => s.highlighter);
@@ -41,7 +40,7 @@ describe("HighlighterServiceLive", () => {
 	// disposed). A live highlighter still highlights, so only reaching into it
 	// after dispose distinguishes the two.
 	it("disposes the highlighter when the runtime is disposed, and not before", async () => {
-		const layer = HighlighterServiceLive([DEFAULT_SHIKI_THEMES.light, DEFAULT_SHIKI_THEMES.dark]);
+		const layer = HighlighterService.layer([DEFAULT_SHIKI_THEMES.light, DEFAULT_SHIKI_THEMES.dark]);
 		const runtime = ManagedRuntime.make(Layer.mergeAll(layer, NodeFileSystem.layer, Silent));
 		const highlighter = await runtime.runPromise(Effect.map(HighlighterService, (s) => s.highlighter));
 
@@ -61,7 +60,7 @@ describe("HighlighterServiceLive", () => {
 	// argument — every custom-themed API would then render against the wrong
 	// theme, silently.
 	it("loads the themes it was given", async () => {
-		const layer = HighlighterServiceLive([DEFAULT_SHIKI_THEMES.light, DEFAULT_SHIKI_THEMES.dark, "nord"]);
+		const layer = HighlighterService.layer([DEFAULT_SHIKI_THEMES.light, DEFAULT_SHIKI_THEMES.dark, "nord"]);
 		const runtime = ManagedRuntime.make(Layer.mergeAll(layer, NodeFileSystem.layer, Silent));
 		try {
 			const loaded = await runtime.runPromise(Effect.map(HighlighterService, (s) => s.highlighter.getLoadedThemes()));

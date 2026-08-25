@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
-import {
-	ApiModelLoadError,
-	ConfigValidationError,
-	PageGenerationError,
-	PrettierFormatError,
-	TwoslashProcessingError,
-	TypeRegistryError,
-} from "../src/errors.js";
+import { ConfigValidationError, TypeRegistryError } from "../src/errors.js";
 
+/**
+ * @remarks
+ * Four sibling error types — `ApiModelLoadError`, `PageGenerationError`,
+ * `TwoslashProcessingError`, `PrettierFormatError` — were deleted along with
+ * their cases here. Each was constructed nowhere in `src/` and asserted only in
+ * this file, so these tests were the only thing keeping them alive. What those
+ * subsystems actually report is a `PluginEvent` through the EventBus, not a
+ * typed error: Twoslash and Prettier failures reach `issues.json` as events
+ * (see `error-observability.md`), and model-load failures became
+ * `Model.load`'s own typed errors in the phase-2 redesign.
+ */
 describe("TaggedError types", () => {
 	it("ConfigValidationError has correct tag, fields, and message", () => {
 		const err = new ConfigValidationError({
@@ -20,15 +24,10 @@ describe("TaggedError types", () => {
 		expect(err.message).toBe("Config validation failed for 'api.model': Required when multiVersion is not active");
 	});
 
-	it("ApiModelLoadError has correct tag, fields, and message", () => {
-		const err = new ApiModelLoadError({
-			modelPath: "/path/to/model.api.json",
-			reason: "File not found",
-		});
-		expect(err._tag).toBe("ApiModelLoadError");
-		expect(err.modelPath).toBe("/path/to/model.api.json");
-		expect(err.reason).toBe("File not found");
-		expect(err.message).toBe("Failed to load API model at '/path/to/model.api.json': File not found");
+	it("ConfigValidationError carries the original failure as cause", () => {
+		const cause = new Error("ENOENT: no such file or directory");
+		const err = new ConfigValidationError({ field: "tsconfig", reason: cause.message, cause });
+		expect(err.cause).toBe(cause);
 	});
 
 	it("TypeRegistryError has correct tag, fields, and message", () => {
@@ -42,42 +41,5 @@ describe("TaggedError types", () => {
 		expect(err.version).toBe("^3.22.4");
 		expect(err.reason).toBe("Network timeout");
 		expect(err.message).toBe("Type registry error for 'zod@^3.22.4': Network timeout");
-	});
-
-	it("PageGenerationError has correct tag, fields, and message", () => {
-		const err = new PageGenerationError({
-			itemName: "MyClass",
-			category: "class",
-			reason: "Failed to generate signature",
-		});
-		expect(err._tag).toBe("PageGenerationError");
-		expect(err.itemName).toBe("MyClass");
-		expect(err.category).toBe("class");
-		expect(err.reason).toBe("Failed to generate signature");
-		expect(err.message).toBe("Page generation failed for class 'MyClass': Failed to generate signature");
-	});
-
-	it("TwoslashProcessingError has correct tag, fields, and message", () => {
-		const err = new TwoslashProcessingError({
-			file: "api/class/MyClass.mdx",
-			errorCode: "TS2440",
-			reason: "Import conflicts",
-		});
-		expect(err._tag).toBe("TwoslashProcessingError");
-		expect(err.file).toBe("api/class/MyClass.mdx");
-		expect(err.errorCode).toBe("TS2440");
-		expect(err.reason).toBe("Import conflicts");
-		expect(err.message).toBe("Twoslash error TS2440 in 'api/class/MyClass.mdx': Import conflicts");
-	});
-
-	it("PrettierFormatError has correct tag, fields, and message", () => {
-		const err = new PrettierFormatError({
-			file: "api/class/MyClass.mdx",
-			reason: "Parse error",
-		});
-		expect(err._tag).toBe("PrettierFormatError");
-		expect(err.file).toBe("api/class/MyClass.mdx");
-		expect(err.reason).toBe("Parse error");
-		expect(err.message).toBe("Prettier format error in 'api/class/MyClass.mdx': Parse error");
 	});
 });

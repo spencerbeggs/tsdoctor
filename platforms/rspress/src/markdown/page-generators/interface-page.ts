@@ -1,6 +1,6 @@
 import type { ApiDeclaredItem, ApiInterface, ApiItem } from "@microsoft/api-extractor-model";
 import { ApiItems, Routes, Signature, Tsdoc } from "@tsdoctor/model";
-import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
+import type { LlmsPlugin, SourceConfig } from "../../schemas/config.js";
 import { TypeReferenceExtractor } from "../../type-reference-extractor.js";
 import {
 	escapeMdxGenerics,

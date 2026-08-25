@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: import-generation
 created: 2026-01-17
-updated: 2026-06-26
-last-synced: 2026-06-26
+updated: 2026-08-25
+last-synced: 2026-08-25
 completeness: 85
 related:
   - rspress-plugin-api-extractor/type-loading-vfs.md
@@ -24,7 +24,7 @@ The generated `.d.ts` files in the virtual file system declare a package's own t
 The system has two halves that live in different files:
 
 - `TypeReferenceExtractor` (`src/type-reference-extractor.ts`) — analyzes an `ApiPackage`, classifies the type references it finds and produces `ImportStatement[]`.
-- `prependImportsToVfs` (`src/layers/ConfigServiceLive.ts`) — for each entry point, calls the extractor and prepends the formatted imports to that entry's `.d.ts` content in the VFS.
+- `prependImportsToVfs` (`src/layers/config-resolution.ts`) — for each entry point, calls the extractor and prepends the formatted imports to that entry's `.d.ts` content in the VFS.
 
 The VFS itself is produced by `ApiExtractedPackage.generateVfs()` (see `multi-entry-vfs.md`); import prepending runs immediately after, mutating the VFS map in place.
 
@@ -34,7 +34,7 @@ The VFS itself is produced by `ApiExtractedPackage.generateVfs()` (see `multi-en
 ApiExtractedPackage.fromPackage(apiPackage, name)
   → generateVfs()  →  node_modules/<name>/<entry>.d.ts (declarations only)
          |
-prependImportsToVfs(vfs, apiPackage, name)   [ConfigServiceLive]
+prependImportsToVfs(vfs, apiPackage, name)   [config-resolution.ts]
   → for each entry point:
        TypeReferenceExtractor.extractImportsForEntryPoint(entryPoint)
        TypeReferenceExtractor.formatImports(imports)

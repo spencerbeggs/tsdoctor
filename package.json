@@ -21,7 +21,7 @@
 		"build:multi": "turbo run build:dev build:prod --filter=@sites/multi --ui=stream",
 		"ci:build": "CI=\"true\" turbo run build:dev build:prod --filter=rspress-plugin-api-extractor --filter=@tsdoctor/registry --filter=@tsdoctor/model --filter=@tsdoctor/bundle --filter=@tsdoctor/snapshot --log-order=grouped --output-logs=full --log-prefix=none",
 		"ci:test": "CI=\"true\" vitest run --coverage",
-		"claude": "claude --plugin-dir=plugin",
+		"claude": "claude --plugin-dir=plugin --plugin-dir=../effected/plugin",
 		"dev": "turbo run dev --filter=@sites/basic",
 		"dev:basic": "turbo run dev --filter=@sites/basic",
 		"dev:effect": "turbo run dev --filter=@sites/effect",

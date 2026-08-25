@@ -17,7 +17,6 @@
 import { MemoryFileSystem } from "@effected/memfs";
 import { Effect, FileSystem, Layer, Option, Path, References } from "effect";
 import { describe, expect, it } from "vitest";
-import { OgServiceLive } from "../../src/layers/OgServiceLive.js";
 import { makeEventBusLayer } from "../../src/observability/EventBus.js";
 import type { PluginEvent } from "../../src/observability/events.js";
 import type { OgImageRequest } from "../../src/services/OgService.js";
@@ -42,7 +41,7 @@ interface Harness {
 function harness(seed: Record<string, string | Uint8Array> = {}): Harness {
 	const events: PluginEvent[] = [];
 	const bus = makeEventBusLayer([{ minLevel: "trace", handle: (e) => events.push(e) }]);
-	const layer = Layer.provide(OgServiceLive, Layer.mergeAll(MemoryFileSystem.layerWith(seed), Path.layer));
+	const layer = Layer.provide(OgService.layer, Layer.mergeAll(MemoryFileSystem.layerWith(seed), Path.layer));
 	const full = Layer.mergeAll(
 		layer,
 		bus as unknown as Layer.Layer<never>,
@@ -230,7 +229,7 @@ describe("OgService.resolveImage", () => {
 				}),
 			).pipe(Layer.provide(volume));
 
-			const layer = Layer.provide(OgServiceLive, Layer.mergeAll(counting, Path.layer));
+			const layer = Layer.provide(OgService.layer, Layer.mergeAll(counting, Path.layer));
 			const program = Effect.gen(function* () {
 				const svc = yield* OgService;
 				const request: OgImageRequest = {

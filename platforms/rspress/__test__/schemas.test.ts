@@ -9,16 +9,13 @@ import {
 	LlmsPlugin,
 	LogLevel,
 	MultiApiConfig,
-	OpenGraphImageConfig,
-	OpenGraphImageMetadata,
-	OpenGraphMetadata,
-	PerformanceConfig,
-	PerformanceThresholds,
 	PluginOptions,
 	SingleApiConfig,
 	SourceConfig,
 	VersionConfig,
-} from "../src/schemas/index.js";
+} from "../src/schemas/config.js";
+import { OpenGraphImageConfig, OpenGraphImageMetadata, OpenGraphMetadata } from "../src/schemas/opengraph.js";
+import { PerformanceConfig, PerformanceThresholds } from "../src/schemas/performance.js";
 
 describe("OpenGraph schemas", () => {
 	it("decodes OpenGraphImageMetadata", () => {

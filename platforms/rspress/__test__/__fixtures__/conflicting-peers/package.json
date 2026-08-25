@@ -1,0 +1,7 @@
+{
+	"name": "example-module",
+	"version": "1.0.0",
+	"peerDependencies": {
+		"zod": "4.0.0"
+	}
+}

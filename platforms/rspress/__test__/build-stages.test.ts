@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { ApiModel } from "@microsoft/api-extractor-model";
-import { SnapshotServiceLive } from "@tsdoctor/snapshot";
+import { SnapshotService } from "@tsdoctor/snapshot";
 import { Effect, Layer, References } from "effect";
 import { describe, expect, it } from "vitest";
 import type {
@@ -27,8 +27,8 @@ import { loadApiModel } from "../src/model-loader.js";
 import { makeEventBusLayer } from "../src/observability/EventBus.js";
 import type { PluginEvent } from "../src/observability/events.js";
 import { installSyncEmitterUnsafe } from "../src/observability/sync-emitter.js";
-import type { CategoryConfig } from "../src/schemas/index.js";
-import { DEFAULT_CATEGORIES } from "../src/schemas/index.js";
+import type { CategoryConfig } from "../src/schemas/config.js";
+import { DEFAULT_CATEGORIES } from "../src/schemas/config.js";
 import { TestOgServiceLayer } from "./utils/layers.js";
 
 const TEST_BUILD_ID = "test-build";
@@ -307,7 +307,7 @@ describe("writeMetadata", () => {
 				baseRoute: "/api",
 				packageName: "test-package",
 				generatedFiles,
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, SnapshotServiceLive(dbPath)))),
+			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, SnapshotService.layer(dbPath)))),
 		);
 
 		// Category _meta.json should exist with sorted entries
@@ -344,7 +344,7 @@ describe("writeMetadata", () => {
 	it("skips writing _meta.json when content is unchanged (snapshot match)", async () => {
 		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "meta-unchanged-"));
 		const dbPath = path.join(tmpDir, "test.db");
-		const snapshotLayer = SnapshotServiceLive(dbPath);
+		const snapshotLayer = SnapshotService.layer(dbPath);
 
 		const categories: Record<string, CategoryConfig> = {
 			classes: {
@@ -399,7 +399,6 @@ describe("writeMetadata", () => {
 		const statBefore = await fs.promises.stat(metaPath);
 
 		// Build the existingSnapshots by reading the snapshot DB via SnapshotService
-		const { SnapshotService } = await import("@tsdoctor/snapshot");
 		const existingSnapshots = await Effect.runPromise(
 			Effect.gen(function* () {
 				const svc = yield* SnapshotService;
@@ -487,7 +486,7 @@ describe("writeMetadata", () => {
 				baseRoute: "/api",
 				packageName: "test-package",
 				generatedFiles,
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, SnapshotServiceLive(dbPath)))),
+			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, SnapshotService.layer(dbPath)))),
 		);
 
 		const rootMeta = JSON.parse(await fs.promises.readFile(path.join(tmpDir, "_meta.json"), "utf-8"));
@@ -503,7 +502,7 @@ describe("cleanupAndCommit", () => {
 	it("batch upserts snapshots for written files only", async () => {
 		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "cleanup-test-"));
 		const dbPath = path.join(tmpDir, "test.db");
-		const snapshotLayer = SnapshotServiceLive(dbPath);
+		const snapshotLayer = SnapshotService.layer(dbPath);
 
 		const buildTime = new Date().toISOString();
 		const results: FileWriteResult[] = [
@@ -555,7 +554,6 @@ describe("cleanupAndCommit", () => {
 		);
 
 		// Only written file should have a snapshot (not unchanged)
-		const { SnapshotService } = await import("@tsdoctor/snapshot");
 		const snapshots = await Effect.runPromise(
 			Effect.gen(function* () {
 				const svc = yield* SnapshotService;
@@ -582,7 +580,7 @@ describe("cleanupAndCommit", () => {
 				fileResults: [],
 				resolvedOutputDir: tmpDir,
 				generatedFiles: new Set(),
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, SnapshotServiceLive(dbPath)))),
+			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, SnapshotService.layer(dbPath)))),
 		);
 
 		const exists = await fs.promises
@@ -597,7 +595,7 @@ describe("cleanupAndCommit", () => {
 	it("removes directories emptied by stale-file cleanup, including emptied ancestors", async () => {
 		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "stale-dir-test-"));
 		const dbPath = path.join(tmpDir, "test.db");
-		const snapshotLayer = SnapshotServiceLive(dbPath);
+		const snapshotLayer = SnapshotService.layer(dbPath);
 		const testLayer = Layer.mergeAll(NodeFileSystem.layer, snapshotLayer);
 
 		// Nested layout whose only page goes stale: deleting it empties both levels

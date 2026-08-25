@@ -8,11 +8,11 @@ import { createHighlighter } from "shiki";
 import { describe, expect, it } from "vitest";
 import { generateApiDocs } from "../src/build-program.js";
 import { CategoryResolver } from "../src/category-resolver.js";
-import { TwoslashEnvironmentsLive } from "../src/layers/TwoslashEnvironmentsLive.js";
 import { loadApiModel } from "../src/model-loader.js";
-import { DEFAULT_CATEGORIES } from "../src/schemas/index.js";
+import { DEFAULT_CATEGORIES } from "../src/schemas/config.js";
 import type { ResolvedApiConfig } from "../src/services/ConfigService.js";
 import { HighlighterService } from "../src/services/HighlighterService.js";
+import { TwoslashEnvironments } from "../src/services/TwoslashEnvironments.js";
 import { VfsRegistry } from "../src/vfs-registry.js";
 import { MockSnapshotServiceLayer, TestOgServiceLayer } from "./utils/layers.js";
 
@@ -46,7 +46,7 @@ describe("generateApiDocs (Effect program)", () => {
 			MockSnapshotServiceLayer,
 			Layer.succeed(HighlighterService, { highlighter }),
 			TestOgServiceLayer,
-			TwoslashEnvironmentsLive,
+			TwoslashEnvironments.layer,
 			Layer.succeed(References.MinimumLogLevel, "None"),
 		);
 		const result = await Effect.runPromise(program.pipe(Effect.provide(testLayer)));

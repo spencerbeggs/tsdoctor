@@ -35,6 +35,7 @@ dependencies: []
   - [Kit Expansion via Dogfood](#kit-expansion-via-dogfood)
 - [Where RSPress Coupling Actually Lives](#where-rspress-coupling-actually-lives)
 - [The Adapter Contract](#the-adapter-contract)
+- [Core-Move Candidates](#core-move-candidates)
 - [Open Decisions (Both Now Resolved)](#open-decisions-both-now-resolved)
 - [Rationale](#rationale)
 - [Related Documentation](#related-documentation)
@@ -109,7 +110,7 @@ The key architectural finding from the planning session: RSPress coupling is con
 
 1. **The runtime React components** — the SSG-MD dual-mode rendering and Twoslash tooltips (`component-development.md`, `ssg-compatible-components.md`). VitePress is Vue; none of this ports. Each adapter owns its component layer outright.
 2. **The remark/HAST pipeline** — `remarkWithApi`, `remarkApiCodeblocks`, and the ShikiCrossLinker post-processing. VitePress uses markdown-it, not remark, and ships first-class Twoslash via `@shikijs/vitepress-twoslash`, so the VitePress adapter does not port this pipeline — it integrates with the native one.
-3. **Lifecycle wiring** — the RSPress `config`/`afterBuild` hooks and llms.txt post-processing (`llms-integration.md`).
+3. **Lifecycle wiring** — the RSPress `config`/`afterBuild` hooks and the llms.txt post-processing I/O in `llms-program.ts` (`llms-integration.md`). Note the split measured in [Core-Move Candidates](#core-move-candidates): the pure text transforms in `llms-processing.ts` are not part of this and belong in core.
 
 Everything outside those three areas — model loading and TSDoc extraction, route/cross-link computation, type registry and VFS construction, the snapshot system, page content generation minus JSX emission — belongs in core.
 
@@ -132,6 +133,21 @@ A sketch of the boundary, to be hardened by the VitePress alpha (phase 5):
 - Code-block rendering integration (remark pipeline here; `@shikijs/vitepress-twoslash` there)
 - Framework lifecycle wiring (hooks, dev server, build phases)
 - Framework-specific SEO and llms.txt injection points
+
+## Core-Move Candidates
+
+Measured at the end of the pre-phase-4 adapter refactor (2026-08-25) from inside the code rather than from a survey: coupling was counted (references to `@rspress`, `shiki`, `hast`, `react`), not judged by file name. The moves themselves wait for phase 4 to finish; this section records the conclusions so the analysis is not re-derived. Full working is in `.claude/plans/2026-08-25-rspress-adapter-refactor.md` under "Core-move candidates".
+
+**Tier 1 — files in the wrong package today, zero framework references** (~1,880 lines): `api-extracted-package.ts` and `type-reference-extractor.ts` plus `typescript-config.ts` + `tsconfig-parser.ts` to `@tsdoctor/registry`, and `frontmatter.ts` + `category-resolver.ts` to `@tsdoctor/model`. `api-extracted-package.ts` is the strongest of them — it already `extends VirtualPackage` FROM the registry, so it is the registry's own concept living outside it. **The "wait for two consumers" rule does not apply to this tier**: that rule exists to stop abstractions being designed speculatively, and these are files whose boundary is already proven by an import crossing it. The tsconfig pair also got cheaper than when the move was first scoped — the parser rewrite took it to 136 lines and removed its `typescript` dependency outright.
+
+**Two edges to resolve before moving:**
+
+- `typescript-config.ts` carries the four-level cascade (global → API → version → package), and its "version" level is a multiVersion concept that may be adapter **product policy** rather than registry-neutral behaviour. The parser half carries no such question.
+- `category-resolver.ts` imports `schemas/config.js` for `CategoryConfig` / `SourceConfig`. Moving it to the model either drags those schema types along or needs them re-homed first.
+
+**One gap in the roadmap as written.** `llms-processing.ts` (414 lines, zero framework references) is pure string transforms over a **cross-framework** standard, and a second adapter would want them byte-identical. Filing it under "llms.txt wiring stays in the adapter" is true of `llms-program.ts` (I/O, RSPress `outDir`) but not of this half — a straightforward miss rather than a judgement call. Two further Tier 2 candidates are open questions rather than misses: the observability cluster (~1,500 lines, framework-neutral, but infrastructure rather than logic — and a second adapter without diagnostics is a worse product) and `og-resolver.ts`, whose pure URL/MIME/alt derivation belongs beside the JSON-LD phase 4 already puts in the model.
+
+**Deliberately not a candidate: `path-derivation.ts`.** It reads neutral, but it encodes multiVersion/locale layout conventions that are indistinguishable from RSPress's own from inside this repo — the case the two-consumer rule is actually for. **Watch item: `twoslash-cache.ts`**, which reads as adapter on four `@shikijs/twoslash` type references while the caching itself is neutral; VitePress uses `@shikijs/vitepress-twoslash` over the same engine, so revisit when the alpha exists.
 
 ## Open Decisions (Both Now Resolved)
 

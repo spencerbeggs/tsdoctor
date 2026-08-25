@@ -10,7 +10,8 @@ Incremental-build snapshot tracking for static documentation pipelines. The pack
 ## What you get
 
 - **`SnapshotService`** — an Effect service tag with typed operations: single and bulk lookup, transactional batch upsert (with a conditional `ON CONFLICT ... DO UPDATE ... WHERE` that avoids rewriting unchanged rows), deletion and stale-entry cleanup.
-- **`SnapshotServiceLive(dbPath)`** — the live layer over a SQLite file. Layer construction applies migrations through `@effected/store`'s ledger; a WAL checkpoint runs as a scope finalizer on clean shutdown.
+- **`SnapshotService.layer(dbPath)`** — the live layer over a SQLite file. Layer construction applies migrations through `@effected/store`'s ledger; a WAL checkpoint runs as a scope finalizer on clean shutdown. It is a factory: call it once per database path and bind the result to a `const`, since layers memoize by reference.
+- **`SnapshotService.makeTest(overrides)` / `SnapshotService.layerTest(overrides)`** — an in-memory double describing a build with no prior snapshot: every lookup misses, every write is accepted and discarded, and nothing is reported stale.
 - **`hashContent` / `hashFrontmatter` / `normalizeContent`** — pure SHA-256 helpers that normalize markdown bodies and frontmatter (excluding timestamp fields) into stable change-detection hashes.
 - **`FileSnapshot`** / **`SnapshotDbError`** — the tracked-file record and the typed error every operation can fail with.
 
@@ -27,10 +28,10 @@ This is an ESM-only package. `effect` (v4) and `@effected/store` are peer depend
 ## Quick start
 
 ```ts
-import { SnapshotService, SnapshotServiceLive, hashContent } from "@tsdoctor/snapshot";
+import { SnapshotService, hashContent } from "@tsdoctor/snapshot";
 import { Effect } from "effect";
 
-const layer = SnapshotServiceLive(".api-docs/snapshot/api-docs.db");
+const layer = SnapshotService.layer(".api-docs/snapshot/api-docs.db");
 
 const program = Effect.gen(function* () {
   const snapshots = yield* SnapshotService;

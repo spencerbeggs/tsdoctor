@@ -17,28 +17,15 @@ dependencies: []
 
 ## Overview
 
-The RSPress API Extractor plugin integrates with `@tsdoctor/registry` (the
-in-repo workspace at `packages/registry`, consumed via `workspace:*`; formerly
-the external `type-registry-effect@2`, the Effect v4 port — moved in and
-renamed during the phase 1 consolidation, see `monorepo-consolidation.md`) to
-load external package type definitions and generate
-virtual file systems (VFS) for TypeScript's Twoslash compiler. This enables
-rich hover tooltips and type-checked code examples in generated API
-documentation.
+The RSPress API Extractor plugin integrates with `@tsdoctor/registry` (the in-repo workspace at `packages/registry`, consumed via `workspace:*`; formerly the external `type-registry-effect@2`, the Effect v4 port — moved in and renamed during the phase 1 consolidation, see `monorepo-consolidation.md`) to load external package type definitions and generate virtual file systems (VFS) for TypeScript's Twoslash compiler. This enables rich hover tooltips and type-checked code examples in generated API documentation.
 
 ### Effect Service Architecture
 
 Type loading uses the Effect service pattern:
 
-- **`TypeRegistryService`** (`services/TypeRegistryService.ts`) --
-  Interface defining `resolveVersions` and `loadPackages`
-- **`TypeRegistryServiceLive`** (`layers/TypeRegistryServiceLive.ts`) --
-  Implementation using `@tsdoctor/registry` Effect programs directly
+- **`TypeRegistryService`** (`services/TypeRegistryService.ts`) — the interface defining `resolveVersions` and `loadPackages`, and, as a static on the same class, **`TypeRegistryService.layer`** — the implementation using `@tsdoctor/registry` Effect programs directly. There is no separate `*ServiceLive.ts` module: services own their layers.
 
-The library (since v2) has no `/node` subpath and ships **no platform layer of its own** —
-it composes at the edge, so `TypeRegistryServiceLive` wires the whole stack
-itself. Library statics also became instance methods: the service yields the
-`TypeRegistry` tag and calls `registry.getVfs(...)` / `registry.resolveVersion(...)`.
+The library (since v2) has no `/node` subpath and ships **no platform layer of its own** — it composes at the edge, so `TypeRegistryService.layer` wires the whole stack itself. Library statics also became instance methods: the service yields the `TypeRegistry` tag and calls `registry.getVfs(...)` / `registry.resolveVersion(...)`.
 
 ## Architecture
 
@@ -61,13 +48,11 @@ export interface TypeRegistryServiceShape {
 }
 ```
 
-There is no `createTypeScriptCache` method. (Earlier revisions of this document
-described one; it has never existed on this interface in the current codebase.)
+There is no `createTypeScriptCache` method. (Earlier revisions of this document described one; it has never existed on this interface in the current codebase.)
 
 ### Edge-composed registry stack
 
-`TypeRegistryServiceLive` builds the registry runtime from module-level layer
-consts — never rebuilt per call, per the v4 layer memoization discipline:
+`TypeRegistryService.layer` builds the registry runtime from module-level layer consts — never rebuilt per call, per the v4 layer memoization discipline:
 
 ```typescript
 const PlatformLive = Layer.mergeAll(NodeFileSystem.layer, Path.layer);
@@ -102,31 +87,18 @@ const RegistryLayer = TypeRegistry.layer.pipe(
 );
 ```
 
-Both service methods run their program with `Effect.provide(RegistryLayer)`.
-`resolveVersions` recovers from registry infrastructure failure (no HOME for
-XDG, unwritable cache DB) by passing the specs through unresolved, so the
-failure surfaces from `loadPackages` with a meaningful error rather than being
-silently swallowed.
+Both service methods run their program with `Effect.provide(RegistryLayer)`. `resolveVersions` recovers from registry infrastructure failure (no HOME for XDG, unwritable cache DB) by passing the specs through unresolved, so the failure surfaces from `loadPackages` with a meaningful error rather than being silently swallowed.
 
 ### Registry event observer
 
-The library emits no logs of its own — observers are the only diagnostic
-surface. `RegistryObserverLayer` (`Layer.succeed(RegistryObserver, ...)`)
-forwards the library's typed events onto the plugin's EventBus as
-`PluginEvent.TypeRegistryEvent`, so registry activity flows through the
-plugin's configured log level and format.
+The library emits no logs of its own — observers are the only diagnostic surface. `RegistryObserverLayer` (`Layer.succeed(RegistryObserver, ...)`) forwards the library's typed events onto the plugin's EventBus as `PluginEvent.TypeRegistryEvent`, so registry activity flows through the plugin's configured log level and format.
 
-In v2 the tag is `RegistryObserver` (was `TypeRegistryObserver`) and
-`RegistryEvent` is a **Schema union with no `$match`**, so the observer is a
-plain `switch` on `event._tag`. Levels: `BatchComplete` at `info`,
-`PackageLoadFailed` at `warn`, everything else (version resolution, cache
-hit/miss/stale, fetch start/failure, per-package load, batch start) at `debug`
-so a normal build stays quiet.
+In v2 the tag is `RegistryObserver` (was `TypeRegistryObserver`) and `RegistryEvent` is a **Schema union with no `$match`**, so the observer is a plain `switch` on `event._tag`. Levels: `BatchComplete` at `info`, `PackageLoadFailed` at `warn`, everything else (version resolution, cache hit/miss/stale, fetch start/failure, per-package load, batch start) at `debug` so a normal build stays quiet.
 
 ### Integration Flow
 
 ```text
-ConfigServiceLive.resolve()
+ConfigService.resolve()
     |
     +-> Collect external packages from plugin options
     |   (explicit + auto-detected from package.json)
@@ -148,34 +120,38 @@ ConfigServiceLive.resolve()
     +-> VFS config registered in VfsRegistry per API scope
 ```
 
-Both calls are wrapped by `Effect.result` in `ConfigServiceLive`, so a type
-load failure degrades the build (code blocks render without Twoslash
-enhancements) rather than aborting it. `VirtualTypeScriptEnvironment` is now
-imported from `@typescript/vfs` directly, since v2 dropped the `/node` subpath
-that used to re-export it.
+Both calls are wrapped by `Effect.result` in `mergeExternalTypes` (`layers/external-types.ts`), so a type load failure degrades the build (code blocks render without Twoslash enhancements) rather than aborting it. That module is the only phase of config resolution that degrades rather than failing; it takes the registry as an argument instead of yielding the tag, because `ConfigService.layer` already resolved it once at layer construction. `VirtualTypeScriptEnvironment` is now imported from `@typescript/vfs` directly, since v2 dropped the `/node` subpath that used to re-export it.
 
 ### VFS in the Build Pipeline
 
 The VFS is consumed in two places:
 
-1. **`TwoslashEnvironments`** -- Provides type information for Twoslash
-   processing of code blocks (hover tooltips, type annotations)
+1. **`TwoslashEnvironments`** -- Provides type information for Twoslash processing of code blocks (hover tooltips, type annotations)
 
-2. **VfsRegistry** -- Makes VFS config available to remark plugins
-   (`remarkWithApi`, `remarkApiCodeblocks`) for user-authored code blocks
+2. **VfsRegistry** -- Makes VFS config available to remark plugins (`remarkWithApi`, `remarkApiCodeblocks`) for user-authored code blocks
 
 ### Per-scope TypeScript environments
 
-Each documented API is type-checked under the `tsconfig` / `compilerOptions` it declares. `ConfigServiceLive` resolves every API's raw config (memoised by config, so N APIs sharing a tsconfig read it once) and calls `registerEnvironment` once per DISTINCT resolved configuration on the **`TwoslashEnvironments` service** (`services/TwoslashEnvironments.ts`, live layer `layers/TwoslashEnvironmentsLive.ts`). The service dedupes by a fingerprint of the ENCODED options (see [Compiler-option normalization](#compiler-option-normalization)), so APIs that agree on their config share an environment and the TypeScript language services built under it. `registerScope(apiScope, compilerOptions)` records which configuration a scope is documented under, and `transformerFor(apiScope)` routes a block to that environment — falling back to the FIRST environment registered for a block belonging to no documented scope, i.e. a `with-api` fence on a page outside any package's route.
+Each documented API is type-checked under the `tsconfig` / `compilerOptions` it declares. `registerTypeEnvironments` (`layers/type-environment.ts`, called from config resolution) resolves every API's raw config (memoised by config, so N APIs sharing a tsconfig read it once) and calls `registerEnvironment` once per DISTINCT resolved configuration on the **`TwoslashEnvironments` service** (`services/TwoslashEnvironments.ts`, which owns its layer as `TwoslashEnvironments.layer`). The service dedupes by a fingerprint of the ENCODED options (see [Compiler-option normalization](#compiler-option-normalization)), so APIs that agree on their config share an environment and the TypeScript language services built under it. `registerScope(apiScope, compilerOptions)` records which configuration a scope is documented under, and `transformerFor(apiScope)` routes a block to that environment — falling back to the FIRST environment registered for a block belonging to no documented scope, i.e. a `with-api` fence on a page outside any package's route.
 
 This replaces `TwoslashManager`, a `private constructor` + `getInstance()` singleton with mutable state and a hand-rolled static `reset()` standing in for layer substitution. Two consequences of the service form are worth stating:
 
 - **The fallback is the subsystem's most dangerous behaviour.** Every scope-routing bug degrades through it invisibly, so a test that only asserts "a transformer came back" asserts nothing. A registered scope must be asserted to get its OWN environment. The fingerprints computed by `registerEnvironment` and `registerScope` MUST agree; when they drifted apart once, every scope lookup missed, per-scope type-checking silently degraded to build-wide, and a 994-test suite stayed green through it.
-- **Access from the render pass goes through a holder, not a runtime.** `transformerFor` is called from the remark plugins, which RSPress invokes during the render pass outside any fiber. `src/twoslash-access.ts` is a module-level holder — the same shape as `markdown/prose-linker.ts` — installed from **inside** a fiber by `plugin.ts` (`installTwoslashAccess(yield* TwoslashEnvironments)`). A runtime-bound accessor is not an option and must not be "fixed" back into one: the main runtime's layer is asynchronous to build, so `runSync` dies with `AsyncFiberError`; and moving the service to the small sync-buildable runtime yields TWO instances, because layer memoization is per-`ManagedRuntime` `MemoMap` — `ConfigServiceLive` would populate one registry and the render pass would read a different, empty one, returning `null` for every block. Both failures are silent. The tell that the holder was never installed is the site build's own summary: `(unscoped): 18 blocks … 0 typechecked` instead of `18 typechecked`.
+- **Access from the render pass goes through a holder, not a runtime.** `transformerFor` is called from the remark plugins, which RSPress invokes during the render pass outside any fiber. `src/twoslash-access.ts` is a module-level holder — the same shape as `markdown/prose-linker.ts` — installed from **inside** a fiber by `plugin.ts` (`installTwoslashAccess(yield* TwoslashEnvironments)`). A runtime-bound accessor is not an option and must not be "fixed" back into one: the main runtime's layer is asynchronous to build, so `runSync` dies with `AsyncFiberError`; and moving the service to the small sync-buildable runtime yields TWO instances, because layer memoization is per-`ManagedRuntime` `MemoMap` — config resolution would populate one registry and the render pass would read a different, empty one, returning `null` for every block. Both failures are silent. The tell that the holder was never installed is the site build's own summary: `(unscoped): 18 blocks … 0 typechecked` instead of `18 typechecked`.
 
 The holder is cleared at the start of each build alongside `VfsRegistry.clear()` and `clearTypeRoutes()`. That last one matters for dev HMR: the module-level Twoslash type-route map used to accumulate for the process lifetime, so routes for renamed or deleted items survived across a dev session and every scope's routes merged into one global map.
 
-Resolution merges rather than replaces: `resolveTypeScriptConfig` starts from `DEFAULT_COMPILER_OPTIONS` and layers global, API, version and package overrides on top, so declaring `{ strict: false }` on one API changes only that. Note the one exception: a discovered tsconfig that **declares `lib`** replaces the array wholesale rather than merging, which is why every `fromDir` site resolves to `["lib.esnext.d.ts"]` with no DOM.
+Resolution merges rather than replaces: `resolveTypeScriptConfig` starts from `DEFAULT_COMPILER_OPTIONS` and layers global, API, version and package overrides on top, so declaring `{ strict: false }` on one API changes only that. Note the one exception: a discovered tsconfig that **declares `lib`** replaces the array wholesale rather than merging, which is why every `fromDir` site resolves to `lib: ["esnext"]` — `lib.esnext.d.ts` once normalized at the seam — with no DOM.
+
+### Reading a tsconfig
+
+`tsconfig-parser.ts` is a thin adapter over `@effected/tsconfig-json`'s `TsconfigLoaderSync`, which owns `extends` chain resolution, JSONC parsing and relative-path handling. The module no longer imports the TypeScript compiler at all, and shrank from 234 lines to 136. `parseTsConfig` narrows the loaded options to `TypeResolutionCompilerOptions` through a deliberate **whitelist** — everything that passes reaches Twoslash's TypeScript environment, and passing through options the plugin does not understand would let a consumer's unrelated build setting change how examples type-check.
+
+**The loader reports the tsconfig spelling, not the programmatic one.** `target` comes back as `"es2025"` rather than `ts.ScriptTarget.ES2025`, and `lib` as `["esnext"]` rather than `["lib.esnext.d.ts"]`; TypeScript's `parseJsonConfigFileContent`, which this replaced, returned the programmatic form. `TypeResolutionCompilerOptions` now documents both spellings for `target`, `module`, `moduleResolution` and `jsx` exactly as it already did for `lib`, and `toProgrammaticCompilerOptions` remains the ONE conversion site. That is why the normalization seam below was a hard precondition for this change rather than a nicety: without it, swapping the loader would have moved a spelling across a boundary that had no converter.
+
+`parseTsConfigWithMetadata` and its `extendedPaths` result are **deleted**. They had zero consumers, and the `resolveExtendedPath` behind them returned a bare package specifier verbatim as if it were a file path, so the extends chain it reported was wrong for exactly the case a chain report is for. The kit resolves package-specifier extends correctly.
+
+Verification worth recording, because a green suite could not establish it: a passing test suite and an MDX golden diff both leave hovers unmeasured — hovers are rendered to HAST after `config()` returns. Hover parity was measured instead on `sites/multi` with a **cold** Twoslash cache on both sides (`XDG_CACHE_HOME` pointed at a temp dir, Twoslash genuinely running for ~8.8s): 226 hovers before the swap, 226 after.
 
 ### Compiler-option normalization
 
@@ -198,8 +174,7 @@ This retires the former limitation, under which the first API in the `apis` arra
 
 ## Virtual File System (VFS)
 
-The VFS is a `Map<string, string>` mapping file paths to TypeScript
-source code:
+The VFS is a `Map<string, string>` mapping file paths to TypeScript source code:
 
 ```text
 node_modules/
@@ -228,8 +203,7 @@ apiExtractor({
 })
 ```
 
-Auto-detection from `package.json` is also supported via
-`autoDetectDependencies`:
+Auto-detection from `package.json` is also supported via `autoDetectDependencies`:
 
 ```typescript
 apiExtractor({
@@ -242,8 +216,7 @@ apiExtractor({
 
 ## Error Handling
 
-`loadPackages` catches any failure (`Effect.catch`) and wraps it in
-`TypeRegistryError`:
+`loadPackages` catches any failure (`Effect.catch`) and wraps it in `TypeRegistryError`:
 
 ```typescript
 new PluginTypeRegistryError({
@@ -253,17 +226,10 @@ new PluginTypeRegistryError({
 })
 ```
 
-Errors propagate through the Effect pipeline and are inspected in
-`ConfigServiceLive` via `Effect.result` (the v4 replacement for
-`Effect.either`; a `Result` with `_tag: "Failure"` and `.failure`). The build
-continues without type information if loading fails — code blocks render
-without Twoslash enhancements.
+Errors propagate through the Effect pipeline and are inspected in `layers/external-types.ts` via `Effect.result` (the v4 replacement for `Effect.either`; a `Result` with `_tag: "Failure"` and `.failure`). The build continues without type information if loading fails — code blocks render without Twoslash enhancements.
 
 ## Related Documentation
 
-- **Import Generation System:**
-  `import-generation-system.md` -- Import statement generation for VFS
-- **Multi-Entry VFS:**
-  `multi-entry-vfs.md` -- VFS `.d.ts` generation for multi-entry packages
-- **Build Architecture:**
-  `build-architecture.md` -- Service layer and plugin structure
+- **Import Generation System:** `import-generation-system.md` -- Import statement generation for VFS
+- **Multi-Entry VFS:** `multi-entry-vfs.md` -- VFS `.d.ts` generation for multi-entry packages
+- **Build Architecture:** `build-architecture.md` -- Service layer and plugin structure

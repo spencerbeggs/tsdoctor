@@ -17,7 +17,6 @@
 import { readFileSync } from "node:fs";
 import { Effect, Layer } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
-import { TwoslashEnvironmentsLive } from "../src/layers/TwoslashEnvironmentsLive.js";
 import type { TwoslashEnvironmentsShape } from "../src/services/TwoslashEnvironments.js";
 import { TwoslashEnvironments } from "../src/services/TwoslashEnvironments.js";
 import {
@@ -33,7 +32,7 @@ const LOOSE = { target: 99, strict: false };
 
 /** Build a registry through the real layer, populate it, and install it. */
 function installed(register: (svc: TwoslashEnvironmentsShape) => void): TwoslashEnvironmentsShape {
-	const svc = Effect.runSync(Effect.provide(TwoslashEnvironments, TwoslashEnvironmentsLive));
+	const svc = Effect.runSync(Effect.provide(TwoslashEnvironments, TwoslashEnvironments.layer));
 	register(svc);
 	installTwoslashAccess(svc);
 	return svc;
@@ -145,7 +144,7 @@ describe("layer isolation", () => {
 	// every test file in the process.
 	it("gives each layer build its own registry", () => {
 		const build = (): TwoslashEnvironmentsShape =>
-			Effect.runSync(Effect.provide(TwoslashEnvironments, TwoslashEnvironmentsLive));
+			Effect.runSync(Effect.provide(TwoslashEnvironments, TwoslashEnvironments.layer));
 
 		const a = build();
 		const b = build();
@@ -160,8 +159,8 @@ describe("layer isolation", () => {
 	// one layer reference across two runtimes builds two instances. This is
 	// why the holder cannot be runtime-bound.
 	it("one layer reference across two layer graphs builds two registries", () => {
-		const one = Effect.runSync(Effect.provide(TwoslashEnvironments, Layer.mergeAll(TwoslashEnvironmentsLive)));
-		const two = Effect.runSync(Effect.provide(TwoslashEnvironments, Layer.mergeAll(TwoslashEnvironmentsLive)));
+		const one = Effect.runSync(Effect.provide(TwoslashEnvironments, Layer.mergeAll(TwoslashEnvironments.layer)));
+		const two = Effect.runSync(Effect.provide(TwoslashEnvironments, Layer.mergeAll(TwoslashEnvironments.layer)));
 		expect(one).not.toBe(two);
 	});
 });

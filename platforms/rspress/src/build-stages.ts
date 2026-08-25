@@ -16,23 +16,21 @@ import type { FileSnapshot } from "@tsdoctor/snapshot";
 import { SnapshotService, hashContent, hashFrontmatter } from "@tsdoctor/snapshot";
 import { Effect, FileSystem, Metric, Option, Stream } from "effect";
 import { parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
-import { BuildMetrics } from "./layers/ObservabilityLive.js";
+import { BuildMetrics } from "./layers/build-metrics.js";
 import { generateFrontmatter } from "./markdown/helpers.js";
-import {
-	ClassPageGenerator,
-	EnumPageGenerator,
-	FunctionPageGenerator,
-	InterfacePageGenerator,
-	MainIndexPageGenerator,
-	NamespacePageGenerator,
-	TypeAliasPageGenerator,
-	VariablePageGenerator,
-} from "./markdown/index.js";
+import { ClassPageGenerator } from "./markdown/page-generators/class-page.js";
+import { EnumPageGenerator } from "./markdown/page-generators/enum-page.js";
+import { FunctionPageGenerator } from "./markdown/page-generators/function-page.js";
+import { MainIndexPageGenerator } from "./markdown/page-generators/index-pages.js";
+import { InterfacePageGenerator } from "./markdown/page-generators/interface-page.js";
+import { NamespacePageGenerator } from "./markdown/page-generators/namespace-page.js";
+import { TypeAliasPageGenerator } from "./markdown/page-generators/type-alias-page.js";
+import { VariablePageGenerator } from "./markdown/page-generators/variable-page.js";
 import { emit } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
 import { emitSync, syncBuildId } from "./observability/sync-emitter.js";
 import { createPageMetadata } from "./og-resolver.js";
-import type { CategoryConfig, LlmsPlugin, SourceConfig } from "./schemas/index.js";
+import type { CategoryConfig, LlmsPlugin, SourceConfig } from "./schemas/config.js";
 import { OgService } from "./services/OgService.js";
 
 export type { FileSnapshot } from "@tsdoctor/snapshot";
@@ -736,7 +734,7 @@ export interface WriteSingleFileContext {
 	readonly siteUrl?: string;
 	/** Docs root, for locating a local OG image under `public/`. */
 	readonly docsRoot?: string;
-	readonly ogImage?: import("./schemas/index.js").OpenGraphImageConfig;
+	readonly ogImage?: import("./schemas/opengraph.js").OpenGraphImageConfig;
 	readonly packageName?: string;
 	readonly apiName?: string;
 }
@@ -809,7 +807,12 @@ export function writeSingleFile(
 		// Build final file content
 		let finalContent = stringifyFrontmatter(bodyContent, frontmatter);
 
-		if (siteUrl && packageName) {
+		// Gated on packageName alone, NOT on a non-empty siteUrl. An unset
+		// `siteOrigin` yields a root-relative prefix ("") rather than nothing, so
+		// the tags are still emitted and still resolve — which is what makes them
+		// inspectable under `rspress dev` on localhost, where no configured origin
+		// could be right. See `deriveSiteUrl`.
+		if (siteUrl != null && packageName) {
 			const ogSvc = yield* OgService;
 			// Degrade, never fail: a misconfigured OG image must not stop a docs
 			// build. The typed failure is surfaced as a ConfigValidationWarning —
@@ -1351,7 +1354,7 @@ export interface BuildPipelineInput {
 	readonly llmsPlugin?: LlmsPlugin;
 	readonly siteUrl?: string;
 	readonly docsRoot?: string;
-	readonly ogImage?: import("./schemas/index.js").OpenGraphImageConfig;
+	readonly ogImage?: import("./schemas/opengraph.js").OpenGraphImageConfig;
 }
 
 /**

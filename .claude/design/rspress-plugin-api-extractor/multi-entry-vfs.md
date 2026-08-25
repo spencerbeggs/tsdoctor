@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: source-mapping
 created: 2026-05-26
-updated: 2026-08-24
-last-synced: 2026-08-24
+updated: 2026-08-25
+last-synced: 2026-08-25
 completeness: 85
 related:
   - rspress-plugin-api-extractor/multi-entry-point-support.md
@@ -70,7 +70,7 @@ The `types`-vs-`exports` decision lives in `VirtualPackage.toPackageJson()` in `
 
 ## Import prepending
 
-`generateVfs()` emits declarations only. External type references (e.g. `ZodType` from `zod`) still need `import type` statements, which are prepended afterward by `prependImportsToVfs` in `ConfigServiceLive`. See `import-generation-system.md`.
+`generateVfs()` emits declarations only. External type references (e.g. `ZodType` from `zod`) still need `import type` statements, which are prepended afterward by `prependImportsToVfs` in `layers/config-resolution.ts`. See `import-generation-system.md`.
 
 ## Backward compatibility
 

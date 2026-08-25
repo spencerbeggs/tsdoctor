@@ -1,4 +1,4 @@
-import { SnapshotService } from "@tsdoctor/snapshot";
+import { SnapshotService, hashContent } from "@tsdoctor/snapshot";
 import { Effect, Option } from "effect";
 import { describe, expect, it } from "vitest";
 import { MockSnapshotServiceLayer } from "./layers.js";
@@ -34,12 +34,15 @@ describe("MockSnapshotServiceLayer", () => {
 		await Effect.runPromise(program.pipe(Effect.provide(MockSnapshotServiceLayer)));
 	});
 
+	// `hashContent` is a standalone export, not a service member: it is a pure
+	// function with no IO, so putting it on the shape forced every double to
+	// supply it and bought nothing. See @tsdoctor/snapshot's index.
 	it("hashContent produces consistent SHA-256", async () => {
 		const program = Effect.gen(function* () {
-			const service = yield* SnapshotService;
-			const hash1 = service.hashContent("hello");
-			const hash2 = service.hashContent("hello");
-			const hash3 = service.hashContent("world");
+			yield* SnapshotService;
+			const hash1 = hashContent("hello");
+			const hash2 = hashContent("hello");
+			const hash3 = hashContent("world");
 			expect(hash1).toBe(hash2);
 			expect(hash1).not.toBe(hash3);
 			expect(hash1).toHaveLength(64);

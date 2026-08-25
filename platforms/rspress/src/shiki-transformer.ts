@@ -78,7 +78,7 @@ export class ShikiCrossLinker {
 	 * way and both are immutable per build.
 	 *
 	 * This replaces a single long-lived instance created at plugin-factory time,
-	 * threaded through `ConfigServiceLive`'s constructor and the build context,
+	 * threaded through `ConfigService.layer`'s constructor and the build context,
 	 * and mutated per API by `reinitialize()`. Scope isolation used to be a
 	 * property of internal `…ByScope` maps plus a mutable `currentApiScope` that
 	 * any caller could reassign between a lookup and a render; it is now a

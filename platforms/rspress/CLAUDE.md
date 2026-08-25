@@ -45,7 +45,7 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
 - `ioredis` + the `@effected/*` closure (`semver`/`store`/`tsconfig-json`/
   `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
   `markdown`) + `@typescript/vfs` — peer-closure deps (some imported
-  directly, e.g. by `layers/TypeRegistryServiceLive.ts`, `sync-node-fs.ts`,
+  directly, e.g. by `services/TypeRegistryService.ts`, `sync-node-fs.ts`,
   `frontmatter.ts`).
   Do NOT prune as "unused" — see the peer dependency closure section in
   `build-architecture.md`. `@effected/*` deps are declared as
@@ -61,8 +61,8 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
   deleted (see "Core Package Consumption" in `build-architecture.md`)
 - `@tsdoctor/bundle` (`workspace:*`) — bundle discovery for the
   `fromDir`/`fromParentDir` config helpers, plus npm/GitHub bundle fetchers
-- `@tsdoctor/snapshot` (`workspace:*`) — `SnapshotService`/`SnapshotServiceLive`
-  and the `hashContent`/`hashFrontmatter` helpers
+- `@tsdoctor/snapshot` (`workspace:*`) — `SnapshotService.layer(dbPath)` plus
+  the standalone `hashContent`/`hashFrontmatter` helpers
 - `@microsoft/api-extractor-model` — `.api.json` model parsing (direct dep;
   model loading flows through `@tsdoctor/model`'s `Model.load`)
 - `@shikijs/twoslash` — syntax highlighting with type information
@@ -98,7 +98,9 @@ pnpm vitest run platforms/rspress/            # Run all plugin tests
 pnpm vitest run platforms/rspress/__test__/   # Run only the canonical test directory
 ```
 
-`__test__/**/*.ts` is in this workspace's `tsconfig.json` `include`, so `pnpm typecheck` covers tests. Fixtures in `__test__/__fixtures__/`, mock layers in `__test__/utils/layers.ts`, fixture-regeneration scripts in `__test__/scripts/` (run via `pnpm exec tsx`).
+`__test__/**/*.ts` is in this workspace's `tsconfig.json` `include`, so `pnpm typecheck` covers tests. Fixtures in `__test__/__fixtures__/`, regeneration scripts in `__test__/scripts/` (`pnpm exec tsx`).
+
+Prefer a service's own `makeTest`/`layerTest` double over a hand-written stub, and read "0 tests passed" with exit 0 as an import-time throw — see @./CLAUDE.services.md.
 
 ## Design Docs
 

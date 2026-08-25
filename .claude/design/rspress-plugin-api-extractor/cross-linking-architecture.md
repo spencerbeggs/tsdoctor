@@ -117,7 +117,7 @@ behind that scope's `VfsRegistry` entry, from which the remark plugins retrieve
 it.
 
 This replaced a single long-lived instance created at plugin-factory time,
-threaded through `ConfigServiceLive`'s constructor and the build context, and
+threaded through the former `ConfigServiceLive` factory's constructor and the build context, and
 mutated per API by `reinitialize()`. Scope isolation used to be a property of
 internal `…ByScope` maps plus a mutable `currentApiScope` any caller could
 reassign between a lookup and a render — with two APIs in one build, whichever
