@@ -1,43 +1,46 @@
 /* v8 ignore start -- RSPress plugin adapter, requires RSPress runtime */
 import fs from "node:fs";
 import { createRequire } from "node:module";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeFileSystem } from "@effect/platform-node";
 import type { RspressPlugin, UserConfig } from "@rspress/core";
 import { SnapshotServiceLive } from "@tsdoctor/snapshot";
-import { Effect, FileSystem, Layer, ManagedRuntime, Ref, Schema } from "effect";
+import { Effect, FileSystem, Layer, ManagedRuntime, Option, Ref, Schema } from "effect";
+import { BuildId, PageConcurrency, SuppressExampleErrors, Thresholds } from "./BuildEnv.js";
 import type { GenerateApiDocsResult } from "./build-program.js";
 import { generateApiDocs } from "./build-program.js";
-import { setBuildStagesEventEmitter } from "./build-stages.js";
 import { fromDir, fromParentDir } from "./config-helpers.js";
 import { classifyApiConfig, mergeLlmsPluginConfig } from "./config-utils.js";
 import { ConfigServiceLive } from "./layers/ConfigServiceLive.js";
+import { HighlighterServiceLive } from "./layers/HighlighterServiceLive.js";
 import { buildEventBus, logBuildSummary, makeSummaryLoggerLayer } from "./layers/ObservabilityLive.js";
-import { PathDerivationServiceLive } from "./layers/PathDerivationServiceLive.js";
+import { OgServiceLive } from "./layers/OgServiceLive.js";
 import { TwoslashCacheServiceLive } from "./layers/TwoslashCacheServiceLive.js";
+import { TwoslashEnvironmentsLive } from "./layers/TwoslashEnvironmentsLive.js";
 import { TypeRegistryServiceLive } from "./layers/TypeRegistryServiceLive.js";
-import type { ShikiThemeConfig } from "./markdown/shiki-utils.js";
-import { DEFAULT_SHIKI_THEMES, setShikiUtilsEventEmitter } from "./markdown/shiki-utils.js";
-import { emit, makeRuntimeEmitter } from "./observability/EventBus.js";
+import { PlatformLive } from "./layers/xdg.js";
+import { collectShikiThemes, normalizeThemeConfig } from "./markdown/shiki-utils.js";
+import { emit } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
 import type { ProgressPhase } from "./observability/heartbeat.js";
 import { runHeartbeat } from "./observability/heartbeat.js";
 import { codeBlockReport } from "./observability/metric-report.js";
 import { writeIssuesJson } from "./observability/sinks/issues-sink.js";
 import { writeRenderPhaseJson } from "./observability/sinks/render-sink.js";
-import { setOgResolverEventEmitter } from "./og-resolver.js";
+import { emitSync, installSyncEmitter } from "./observability/sync-emitter.js";
 import { deriveOutputPaths, normalizeBaseRoute, unscopedName } from "./path-derivation.js";
-import { setPrettierEventEmitter } from "./prettier-formatter.js";
-import { remarkApiCodeblocks, setRemarkApiCodeblocksEventEmitter } from "./remark-api-codeblocks.js";
-import { remarkWithApi, setRemarkWithApiEventEmitter } from "./remark-with-api.js";
+import { remarkApiCodeblocks } from "./remark-api-codeblocks.js";
+import { remarkWithApi } from "./remark-with-api.js";
 import { PluginOptions } from "./schemas/index.js";
 import { resolveObservability } from "./schemas/observability.js";
 import { ConfigService } from "./services/ConfigService.js";
+import { PluginConfig } from "./services/PluginConfig.js";
 import { TwoslashCacheService } from "./services/TwoslashCacheService.js";
-import { ShikiCrossLinker } from "./shiki-transformer.js";
-import type { TwoslashResultCache } from "./twoslash-cache.js";
-import { TwoslashManager, setEventEmitter } from "./twoslash-transformer.js";
+import { TwoslashEnvironments } from "./services/TwoslashEnvironments.js";
+import { clearTwoslashAccess, installTwoslashAccess, twoslashTransformerFor } from "./twoslash-access.js";
+import { clearTypeRoutes } from "./twoslash-transformer.js";
 import { VfsRegistry } from "./vfs-registry.js";
 
 /**
@@ -61,24 +64,6 @@ const readSitePackageName: Effect.Effect<string, never, FileSystem.FileSystem> =
 });
 
 /**
- * Normalize theme configuration from user input to a consistent format.
- */
-function normalizeThemeConfig(
-	theme: string | { light: string; dark: string } | Record<string, unknown> | undefined,
-): ShikiThemeConfig {
-	if (!theme) {
-		return { ...DEFAULT_SHIKI_THEMES };
-	}
-	if (typeof theme === "string") {
-		return { light: theme, dark: theme };
-	}
-	if ("light" in theme && "dark" in theme && typeof theme.light === "string" && typeof theme.dark === "string") {
-		return { light: theme.light, dark: theme.dark };
-	}
-	return { light: theme, dark: theme };
-}
-
-/**
  * RSPress plugin for generating API documentation from API Extractor model files
  */
 function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
@@ -88,9 +73,6 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 	// still validated, but nothing is generated and no artifacts are written, so a
 	// site can pre-configure the plugin before any API model exists.
 	const isInert = classifyApiConfig(options) === "disabled";
-	// Create instances once at plugin initialization and reuse across all builds
-	const shikiCrossLinker = new ShikiCrossLinker();
-
 	// Resolve unified observability config (logLevel, trace, thresholds).
 	const envLogLevel = process.env.LOG_LEVEL?.toLowerCase();
 	const buildId = `${process.pid}-${performance.now().toString(36)}`;
@@ -123,9 +105,37 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 	// path, but a stray sync emitter (a deprecation warning, a `with-api` code
 	// block) can still build it, and SQLite would then fail to open the file.
 	fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+	// Per-build configuration, provided to BOTH runtimes. Sharing the same
+	// values is what lets a sync island and an Effect program agree on the
+	// build id and the slow-block threshold without either being handed them.
+	const BuildEnvLayer = Layer.mergeAll(
+		Layer.succeed(BuildId, buildId),
+		Layer.succeed(Thresholds, obs.thresholds),
+		Layer.succeed(PageConcurrency, os.cpus().length),
+		Layer.succeed(SuppressExampleErrors, options.errors?.example !== "show"),
+	);
+
+	// The decoded options, as a service rather than a constructor argument —
+	// see PluginConfig for why it is not a Reference.
+	const PluginConfigLive = Layer.succeed(PluginConfig, options);
+
+	// Bound to a const: HighlighterServiceLive is a factory, and layers memoize
+	// by reference, so a second call here would acquire a second highlighter.
+	const HighlighterLive = HighlighterServiceLive(
+		collectShikiThemes(options.api ? [options.api] : (options.apis ?? [])),
+	);
+
 	const BaseLayer = Layer.mergeAll(
-		PathDerivationServiceLive,
 		eventBusLayer,
+		PluginConfigLive,
+		HighlighterLive,
+		TwoslashEnvironmentsLive,
+		// Provided its platform locally rather than merged: `Layer.mergeAll` puts
+		// layers side by side without feeding dependencies, so a bare
+		// `OgServiceLive` would leave FileSystem/Path unsatisfied in the runtime's
+		// requirement channel. Task 5.1 tiers this properly.
+		Layer.provide(OgServiceLive, PlatformLive),
+		BuildEnvLayer,
 		// Scope metric state to this build. Metric.MetricRegistry is a
 		// Context.Reference whose default Map is shared by every context that does
 		// not override it, so without this every build in a process accumulates
@@ -138,25 +148,28 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 		TwoslashCacheServiceLive,
 		makeSummaryLoggerLayer(obs.logLevel),
 	);
-	const EffectAppLayer = Layer.provideMerge(
-		ConfigServiceLive(options, shikiCrossLinker, buildId, obs.thresholds),
-		BaseLayer,
-	);
+	const EffectAppLayer = Layer.provideMerge(ConfigServiceLive, BaseLayer);
 	const effectRuntime = ManagedRuntime.make(EffectAppLayer);
-	const emitSync = makeRuntimeEmitter(effectRuntime);
-	setEventEmitter(emitSync, buildId);
-	setShikiUtilsEventEmitter(emitSync, buildId);
-	setPrettierEventEmitter(emitSync, buildId);
-	setOgResolverEventEmitter(emitSync, buildId);
-	setRemarkWithApiEventEmitter(emitSync, buildId, obs.thresholds.slowCodeBlock);
-	setRemarkApiCodeblocksEventEmitter(emitSync, buildId, obs.thresholds.slowCodeBlock);
-	setBuildStagesEventEmitter(emitSync, buildId);
 
-	/**
-	 * The build's Twoslash result cache, captured in `config()` and persisted in
-	 * `afterBuild` — the render phase that populates it runs in between.
-	 */
-	let twoslashCacheHandle: { cache: TwoslashResultCache; envHash: string } | null = null;
+	// The sync-island emitters get their OWN runtime over the observability
+	// layers alone, and it must stay synchronously buildable.
+	//
+	// `makeRuntimeEmitter` calls `runtime.runSync`, which first builds the
+	// runtime's layer. Chunk 2 moved the sqlite caches from lazy per-call
+	// acquisition to layer construction, which made `EffectAppLayer`
+	// ASYNCHRONOUS to build — so the first sync emit from a remark plugin or a
+	// Shiki callback died with `AsyncFiberError: An asynchronous Effect was
+	// executed with Effect.runSync`.
+	//
+	// Splitting them is the right shape independently of that: an event emitter
+	// has no business forcing a database open, and these three layers are all
+	// `Layer.succeed`. `metricStore.layer` is shared BY REFERENCE with
+	// `BaseLayer`, so the metrics sink and `logBuildSummary` still read and
+	// write one registry.
+	const emitterRuntime = ManagedRuntime.make(
+		Layer.mergeAll(eventBusLayer, metricStore.layer, makeSummaryLoggerLayer(obs.logLevel), BuildEnvLayer),
+	);
+	installSyncEmitter(emitterRuntime);
 
 	// File context map (shared across hooks)
 	const fileContextMap = new Map<string, { api?: string; version?: string; file: string }>();
@@ -195,32 +208,28 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 				const renderSamples = renderSink.snapshot();
 				const report = await effectRuntime.runPromise(codeBlockReport);
 
-				// Persist the Twoslash results this build produced. Only written when
-				// something new was type-checked: an all-hit build has nothing to add,
-				// and rewriting an identical blob would churn the cache for nothing.
-				if (twoslashCacheHandle) {
-					const { cache, envHash } = twoslashCacheHandle;
-					const stats = cache.stats();
-					await effectRuntime.runPromise(
-						Effect.gen(function* () {
-							if (stats.dirty) {
-								const svc = yield* TwoslashCacheService;
-								yield* svc.save(envHash, cache.entries());
-							}
-							yield* emit(
-								PluginEvent.TwoslashCacheSaved({
-									ctx: { buildId },
-									level: "info",
-									envHash,
-									hits: stats.hits,
-									misses: stats.misses,
-									entries: stats.entries,
-									persisted: stats.dirty,
-								}),
-							);
-						}),
-					);
-				}
+				// Persist the Twoslash results this build produced. The service holds
+				// the generation — the render pass that fills it runs between
+				// config() and here — and writes only when it is dirty.
+				await effectRuntime.runPromise(
+					Effect.gen(function* () {
+						const svc = yield* TwoslashCacheService;
+						const saved = yield* svc.persist();
+						if (Option.isNone(saved)) return;
+						const stats = saved.value;
+						yield* emit(
+							PluginEvent.TwoslashCacheSaved({
+								ctx: { buildId },
+								level: "info",
+								envHash: stats.envHash,
+								hits: stats.hits,
+								misses: stats.misses,
+								entries: stats.entries,
+								persisted: stats.dirty,
+							}),
+						);
+					}),
+				);
 
 				// Log build summary via Effect metrics
 				await effectRuntime.runPromise(logBuildSummary(obs.thresholds.slowCodeBlock, report));
@@ -271,6 +280,7 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 			// and subsequent builds would fail.
 			if (isProd) {
 				await effectRuntime.dispose();
+				await emitterRuntime.dispose();
 			}
 		},
 
@@ -335,6 +345,15 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 			// This runs in config() (before route scanning) so generated files
 			// are on disk when RSPress builds its route table.
 			VfsRegistry.clear();
+			// The render pass reads this build's Twoslash environments through a
+			// module-level holder. A dev HMR session reuses the process, so a
+			// holder left installed from the previous build would hand out
+			// transformers built against declarations that have since changed.
+			clearTwoslashAccess();
+			// Cross-link routes accumulate across APIs within a build and were never
+			// cleared between builds, so a dev session kept routes for items that had
+			// since been renamed or removed.
+			clearTypeRoutes();
 			fileContextMap.clear();
 			// Reset the issues sink's buckets each build so a dev runtime kept alive
 			// across HMR rebuilds does not accumulate diagnostics without bound.
@@ -380,14 +399,16 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 								);
 							}
 
+							// Bind the render pass to this build's Twoslash environments.
+							// Wired here, beside the other seams, rather than inside
+							// ConfigServiceLive — config resolution should compute a value,
+							// not also mutate module state as a side effect. See
+							// twoslash-access.ts for why this is a holder and not a
+							// runtime-bound accessor.
+							installTwoslashAccess(yield* TwoslashEnvironments);
+
 							const configSvc = yield* ConfigService;
-							const buildContext = yield* configSvc.resolve(rspressConfigSubset);
-							// Hoisted for afterBuild: the render phase runs after config()
-							// returns, so the cache is only fully populated by then.
-							twoslashCacheHandle = {
-								cache: buildContext.twoslashCache,
-								envHash: buildContext.twoslashEnvHash,
-							};
+							const apiConfigs = yield* configSvc.resolve(rspressConfigSubset);
 
 							// Clear previous build results (for HMR rebuilds)
 							buildResults.length = 0;
@@ -395,13 +416,9 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 							yield* Ref.set(phaseRef, "generate");
 
 							yield* Effect.forEach(
-								buildContext.apiConfigs,
+								apiConfigs,
 								(apiConfig) =>
-									generateApiDocs(
-										{ ...apiConfig, suppressExampleErrors: buildContext.suppressExampleErrors },
-										buildContext,
-										fileContextMap,
-									).pipe(
+									generateApiDocs(apiConfig, fileContextMap).pipe(
 										Effect.tap((result) => {
 											buildResults.push(result);
 											return emit(
@@ -511,12 +528,11 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 			updatedConfig.markdown.remarkPlugins.push([
 				remarkWithApi,
 				{
-					shikiCrossLinker,
 					// Scope-aware: a `with-api` fence in a package's docs is checked
 					// under that package's tsconfig, not whichever API happened to be
 					// listed first. This is the correctness half of per-scope
 					// environments (see type-loading-vfs.md).
-					getTransformer: (apiScope?: string) => TwoslashManager.getInstance().getTransformer(apiScope),
+					getTransformer: (apiScope?: string) => twoslashTransformerFor(apiScope),
 					theme: remarkTheme,
 				},
 			]);

@@ -45,131 +45,76 @@ import type { Element, ElementContent, Root } from "hast";
  * @see {@link TwoslashManager} for type-aware documentation features
  */
 export class ShikiCrossLinker {
-	/** Map of API scopes to their route maps (API item name to route) */
-	private readonly apiItemRoutesByScope: Map<string, Map<string, string>> = new Map();
+	/** API item name to route, for THIS scope. */
+	private readonly apiItemRoutes: ReadonlyMap<string, string>;
 
-	/** Map of API scopes to their kind maps (API item name to kind) */
-	private readonly apiItemKindsByScope: Map<string, Map<string, string>> = new Map();
+	/** API item name to kind (Class, Interface, …), for THIS scope. */
+	private readonly apiItemKinds: ReadonlyMap<string, string>;
 
-	/** Map of API scopes to their class members maps (class name to member names) */
-	private readonly classMembersMapByScope: Map<string, Map<string, string[]>> = new Map();
+	/** Parent name to its member names, longest first, for THIS scope. */
+	private readonly classMembersMap: ReadonlyMap<string, ReadonlyArray<string>>;
 
-	/**
-	 * Current API scope being processed (e.g., "claude-binary-plugin")
-	 */
-	private currentApiScope: string | null = null;
+	/** The scope this linker links for. Read-only after construction. */
+	public readonly apiScope: string;
 
-	/**
-	 * Creates a new ShikiCrossLinker instance. Call reinitialize() with routes, kinds,
-	 * and API scope before using the transformer.
-	 */
-	constructor(routes?: Map<string, string>, kinds?: Map<string, string>, apiScope?: string) {
-		if (routes && kinds && apiScope) {
-			this.reinitialize(routes, kinds, apiScope);
-		}
+	private constructor(
+		apiScope: string,
+		apiItemRoutes: ReadonlyMap<string, string>,
+		apiItemKinds: ReadonlyMap<string, string>,
+		classMembersMap: ReadonlyMap<string, ReadonlyArray<string>>,
+	) {
+		this.apiScope = apiScope;
+		this.apiItemRoutes = apiItemRoutes;
+		this.apiItemKinds = apiItemKinds;
+		this.classMembersMap = classMembersMap;
 	}
 
 	/**
-	 * Initialize or reinitialize the cross-link maps with new data for a specific API scope.
-	 * This allows the same transformer instance to be used across multiple API packages,
-	 * with each API's routes stored separately and scoped to prevent cross-API linking.
+	 * One linker for one API's routes.
 	 *
-	 * @param routes - Map of API item names to their documentation routes
-	 * @param kinds - Map of API item names to their kinds (Class, Interface, etc.)
-	 * @param apiScope - The API scope identifier (e.g., "claude-binary-plugin", "rslib-builder")
+	 * @remarks
+	 * Mirrors `@tsdoctor/model`'s `CrossLinker.fromRoutes`, deliberately: the
+	 * two halves of cross-linking — prose and code blocks — are built the same
+	 * way and both are immutable per build.
+	 *
+	 * This replaces a single long-lived instance created at plugin-factory time,
+	 * threaded through `ConfigServiceLive`'s constructor and the build context,
+	 * and mutated per API by `reinitialize()`. Scope isolation used to be a
+	 * property of internal `…ByScope` maps plus a mutable `currentApiScope` that
+	 * any caller could reassign between a lookup and a render; it is now a
+	 * property of the instance, which cannot be pointed at another package's
+	 * routes at all.
 	 */
-	public reinitialize(routes: Map<string, string>, kinds: Map<string, string>, apiScope: string): void {
-		// Store routes for this specific API scope
-		this.apiItemRoutesByScope.set(apiScope, new Map(routes));
-		this.apiItemKindsByScope.set(apiScope, new Map(kinds));
-
-		// Build class members map for this API scope
+	public static fromRoutes(
+		routes: ReadonlyMap<string, string>,
+		kinds: ReadonlyMap<string, string>,
+		apiScope: string,
+	): ShikiCrossLinker {
 		const classMembersMap = new Map<string, string[]>();
 		for (const [name] of routes.entries()) {
-			// If this is a member (contains a dot), add it to the class members map
-			if (name.includes(".")) {
-				const dotIndex = name.indexOf(".");
-				const className = name.substring(0, dotIndex);
-				const memberName = name.substring(dotIndex + 1);
-
-				if (!classMembersMap.has(className)) {
-					classMembersMap.set(className, []);
-				}
-				const members = classMembersMap.get(className);
-				if (members && !members.includes(memberName)) {
-					members.push(memberName);
-				}
+			// A dotted name is a member: "Logger.addTransport" → Logger owns addTransport.
+			const dotIndex = name.indexOf(".");
+			if (dotIndex === -1) continue;
+			const className = name.substring(0, dotIndex);
+			const memberName = name.substring(dotIndex + 1);
+			const members = classMembersMap.get(className);
+			if (members === undefined) {
+				classMembersMap.set(className, [memberName]);
+			} else if (!members.includes(memberName)) {
+				members.push(memberName);
 			}
 		}
 
-		// Sort members by length (longest first) to match "detectLonger" before "detect"
+		// Longest first, so "detectLonger" matches before "detect".
 		for (const members of classMembersMap.values()) {
 			members.sort((a, b) => b.length - a.length);
 		}
 
-		this.classMembersMapByScope.set(apiScope, classMembersMap);
-
-		// Set as current scope
-		this.currentApiScope = apiScope;
+		return new ShikiCrossLinker(apiScope, new Map(routes), new Map(kinds), classMembersMap);
 	}
 
-	/**
-	 * Set the current API scope for cross-linking.
-	 * This should be called before rendering each file to ensure links are scoped correctly.
-	 *
-	 * @param apiScope - The API scope identifier (e.g., "claude-binary-plugin")
-	 */
-	public setApiScope(apiScope: string): void {
-		this.currentApiScope = apiScope;
-	}
-
-	/**
-	 * Get the routes map for the current API scope
-	 */
-	private getRoutesForCurrentScope(): Map<string, string> {
-		if (!this.currentApiScope) return new Map();
-		return this.apiItemRoutesByScope.get(this.currentApiScope) || new Map();
-	}
-
-	/**
-	 * Get the kinds map for the current API scope
-	 */
-	private getKindsForCurrentScope(): Map<string, string> {
-		if (!this.currentApiScope) return new Map();
-		return this.apiItemKindsByScope.get(this.currentApiScope) || new Map();
-	}
-
-	/**
-	 * Get the class members map for the current API scope
-	 */
-	private getClassMembersForCurrentScope(): Map<string, string[]> {
-		if (!this.currentApiScope) return new Map();
-		return this.classMembersMapByScope.get(this.currentApiScope) || new Map();
-	}
-
-	/**
-	 * Get the routes map for a specific API scope
-	 */
-	private getRoutesForScope(scope: string | null): Map<string, string> {
-		if (!scope) return new Map();
-		return this.apiItemRoutesByScope.get(scope) || new Map();
-	}
-
-	/**
-	 * Get the kinds map for a specific API scope
-	 */
-	private getKindsForScope(scope: string | null): Map<string, string> {
-		if (!scope) return new Map();
-		return this.apiItemKindsByScope.get(scope) || new Map();
-	}
-
-	/**
-	 * Get the class members map for a specific API scope
-	 */
-	private getClassMembersForScope(scope: string | null): Map<string, string[]> {
-		if (!scope) return new Map();
-		return this.classMembersMapByScope.get(scope) || new Map();
-	}
+	/** A linker that links nothing — for a scope with no documented routes. */
+	public static readonly empty: ShikiCrossLinker = new ShikiCrossLinker("", new Map(), new Map(), new Map());
 
 	/**
 	 * Transform a finalized HAST tree to add cross-links to type references.
@@ -179,259 +124,29 @@ export class ShikiCrossLinker {
 	 * positions before we add anchor links.
 	 *
 	 * @param hast - The finalized HAST root node from Shiki
-	 * @param apiScope - Optional API scope to use for lookups. If not provided, uses currentApiScope.
 	 * @returns The transformed HAST with cross-links added
+	 *
+	 * @remarks
+	 * There is no scope parameter. A linker IS a scope — the caller picks the
+	 * right instance (from the `VfsRegistry` entry for the page's scope) rather
+	 * than picking the right argument. The parameter it replaces was optional
+	 * and fell back to a mutable `currentApiScope`, so omitting it linked
+	 * against whichever package happened to render last.
 	 *
 	 * @example
 	 * ```ts
 	 * const hast = await highlighter.codeToHast(code, { transformers: [twoslashTransformer] });
-	 * const linkedHast = crossLinker.transformHast(hast, "my-api");
+	 * const linkedHast = crossLinker.transformHast(hast);
 	 * ```
 	 */
-	public transformHast(hast: Root, apiScope?: string): Root {
-		const effectiveScope = apiScope ?? this.currentApiScope;
-		return this.transformRootWithScope(hast, effectiveScope);
+	public transformHast(hast: Root): Root {
+		return this.transformRoot(hast);
 	}
 
-	/**
-	 * Transform the root node of the syntax tree with explicit scope
-	 */
-	private transformRootWithScope(node: Root, scope: string | null): Root {
-		// Get scoped maps for the specified API scope
-		const apiItemRoutes = this.getRoutesForScope(scope);
-		const apiItemKinds = this.getKindsForScope(scope);
-		const classMembersMap = this.getClassMembersForScope(scope);
-
-		// Scope stack for tracking nested class/interface/namespace declarations
-		const scopeStack: string[] = [];
-
-		// The root contains a <pre> element, which contains a <code> element, which contains the line spans
-		// Find the <code> element
-		const preElement = node.children.find((child) => child.type === "element" && child.tagName === "pre");
-		if (preElement?.type !== "element") return node;
-
-		const codeElement = preElement.children.find((child) => child.type === "element" && child.tagName === "code");
-		if (codeElement?.type !== "element") return node;
-
-		// Find all line elements
-		for (const lineElement of codeElement.children) {
-			if (lineElement.type !== "element" || lineElement.tagName !== "span") continue;
-
-			// Get the line text - recursively extract all text nodes
-			const getText = (node: ElementContent): string => {
-				if (node.type === "text") {
-					return node.value;
-				}
-				if (node.type === "element") {
-					return node.children.map(getText).join("");
-				}
-				return "";
-			};
-
-			const lineText = lineElement.children.map(getText).join("");
-
-			// FIRST: Check members using current scope context (before context updates)
-			const currentScope = scopeStack.length > 0 ? scopeStack[scopeStack.length - 1] : null;
-			if (currentScope) {
-				const members = classMembersMap.get(currentScope);
-				if (members) {
-					for (const spanElement of lineElement.children) {
-						if (spanElement.type !== "element" || spanElement.tagName !== "span") continue;
-						if (spanElement.children?.length !== 1) continue;
-
-						const textNode = spanElement.children[0];
-						if (textNode.type !== "text") continue;
-
-						const rawContent = textNode.value;
-						const content = rawContent.trim();
-						if (!content) continue;
-
-						// Check if this is a member name
-						if (members.includes(content)) {
-							const fullMemberName = `${currentScope}.${content}`;
-							const memberRoute = apiItemRoutes.get(fullMemberName);
-							if (memberRoute) {
-								// Get semantic class for the member
-								const memberKind = apiItemKinds.get(fullMemberName);
-								const memberSemanticClass = memberKind ? this.getSemanticClass(memberKind) : null;
-
-								const leadingSpace = rawContent.match(/^\s*/)?.[0] || "";
-								const trailingSpace = rawContent.match(/\s*$/)?.[0] || "";
-
-								// Build class names
-								const classNames = ["api-type-link"];
-								if (memberSemanticClass) {
-									classNames.push(memberSemanticClass);
-								}
-
-								const newChildren: ElementContent[] = [];
-								if (leadingSpace) {
-									newChildren.push({ type: "text", value: leadingSpace });
-								}
-								newChildren.push({
-									type: "element",
-									tagName: "a",
-									properties: {
-										href: memberRoute,
-										class: classNames.join(" "),
-									},
-									children: [{ type: "text", value: content }],
-								});
-								if (trailingSpace) {
-									newChildren.push({ type: "text", value: trailingSpace });
-								}
-
-								spanElement.children = newChildren;
-
-								// Mark this span as processed so the span hook doesn't overwrite it
-								spanElement.properties = {
-									...spanElement.properties,
-									"data-api-processed": "true",
-								};
-							}
-						}
-					}
-				}
-			}
-
-			// THEN: Update scope context for subsequent lines
-			const classMatch = lineText.match(
-				/(?:class|interface|namespace)\s+(\w+)\s*(?:<[^>]*>)?\s*(?:extends|implements)?[^{]*\{/,
-			);
-			if (classMatch) {
-				// Only push scope if braces are unbalanced (declaration opens a new block)
-				const openBraces = (lineText.match(/\{/g) || []).length;
-				const closeBraces = (lineText.match(/\}/g) || []).length;
-				if (openBraces > closeBraces) {
-					scopeStack.push(classMatch[1]);
-				}
-			}
-
-			// Pop scope for excess closing braces
-			const openBraces = (lineText.match(/\{/g) || []).length;
-			const closeBraces = (lineText.match(/\}/g) || []).length;
-			const excessCloses = closeBraces - openBraces;
-			for (let i = 0; i < excessCloses && scopeStack.length > 0; i++) {
-				scopeStack.pop();
-			}
-		}
-
-		// Process instance method calls (e.g., variable.method())
-		// by extracting type information from Twoslash tooltips
-		// We need to recursively find all Twoslash spans, as they may be nested inside styled spans
-		const findTwoslashSpans = (element: Element): Element[] => {
-			const results: Element[] = [];
-
-			// Check if this element itself is a twoslash-hover span
-			const isTwoslashHover = element.properties?.class && String(element.properties.class).includes("twoslash-hover");
-			if (isTwoslashHover) {
-				results.push(element);
-			}
-
-			// Recursively check children
-			if (element.children) {
-				for (const child of element.children) {
-					if (child.type === "element") {
-						results.push(...findTwoslashSpans(child as Element));
-					}
-				}
-			}
-
-			return results;
-		};
-
-		const twoslashSpans = findTwoslashSpans(codeElement as Element);
-		for (const twoslashSpan of twoslashSpans) {
-			// Skip if already processed
-			if (twoslashSpan.properties?.["data-api-processed"] === "true") continue;
-
-			// Check if this is a Twoslash-wrapped method call
-			const methodInfo = this.extractMethodInfoFromTwoslashTooltip(twoslashSpan);
-			if (!methodInfo) continue;
-
-			const { className, methodName } = methodInfo;
-
-			// Check if we have a route for this method
-			const fullMemberName = `${className}.${methodName}`;
-			const memberRoute = apiItemRoutes.get(fullMemberName);
-			if (!memberRoute) {
-				continue;
-			}
-
-			// Get semantic classes
-			const memberKind = apiItemKinds.get(fullMemberName);
-			const memberSemanticClass = memberKind ? this.getSemanticClass(memberKind) : null;
-
-			// Build class names for the member link
-			const memberClassNames = ["api-type-link"];
-			if (memberSemanticClass) {
-				memberClassNames.push(memberSemanticClass);
-			}
-
-			// Extract the actual text to be linked
-			const textContent = this.extractTextFromTwoslash(twoslashSpan);
-			if (!textContent) {
-				continue;
-			}
-
-			// Wrap the text with an anchor inside the Twoslash hover span
-			this.wrapTwoslashTextInAnchor(twoslashSpan, textContent.trim(), memberRoute, memberClassNames);
-
-			// Mark as processed
-			twoslashSpan.properties = {
-				...twoslashSpan.properties,
-				"data-api-processed": "true",
-			};
-		}
-
-		// Phase 3: Type reference linking in all spans
-		// Build sorted type name list (top-level only, no dotted member names)
-		const typeNames = Array.from(apiItemRoutes.keys())
-			.filter((name) => !name.includes("."))
-			.sort((a, b) => b.length - a.length);
-
-		if (typeNames.length > 0) {
-			// Phase 3a: Link type references in Twoslash hover spans
-			for (const twoslashSpan of twoslashSpans) {
-				if (twoslashSpan.properties?.["data-api-processed"] === "true") continue;
-				const text = this.extractTextFromTwoslash(twoslashSpan);
-				if (!text) continue;
-				const content = text.trim();
-				const route = apiItemRoutes.get(content);
-				if (!route) continue;
-				const kind = apiItemKinds.get(content);
-				const semanticClass = kind ? this.getSemanticClass(kind) : null;
-				const classNames = ["api-type-link"];
-				if (semanticClass) classNames.push(semanticClass);
-				this.wrapTwoslashTextInAnchor(twoslashSpan, content, route, classNames);
-				twoslashSpan.properties = {
-					...twoslashSpan.properties,
-					"data-api-processed": "true",
-				};
-			}
-
-			// Phase 3b: Link type references in regular text nodes
-			const escapedNames = typeNames.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-			const typePattern = new RegExp(`\\b(${escapedNames.join("|")})\\b`, "g");
-
-			for (const lineElement of codeElement.children) {
-				if (lineElement.type !== "element" || lineElement.tagName !== "span") continue;
-				this.linkTypeReferencesInLine(lineElement, typePattern, apiItemRoutes, apiItemKinds);
-			}
-		}
-
-		// Return the modified tree
-		return node;
-	}
-
-	/**
-	 * Transform the root node of the syntax tree
-	 */
-	public transformRoot(node: Root): Root {
-		// Get scoped maps for current API
-		const apiItemRoutes = this.getRoutesForCurrentScope();
-		const apiItemKinds = this.getKindsForCurrentScope();
-		const classMembersMap = this.getClassMembersForCurrentScope();
+	private transformRoot(node: Root): Root {
+		const apiItemRoutes = this.apiItemRoutes;
+		const apiItemKinds = this.apiItemKinds;
+		const classMembersMap = this.classMembersMap;
 
 		// Scope stack for tracking nested class/interface/namespace declarations
 		const scopeStack: string[] = [];
@@ -660,9 +375,9 @@ export class ShikiCrossLinker {
 	 */
 	public transformLine(node: Element): void {
 		// Get scoped maps for current API
-		const apiItemRoutes = this.getRoutesForCurrentScope();
-		const apiItemKinds = this.getKindsForCurrentScope();
-		const classMembersMap = this.getClassMembersForCurrentScope();
+		const apiItemRoutes = this.apiItemRoutes;
+		const apiItemKinds = this.apiItemKinds;
+		const classMembersMap = this.classMembersMap;
 
 		// Track which spans we've processed to avoid double-processing
 		if (!node.children) return;
@@ -800,8 +515,8 @@ export class ShikiCrossLinker {
 	 */
 	public transformSpan(node: Element, _line: number, _col: number): void {
 		// Get scoped maps for current API
-		const apiItemRoutes = this.getRoutesForCurrentScope();
-		const apiItemKinds = this.getKindsForCurrentScope();
+		const apiItemRoutes = this.apiItemRoutes;
+		const apiItemKinds = this.apiItemKinds;
 
 		// Skip if this span was already processed by the root hook or line handler
 		if (node.properties?.["data-api-processed"] === "true") {
@@ -1024,8 +739,8 @@ export class ShikiCrossLinker {
 	private linkTypeReferencesInLine(
 		lineElement: Element,
 		typePattern: RegExp,
-		apiItemRoutes: Map<string, string>,
-		apiItemKinds: Map<string, string>,
+		apiItemRoutes: ReadonlyMap<string, string>,
+		apiItemKinds: ReadonlyMap<string, string>,
 	): void {
 		for (const child of lineElement.children) {
 			if (child.type !== "element" || child.tagName !== "span") continue;
@@ -1075,8 +790,8 @@ export class ShikiCrossLinker {
 	private splitTextAtTypeReferences(
 		text: string,
 		typePattern: RegExp,
-		apiItemRoutes: Map<string, string>,
-		apiItemKinds: Map<string, string>,
+		apiItemRoutes: ReadonlyMap<string, string>,
+		apiItemKinds: ReadonlyMap<string, string>,
 	): ElementContent[] {
 		// Reset regex state since we're using the global flag
 		typePattern.lastIndex = 0;

@@ -1,4 +1,3 @@
-/* v8 ignore start -- markdown generation helpers, tested via page generator integration tests */
 /**
  * Helper utilities for generating markdown API documentation.
  *
@@ -69,95 +68,20 @@ export function prepareExampleCode(
 }
 
 /**
- * Sanitize a display name to create a URL-safe HTML ID.
+ * Collapse newlines and runs of whitespace to single spaces, and trim.
  *
- * Converts a display name (e.g., method or property name) into a valid
- * HTML ID suitable for anchor links. Handles special characters, quotes,
- * and optionally adds a prefix for disambiguation.
- *
- * @param displayName - The original display name
- * @param prefix - Optional prefix to add (e.g., "static-property")
- * @returns URL-safe ID string
- *
- * @example
- * ```ts
- * sanitizeId("myMethod");        // "mymethod"
- * sanitizeId("get value");       // "get-value"
- * sanitizeId("run", "static");   // "static-run"
- * ```
- */
-export function sanitizeId(displayName: string, prefix: string = ""): string {
-	const baseName = displayName
-		// Remove quotes
-		.replace(/["']/g, "")
-		// Replace spaces and other special chars with hyphens
-		.replace(/[^\w-]/g, "-")
-		// Remove leading/trailing hyphens
-		.replace(/^-+|-+$/g, "")
-		// Lowercase for consistency
-		.toLowerCase();
-
-	return prefix ? `${prefix}-${baseName}` : baseName;
-}
-
-/**
- * Escape a YAML string value by handling special characters.
- *
- * Normalizes whitespace and wraps strings in double quotes if they contain
- * characters that could break YAML parsing (colons, quotes, hashes, pipes,
- * brackets, braces, Unicode characters, etc.).
- *
- * @param value - The string value to escape
- * @returns YAML-safe string
- *
- * @example
- * ```ts
- * escapeYamlString("Hello World");           // "Hello World"
- * escapeYamlString("Type: string");          // "\"Type: string\""
- * escapeYamlString("He said \"hello\"");     // "\"He said \\\"hello\\\"\""
- * escapeYamlString("@pkg/name。:");          // "\"@pkg/name。:\""
- * ```
- */
-/**
- * Normalize a string for use as a YAML frontmatter value: collapse newlines
- * and repeated whitespace to single spaces and trim.
- *
- * This is the cleaning half of the former hand-rolled YAML escaping. It is
- * applied to every frontmatter value BEFORE serialization so the parsed data
- * (and therefore the snapshot frontmatter hash — see `@tsdoctor/snapshot`)
- * is byte-identical to what the previous emitter produced; the quoting half
- * is now owned by the real YAML emitter in `../frontmatter.ts`.
+ * @remarks
+ * Applied to every frontmatter scalar before emission. This is NOT quoting —
+ * `@effected/yaml` owns that — it is whitespace normalization, and it is
+ * load-bearing: the snapshot system hashes the PARSED frontmatter, so a value
+ * that folds differently between builds would churn the hash. Survives the
+ * removal of `escapeYamlString`, which was its other caller.
  */
 function cleanYamlValue(value: string): string {
 	return value
 		.replace(/[\r\n]+/g, " ")
 		.replace(/\s+/g, " ")
 		.trim();
-}
-
-export function escapeYamlString(value: string): string {
-	// Normalize whitespace
-	const cleaned = cleanYamlValue(value);
-
-	// Check if string needs quoting:
-	// 1. Contains YAML special characters: : # | > & * ! % @ ` [ ] { } , ? -
-	// 2. Contains quotes
-	// 3. Contains non-ASCII Unicode characters (like Chinese period 。)
-	// 4. Starts/ends with whitespace (after trim, this won't happen)
-	// 5. Looks like a number, boolean, or null
-	const needsQuoting =
-		/["':#|>&*!%@`[\]{},?-]/.test(cleaned) || // Special YAML characters
-		/[\u0080-\uFFFF]/.test(cleaned) || // Non-ASCII Unicode (U+0080 and above)
-		/^(true|false|null|~|yes|no|on|off)$/i.test(cleaned) || // YAML literals
-		/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(cleaned); // Numbers
-
-	if (needsQuoting) {
-		// Escape any double quotes and backslashes in the string
-		const escaped = cleaned.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-		return `"${escaped}"`;
-	}
-
-	return cleaned;
 }
 
 /**
@@ -255,7 +179,7 @@ export function generateFrontmatter(
 	const title = buildPageTitle(entityName, singularName, apiName);
 
 	// Every value is whitespace-normalized exactly as the previous hand-rolled
-	// emitter did (via escapeYamlString), so the PARSED data — and therefore
+	// emitter did (via cleanYamlValue), so the PARSED data — and therefore
 	// the snapshot frontmatter hash — is unchanged by the move to a real YAML
 	// emitter. Quoting/escaping is now the emitter's job (@effected/yaml with
 	// all string values double-quoted; see frontmatter.ts).

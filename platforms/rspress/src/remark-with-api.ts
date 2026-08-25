@@ -8,26 +8,12 @@ import { visit } from "unist-util-visit";
 import { stripTwoslashDirectives } from "./markdown/helpers.js";
 import type { ShikiThemeConfig } from "./markdown/shiki-utils.js";
 import { DEFAULT_SHIKI_THEMES } from "./markdown/shiki-utils.js";
-import type { PluginEvent } from "./observability/events.js";
 import { PluginEvent as PE } from "./observability/events.js";
+import { emitSync, syncBuildId, syncSlowCodeBlockMs } from "./observability/sync-emitter.js";
 import { formatCode } from "./prettier-formatter.js";
-import type { ShikiCrossLinker } from "./shiki-transformer.js";
+import { setTwoslashFile } from "./twoslash-access.js";
 import { createTwoslashTimingWrapper } from "./twoslash-timing-wrapper.js";
-import { TwoslashManager } from "./twoslash-transformer.js";
-
-/** Module-level emitter injected by plugin.ts at startup. */
-let emitEvent: (event: PluginEvent) => void = () => {};
-let currentBuildId = "";
-let currentSlowCodeBlockMs = 500;
-export function setRemarkWithApiEventEmitter(
-	fn: (event: PluginEvent) => void,
-	buildId = "",
-	slowCodeBlockMs = 500,
-): void {
-	emitEvent = fn;
-	currentBuildId = buildId;
-	currentSlowCodeBlockMs = slowCodeBlockMs;
-}
+import { VfsRegistry } from "./vfs-registry.js";
 
 /**
  * Supported languages for with-api code blocks
@@ -60,7 +46,6 @@ function inferApiScope(filePath: string): string | undefined {
  * Options for the remark with-api plugin
  */
 interface RemarkWithApiOptions {
-	shikiCrossLinker: ShikiCrossLinker;
 	/** Getter for the shared Twoslash transformer from TwoslashManager */
 	getTransformer: (apiScope?: string) => ShikiTransformer | null;
 	/** Theme configuration for Shiki highlighting */
@@ -84,7 +69,7 @@ interface RemarkWithApiOptions {
  * 5. Renders to ApiExample component with pre-rendered Shiki HAST
  */
 export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: RemarkWithApiOptions) => {
-	const { shikiCrossLinker, getTransformer, theme } = options;
+	const { getTransformer, theme } = options;
 
 	// Resolve theme with defaults
 	const resolvedTheme = theme ?? DEFAULT_SHIKI_THEMES;
@@ -104,12 +89,8 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 
 		// Infer API scope from file path for cross-linking
 		if (currentFilePath) {
-			const apiScope = inferApiScope(currentFilePath);
-			if (apiScope) {
-				shikiCrossLinker.setApiScope(apiScope);
-			}
 			// Step 1b: wire file path into TwoslashManager so TwoslashDiagnostic.file carries real paths
-			TwoslashManager.getInstance().setCurrentFile(currentFilePath);
+			setTwoslashFile(currentFilePath);
 		}
 
 		visit(tree, "code", (node: Code, index: number | undefined, parent: Parent | undefined) => {
@@ -188,18 +169,24 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 				// shikiMs would overstate the Shiki share. Excluded here, it falls into
 				// the report's derived `otherMs` instead — the same split the
 				// generated-page path in `remark-api-codeblocks.ts` makes.
-				if (apiScope) {
-					hast = shikiCrossLinker.transformHast(hast, apiScope);
+				// The linker for THIS page's scope, from the registry entry
+				// `build-program.ts` wrote. A fence on a page outside any
+				// documented route has no entry and is rendered without
+				// cross-links — the same outcome the shared linker produced for an
+				// unknown scope, now by construction instead of by empty lookup.
+				const scopeLinker = apiScope ? VfsRegistry.get(apiScope)?.crossLinker : undefined;
+				if (scopeLinker) {
+					hast = scopeLinker.transformHast(hast);
 				}
 
 				const totalBlockTime = performance.now() - blockStart;
 
 				// Block stats derived from CodeBlockProcessed event in MetricsSink
-				const isSlow = totalBlockTime > currentSlowCodeBlockMs;
-				emitEvent(
+				const isSlow = totalBlockTime > syncSlowCodeBlockMs();
+				emitSync(
 					PE.CodeBlockProcessed({
 						ctx: {
-							buildId: currentBuildId,
+							buildId: syncBuildId(),
 							...(apiScope != null ? { apiScope } : {}),
 							...(currentFilePath != null ? { file: currentFilePath } : {}),
 						},

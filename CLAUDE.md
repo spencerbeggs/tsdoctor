@@ -8,11 +8,10 @@ repository.
 The tsdoctor monorepo: tools for generating API documentation from TypeScript
 API Extractor models, organized into core `@tsdoctor/*` libraries
 (`packages/*`), framework adapters (`platforms/*`), test fixture modules, and
-documentation sites. The source repository is
-<https://github.com/spencerbeggs/tsdoctor> (renamed from
-`spencerbeggs/rspress-plugin-api-extractor`; GitHub redirects the old URL);
-phases 1 and 2 of the roadmap consolidation have landed. The npm package name
-`rspress-plugin-api-extractor` is unchanged.
+documentation sites. Source repo: <https://github.com/spencerbeggs/tsdoctor>
+(renamed from `spencerbeggs/rspress-plugin-api-extractor`, old URL redirects).
+Roadmap phases 1–3 have landed, plus a pre-phase-4 adapter refactor. The npm
+package name `rspress-plugin-api-extractor` is unchanged.
 
 **Naming caution:** `packages/` = core `@tsdoctor/*` libraries; `platforms/` =
 framework adapters (`platforms/rspress/` is the publishable
@@ -69,44 +68,33 @@ Exports three entry points:
 ### packages/
 
 Core `@tsdoctor/*` libraries, framework-neutral and publishable, versioned
-via changesets on fresh 0.x lines:
+via changesets on fresh 0.x lines. Purposes are in the workspace table above;
+read each package's own `CLAUDE.md` before working in it.
 
-**registry** — the renamed `type-registry-effect@2.3.5` (same API; tag ids
-now `"@tsdoctor/registry/..."` since phase 2). See
-`packages/registry/CLAUDE.md`.
-
-**model** — redesigned in phase 2 as Effect v4 namespace modules (`Model`,
-`Tsdoc`, `ApiItems`, `EntryPoints`, `Routes`, `SyntheticBases`, `Signature`,
-`Render`, `CrossLinker`). See `packages/model/CLAUDE.md`.
-
-**bundle** — the versioned bundle spec (phase 2): `tsdoctor.json` sidecar
-manifest, provenance resolver, discovery, npm/GitHub fetchers. See
-`packages/bundle/CLAUDE.md`.
-
-**snapshot** — the snapshot store extracted from the plugin (phase 2), on
-`@effected/store`'s `Store.layerSqlite`. See `packages/snapshot/CLAUDE.md`.
+**model** is the one to know: Effect v4 namespace modules (`Model`, `Tsdoc`,
+`ApiItems`, `EntryPoints`, `Routes`, `SyntheticBases`, `Signature`, `Render`,
+`CrossLinker`). `Routes.sanitizeId` is the **single** anchor algorithm —
+`Routes.memberAnchors`/`memberRouteKeys` (and the `ApiItems` views of them)
+own member anchors and cross-link keys. Never add a second spelling.
 
 ### plugin/ (Claude Code plugin)
 
 The **api-docs Claude Code plugin** — not a pnpm workspace, not part of the
-build. Ships skills, the `rspress-docs` agent, slash commands, hooks and
-background monitors; bats tests in `plugin/__test__/`. Load with
-`pnpm claude` (`claude --plugin-dir=plugin`). See `plugin/CLAUDE.md`.
+build. Ships skills, the `rspress-docs` agent, commands, hooks and monitors;
+bats tests in `plugin/__test__/`. Load with `pnpm claude`
+(`claude --plugin-dir=plugin`). See `plugin/CLAUDE.md`.
 
 ### modules/
 
-Test fixture modules using `defineBuild()` from `@savvy-web/bundler`
-(`savvy.build.ts`) to build demo TypeScript libraries. Each produces dual
-outputs:
+Test fixture modules built with `defineBuild()` from `@savvy-web/bundler`
+(`savvy.build.ts`), each producing dual output:
 
 - `dist/dev/` — Development build with source maps
 - `dist/prod/` — Production build with API Extractor model (`.api.json` under `dist/<mode>/meta/`)
 
-**kitchensink** — Comprehensive module exercising all API Extractor item
-kinds. Exports a `./testing` entry point for multi-entry point testing.
-
-**versioned-v1 / versioned-v2** — Paired modules for testing multiVersion
-documentation: v1 baseline, v2 breaking changes.
+**kitchensink** exercises every API Extractor item kind and exports a
+`./testing` entry point for multi-entry testing. **versioned-v1/v2** are the
+multiVersion pair: v1 baseline, v2 breaking changes.
 
 ### sites/
 
@@ -120,8 +108,14 @@ The plugin uses **Effect v4** (`effect@4.0.0-rc.109`, pinned through the
 `catalog:effect` catalog) for all build orchestration. Key patterns:
 
 - **Services** in the Layer stack, declared as
-  `Context.Service<Self, Shape>()("id")`: `ConfigService`, `SnapshotService`
-  (from `@tsdoctor/snapshot`), `TypeRegistryService`, `PathDerivationService`
+  `Context.Service<Self, Shape>()("id")`: `ConfigService`, `PluginConfig`,
+  `HighlighterService`, `OgService`, `TwoslashEnvironments`,
+  `TwoslashCacheService`, `TypeRegistryService`, `EventBus`, and
+  `SnapshotService` (from `@tsdoctor/snapshot`)
+- **Per-build `Context.Reference`s** in `src/BuildEnv.ts` (`BuildId`,
+  `Thresholds`, `PageConcurrency`, `SuppressExampleErrors`)
+- **Two `ManagedRuntime`s**: the main (async-to-build) one, plus a small
+  `Layer.succeed`-only one for the sync-island event emitters
 - **Stream pipeline** for concurrent page generation (`build-stages.ts`)
 - **Effect Schema** for config validation (`src/schemas/`)
 - **Core `effect` FileSystem** for cross-platform I/O, with
@@ -160,10 +154,10 @@ Effect-org packages (`effect`, `@effect/platform-node`, `@effect/sql-sqlite-node
 ## Design Documentation
 
 Design docs live in `.claude/design/rspress-plugin-api-extractor/`. Load the
-relevant doc when working on these areas:
+relevant doc for the area you touch:
 
 **Build & infrastructure** — load when modifying Effect services, layers,
-plugin lifecycle, or ManagedRuntime:
+`Context.Reference`s, plugin lifecycle, or either `ManagedRuntime`:
 
 - @./.claude/design/rspress-plugin-api-extractor/build-architecture.md
 - @./.claude/design/rspress-plugin-api-extractor/snapshot-tracking-system.md
@@ -182,8 +176,7 @@ SSG-MD dual-mode rendering:
 - @./.claude/design/rspress-plugin-api-extractor/ssg-compatible-components.md
 
 **Type loading, VFS & multi-entry points** — load when modifying Twoslash,
-external package types, virtual file system generation, or multi-entry point
-resolution in the doc generation pipeline:
+external package types, VFS generation, or multi-entry resolution:
 
 - @./.claude/design/rspress-plugin-api-extractor/type-loading-vfs.md
 - @./.claude/design/rspress-plugin-api-extractor/multi-entry-point-support.md
@@ -204,8 +197,8 @@ tracking, the progress heartbeat, or the `issues.json` artifact:
 - @./.claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md
 
 **Roadmap & @tsdoctor consolidation** — load when working on the road to
-1.0.0, the `@tsdoctor/*` package architecture, or consolidation history
-(phases 1–2 executed; later phases are planned, not current state):
+1.0.0 or the `@tsdoctor/*` package architecture (phases 1–3 and the
+pre-phase-4 adapter refactor are executed; later phases are planned):
 
 - @./.claude/design/rspress-plugin-api-extractor/roadmap-1.0.md
 - @./.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md

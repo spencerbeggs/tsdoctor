@@ -1,6 +1,6 @@
-import { NodeFileSystem, NodeHttpClient } from "@effect/platform-node";
+import { NodeHttpClient } from "@effect/platform-node";
 import { Cache } from "@effected/store";
-import { AppDirs, Xdg } from "@effected/xdg";
+import { AppDirs } from "@effected/xdg";
 import { PackageFetcher, PackageSpec, RegistryObserver, TypeCache, TypeRegistry } from "@tsdoctor/registry";
 import { Duration, Effect, Layer, Path } from "effect";
 import { resolveExternalPackageVersions } from "../config-utils.js";
@@ -8,6 +8,7 @@ import { TypeRegistryError as PluginTypeRegistryError } from "../errors.js";
 import { emit } from "../observability/EventBus.js";
 import { PluginEvent } from "../observability/events.js";
 import { TypeRegistryService } from "../services/TypeRegistryService.js";
+import { AppDirsLive, PlatformLive } from "./xdg.js";
 
 /**
  * Forward @tsdoctor/registry's typed `RegistryEvent`s to the plugin's Effect
@@ -24,7 +25,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 			case "VersionResolved":
 				return emit(
 					PluginEvent.TypeRegistryEvent({
-						ctx: { buildId: "", packageName: event.package },
+						ctx: { packageName: event.package },
 						level: "debug",
 						kind: "VersionResolved",
 						detail: `${event.requested} -> ${event.resolved}`,
@@ -33,7 +34,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 			case "VersionResolveFailed":
 				return emit(
 					PluginEvent.TypeRegistryEvent({
-						ctx: { buildId: "", packageName: event.package },
+						ctx: { packageName: event.package },
 						level: "debug",
 						kind: "VersionResolveFailed",
 						detail: `${event.requested}: ${event.kind}`,
@@ -44,7 +45,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 			case "FetchStart":
 				return emit(
 					PluginEvent.TypeRegistryEvent({
-						ctx: { buildId: "", packageName: event.package, version: event.version },
+						ctx: { packageName: event.package, version: event.version },
 						level: "debug",
 						kind: event._tag,
 						detail: "",
@@ -53,7 +54,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 			case "CacheStale":
 				return emit(
 					PluginEvent.TypeRegistryEvent({
-						ctx: { buildId: "", packageName: event.package, version: event.version },
+						ctx: { packageName: event.package, version: event.version },
 						level: "debug",
 						kind: "CacheStale",
 						detail: "",
@@ -66,7 +67,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 			case "FetchFailed":
 				return emit(
 					PluginEvent.TypeRegistryEvent({
-						ctx: { buildId: "" },
+						ctx: {},
 						level: "debug",
 						kind: "FetchFailed",
 						detail: `HTTP ${event.status}: ${event.url}${event.bodySnippet ? ` — ${event.bodySnippet}` : ""}`,
@@ -75,7 +76,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 			case "PackageLoaded":
 				return emit(
 					PluginEvent.TypeRegistryEvent({
-						ctx: { buildId: "", packageName: event.package, version: event.version },
+						ctx: { packageName: event.package, version: event.version },
 						level: "debug",
 						kind: "PackageLoaded",
 						detail: `${event.files} files, ${event.source}`,
@@ -84,7 +85,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 			case "PackageLoadFailed":
 				return emit(
 					PluginEvent.TypeRegistryEvent({
-						ctx: { buildId: "", packageName: event.package, version: event.version },
+						ctx: { packageName: event.package, version: event.version },
 						level: "warn",
 						kind: "PackageLoadFailed",
 						detail: `[${event.kind}] ${event.error instanceof Error ? event.error.message : String(event.error)}`,
@@ -93,7 +94,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 			case "BatchStart":
 				return emit(
 					PluginEvent.TypeRegistryEvent({
-						ctx: { buildId: "" },
+						ctx: {},
 						level: "debug",
 						kind: "BatchStart",
 						detail: `${event.total} package(s)`,
@@ -102,7 +103,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 			case "BatchComplete":
 				return emit(
 					PluginEvent.TypeRegistryEvent({
-						ctx: { buildId: "" },
+						ctx: {},
 						level: "info",
 						kind: "BatchComplete",
 						detail: `${event.loaded}/${event.total} packages, ${event.totalFiles} files, ${Math.round(
@@ -113,26 +114,6 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 		}
 	},
 });
-
-/**
- * @tsdoctor/registry composes at the edge: the library ships no platform
- * layer of its own, so the plugin wires FileSystem/Path, the XDG directories,
- * the sqlite metadata Cache and the HTTP client here.
- *
- * All layers are bound to module-level consts (never rebuilt per call) per the
- * v4 layer memoization discipline.
- */
-const PlatformLive = Layer.mergeAll(NodeFileSystem.layer, Path.layer);
-
-/**
- * XDG app directories under the tsdoctor-wide namespace. Renamed from the
- * legacy "type-registry-effect" namespace in phase 2 per the resolved identity
- * decision (see tsdoctor-package-architecture.md) — a deliberate one-time
- * on-disk cache invalidation: existing caches go cold and refetch.
- */
-const AppDirsLive = AppDirs.layer({ namespace: "tsdoctor" }).pipe(
-	Layer.provide(Layer.mergeAll(Xdg.layer, PlatformLive)),
-);
 
 /** Metadata plane: a sqlite-backed `@effected/store` Cache rooted in the XDG cache dir. */
 const MetadataCacheLive = Layer.unwrap(
@@ -158,40 +139,85 @@ const RegistryLayer = TypeRegistry.layer.pipe(
 /**
  * TypeRegistryServiceLive: uses @tsdoctor/registry Effect programs directly.
  */
-export const TypeRegistryServiceLive = Layer.succeed(TypeRegistryService, {
-	resolveVersions: (packages) =>
-		Effect.gen(function* () {
-			const registry = yield* TypeRegistry;
-			return yield* resolveExternalPackageVersions(packages, (pkg) => registry.resolveVersion(pkg.name, pkg.version));
-		}).pipe(
-			Effect.provide(RegistryLayer),
-			// Registry infrastructure failure (e.g. no HOME for XDG, cache DB unwritable):
-			// pass the specs through unresolved so the failure surfaces on loadPackages
-			// with a meaningful error instead of being silently swallowed here.
-			Effect.catch(() => Effect.succeed([...packages])),
-		),
-
-	// The empty-input guard sits OUTSIDE the provided effect: Effect.provide
-	// acquires RegistryLayer before the generator runs, so guarding inside
-	// would still build (and possibly fail on) the XDG/sqlite/http stack for
-	// a call that has nothing to load.
-	loadPackages: (packages) =>
-		packages.length === 0
-			? Effect.succeed({ vfs: new Map<string, string>() })
-			: Effect.gen(function* () {
-					const specs = packages.map((pkg) => new PackageSpec({ name: pkg.name, version: pkg.version }));
-					const registry = yield* TypeRegistry;
-					return { vfs: yield* registry.getVfs(specs, { autoFetch: true }) };
-				}).pipe(
-					Effect.provide(RegistryLayer),
-					Effect.catch((error) =>
-						Effect.fail(
-							new PluginTypeRegistryError({
-								packageName: packages.map((p) => p.name).join(", "),
-								version: packages.map((p) => p.version).join(", "),
-								reason: error instanceof Error ? (error.message ?? String(error)) : String(error),
-							}),
-						),
-					),
+const RegistryBackedLive = Layer.effect(
+	TypeRegistryService,
+	Effect.gen(function* () {
+		// The whole registry stack — XDG dirs, `metadata.sqlite`, the undici HTTP
+		// client, the type cache — is acquired ONCE here and released when the
+		// ManagedRuntime is disposed. It used to be provided inside each method,
+		// where `Effect.provide` builds into a forked MemoMap whose parent never
+		// built this layer: the stack was constructed and torn down on every
+		// call, twice per build for resolveVersions + loadPackages.
+		const registry = yield* TypeRegistry;
+		return {
+			resolveVersions: (packages) =>
+				resolveExternalPackageVersions(packages, (pkg) => registry.resolveVersion(pkg.name, pkg.version)).pipe(
+					// Registry infrastructure failure (e.g. no HOME for XDG, cache DB
+					// unwritable): pass the specs through unresolved so the failure
+					// surfaces on loadPackages with a meaningful error instead of
+					// being silently swallowed here.
+					Effect.catch(() => Effect.succeed([...packages])),
 				),
+
+			// The empty-input guard is now a plain short-circuit rather than a
+			// necessity: with the layer acquired at construction there is no stack
+			// to avoid building, but skipping the round trip is still free.
+			loadPackages: (packages) =>
+				packages.length === 0
+					? Effect.succeed({ vfs: new Map<string, string>() })
+					: Effect.gen(function* () {
+							const specs = packages.map((pkg) => new PackageSpec({ name: pkg.name, version: pkg.version }));
+							return { vfs: yield* registry.getVfs(specs, { autoFetch: true }) };
+						}).pipe(
+							Effect.catch((error) =>
+								Effect.fail(
+									new PluginTypeRegistryError({
+										packageName: packages.map((p) => p.name).join(", "),
+										version: packages.map((p) => p.version).join(", "),
+										reason: error instanceof Error ? (error.message ?? String(error)) : String(error),
+									}),
+								),
+							),
+						),
+		};
+	}),
+).pipe(Layer.provide(RegistryLayer));
+
+/**
+ * The service when the registry stack cannot be built at all.
+ *
+ * @remarks
+ * Preserves exactly the split the working service documents: `resolveVersions`
+ * passes its specs through unresolved rather than swallowing the problem, so
+ * the failure surfaces from `loadPackages` as a {@link PluginTypeRegistryError}
+ * with a message, which `ConfigServiceLive` turns into a build-continues
+ * warning. Before acquisition moved to layer construction this fell out of the
+ * per-method handlers; it has to be stated explicitly now.
+ */
+const DegradedLive = Layer.succeed(TypeRegistryService, {
+	resolveVersions: (packages) => Effect.succeed([...packages]),
+	loadPackages: (packages) =>
+		Effect.fail(
+			new PluginTypeRegistryError({
+				packageName: packages.map((p) => p.name).join(", "),
+				version: packages.map((p) => p.version).join(", "),
+				reason: "type registry unavailable: its cache directory or metadata database could not be opened",
+			}),
+		),
 });
+
+/**
+ * TypeRegistryServiceLive: the `@tsdoctor/registry` stack, acquired once.
+ *
+ * @remarks
+ * `Layer.catchCause` keeps a broken environment — no HOME for XDG, an
+ * unwritable cache directory — from aborting the build at `ManagedRuntime`
+ * construction. External type loading is an enhancement: without it code
+ * blocks render without Twoslash enrichment, which is a degradation, not a
+ * failure. That was true while the stack was provided per method and the
+ * in-method handlers absorbed it; hoisting acquisition made it something the
+ * layer has to say for itself.
+ */
+export const TypeRegistryServiceLive: Layer.Layer<TypeRegistryService> = RegistryBackedLive.pipe(
+	Layer.catchCause(() => DegradedLive),
+);

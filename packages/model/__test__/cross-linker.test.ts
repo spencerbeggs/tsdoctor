@@ -89,3 +89,42 @@ describe("CrossLinker#linkHtml", () => {
 		expect(linker.linkHtml("PipelineFactory")).toBe("PipelineFactory");
 	});
 });
+
+describe("CrossLinker word boundaries around non-word-terminated keys", () => {
+	// TSDoc selector keys end in `)`. `\b` is an assertion about the ADJACENT
+	// character, so after `)` it matches only when a word character follows —
+	// which made these keys unmatchable in every realistic sentence position.
+	// Escaping was always correct; the boundary was not.
+	const linker = CrossLinker.fromRoutes(
+		new Map([
+			["Registry.(create:instance)", "/api/class/registry#create"],
+			["Registry.prototype.create", "/api/class/registry#create"],
+			["Registry.create", "/api/class/registry#static-create"],
+		]),
+	);
+
+	it.each([
+		"See Registry.(create:instance) for details.",
+		"See Registry.(create:instance)",
+		"Registry.(create:instance) is the instance form",
+	])("links a selector-form key in %j", (text) => {
+		expect(linker.link(text)).toContain("[Registry.(create:instance)](/api/class/registry#create)");
+	});
+
+	it("links the prototype alias", () => {
+		expect(linker.link("Call Registry.prototype.create here.")).toContain(
+			"[Registry.prototype.create](/api/class/registry#create)",
+		);
+	});
+
+	it("still links a plain key, and does not match it inside a longer word", () => {
+		expect(linker.link("Use Registry.create now.")).toContain("[Registry.create](/api/class/registry#static-create)");
+		expect(linker.link("Registry.createMany is different")).not.toContain("](/api/class/registry#static-create)");
+	});
+
+	it("linkHtml handles selector-form keys too", () => {
+		expect(linker.linkHtml("See Registry.(create:instance) here.")).toContain(
+			'<a href="/api/class/registry#create">Registry.(create:instance)</a>',
+		);
+	});
+});

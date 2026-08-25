@@ -1,0 +1,349 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MainIndexPageGenerator > renders the index frontmatter for a plain package name 1`] = `
+"---
+title: API Reference
+description: Auto-generated API documentation for kitchensink
+overview: true
+---
+
+"
+`;
+
+exports[`MainIndexPageGenerator > renders the scoped-package index 1`] = `
+"---
+title: API Reference
+description: Auto-generated API documentation for @scope/pkg
+overview: true
+---
+
+"
+`;
+
+exports[`multi-entry rendering > renders an "Available from" line when an item is exported from several entry points 1`] = `
+"---
+title: createPipeline | Function | API
+description: Creates a new Pipeline connecting a data source to a transform function.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { ParametersTable } from "rspress-plugin-api-extractor/runtime";
+import { ApiSignature, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# createPipeline
+
+Creates a new Pipeline connecting a data source to a transform function.
+
+Available from: \`kitchensink\`, \`kitchensink/testing\`
+
+<ApiSignature code={"function createPipeline<I, O>(source: DataSource<I>, transform: Transform<I, O>, options?: PipelineOptions): Pipeline<I, O>;"} source={"function createPipeline<I, O>(source: DataSource<I>, transform: Transform<I, O>, options?: PipelineOptions): Pipeline<I, O>;"} apiScope={"kitchensink"} hasParameters={true} />
+
+<ParametersTable parameters={[{"name":"source","type":"DataSource<I>","description":"The DataSource that supplies raw input records."},{"name":"transform","type":"Transform<I, O>","description":"The Transform applied to each input record."},{"name":"options","type":"PipelineOptions","description":"Optional PipelineOptions controlling batch size, retry count, and timeout behaviour."}]} />
+
+## Returns
+
+A fully configured \`Pipeline<I, O>\` ready to execute.
+
+## Examples
+
+<ApiExample code={"import { createPipeline, JsonSource } from \\"kitchensink\\";\\n\\nconst pipeline = createPipeline(\\n  new JsonSource(\\"./data/records.json\\"),\\n  (record: Record<string, unknown>) => ({ ...record, processed: true }),\\n  { batchSize: 50, retryCount: 2 }\\n);\\n\\nconst result = await pipeline.execute({ id: 1 });\\nconsole.log(result); // { id: 1, processed: true }"} source={"// @noErrors\\nimport { createPipeline, JsonSource } from \\"kitchensink\\";\\n\\nconst pipeline = createPipeline(\\n  new JsonSource(\\"./data/records.json\\"),\\n  (record: Record<string, unknown>) => ({ ...record, processed: true }),\\n  { batchSize: 50, retryCount: 2 }\\n);\\n\\nconst result = await pipeline.execute({ id: 1 });\\nconsole.log(result); // { id: 1, processed: true }"} apiScope={"kitchensink"} />
+
+"
+`;
+
+exports[`page generator output (characterization) > ClassPageGenerator renders a class with members 1`] = `
+"---
+title: Pipeline | Class | API
+description: A strongly-typed data pipeline that connects a DataSource to a Transform and manages execution lifecycle.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { ParametersTable } from "rspress-plugin-api-extractor/runtime";
+import { ApiSignature, ApiMember, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# Pipeline
+
+A strongly-typed data pipeline that connects a DataSource to a Transform and manages execution lifecycle.
+
+<ApiSignature code={"class Pipeline {\\n    constructor(source: DataSource<In>, transform: Transform<In, Out>, options?: PipelineOptions);\\n    static create<I, O>(source: DataSource<I>, transform: Transform<I, O>, options?: PipelineOptions): Pipeline<I, O>;\\n    get batchSize(): number;\\n\\nset batchSize(value: number);\\n    get status(): PipelineStatus;\\n    execute(input: In): Promise<Out>;\\n    parallel(inputs: In[]): Promise<Out[]>;\\n    process(input: In): Out;\\n}"} source={"class Pipeline {\\n    constructor(source: DataSource<In>, transform: Transform<In, Out>, options?: PipelineOptions);\\n    static create<I, O>(source: DataSource<I>, transform: Transform<I, O>, options?: PipelineOptions): Pipeline<I, O>;\\n    get batchSize(): number;\\n\\nset batchSize(value: number);\\n    get status(): PipelineStatus;\\n    execute(input: In): Promise<Out>;\\n    parallel(inputs: In[]): Promise<Out[]>;\\n    process(input: In): Out;\\n}"} apiScope={"kitchensink"} />
+
+## Constructors
+
+<ApiMember code={"constructor(source: DataSource<In>, transform: Transform<In, Out>, options?: PipelineOptions);"} source={"class Pipeline {\\nconstructor(source: DataSource<In>, transform: Transform<In, Out>, options?: PipelineOptions);\\n}"} apiScope={"kitchensink"} memberName="constructor" summary={"Creates a new \`Pipeline\` with the given source, transform, and options."} id={"constructor"} hasParameters={true} />
+
+<ParametersTable parameters={[{"name":"source","type":"DataSource<In>","description":"The DataSource that supplies input records."},{"name":"transform","type":"Transform<In, Out>","description":"The Transform applied to each input record."},{"name":"options","type":"PipelineOptions","description":"Optional PipelineOptions to configure batch size, retry behaviour, and timeout."}]} />
+
+## Static Methods
+
+<ApiMember code={"static create<I, O>(source: DataSource<I>, transform: Transform<I, O>, options?: PipelineOptions): Pipeline<I, O>;"} source={"class Pipeline {\\nstatic create<I, O>(source: DataSource<I>, transform: Transform<I, O>, options?: PipelineOptions): Pipeline<I, O>;\\n}"} apiScope={"kitchensink"} memberName={"create"} summary={"Creates a new \`Pipeline\` from a source and transform with full type inference on the generic parameters."} id={"create"} hasParameters={true} />
+
+<ParametersTable parameters={[{"name":"source","type":"DataSource<I>","description":"A DataSource instance that supplies raw records."},{"name":"transform","type":"Transform<I, O>","description":"A Transform function that converts each \`I\` to \`O\`."},{"name":"options","type":"PipelineOptions","description":"Optional PipelineOptions for pipeline configuration."}]} />
+
+**Returns:** A fully configured \`Pipeline<I, O>\` ready to execute.
+
+## Properties
+
+<ApiMember code={"get batchSize(): number;\\n\\nset batchSize(value: number);"} source={"class Pipeline {\\nget batchSize(): number;\\n\\nset batchSize(value: number);\\n}"} apiScope={"kitchensink"} memberName={"batchSize"} summary={"The maximum number of records accumulated before a batch is flushed."} id={"batchsize"} />
+
+<ApiMember code={"get status(): PipelineStatus;"} source={"class Pipeline {\\nget status(): PipelineStatus;\\n}"} apiScope={"kitchensink"} memberName={"status"} summary={"The current execution state of this pipeline."} id={"status"} />
+
+## Methods
+
+<ApiMember code={"execute(input: In): Promise<Out>;"} source={"class Pipeline {\\nexecute(input: In): Promise<Out>;\\n}"} apiScope={"kitchensink"} memberName={"execute"} summary={"Asynchronously executes the pipeline transform for a single input record, managing the full execution lifecycle."} id={"execute"} hasParameters={true} />
+
+<ParametersTable parameters={[{"name":"input","type":"In","description":"The input record to process."}]} />
+
+**Returns:** A promise that resolves with the transformed output.
+
+<ApiMember code={"parallel(inputs: In[]): Promise<Out[]>;"} source={"class Pipeline {\\nparallel(inputs: In[]): Promise<Out[]>;\\n}"} apiScope={"kitchensink"} memberName={"parallel"} summary={"Executes the pipeline transform over an array of inputs concurrently, returning a promise that resolves with all outputs in input order."} id={"parallel"} hasParameters={true} />
+
+<ParametersTable parameters={[{"name":"inputs","type":"In[]","description":"An array of input records to process in parallel."}]} />
+
+**Returns:** A promise that resolves with an array of transformed outputs in the same order as \`inputs\`.
+
+<ApiMember code={"process(input: In): Out;"} source={"class Pipeline {\\nprocess(input: In): Out;\\n}"} apiScope={"kitchensink"} memberName={"process"} summary={"Synchronously applies the pipeline transform to a single input and returns the output."} id={"process"} hasParameters={true} />
+
+<ParametersTable parameters={[{"name":"input","type":"In","description":"The input record to transform."}]} />
+
+**Returns:** The transformed output record.
+
+## Examples
+
+<ApiExample code={"import { Pipeline, JsonSource, PipelineStatus } from \\"kitchensink\\";\\n\\nconst source = new JsonSource(\\"./data/records.json\\");\\nconst pipeline = Pipeline.create(source, (record) => ({\\n  ...record,\\n  processed: true,\\n}));\\n\\nconst result = await pipeline.execute({ id: 1, name: \\"example\\" });\\nconsole.log(pipeline.status); // PipelineStatus.Completed\\nconsole.log(result); // { id: 1, name: \\"example\\", processed: true }"} source={"// @noErrors\\nimport { Pipeline, JsonSource, PipelineStatus } from \\"kitchensink\\";\\n\\nconst source = new JsonSource(\\"./data/records.json\\");\\nconst pipeline = Pipeline.create(source, (record) => ({\\n  ...record,\\n  processed: true,\\n}));\\n\\nconst result = await pipeline.execute({ id: 1, name: \\"example\\" });\\nconsole.log(pipeline.status); // PipelineStatus.Completed\\nconsole.log(result); // { id: 1, name: \\"example\\", processed: true }"} apiScope={"kitchensink"} />
+
+<ApiExample code={"import { Pipeline, JsonSource } from \\"kitchensink\\";\\n\\n// Configure batch size via options\\nconst source = new JsonSource(\\"./data/items.json\\");\\nconst pipeline = Pipeline.create(source, (item) => String(item), {\\n  batchSize: 50,\\n  retryCount: 2,\\n  timeout: 5000,\\n});\\n\\npipeline.batchSize = 25;\\nconsole.log(pipeline.batchSize); // 25"} source={"// @noErrors\\nimport { Pipeline, JsonSource } from \\"kitchensink\\";\\n\\n// Configure batch size via options\\nconst source = new JsonSource(\\"./data/items.json\\");\\nconst pipeline = Pipeline.create(source, (item) => String(item), {\\n  batchSize: 50,\\n  retryCount: 2,\\n  timeout: 5000,\\n});\\n\\npipeline.batchSize = 25;\\nconsole.log(pipeline.batchSize); // 25"} apiScope={"kitchensink"} />
+
+## See Also
+
+- DataSource for implementing a custom data source.
+- Transform for the transformation function interface.
+- PipelineOptions for available configuration options.
+
+"
+`;
+
+exports[`page generator output (characterization) > ClassPageGenerator renders an inline Base Class section for a synthetic base 1`] = `
+"---
+title: Person | Class | API
+description: A person
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { ParametersTable } from "rspress-plugin-api-extractor/runtime";
+import { ApiSignature, ApiMember, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# Person
+
+A person
+
+<ApiSignature code={"class Person extends Person_base {\\n    static readonly serializer: Schema.toCodecJson<typeof Person>;\\n    speak(message: string): string;\\n}"} source={"import type { Schema } from \\"effect\\";\\n// ---cut---\\nclass Person extends Person_base {\\n    static readonly serializer: Schema.toCodecJson<typeof Person>;\\n    speak(message: string): string;\\n}"} apiScope={"example"} />
+
+## Base Class
+
+\`Person\` extends \`Person_base\`, a compiler-generated declaration that is not exported from \`example\`.
+
+<ApiSignature code={"Person_base: Schema.Class<Person, Schema.Struct<{\\n  readonly name: Schema.String;\\n  readonly createdAt: Schema.Date;\\n}>, {}>"} source={"import type { Schema } from \\"effect\\";\\n// ---cut---\\nPerson_base: Schema.Class<Person, Schema.Struct<{\\n  readonly name: Schema.String;\\n  readonly createdAt: Schema.Date;\\n}>, {}>"} apiScope={"example"} />
+
+## Static Properties
+
+<ApiMember code={"static readonly serializer: Schema.toCodecJson<typeof Person>;"} source={"import type { Schema } from \\"effect\\";\\n// ---cut---\\nclass Person extends Person_base {\\nstatic readonly serializer: Schema.toCodecJson<typeof Person>;\\n}"} apiScope={"example"} memberName={"serializer"} summary={"Create a custom serializer using the class itself"} id={"serializer"} />
+
+## Methods
+
+<ApiMember code={"speak(message: string): string;"} source={"class Person extends Person_base {\\nspeak(message: string): string;\\n}"} apiScope={"example"} memberName={"speak"} summary={"Makes the person speak a message."} id={"speak"} hasParameters={true} />
+
+<ParametersTable parameters={[{"name":"message","type":"string","description":"The message to speak"}]} />
+
+**Returns:** The formatted message
+
+"
+`;
+
+exports[`page generator output (characterization) > ClassPageGenerator renders static/instance name collisions with disambiguating ids 1`] = `
+"---
+title: Registry | Class | API
+description: A registry whose member names exercise anchor sanitization.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { ParametersTable } from "rspress-plugin-api-extractor/runtime";
+import { ApiSignature, ApiMember, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# Registry
+
+A registry whose member names exercise anchor sanitization.
+
+<ApiSignature code={"class Registry {\\n    static flush: boolean;\\n    static MY_CONST: number;\\n    static create(): Registry;\\n    create(): void;\\n    flush(): void;\\n    get_value(): string;\\n    toJSON(): string;\\n}"} source={"class Registry {\\n    static flush: boolean;\\n    static MY_CONST: number;\\n    static create(): Registry;\\n    create(): void;\\n    flush(): void;\\n    get_value(): string;\\n    toJSON(): string;\\n}"} apiScope={"anchors"} />
+
+## Static Properties
+
+<ApiMember code={"static flush: boolean;"} source={"class Registry {\\nstatic flush: boolean;\\n}"} apiScope={"anchors"} memberName={"flush"} summary={"Static flag. Collides with the instance method \`flush\`."} id={"flush"} />
+
+<ApiMember code={"static MY_CONST: number;"} source={"class Registry {\\nstatic MY_CONST: number;\\n}"} apiScope={"anchors"} memberName={"MY_CONST"} summary={"A constant. Uppercase and underscore in one name."} id={"my-const"} />
+
+## Static Methods
+
+<ApiMember code={"static create(): Registry;"} source={"class Registry {\\nstatic create(): Registry;\\n}"} apiScope={"anchors"} memberName={"create"} summary={"Static factory. Collides with the instance method of the same name."} id={"create"} hasParameters={false} />
+
+## Methods
+
+<ApiMember code={"create(): void;"} source={"class Registry {\\ncreate(): void;\\n}"} apiScope={"anchors"} memberName={"create"} summary={"Instance method. Collides with the static factory of the same name."} id={"instance-create"} hasParameters={false} />
+
+<ApiMember code={"flush(): void;"} source={"class Registry {\\nflush(): void;\\n}"} apiScope={"anchors"} memberName={"flush"} summary={"Instance method. Collides with the static property \`flush\`."} id={"instance-flush"} hasParameters={false} />
+
+<ApiMember code={"get_value(): string;"} source={"class Registry {\\nget_value(): string;\\n}"} apiScope={"anchors"} memberName={"get_value"} summary={"Reads the stored value. Underscore exercises the anchor spelling."} id={"get-value"} hasParameters={false} />
+
+<ApiMember code={"toJSON(): string;"} source={"class Registry {\\ntoJSON(): string;\\n}"} apiScope={"anchors"} memberName={"toJSON"} summary={"A name that both sanitizers already agree on."} id={"tojson"} hasParameters={false} />
+
+"
+`;
+
+exports[`page generator output (characterization) > EnumPageGenerator renders an enum 1`] = `
+"---
+title: DataFormat | Enum | API
+description: Serialization formats supported by the codec system.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { EnumMembersTable } from "rspress-plugin-api-extractor/runtime";
+import { ApiSignature, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# DataFormat
+
+Serialization formats supported by the codec system.
+
+<ApiSignature code={"enum DataFormat {\\n    JSON = \\"json\\",\\n    CSV = \\"csv\\",\\n    Binary = \\"binary\\",\\n    MessagePack = \\"msgpack\\"\\n}"} source={"enum DataFormat {\\n    JSON = \\"json\\",\\n    CSV = \\"csv\\",\\n    Binary = \\"binary\\",\\n    MessagePack = \\"msgpack\\"\\n}"} apiScope={"kitchensink"} hasMembers={true} />
+<EnumMembersTable members={[{"name":"JSON","value":"\\"json\\"","description":"JSON text encoding."},{"name":"CSV","value":"\\"csv\\"","description":"Comma-separated values encoding."},{"name":"Binary","value":"\\"binary\\"","description":"Raw binary encoding."},{"name":"MessagePack","value":"\\"msgpack\\"","description":"MessagePack binary encoding."}]} />
+
+## Examples
+
+<ApiExample code={"import { DataFormat } from \\"kitchensink\\";\\n\\nconst format: DataFormat = DataFormat.JSON;"} source={"// @noErrors\\nimport { DataFormat } from \\"kitchensink\\";\\n\\nconst format: DataFormat = DataFormat.JSON;"} apiScope={"kitchensink"} />
+
+## See Also
+
+- Codecs for codec implementations for each format.
+
+"
+`;
+
+exports[`page generator output (characterization) > FunctionPageGenerator renders a function 1`] = `
+"---
+title: createPipeline | Function | API
+description: Creates a new Pipeline connecting a data source to a transform function.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { ParametersTable } from "rspress-plugin-api-extractor/runtime";
+import { ApiSignature, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# createPipeline
+
+Creates a new Pipeline connecting a data source to a transform function.
+
+<ApiSignature code={"function createPipeline<I, O>(source: DataSource<I>, transform: Transform<I, O>, options?: PipelineOptions): Pipeline<I, O>;"} source={"function createPipeline<I, O>(source: DataSource<I>, transform: Transform<I, O>, options?: PipelineOptions): Pipeline<I, O>;"} apiScope={"kitchensink"} hasParameters={true} />
+
+<ParametersTable parameters={[{"name":"source","type":"DataSource<I>","description":"The DataSource that supplies raw input records."},{"name":"transform","type":"Transform<I, O>","description":"The Transform applied to each input record."},{"name":"options","type":"PipelineOptions","description":"Optional PipelineOptions controlling batch size, retry count, and timeout behaviour."}]} />
+
+## Returns
+
+A fully configured \`Pipeline<I, O>\` ready to execute.
+
+## Examples
+
+<ApiExample code={"import { createPipeline, JsonSource } from \\"kitchensink\\";\\n\\nconst pipeline = createPipeline(\\n  new JsonSource(\\"./data/records.json\\"),\\n  (record: Record<string, unknown>) => ({ ...record, processed: true }),\\n  { batchSize: 50, retryCount: 2 }\\n);\\n\\nconst result = await pipeline.execute({ id: 1 });\\nconsole.log(result); // { id: 1, processed: true }"} source={"// @noErrors\\nimport { createPipeline, JsonSource } from \\"kitchensink\\";\\n\\nconst pipeline = createPipeline(\\n  new JsonSource(\\"./data/records.json\\"),\\n  (record: Record<string, unknown>) => ({ ...record, processed: true }),\\n  { batchSize: 50, retryCount: 2 }\\n);\\n\\nconst result = await pipeline.execute({ id: 1 });\\nconsole.log(result); // { id: 1, processed: true }"} apiScope={"kitchensink"} />
+
+"
+`;
+
+exports[`page generator output (characterization) > InterfacePageGenerator renders an interface 1`] = `
+"---
+title: PipelineOptions | Interface | API
+description: Configuration options controlling pipeline execution behaviour.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { ParametersTable } from "rspress-plugin-api-extractor/runtime";
+import { ApiSignature, ApiMember, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# PipelineOptions
+
+Configuration options controlling pipeline execution behaviour.
+
+<ApiSignature code={"interface PipelineOptions {\\n    batchSize?: number;\\n    retryCount?: number;\\n    timeout?: number;\\n}"} source={"interface PipelineOptions {\\n    batchSize?: number;\\n    retryCount?: number;\\n    timeout?: number;\\n}"} apiScope={"kitchensink"} />
+
+## Properties
+
+<ApiMember code={"batchSize?: number;"} source={"interface PipelineOptions {\\nbatchSize?: number;\\n}"} apiScope={"kitchensink"} memberName={"batchSize"} summary={"Maximum number of records to accumulate before flushing to the sink."} id={"batchsize"} />
+
+<ApiMember code={"retryCount?: number;"} source={"interface PipelineOptions {\\nretryCount?: number;\\n}"} apiScope={"kitchensink"} memberName={"retryCount"} summary={"Number of times a failed stage should be retried before the pipeline transitions to the PipelineStatus state."} id={"retrycount"} />
+
+<ApiMember code={"timeout?: number;"} source={"interface PipelineOptions {\\ntimeout?: number;\\n}"} apiScope={"kitchensink"} memberName={"timeout"} summary={"Maximum time in milliseconds to wait for a single batch to complete before treating it as a timeout failure."} id={"timeout"} />
+
+"
+`;
+
+exports[`page generator output (characterization) > NamespacePageGenerator renders a namespace 1`] = `
+"---
+title: Codecs | Namespace | API
+description: A collection of utility functions for encoding and serialising data.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { ApiSignature, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# Codecs
+
+A collection of utility functions for encoding and serialising data.
+
+<ApiSignature code={"namespace Codecs {\\n    function binary(data: unknown): Uint8Array;\\n    function json<T>(data: T): string;\\n    function streaming<T>(source: DataSource<T>): AsyncIterable<Uint8Array>;\\n}"} source={"namespace Codecs {\\n    function binary(data: unknown): Uint8Array;\\n    function json<T>(data: T): string;\\n    function streaming<T>(source: DataSource<T>): AsyncIterable<Uint8Array>;\\n}"} apiScope={"kitchensink"} />
+
+## Functions
+
+- [binary](/api/function/codecs.binary) - Encodes a value to a \`Uint8Array\` using UTF-8 binary encoding.
+- [json](/api/function/codecs.json) - Serialises a value to a JSON string.
+- [streaming](/api/function/codecs.streaming) - Returns an async iterable that streams encoded chunks from a DataSource.
+
+"
+`;
+
+exports[`page generator output (characterization) > TypeAliasPageGenerator renders a type alias 1`] = `
+"---
+title: Middleware | TypeAlias | API
+description: A middleware function that intercepts data flowing through a pipeline stage.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { ParametersTable } from "rspress-plugin-api-extractor/runtime";
+import { ApiSignature, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# Middleware
+
+A middleware function that intercepts data flowing through a pipeline stage.
+
+<ApiSignature code={"type Middleware<T> = (data: T, next: (data: T) => T) => T;"} source={"type Middleware<T> = (data: T, next: (data: T) => T) => T;"} apiScope={"kitchensink"} />
+
+## Examples
+
+<ApiExample code={"import type { Middleware } from \\"kitchensink\\";\\n\\nconst logger: Middleware<string> = (data, next) => {\\n  console.log(\\"before:\\", data);\\n  const result = next(data);\\n  console.log(\\"after:\\", result);\\n\\n  return result;\\n};"} source={"// @noErrors\\nimport type { Middleware } from \\"kitchensink\\";\\n\\nconst logger: Middleware<string> = (data, next) => {\\n  console.log(\\"before:\\", data);\\n  const result = next(data);\\n  console.log(\\"after:\\", result);\\n\\n  return result;\\n};"} apiScope={"kitchensink"} />
+
+"
+`;
+
+exports[`page generator output (characterization) > VariablePageGenerator renders a variable 1`] = `
+"---
+title: VERSION | Variable | API
+description: Current public API version of the kitchensink package.
+---
+
+import { SourceCode } from "@rspress/core/theme";
+import { ParametersTable } from "rspress-plugin-api-extractor/runtime";
+import { ApiSignature, ApiExample } from "rspress-plugin-api-extractor/runtime";
+
+# VERSION
+
+Current public API version of the kitchensink package.
+
+<ApiSignature code={"VERSION: string"} source={"VERSION: string"} apiScope={"kitchensink"} />
+
+"
+`;

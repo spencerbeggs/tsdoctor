@@ -77,7 +77,7 @@ api: {
 
 ## Type-checked examples
 
-Supply `tsconfig` (and `packageJson`) and the code examples in both the generated pages and your own guides get type-checked and gain hover tooltips. The plugin loads the documented package's own types from the model and pulls in dependency types on its own. If an example references a type from another package that auto-detection misses, add it to `externalPackages`:
+Code examples in both the generated pages and your own guides are type-checked and gain hover tooltips. Supply `tsconfig` (and `packageJson`) to check them under your package's own compiler configuration; without it they are checked under the plugin's defaults, which is usually close enough for examples. The plugin loads the documented package's own types from the model and pulls in dependency types on its own. If an example references a type from another package that auto-detection misses, add it to `externalPackages`:
 
 ```ts
 api: {

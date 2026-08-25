@@ -321,11 +321,13 @@ home.
 **Fix (b) — per-scope TypeScript environments — is not a performance fix.** The
 data gives it no case: 97% of the time is inside `twoslasher()`, and splitting
 one shared environment into several would *reduce* `tsEnvCache` sharing across
-blocks, plausibly making it slower. It remains scheduled as the `with-api`
+blocks, plausibly making it slower. It shipped as the `with-api`
 scoping **correctness** fix that retires the documented "first API's tsconfig
 wins" limitation (`type-loading-vfs.md`) — on correctness grounds, which is
 what the roadmap anticipated when it said the evidence decides its priority, not
-its existence.
+its existence. The singleton that held those environments has since become the
+`TwoslashEnvironments` service; see the pre-phase-4 adapter refactor in
+`roadmap-1.0.md`.
 
 ## Delivered: The Twoslash Result Cache
 
@@ -448,7 +450,8 @@ improvement there measures Rspack's cache, not this one.
 | `src/observability/events.ts` | `CodeBlockProcessed` shape, `CodeBlockComponent`, `TwoslashCacheLoaded`/`TwoslashCacheSaved` |
 | `src/twoslash-cache.ts` | `twoslashEnvHash`, `makeTwoslashCache`, encode/decode |
 | `src/services/TwoslashCacheService.ts` | Load/save contract for a stored generation |
-| `src/layers/TwoslashCacheServiceLive.ts` | XDG sqlite-backed persistence via `@effected/store` `Cache` |
+| `src/layers/TwoslashCacheServiceLive.ts` | XDG sqlite-backed persistence via `@effected/store` `Cache`, acquired at layer construction over `layers/xdg.ts` and degrading via `Layer.catchCause` |
+| `src/services/TwoslashEnvironments.ts` / `src/layers/TwoslashEnvironmentsLive.ts` | The environments that own the `typesCache`-carrying transformers |
 
 ## Related Documentation
 

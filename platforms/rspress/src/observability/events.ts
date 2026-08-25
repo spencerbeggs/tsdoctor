@@ -11,7 +11,16 @@ export const LEVEL_RANK: Record<EventLevel, number> = {
 };
 
 export interface EventContext {
-	readonly buildId: string;
+	/**
+	 * Correlates every event from one build.
+	 *
+	 * @remarks
+	 * Optional at the emit site: `emit` fills it from the `BuildId` Reference.
+	 * It used to be required, and 24 sites satisfied that requirement by writing
+	 * `buildId: ""` — a required field callers cannot reach is a field that gets
+	 * faked. Readers see it populated.
+	 */
+	readonly buildId?: string;
 	readonly apiScope?: string;
 	readonly packageName?: string;
 	readonly version?: string;

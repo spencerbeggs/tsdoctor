@@ -14,7 +14,7 @@ import { ApiItemKind } from "@microsoft/api-extractor-model";
 import { ApiItems, EntryPoints, Routes, SyntheticBases } from "@tsdoctor/model";
 import type { FileSnapshot } from "@tsdoctor/snapshot";
 import { SnapshotService, hashContent, hashFrontmatter } from "@tsdoctor/snapshot";
-import { Effect, FileSystem, Metric, Stream } from "effect";
+import { Effect, FileSystem, Metric, Option, Stream } from "effect";
 import { parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
 import { BuildMetrics } from "./layers/ObservabilityLive.js";
 import { generateFrontmatter } from "./markdown/helpers.js";
@@ -30,8 +30,10 @@ import {
 } from "./markdown/index.js";
 import { emit } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
-import { OpenGraphResolver } from "./og-resolver.js";
+import { emitSync, syncBuildId } from "./observability/sync-emitter.js";
+import { createPageMetadata } from "./og-resolver.js";
 import type { CategoryConfig, LlmsPlugin, SourceConfig } from "./schemas/index.js";
+import { OgService } from "./services/OgService.js";
 
 export type { FileSnapshot } from "@tsdoctor/snapshot";
 
@@ -56,26 +58,6 @@ export function crossLinkKindPriority(kind: string): number {
 	return CROSS_LINK_KIND_PRIORITY[kind] ?? 100;
 }
 
-/**
- * Module-level emitter seam. `prepareWorkItems` runs synchronously outside any
- * Effect fiber, so a route collision cannot `yield* emit(...)` — it mirrors the
- * sync-island pattern used by `twoslash-transformer.ts` (`setEventEmitter`) and
- * `loader.ts` (`setLoaderEventEmitter`). Default is a no-op; wired in plugin.ts
- * via `setBuildStagesEventEmitter(emitSync, buildId)` right after the runtime
- * emitter is created.
- */
-let emitEvent: (event: PluginEvent) => void = () => {};
-let currentBuildId = "";
-
-/**
- * Inject the runtime-bound emitter into the build-stages module.
- * Call this right after `makeRuntimeEmitter` in plugin.ts.
- */
-export function setBuildStagesEventEmitter(fn: (event: PluginEvent) => void, buildId = ""): void {
-	emitEvent = fn;
-	currentBuildId = buildId;
-}
-
 export interface WorkItem {
 	readonly item: ApiItem;
 	readonly categoryKey: string;
@@ -89,6 +71,14 @@ export interface WorkItem {
 	 * patterns). Rendered inline on the class page instead of its own page.
 	 */
 	readonly syntheticBase?: ApiItem;
+	/**
+	 * Anchor id per member, keyed by the member's canonical reference.
+	 *
+	 * Computed here rather than in the page generator so the `#fragment` in
+	 * the cross-link route map and the `id=` the page emits come from ONE
+	 * computation and cannot drift. Present for classes and interfaces.
+	 */
+	readonly memberAnchors?: ReadonlyMap<string, string>;
 }
 
 export interface GeneratedPageResult {
@@ -173,9 +163,9 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 	//    warning through the sync-island seam.
 	const { items, uncategorized } = ApiItems.categorize(docItems, categories);
 	for (const skipped of uncategorized) {
-		emitEvent(
+		emitSync(
 			PluginEvent.ItemSkipped({
-				ctx: { buildId: currentBuildId },
+				ctx: { buildId: syncBuildId() },
 				item: skipped.displayName,
 				kind: String(skipped.kind),
 				reason: "uncategorized",
@@ -234,9 +224,9 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 		// error — the fatal route-collision contract must survive here.
 		try {
 			for (const collision of collisions) {
-				emitEvent(
+				emitSync(
 					PluginEvent.RouteCollisionDetected({
-						ctx: { buildId: currentBuildId, route: collision.route },
+						ctx: { buildId: syncBuildId(), route: collision.route },
 						level: "error",
 						items: collision.items.map((item) => `${item.displayName} (${item.kind}) [${item.canonicalRef}]`),
 					}),
@@ -271,13 +261,24 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 			// For classes and interfaces, also add routes for their members
 			if (item.kind === "Class" || item.kind === "Interface") {
 				const itemWithMembers = item as ApiClass | ApiInterface;
-				for (const member of itemWithMembers.members) {
-					const memberName = member.displayName;
-					const memberId = Routes.sanitizeId(memberName);
-					const fullMemberName = `${item.displayName}.${memberName}`;
-					const memberRoute = `${itemRoute}#${memberId}`;
-					routes.set(fullMemberName, memberRoute);
-					kinds.set(fullMemberName, member.kind);
+				// Anchors and cross-link keys both come from the model, so the
+				// `#fragment` a key resolves to is the same one the page emits.
+				// `memberRouteKeys` decides which member a bare `Class.member`
+				// means (the static one) and emits TSDoc selector keys only where
+				// a static/instance collision makes that ambiguous.
+				const anchors = ApiItems.memberAnchors(itemWithMembers);
+				const byCanonicalRef = new Map(
+					itemWithMembers.members.map((member) => [
+						member.canonicalReference?.toString() ?? member.displayName,
+						member,
+					]),
+				);
+				for (const [routeKey, memberId] of ApiItems.memberRouteKeys(itemWithMembers)) {
+					const member = byCanonicalRef.get(memberId);
+					if (!member) continue;
+					const anchor = anchors.get(memberId) ?? Routes.memberAnchor(member.displayName);
+					routes.set(routeKey, `${itemRoute}#${anchor}`);
+					kinds.set(routeKey, member.kind);
 				}
 			}
 		}
@@ -337,12 +338,17 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 			const lookupKey = `${item.displayName}::${item.kind}`;
 			const resolved = resolvedLookup.get(lookupKey);
 			const syntheticBase = syntheticBases.baseByOwner.get(item);
+			const memberAnchors =
+				item.kind === "Class" || item.kind === "Interface"
+					? ApiItems.memberAnchors(item as ApiClass | ApiInterface)
+					: undefined;
 			workItems.push({
 				item,
 				categoryKey,
 				categoryConfig,
 				...(resolved?.availableFrom != null ? { availableFrom: resolved.availableFrom } : {}),
 				...(syntheticBase != null ? { syntheticBase } : {}),
+				...(memberAnchors != null ? { memberAnchors } : {}),
 			});
 		}
 	}
@@ -447,6 +453,7 @@ export function generateSinglePage(
 						llmsPlugin,
 						workItem.availableFrom,
 						workItem.syntheticBase,
+						workItem.memberAnchors,
 					),
 				);
 				page = {
@@ -726,8 +733,9 @@ export interface WriteSingleFileContext {
 	readonly buildId: string;
 	readonly resolvedOutputDir: string;
 	readonly buildTime: string;
-	readonly ogResolver?: import("./og-resolver.js").OpenGraphResolver | null;
 	readonly siteUrl?: string;
+	/** Docs root, for locating a local OG image under `public/`. */
+	readonly docsRoot?: string;
 	readonly ogImage?: import("./schemas/index.js").OpenGraphImageConfig;
 	readonly packageName?: string;
 	readonly apiName?: string;
@@ -739,10 +747,10 @@ export interface WriteSingleFileContext {
 export function writeSingleFile(
 	result: GeneratedPageResult,
 	ctx: WriteSingleFileContext,
-): Effect.Effect<FileWriteResult, never, FileSystem.FileSystem> {
+): Effect.Effect<FileWriteResult, never, FileSystem.FileSystem | OgService> {
 	return Effect.gen(function* () {
 		const fileSystem = yield* FileSystem.FileSystem;
-		const { buildId, resolvedOutputDir, buildTime, ogResolver, siteUrl, ogImage, packageName, apiName } = ctx;
+		const { buildId, resolvedOutputDir, buildTime, siteUrl, docsRoot, ogImage, packageName, apiName } = ctx;
 		const {
 			workItem,
 			bodyContent,
@@ -801,11 +809,39 @@ export function writeSingleFile(
 		// Build final file content
 		let finalContent = stringifyFrontmatter(bodyContent, frontmatter);
 
-		if (ogResolver && siteUrl && packageName) {
-			// Resolve OG image metadata (auto-detect dimensions from local files if possible)
-			const ogImageMetadata = yield* Effect.promise(() => ogResolver.resolve(ogImage, packageName, apiName));
+		if (siteUrl && packageName) {
+			const ogSvc = yield* OgService;
+			// Degrade, never fail: a misconfigured OG image must not stop a docs
+			// build. The typed failure is surfaced as a ConfigValidationWarning —
+			// which reaches `issues.json` — and the page renders without an
+			// og:image. See the posture recorded on OgServiceShape.resolveImage.
+			const ogImageResult = yield* Effect.result(
+				ogSvc.resolveImage({
+					config: ogImage,
+					siteUrl,
+					docsRoot,
+					packageName,
+					...(apiName != null ? { apiName } : {}),
+				}),
+			);
+			if (ogImageResult._tag === "Failure") {
+				const failure = ogImageResult.failure;
+				yield* emit(
+					PluginEvent.ConfigValidationWarning({
+						ctx: { buildId, packageName },
+						field: failure.field,
+						value: failure.value,
+						reason: failure.message,
+						level: "warn",
+					}),
+				);
+			}
+			const ogImageMetadata =
+				ogImageResult._tag === "Success" && Option.isSome(ogImageResult.success)
+					? ogImageResult.success.value
+					: undefined;
 
-			const ogMetadataOptions: Parameters<typeof OpenGraphResolver.createPageMetadata>[0] = {
+			const ogMetadataOptions: Parameters<typeof createPageMetadata>[0] = {
 				siteUrl,
 				pageRoute: routePath,
 				description: frontmatter.description as string,
@@ -817,7 +853,7 @@ export function writeSingleFile(
 			if (ogImageMetadata) {
 				ogMetadataOptions.ogImage = ogImageMetadata;
 			}
-			const ogMetadata = OpenGraphResolver.createPageMetadata(ogMetadataOptions);
+			const ogMetadata = createPageMetadata(ogMetadataOptions);
 
 			// Regenerate frontmatter with OG metadata
 			const newFrontmatter = generateFrontmatter(
@@ -1313,8 +1349,8 @@ export interface BuildPipelineInput {
 	readonly existingSnapshots: Map<string, FileSnapshot>;
 	readonly suppressExampleErrors?: boolean;
 	readonly llmsPlugin?: LlmsPlugin;
-	readonly ogResolver?: import("./og-resolver.js").OpenGraphResolver | null;
 	readonly siteUrl?: string;
+	readonly docsRoot?: string;
 	readonly ogImage?: import("./schemas/index.js").OpenGraphImageConfig;
 }
 
@@ -1333,7 +1369,7 @@ export interface BuildPipelineInput {
  */
 export function buildPipelineForApi(
 	input: BuildPipelineInput,
-): Effect.Effect<FileWriteResult[], never, FileSystem.FileSystem> {
+): Effect.Effect<FileWriteResult[], never, FileSystem.FileSystem | OgService> {
 	const generateCtx: GenerateSinglePageContext = {
 		buildId: input.buildId,
 		existingSnapshots: input.existingSnapshots,
@@ -1352,7 +1388,7 @@ export function buildPipelineForApi(
 		buildId: input.buildId,
 		resolvedOutputDir: input.resolvedOutputDir,
 		buildTime: input.buildTime,
-		...(input.ogResolver !== undefined ? { ogResolver: input.ogResolver } : {}),
+		...(input.docsRoot !== undefined ? { docsRoot: input.docsRoot } : {}),
 		...(input.siteUrl != null ? { siteUrl: input.siteUrl } : {}),
 		...(input.ogImage != null ? { ogImage: input.ogImage } : {}),
 		...(input.packageName != null ? { packageName: input.packageName } : {}),

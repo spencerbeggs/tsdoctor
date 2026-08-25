@@ -1,5 +1,6 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
+import { Thresholds } from "../../src/BuildEnv.js";
 import { makeEventBusLayer } from "../../src/observability/EventBus.js";
 import type { PluginEvent } from "../../src/observability/events.js";
 import { withOp, withPhase } from "../../src/observability/spans.js";
@@ -19,7 +20,10 @@ describe("withPhase", () => {
 		const seen: PluginEvent[] = [];
 		const layer = makeEventBusLayer([{ minLevel: "trace", handle: (e) => seen.push(e) }]);
 		await Effect.runPromise(
-			withPhase("generate", { buildId: "b1" }, Effect.succeed(1), FULL_THRESHOLDS).pipe(Effect.provide(layer)),
+			withPhase("generate", { buildId: "b1" }, Effect.succeed(1)).pipe(
+				Effect.provide(layer),
+				Effect.provide(Layer.succeed(Thresholds, FULL_THRESHOLDS)),
+			),
 		);
 		expect(seen.map((e) => e._tag)).toEqual(["PhaseStarted", "PhaseCompleted"]);
 	});
@@ -27,7 +31,10 @@ describe("withPhase", () => {
 	it("returns the effect's value", async () => {
 		const layer = makeEventBusLayer([{ minLevel: "trace", handle: () => {} }]);
 		const result = await Effect.runPromise(
-			withPhase("generate", { buildId: "b1" }, Effect.succeed(42), FULL_THRESHOLDS).pipe(Effect.provide(layer)),
+			withPhase("generate", { buildId: "b1" }, Effect.succeed(42)).pipe(
+				Effect.provide(layer),
+				Effect.provide(Layer.succeed(Thresholds, FULL_THRESHOLDS)),
+			),
 		);
 		expect(result).toBe(42);
 	});
@@ -38,7 +45,10 @@ describe("withPhase", () => {
 		// Use a very low threshold so any real execution breaches it
 		const thresholds: ResolvedObservability["thresholds"] = { ...FULL_THRESHOLDS, slowPageGeneration: 0 };
 		await Effect.runPromise(
-			withPhase("generate", { buildId: "b1" }, Effect.succeed(1), thresholds).pipe(Effect.provide(layer)),
+			withPhase("generate", { buildId: "b1" }, Effect.succeed(1)).pipe(
+				Effect.provide(layer),
+				Effect.provide(Layer.succeed(Thresholds, thresholds)),
+			),
 		);
 		const tags = seen.map((e) => e._tag);
 		expect(tags).toContain("SlowOperation");
@@ -47,9 +57,7 @@ describe("withPhase", () => {
 
 	it("works without an EventBus in context (no-op)", async () => {
 		// emit is serviceOption-based so withPhase must not fail without a bus
-		await expect(
-			Effect.runPromise(withPhase("generate", { buildId: "b1" }, Effect.succeed("ok"), FULL_THRESHOLDS)),
-		).resolves.toBe("ok");
+		await expect(Effect.runPromise(withPhase("generate", { buildId: "b1" }, Effect.succeed("ok")))).resolves.toBe("ok");
 	});
 });
 
@@ -66,8 +74,8 @@ describe("withOp", () => {
 					runs += 1;
 					return "value";
 				}),
-				1000,
-			).pipe(Effect.provide(layer)),
+				"slowApiLoad",
+			).pipe(Effect.provide(layer), Effect.provide(Layer.succeed(Thresholds, FULL_THRESHOLDS))),
 		);
 		expect(result).toBe("value");
 		expect(runs).toBe(1);
@@ -79,7 +87,12 @@ describe("withOp", () => {
 	it("emits SlowOperation on a threshold=0 breach", async () => {
 		const seen: PluginEvent[] = [];
 		const layer = makeEventBusLayer([{ minLevel: "trace", handle: (e) => seen.push(e) }]);
-		await Effect.runPromise(withOp("modelLoad", { buildId: "b1" }, Effect.succeed(1), 0).pipe(Effect.provide(layer)));
+		await Effect.runPromise(
+			withOp("modelLoad", { buildId: "b1" }, Effect.succeed(1), "slowApiLoad").pipe(
+				Effect.provide(layer),
+				Effect.provide(Layer.succeed(Thresholds, { ...FULL_THRESHOLDS, slowApiLoad: 0 })),
+			),
+		);
 		expect(seen.map((e) => e._tag)).toContain("SlowOperation");
 	});
 });

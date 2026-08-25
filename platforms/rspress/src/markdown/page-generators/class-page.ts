@@ -1,7 +1,5 @@
-/* v8 ignore start -- page generator, tested via build-stages integration tests */
-
 import type { ApiClass, ApiDeclaredItem, ApiItem } from "@microsoft/api-extractor-model";
-import { ApiItems, Signature, Tsdoc } from "@tsdoctor/model";
+import { ApiItems, Routes, Signature, Tsdoc } from "@tsdoctor/model";
 import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
 import { TypeReferenceExtractor } from "../../type-reference-extractor.js";
 import {
@@ -11,7 +9,6 @@ import {
 	generateFrontmatter,
 	prepareExampleCode,
 	prependHiddenImports,
-	sanitizeId,
 	stripTwoslashDirectives,
 } from "../helpers.js";
 import { linkProse } from "../prose-linker.js";
@@ -93,6 +90,7 @@ export class ClassPageGenerator {
 		llmsPlugin?: LlmsPlugin,
 		availableFrom?: string[],
 		syntheticBase?: ApiItem,
+		memberAnchors?: ReadonlyMap<string, string>,
 	): Promise<{ routePath: string; content: string }> {
 		const shouldSuppressErrors = suppressExampleErrors ?? true;
 		const name = apiClass.displayName;
@@ -159,7 +157,7 @@ export class ClassPageGenerator {
 			content += `## Constructors\n\n`;
 			for (const ctor of constructors) {
 				const ctorSummary = Tsdoc.summary(ctor);
-				const ctorId = sanitizeId("constructor");
+				const ctorId = Routes.memberAnchor("constructor");
 				const ctorItem = ctor as ApiDeclaredItem;
 				const params = Tsdoc.params(ctor);
 				const hasParameters = params.length > 0;
@@ -200,13 +198,16 @@ export class ClassPageGenerator {
 			return !isStatic && !isGetter;
 		});
 
-		const prefixMap = this.detectMemberConflicts(
-			staticProperties,
-			grouped.staticMethods,
-			instanceProperties,
-			grouped.instanceMethods,
-			grouped.getters,
-		);
+		// Anchor ids come from prepareWorkItems, which computed them once for BOTH
+		// the cross-link route map and this page. When a caller renders a class
+		// outside the pipeline the fallback recomputes them with the SAME
+		// function rather than a bare sanitize — a bare sanitize would emit one
+		// id for both halves of a static/instance collision, which is the
+		// duplicate-id defect Task 1.1 removed.
+		const anchors = memberAnchors ?? ApiItems.memberAnchors(apiClass);
+		const anchorFor = (member: ApiItem): string =>
+			anchors.get(member.canonicalReference?.toString() ?? member.displayName) ??
+			Routes.memberAnchor(member.displayName);
 
 		// Helper to render properties
 		const renderProperties = async (title: string, propList: typeof properties): Promise<void> => {
@@ -215,9 +216,7 @@ export class ClassPageGenerator {
 			content += `## ${title}\n\n`;
 			for (const prop of propList) {
 				const propSummary = Tsdoc.summary(prop);
-				const baseName = sanitizeId(prop.displayName);
-				const prefix = prefixMap.get(baseName) || "";
-				const propId = sanitizeId(prop.displayName, prefix);
+				const propId = anchorFor(prop);
 				const propItem = prop as ApiDeclaredItem;
 				if (propItem.excerpt?.text) {
 					const memberSignature = Signature.format(propItem.excerpt).trim();
@@ -235,9 +234,7 @@ export class ClassPageGenerator {
 			content += `## ${title}\n\n`;
 			for (const method of methodList) {
 				const methodSummary = Tsdoc.summary(method);
-				const baseName = sanitizeId(method.displayName);
-				const prefix = prefixMap.get(baseName) || "";
-				const methodId = sanitizeId(method.displayName, prefix);
+				const methodId = anchorFor(method);
 				const methodItem = method as ApiDeclaredItem;
 				const params = Tsdoc.params(method);
 				const hasParameters = params.length > 0;
@@ -383,77 +380,6 @@ export class ClassPageGenerator {
 		}
 
 		return { staticMethods, instanceMethods, getters };
-	}
-
-	/**
-	 * Detect naming conflicts between class members and return prefixes to apply.
-	 * Returns a Map of sanitized name to prefix (empty string if no conflict).
-	 */
-	private detectMemberConflicts(
-		staticProps: { displayName: string }[],
-		staticMethods: { displayName: string }[],
-		instanceProps: { displayName: string }[],
-		instanceMethods: { displayName: string }[],
-		getters: { displayName: string }[],
-	): Map<string, string> {
-		const prefixMap = new Map<string, string>();
-
-		// Collect names by category
-		const staticPropNames = new Set(staticProps.map((p) => sanitizeId(p.displayName)));
-		const staticMethodNames = new Set(staticMethods.map((m) => sanitizeId(m.displayName)));
-		const instancePropNames = new Set(instanceProps.map((p) => sanitizeId(p.displayName)));
-		const instanceMethodNames = new Set(instanceMethods.map((m) => sanitizeId(m.displayName)));
-		const getterNames = new Set(getters.map((g) => sanitizeId(g.displayName)));
-
-		// Check for conflicts and assign prefixes
-		// Priority: instance methods > instance props > static methods > static props
-
-		// Mark static properties that conflict with anything
-		for (const name of staticPropNames) {
-			if (
-				staticMethodNames.has(name) ||
-				instancePropNames.has(name) ||
-				instanceMethodNames.has(name) ||
-				getterNames.has(name)
-			) {
-				prefixMap.set(name, "static-property");
-			}
-		}
-
-		// Mark static methods that conflict with instance methods/props/getters
-		for (const name of staticMethodNames) {
-			if (instanceMethodNames.has(name) || instancePropNames.has(name) || getterNames.has(name)) {
-				prefixMap.set(name, "static");
-			} else if (staticPropNames.has(name)) {
-				// Static method vs static property - method wins (no prefix), property gets prefix (handled above)
-				prefixMap.set(name, "");
-			}
-		}
-
-		// Mark instance properties that conflict with instance methods
-		for (const name of instancePropNames) {
-			if (instanceMethodNames.has(name) || getterNames.has(name)) {
-				prefixMap.set(name, "property");
-			} else if (staticMethodNames.has(name)) {
-				// Instance property vs static method - static gets prefix (handled above)
-				prefixMap.set(name, "");
-			}
-		}
-
-		// Instance methods and getters don't get prefixes - they're the "default"
-		for (const name of instanceMethodNames) {
-			if (!prefixMap.has(name)) {
-				prefixMap.set(name, "");
-			}
-		}
-
-		for (const name of getterNames) {
-			if (!prefixMap.has(name)) {
-				prefixMap.set(name, "");
-			}
-		}
-
-		return prefixMap;
 	}
 
 	/**

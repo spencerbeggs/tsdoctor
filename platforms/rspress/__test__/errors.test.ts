@@ -3,7 +3,6 @@ import {
 	ApiModelLoadError,
 	ConfigValidationError,
 	PageGenerationError,
-	PathDerivationError,
 	PrettierFormatError,
 	TwoslashProcessingError,
 	TypeRegistryError,
@@ -30,17 +29,6 @@ describe("TaggedError types", () => {
 		expect(err.modelPath).toBe("/path/to/model.api.json");
 		expect(err.reason).toBe("File not found");
 		expect(err.message).toBe("Failed to load API model at '/path/to/model.api.json': File not found");
-	});
-
-	it("PathDerivationError has correct tag, fields, and message", () => {
-		const err = new PathDerivationError({
-			route: "/invalid//route",
-			reason: "Double slash in route",
-		});
-		expect(err._tag).toBe("PathDerivationError");
-		expect(err.route).toBe("/invalid//route");
-		expect(err.reason).toBe("Double slash in route");
-		expect(err.message).toBe("Path derivation error for route '/invalid//route': Double slash in route");
 	});
 
 	it("TypeRegistryError has correct tag, fields, and message", () => {

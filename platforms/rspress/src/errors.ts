@@ -24,17 +24,6 @@ export class ApiModelLoadError extends ApiModelLoadErrorBase<{
 	}
 }
 
-export const PathDerivationErrorBase = Data.TaggedError("PathDerivationError");
-
-export class PathDerivationError extends PathDerivationErrorBase<{
-	readonly route: string;
-	readonly reason: string;
-}> {
-	get message(): string {
-		return `Path derivation error for route '${this.route}': ${this.reason}`;
-	}
-}
-
 // --- Recoverable errors (skip item, continue pipeline) ---
 
 export const TypeRegistryErrorBase = Data.TaggedError("TypeRegistryError");

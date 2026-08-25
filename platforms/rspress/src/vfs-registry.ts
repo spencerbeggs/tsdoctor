@@ -1,14 +1,20 @@
 /**
  * VFS Registry - Module-scoped registry for Virtual File System data.
  *
- * This registry stores VFS configurations keyed by output directory path prefix.
- * It is populated during the `beforeBuild` hook and accessed by the remark plugin
- * during MDX compilation for on-demand Twoslash rendering in development mode.
+ * Per-API-scope rendering configuration — the highlighter, cross-linker and
+ * Shiki transformers a remark plugin needs to render a code block. Written in
+ * `config()` (via `build-program.ts`) and read during MDX compilation, which
+ * runs outside any Effect fiber, hence the module-level map.
+ *
+ * It does NOT hold a virtual file system despite the name. It carried a `vfs`
+ * field until Chunk 2; the only production write was an empty `Map` and there
+ * were no reads — the real VFS lives in the Twoslash environments that
+ * `TwoslashManager` builds. The name is kept because the remark plugins and
+ * design docs refer to it.
  *
  * @packageDocumentation
  */
 
-import type { VirtualFileSystem } from "@tsdoctor/registry";
 import type { Highlighter, ShikiTransformer } from "shiki";
 import type { ShikiThemeConfig } from "./markdown/shiki-utils.js";
 import type { ShikiCrossLinker } from "./shiki-transformer.js";
@@ -17,8 +23,6 @@ import type { ShikiCrossLinker } from "./shiki-transformer.js";
  * Configuration stored for each API in the registry.
  */
 export interface VfsConfig {
-	/** Virtual file system containing TypeScript declarations */
-	vfs: Map<string, VirtualFileSystem>;
 	/** Shiki highlighter instance */
 	highlighter: Highlighter;
 	/** Transformer for Twoslash type information */
@@ -75,47 +79,6 @@ class VfsRegistryImpl {
 	}
 
 	/**
-	 * Get the VFS configuration by matching a file path to an API scope.
-	 *
-	 * This method extracts the API scope from a file path and returns
-	 * the corresponding VFS configuration.
-	 *
-	 * @param filePath - The absolute file path being processed
-	 * @returns The VFS configuration, or undefined if not found
-	 */
-	getByFilePath(filePath: string): VfsConfig | undefined {
-		const apiScope = this.extractApiScope(filePath);
-		if (!apiScope) {
-			return undefined;
-		}
-		return this.get(apiScope);
-	}
-
-	/**
-	 * Extract the API scope from a file path.
-	 *
-	 * Path patterns:
-	 * - `docs/en/api-scope/rest.mdx`
-	 * - `website/docs/en/api-scope/rest.mdx`
-	 *
-	 * @param filePath - The file path to extract from
-	 * @returns The API scope, or undefined if not matched
-	 */
-	private extractApiScope(filePath: string): string | undefined {
-		const normalized = filePath.replace(/\\/g, "/");
-
-		// Match pattern: docs/en/{api}/{...rest}
-		// or: website/docs/en/{api}/{...rest}
-		const match = normalized.match(/(?:^|\/)(docs\/en|website\/docs\/en)\/([^/]+)(?:\/|$)/);
-
-		if (!match) {
-			return undefined;
-		}
-
-		return match[2];
-	}
-
-	/**
 	 * Check if any VFS configurations are registered.
 	 *
 	 * @returns True if at least one configuration is registered
@@ -152,7 +115,6 @@ class VfsRegistryImpl {
  * ```ts
  * // In beforeBuild hook:
  * VfsRegistry.register("claude-binary-plugin", {
- *   vfs: combinedVfs,
  *   highlighter,
  *   twoslashTransformer,
  *   crossLinker: shikiCrossLinker,
@@ -161,7 +123,7 @@ class VfsRegistryImpl {
  * });
  *
  * // In remark plugin:
- * const config = VfsRegistry.getByFilePath(file.path);
+ * const config = VfsRegistry.get(apiScope);
  * if (config) {
  *   // Generate HAST with Shiki, then post-process with cross-linker
  *   let hast = await generateShikiHast(code, config.highlighter, transformers);

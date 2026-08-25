@@ -87,6 +87,8 @@ ApiExtractorPlugin({
 
 `model` (and `packageJson`, `tsconfig`) take a string path, a `URL` or an async loader function that returns the content, so you can fetch a model over the network or generate one on the fly.
 
+With neither `tsconfig` nor `compilerOptions` set, the examples are still type-checked, under the plugin's defaults: ESNext target and module, bundler resolution, non-strict, `lib: ["ESNext", "DOM"]`. `compilerOptions` and a discovered `tsconfig.json` merge over those defaults one option at a time, but an option holding an array replaces the default array outright rather than adding to it — a config declaring `lib: ["esnext"]` drops the DOM globals, so list every lib your examples need.
+
 ## Multi-API config (`apis`)
 
 Each entry in `apis` has the same shape as the single-API config, with two differences. `model` is required, because multi-API mode has no `versions` field, and each entry defaults to its own `/{packageName}/api` route so the packages do not collide — set `baseRoute` per entry only to override that default. See the [multi-package recipe](./05-multi-package.md).

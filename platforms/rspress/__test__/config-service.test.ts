@@ -3,57 +3,25 @@ import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import { TypeRegistryError } from "../src/errors.js";
 import { ConfigServiceLive } from "../src/layers/ConfigServiceLive.js";
-import { PathDerivationServiceLive } from "../src/layers/PathDerivationServiceLive.js";
+import { TwoslashEnvironmentsLive } from "../src/layers/TwoslashEnvironmentsLive.js";
 import type { PluginOptions } from "../src/schemas/index.js";
-import type { ResolvedApiConfig, ResolvedBuildContext, RspressConfigSubset } from "../src/services/ConfigService.js";
 import { ConfigService } from "../src/services/ConfigService.js";
+import { PluginConfig } from "../src/services/PluginConfig.js";
 import { TypeRegistryService } from "../src/services/TypeRegistryService.js";
-import { ShikiCrossLinker } from "../src/shiki-transformer.js";
 import { MockTwoslashCacheServiceLayer, MockTypeRegistryServiceLayer } from "./utils/layers.js";
 
 const fixtureModel = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
 
 const makeTestLayer = (options: PluginOptions) =>
 	Layer.provideMerge(
-		ConfigServiceLive(options, new ShikiCrossLinker()),
-		Layer.mergeAll(PathDerivationServiceLive, MockTypeRegistryServiceLayer, MockTwoslashCacheServiceLayer),
+		ConfigServiceLive,
+		Layer.mergeAll(
+			MockTypeRegistryServiceLayer,
+			MockTwoslashCacheServiceLayer,
+			TwoslashEnvironmentsLive,
+			Layer.succeed(PluginConfig, options),
+		),
 	);
-
-describe("ConfigService types", () => {
-	it("RspressConfigSubset has correct shape", () => {
-		const config: RspressConfigSubset = {};
-		void config.multiVersion;
-		void config.locales;
-		void config.lang;
-		void config.root;
-		expect(true).toBe(true);
-	});
-
-	it("ResolvedApiConfig has required fields", () => {
-		const config = {} as ResolvedApiConfig;
-		void config.apiPackage;
-		void config.packageName;
-		void config.outputDir;
-		void config.baseRoute;
-		void config.categories;
-		expect(true).toBe(true);
-	});
-
-	it("ResolvedBuildContext has required fields", () => {
-		const ctx = {} as ResolvedBuildContext;
-		void ctx.apiConfigs;
-		void ctx.combinedVfs;
-		void ctx.highlighter;
-		void ctx.shikiCrossLinker;
-		void ctx.hideCutTransformer;
-		void ctx.hideCutLinesTransformer;
-		void ctx.twoslashTransformer;
-		void ctx.pageConcurrency;
-		void ctx.logLevel;
-		void ctx.suppressExampleErrors;
-		expect(true).toBe(true);
-	});
-});
 
 describe("ConfigServiceLive.resolve", () => {
 	it("resolves single-API config with fixture model", async () => {
@@ -72,12 +40,9 @@ describe("ConfigServiceLive.resolve", () => {
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
 
-		expect(result.apiConfigs).toHaveLength(1);
-		expect(result.apiConfigs[0].packageName).toBe("example-module");
-		expect(result.apiConfigs[0].baseRoute).toBe("/example-module/api");
-		expect(result.highlighter).toBeDefined();
-		expect(result.shikiCrossLinker).toBeDefined();
-		expect(result.pageConcurrency).toBeGreaterThan(0);
+		expect(result).toHaveLength(1);
+		expect(result[0].packageName).toBe("example-module");
+		expect(result[0].baseRoute).toBe("/example-module/api");
 	});
 
 	it("mounts single-API at /api when baseRoute is omitted (api.fromDir default)", async () => {
@@ -92,8 +57,8 @@ describe("ConfigServiceLive.resolve", () => {
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
 
-		expect(result.apiConfigs).toHaveLength(1);
-		expect(result.apiConfigs[0].baseRoute).toBe("/api");
+		expect(result).toHaveLength(1);
+		expect(result[0].baseRoute).toBe("/api");
 	});
 
 	it("auto-namespaces multi-API by package when baseRoute is omitted (apis.fromDir default)", async () => {
@@ -111,8 +76,8 @@ describe("ConfigServiceLive.resolve", () => {
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
 
-		expect(result.apiConfigs).toHaveLength(2);
-		const routes = result.apiConfigs.map((c) => c.baseRoute).sort();
+		expect(result).toHaveLength(2);
+		const routes = result.map((c) => c.baseRoute).sort();
 		expect(routes).toEqual(["/api-a/api", "/api-b/api"]);
 	});
 
@@ -157,8 +122,7 @@ describe("ConfigServiceLive.resolve", () => {
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
 
-		expect(result.apiConfigs).toEqual([]);
-		expect(result.combinedVfs.size).toBe(0);
+		expect(result).toEqual([]);
 	});
 
 	it("resolves multi-API config", async () => {
@@ -176,7 +140,7 @@ describe("ConfigServiceLive.resolve", () => {
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
 
-		expect(result.apiConfigs).toHaveLength(2);
+		expect(result).toHaveLength(2);
 	});
 
 	it("resolves versioned single-API config", async () => {
@@ -199,7 +163,7 @@ describe("ConfigServiceLive.resolve", () => {
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
 
-		expect(result.apiConfigs).toHaveLength(2);
+		expect(result).toHaveLength(2);
 	});
 
 	it("fails when multiVersion active but no versions provided", async () => {
@@ -254,7 +218,11 @@ describe("ConfigServiceLive.resolve", () => {
 		}).pipe(Effect.scoped);
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
-		expect(result.ogResolver).not.toBeNull();
+		// OG resolution is a service now, not a context field, so what resolve()
+		// still owns is threading siteUrl and ogImage onto the API config that
+		// `writeSingleFile` gates on.
+		expect(result[0].siteUrl).toBe("https://example.com");
+		expect(result[0].ogImage).toBe("/images/og.png");
 	});
 
 	it("resolves with custom categories", async () => {
@@ -282,7 +250,7 @@ describe("ConfigServiceLive.resolve", () => {
 		}).pipe(Effect.scoped);
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
-		expect(result.apiConfigs[0].categories.classes.displayName).toBe("Custom Classes");
+		expect(result[0].categories.classes.displayName).toBe("Custom Classes");
 	});
 
 	it("recovers from TypeRegistryError", async () => {
@@ -308,8 +276,13 @@ describe("ConfigServiceLive.resolve", () => {
 		};
 
 		const testLayer = Layer.provideMerge(
-			ConfigServiceLive(options, new ShikiCrossLinker()),
-			Layer.mergeAll(PathDerivationServiceLive, FailingTypeRegistryLayer, MockTwoslashCacheServiceLayer),
+			ConfigServiceLive,
+			Layer.mergeAll(
+				FailingTypeRegistryLayer,
+				MockTwoslashCacheServiceLayer,
+				TwoslashEnvironmentsLive,
+				Layer.succeed(PluginConfig, options),
+			),
 		);
 
 		const program = Effect.gen(function* () {
@@ -318,7 +291,9 @@ describe("ConfigServiceLive.resolve", () => {
 		}).pipe(Effect.scoped);
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(testLayer)));
-		expect(result.apiConfigs).toHaveLength(1);
-		expect(result.highlighter).toBeDefined();
+		// The build degrades rather than aborting: the API is still resolved and
+		// its pages will render, just without Twoslash type information.
+		expect(result).toHaveLength(1);
+		expect(result[0].packageName).toBe("example-module");
 	});
 });

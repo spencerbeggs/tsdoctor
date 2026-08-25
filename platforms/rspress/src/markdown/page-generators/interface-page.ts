@@ -1,7 +1,5 @@
-/* v8 ignore start -- page generator, tested via build-stages integration tests */
-
 import type { ApiDeclaredItem, ApiInterface, ApiItem } from "@microsoft/api-extractor-model";
-import { ApiItems, Signature, Tsdoc } from "@tsdoctor/model";
+import { ApiItems, Routes, Signature, Tsdoc } from "@tsdoctor/model";
 import type { LlmsPlugin, SourceConfig } from "../../schemas/index.js";
 import { TypeReferenceExtractor } from "../../type-reference-extractor.js";
 import {
@@ -11,7 +9,6 @@ import {
 	generateFrontmatter,
 	prepareExampleCode,
 	prependHiddenImports,
-	sanitizeId,
 	stripTwoslashDirectives,
 } from "../helpers.js";
 import { linkProse } from "../prose-linker.js";
@@ -144,7 +141,7 @@ export class InterfacePageGenerator {
 			content += `## Call Signatures\n\n`;
 			for (const callSig of callSignatures) {
 				const callSigSummary = Tsdoc.summary(callSig);
-				const callSigId = sanitizeId("call-signature");
+				const callSigId = Routes.memberAnchor("call-signature");
 				// Add call signature if available
 				const callSigItem = callSig as ApiDeclaredItem;
 				if (callSigItem.excerpt?.text) {
@@ -162,7 +159,7 @@ export class InterfacePageGenerator {
 			content += `## Construct Signatures\n\n`;
 			for (const constructSig of constructSignatures) {
 				const constructSigSummary = Tsdoc.summary(constructSig);
-				const constructSigId = sanitizeId("construct-signature");
+				const constructSigId = Routes.memberAnchor("construct-signature");
 				// Add construct signature if available
 				const constructSigItem = constructSig as ApiDeclaredItem;
 				if (constructSigItem.excerpt?.text) {
@@ -180,7 +177,7 @@ export class InterfacePageGenerator {
 			content += `## Index Signature\n\n`;
 			for (const indexSig of indexSignatures) {
 				const indexSigSummary = Tsdoc.summary(indexSig);
-				const indexSigId = sanitizeId("index-signature");
+				const indexSigId = Routes.memberAnchor("index-signature");
 				// Add index signature if available
 				const indexSigItem = indexSig as ApiDeclaredItem;
 				if (indexSigItem.excerpt?.text) {
@@ -198,7 +195,7 @@ export class InterfacePageGenerator {
 			content += `## Properties\n\n`;
 			for (const prop of properties) {
 				const propSummary = Tsdoc.summary(prop);
-				const propId = sanitizeId(prop.displayName);
+				const propId = Routes.memberAnchor(prop.displayName);
 				// Add property signature if available
 				const propItem = prop as ApiDeclaredItem;
 				if (propItem.excerpt?.text) {
@@ -216,7 +213,7 @@ export class InterfacePageGenerator {
 			content += `## Methods\n\n`;
 			for (const method of methods) {
 				const methodSummary = Tsdoc.summary(method);
-				const methodId = sanitizeId(method.displayName);
+				const methodId = Routes.memberAnchor(method.displayName);
 				// Add method signature if available
 				const methodItem = method as ApiDeclaredItem;
 				if (methodItem.excerpt?.text) {

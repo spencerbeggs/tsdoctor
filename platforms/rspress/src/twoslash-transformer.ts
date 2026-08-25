@@ -1,34 +1,18 @@
 /* v8 ignore start -- Shiki/Twoslash integration, requires full highlighter setup for testing */
-import type { TwoslashTypesCache } from "@shikijs/twoslash";
+
+import { Markdown, Mdast } from "@effected/markdown";
+import type { ProgrammaticCompilerOptions } from "@effected/tsconfig-json";
+import { TsEnumCodec } from "@effected/tsconfig-json";
 import { rendererRich, transformerTwoslash } from "@shikijs/twoslash";
-import type { VirtualFileSystem } from "@tsdoctor/registry";
-import type { VirtualTypeScriptEnvironment } from "@typescript/vfs";
+import { Result } from "effect";
 import type { ElementContent } from "hast";
-import { fromMarkdown } from "mdast-util-from-markdown";
 import { toHast } from "mdast-util-to-hast";
 import type { ShikiTransformer } from "shiki";
-import type ts from "typescript";
 import type { TypeResolutionCompilerOptions } from "./internal-types.js";
 import { PluginEvent } from "./observability/events.js";
+import { emitSync, syncBuildId } from "./observability/sync-emitter.js";
+import type { RegisterEnvironmentOptions } from "./services/TwoslashEnvironments.js";
 import { DEFAULT_COMPILER_OPTIONS } from "./typescript-config.js";
-
-/**
- * Module-level emitter seam. Default is a no-op; wire in `setEventEmitter(emitSync)`
- * from plugin.ts right after the runtime emitter is created so that Twoslash error
- * events flow through the EventBus even though they fire in a sync Shiki callback
- * outside any Effect fiber.
- */
-let emitEvent: (event: PluginEvent) => void = () => {};
-let currentBuildId = "";
-
-/**
- * Inject the runtime-bound emitter into the Twoslash module.
- * Call this right after `makeRuntimeEmitter` in plugin.ts.
- */
-export function setEventEmitter(fn: (event: PluginEvent) => void, buildId = ""): void {
-	emitEvent = fn;
-	currentBuildId = buildId;
-}
 
 /**
  * Module-level type routes map for resolving link references.
@@ -174,8 +158,10 @@ function addLinkClasses(node: ElementContent): void {
  * Render markdown content to HAST (Hypertext Abstract Syntax Tree) elements.
  *
  * This function converts markdown strings (from TSDoc comments) into HAST nodes
- * that can be rendered in Twoslash hover popups. It uses mdast-util-from-markdown
- * to parse the markdown and mdast-util-to-hast to convert to HAST.
+ * that can be rendered in Twoslash hover popups. It parses with
+ * `@effected/markdown` (CommonMark dialect) and converts to HAST with
+ * `mdast-util-to-hast`, which stays because markdown-to-HTML is permanently
+ * out of scope for the kit.
  *
  * TSDoc link references are transformed to markdown links before parsing.
  * Whitespace is normalized for proper inline display.
@@ -201,11 +187,21 @@ function renderMarkdown(markdown: string): ElementContent[] {
 			.filter((para) => para.length > 0)
 			.join("\n\n");
 
-		// Parse markdown to MDAST
-		const mdast = fromMarkdown(transformed);
-
-		// Convert MDAST to HAST
-		const hast = toHast(mdast);
+		// Parse to mdast with @effected/markdown, then project to the plain
+		// mdast shape `toHast` consumes.
+		//
+		// `dialect: "commonmark"` is explicit and load-bearing: the kit defaults
+		// to GFM while the utility this replaced was CommonMark-only. Inheriting
+		// GFM would quietly start rendering tables, strikethrough and autolinks
+		// inside hover popups — a product change, not a dependency swap.
+		// `__test__/markdown-parse-equivalence.test.ts` pins both the general
+		// equivalence and the dialect.
+		//
+		// `toHast` stays: @effected/markdown puts markdown-to-HTML permanently
+		// out of scope, so there is no kit replacement for it (see issue #91).
+		const parsed = Markdown.parseResult(transformed, { dialect: "commonmark" });
+		if (Result.isFailure(parsed)) return [{ type: "text", value: markdown }];
+		const hast = toHast(Mdast.toMdast(parsed.success) as Parameters<typeof toHast>[0]);
 
 		// Return the children (content) of the root node
 		if (hast && "children" in hast) {
@@ -324,14 +320,65 @@ function renderMarkdownInline(markdown: string, context: string): ElementContent
  * blocks routed to the right one. Keys are sorted, so two configurations that
  * differ only in property order share an environment.
  */
-function twoslashConfigKey(options: TypeResolutionCompilerOptions): string {
+/**
+ * Convert resolved compiler options from the tsconfig JSON spelling to the
+ * programmatic one a real compiler expects.
+ *
+ * @remarks
+ * Two spellings meet here, and only here. `tsconfig.json` writes
+ * `lib: ["ESNext", "DOM"]` and `target: "esnext"`; `ts.CompilerOptions` wants
+ * lib FILE NAMES (`lib.esnext.d.ts`) and numeric enums. `DEFAULT_COMPILER_OPTIONS`
+ * is authored in the tsconfig spelling, and a tsconfig discovered from disk
+ * arrives already converted by `ts.parseJsonConfigFileContent`, so both forms
+ * reach this function — which is why the conversion must be idempotent rather
+ * than one-directional.
+ *
+ * Exported for the four-path regression test: no runtime path in this repo
+ * reaches the broken spelling (an unscoped block inherits the first registered
+ * environment, not the raw default), so a synthetic test compiling each
+ * resolution path through the real compiler is the only verification there is.
+ */
+export function toProgrammaticCompilerOptions(options: TypeResolutionCompilerOptions): ProgrammaticCompilerOptions {
+	return TsEnumCodec.encodeCompilerOptions(options as never);
+}
+
+/**
+ * Fingerprint a compiler configuration, for keying the environment map.
+ *
+ * @remarks
+ * INVARIANT: every call site must pass options that have already been through
+ * {@link toProgrammaticCompilerOptions}. There are two — `initialize`, which
+ * stores an environment under this key, and `registerScope`, which looks one
+ * up by it. Both must encode, and encode the same way.
+ *
+ * The failure mode is SILENT. Encode at one site and not the other and the
+ * keys stop matching, so `getTransformer(scope)` finds nothing and falls back
+ * to the default environment: per-scope type-checking quietly degrades to
+ * build-wide, no error is raised, and nothing in the output looks wrong.
+ *
+ * This is not hypothetical. Task 1.2 moved the `initialize` fingerprint behind
+ * the encoder as a step specified — and reviewed — as a no-op, left
+ * `registerScope` on the raw options, and the full 994-test suite stayed green
+ * over the defect. The mutation that should have caught it (fingerprinting the
+ * pre-encoded value) also survived that suite. What caught it was a test
+ * written specifically for the hazard, which then failed for this second,
+ * unanticipated reason. `__test__/twoslash-transformer.test.ts` now pins both
+ * halves; keep that test whenever this code moves.
+ */
+function twoslashConfigKey(options: ProgrammaticCompilerOptions | TypeResolutionCompilerOptions): string {
 	const entries = Object.entries(options as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 	return JSON.stringify(entries);
 }
 
-export class TwoslashManager {
-	private static instance: TwoslashManager | null = null;
-
+/**
+ * The mutable registry behind {@link TwoslashEnvironments}.
+ *
+ * @remarks
+ * A plain class the Layer constructs, not a singleton. `getInstance()` and the
+ * static `reset()` that stood in for layer substitution are gone: a test that
+ * wants a different environment set provides a different layer.
+ */
+export class TwoslashEnvironmentRegistry {
 	/**
 	 * Transformers keyed by compiler-config fingerprint.
 	 *
@@ -363,7 +410,8 @@ export class TwoslashManager {
 	 * Resolved compiler options captured at initialize() time.
 	 * Returned by compilerOptionsSnapshot() for TwoslashCheckFailed events.
 	 */
-	private _resolvedCompilerOptions: TypeResolutionCompilerOptions = DEFAULT_COMPILER_OPTIONS;
+	private _resolvedCompilerOptions: ProgrammaticCompilerOptions =
+		toProgrammaticCompilerOptions(DEFAULT_COMPILER_OPTIONS);
 
 	/**
 	 * Path of the file whose code block is currently being processed.
@@ -374,38 +422,16 @@ export class TwoslashManager {
 	private currentFilePath = "unknown";
 
 	/**
-	 * Private constructor to enforce singleton pattern
-	 */
-	private constructor() {}
-
-	/**
-	 * Get the singleton instance of TwoslashManager
-	 */
-	public static getInstance(): TwoslashManager {
-		if (!TwoslashManager.instance) {
-			TwoslashManager.instance = new TwoslashManager();
-		}
-		return TwoslashManager.instance;
-	}
-
-	/**
-	 * Initialize the Twoslash transformer with a TypeScript environment cache.
-	 * This enables type-aware documentation with hover information and IntelliSense.
+	 * Build an environment for a configuration, or return if one exists.
 	 *
-	 * @param vfs - Virtual file system mapping file paths to .d.ts content
-	 * @param _reserved - Reserved parameter (previously errorStatsCollector, now tracked via Effect Metrics)
-	 * @param _reserved2 - Reserved parameter (previously logger, now uses console)
-	 * @param tsEnvCache - TypeScript virtual environment cache for reusing language services
-	 * @param compilerOptions - TypeScript compiler options for Twoslash (defaults to DEFAULT_COMPILER_OPTIONS)
+	 * @remarks
+	 * The signature this replaces took six positional parameters, two named
+	 * `_reserved`/`_reserved2` and one (`tsEnvCache`) that every call site
+	 * passed as `undefined`. Dropping `tsEnvCache` changes nothing at runtime
+	 * for exactly that reason — Twoslash was never handed a shared environment
+	 * cache.
 	 */
-	public initialize(
-		vfs: VirtualFileSystem,
-		_reserved?: undefined,
-		_reserved2?: undefined,
-		tsEnvCache?: Map<string, VirtualTypeScriptEnvironment>,
-		compilerOptions?: TypeResolutionCompilerOptions,
-		typesCache?: TwoslashTypesCache,
-	): void {
+	public registerEnvironment({ vfs, compilerOptions, typesCache }: RegisterEnvironmentOptions): void {
 		// Convert VFS Map to record for Twoslash extraFiles
 		const extraFiles: Record<string, string> = {};
 		for (const [path, content] of vfs.entries()) {
@@ -415,11 +441,15 @@ export class TwoslashManager {
 		// Snapshot VFS keys and compiler options for TwoslashCheckFailed events.
 		this._vfsKeys = Array.from(vfs.keys());
 
-		// Use provided compiler options or fall back to defaults
-		const resolvedOptions = compilerOptions ?? DEFAULT_COMPILER_OPTIONS;
+		// Use provided compiler options or fall back to defaults, then convert
+		// to the programmatic spelling once, here.
+		const resolvedOptions = toProgrammaticCompilerOptions(compilerOptions ?? DEFAULT_COMPILER_OPTIONS);
 		this._resolvedCompilerOptions = resolvedOptions;
 
-		// Create the transformer with virtual file system
+		// Fingerprint the ENCODED value. Keying on the pre-conversion form would
+		// let `{lib:["ESNext"]}` and `{lib:["lib.esnext.d.ts"]}` — the same
+		// configuration in two spellings — build two identical TypeScript
+		// environments, one per API that happened to write it differently.
 		const configKey = twoslashConfigKey(resolvedOptions);
 		if (this.defaultConfigKey === null) this.defaultConfigKey = configKey;
 		if (this.environments.has(configKey)) {
@@ -444,8 +474,6 @@ export class TwoslashManager {
 				renderMarkdown,
 				renderMarkdownInline,
 			}),
-			// Pass TypeScript environment cache for reusing language services across code blocks
-			...(tsEnvCache != null ? { cache: tsEnvCache } : {}),
 			// Persisted Twoslash result cache. Shiki calls read/write around the
 			// whole `twoslasher()` call, so a hit skips the type-check entirely —
 			// which is ~97% of render-phase code-block time (see
@@ -454,8 +482,7 @@ export class TwoslashManager {
 			twoslashOptions: {
 				// Pass the virtual file system to Twoslash via extraFiles
 				extraFiles, // Provide all our type declaration files
-				// Cast to ts.CompilerOptions for compatibility with Twoslash's expected type
-				compilerOptions: resolvedOptions as ts.CompilerOptions,
+				compilerOptions: resolvedOptions,
 				// Allow TypeScript errors to be rendered as annotations without throwing
 				// Users can still use @noErrors to suppress errors, or @errors: XXXX to expect specific errors
 				handbookOptions: {
@@ -481,7 +508,12 @@ export class TwoslashManager {
 	 * under, so its code blocks are type-checked with that configuration.
 	 */
 	public registerScope(apiScope: string, compilerOptions: TypeResolutionCompilerOptions): void {
-		this.scopeConfigs.set(apiScope, twoslashConfigKey(compilerOptions));
+		// Encode before fingerprinting, exactly as `initialize` does. These two
+		// keys must be computed the same way or a scope's lookup misses and
+		// `getTransformer` silently falls back to the default environment —
+		// per-scope type-checking would degrade to build-wide with nothing
+		// failing.
+		this.scopeConfigs.set(apiScope, twoslashConfigKey(toProgrammaticCompilerOptions(compilerOptions)));
 	}
 
 	/**
@@ -492,7 +524,7 @@ export class TwoslashManager {
 	 * route, and type-checking it under some configuration beats not checking it.
 	 * Returns null before any environment is initialized.
 	 */
-	public getTransformer(apiScope?: string): ShikiTransformer | null {
+	public transformerFor(apiScope?: string): ShikiTransformer | null {
 		const key = (apiScope != null ? this.scopeConfigs.get(apiScope) : undefined) ?? this.defaultConfigKey;
 		return key != null ? (this.environments.get(key) ?? null) : null;
 	}
@@ -516,20 +548,13 @@ export class TwoslashManager {
 		this.defaultConfigKey = null;
 	}
 
-	/**
-	 * Reset the singleton instance (useful for testing)
-	 */
-	public static reset(): void {
-		TwoslashManager.instance = null;
-	}
-
 	/** Returns VFS keys snapshotted at initialize() time. Empty array before initialize(). */
 	private vfsKeysSnapshot(): string[] {
 		return this._vfsKeys;
 	}
 
 	/** Returns compiler options snapshotted at initialize() time. Falls back to DEFAULT_COMPILER_OPTIONS. */
-	private compilerOptionsSnapshot(): TypeResolutionCompilerOptions {
+	private compilerOptionsSnapshot(): ProgrammaticCompilerOptions {
 		return this._resolvedCompilerOptions;
 	}
 
@@ -539,9 +564,9 @@ export class TwoslashManager {
 		const match = /TS(\d+)/.exec(message);
 		const tsCode = match ? Number(match[1]) : 0;
 
-		emitEvent(
+		emitSync(
 			PluginEvent.TwoslashDiagnostic({
-				ctx: { buildId: currentBuildId, file },
+				ctx: { buildId: syncBuildId(), file },
 				level: "warn",
 				file,
 				line: 0,
@@ -551,9 +576,9 @@ export class TwoslashManager {
 				snippet: "",
 			}),
 		);
-		emitEvent(
+		emitSync(
 			PluginEvent.TwoslashCheckFailed({
-				ctx: { buildId: currentBuildId, file },
+				ctx: { buildId: syncBuildId(), file },
 				level: "trace",
 				file,
 				code: tsCode,
@@ -567,36 +592,49 @@ export class TwoslashManager {
 	 * Test seam: drive `handleTwoslashError` directly without going through the Shiki transformer.
 	 * @internal
 	 */
-	public handleTwoslashErrorForTest(error: unknown, code: string, file: string): void {
+	public reportErrorForTest(error: unknown, code: string, file: string): void {
 		this.handleTwoslashError(error, code, file);
 	}
+}
 
-	/**
-	 * Set the type routes map for resolving link references in hover docs.
-	 * This should be called before initialize() to enable type linking.
-	 *
-	 * @param routes - Map of type names to their documentation URLs
-	 */
-	public static setTypeRoutes(routes: Map<string, string>): void {
-		typeRoutes = routes;
-	}
+/**
+ * Cross-link routes used to turn type names in hover docs into links.
+ *
+ * @remarks
+ * These were `static` members of the old singleton, but they are cross-link
+ * DATA, not type-checking state — they only ever read and wrote the
+ * module-level `typeRoutes` map above, and they share their concern with
+ * `markdown/prose-linker.ts` rather than with the environment registry. They
+ * are deliberately NOT part of {@link TwoslashEnvironments}: folding them in
+ * would widen the service's surface with state that has nothing to do with
+ * compiler configurations.
+ */
 
-	/**
-	 * Add routes to the existing type routes map.
-	 * Useful for adding routes from multiple packages.
-	 *
-	 * @param routes - Map of type names to their documentation URLs
-	 */
-	public static addTypeRoutes(routes: Map<string, string>): void {
-		for (const [name, route] of routes) {
-			typeRoutes.set(name, route);
-		}
-	}
+/** Replace the type routes map wholesale. */
+export function setTypeRoutes(routes: Map<string, string>): void {
+	typeRoutes = routes;
+}
 
-	/**
-	 * Clear the type routes map (useful for testing)
-	 */
-	public static clearTypeRoutes(): void {
-		typeRoutes.clear();
+/** Merge routes in, so a multi-API build accumulates every scope's names. */
+export function addTypeRoutes(routes: Map<string, string>): void {
+	for (const [name, route] of routes) {
+		typeRoutes.set(name, route);
 	}
+}
+
+/**
+ * Clear the accumulated type routes.
+ *
+ * @remarks
+ * Called from `config()` at the start of every build. `addTypeRoutes` only
+ * ever adds, so without this a dev session keeps routes for items that have
+ * since been renamed or removed, and a multi-API build leaks every scope's
+ * names into one map.
+ *
+ * Clears ONLY the routes. The environments are per-build too, but they are
+ * owned by the layer now, so nothing here can discard the per-scope
+ * transformers `ConfigServiceLive` just built.
+ */
+export function clearTypeRoutes(): void {
+	typeRoutes.clear();
 }

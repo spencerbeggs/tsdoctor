@@ -19,15 +19,17 @@ import {
 	crossLinkKindPriority,
 	generateSinglePage,
 	prepareWorkItems,
-	setBuildStagesEventEmitter,
 	writeMetadata,
 	writeSingleFile,
 } from "../src/build-stages.js";
 import { CategoryResolver } from "../src/category-resolver.js";
 import { loadApiModel } from "../src/model-loader.js";
+import { makeEventBusLayer } from "../src/observability/EventBus.js";
 import type { PluginEvent } from "../src/observability/events.js";
+import { installSyncEmitterUnsafe } from "../src/observability/sync-emitter.js";
 import type { CategoryConfig } from "../src/schemas/index.js";
 import { DEFAULT_CATEGORIES } from "../src/schemas/index.js";
+import { TestOgServiceLayer } from "./utils/layers.js";
 
 const TEST_BUILD_ID = "test-build";
 
@@ -145,7 +147,7 @@ describe("prepareWorkItems", () => {
 		};
 
 		const emitted: PluginEvent[] = [];
-		setBuildStagesEventEmitter((event) => emitted.push(event), "test-build-id");
+		installSyncEmitterUnsafe((event) => emitted.push(event), { buildId: "test-build-id" });
 		try {
 			expect(() =>
 				prepareWorkItems({
@@ -156,7 +158,7 @@ describe("prepareWorkItems", () => {
 				}),
 			).toThrow(/Route collision/);
 		} finally {
-			setBuildStagesEventEmitter(() => {});
+			installSyncEmitterUnsafe(() => {});
 		}
 
 		const collisionEvents = emitted.filter((event) => event._tag === "RouteCollisionDetected");
@@ -182,9 +184,12 @@ describe("prepareWorkItems", () => {
 			...DEFAULT_CATEGORIES,
 			variables: { ...DEFAULT_CATEGORIES.variables, folderName: "type" },
 		};
-		setBuildStagesEventEmitter(() => {
-			throw new Error("emitter boom");
-		}, "test-build-id");
+		installSyncEmitterUnsafe(
+			() => {
+				throw new Error("emitter boom");
+			},
+			{ buildId: "test-build-id" },
+		);
 		try {
 			// The guarded emit loop must not let the sink's failure replace the collision error.
 			expect(() =>
@@ -196,7 +201,7 @@ describe("prepareWorkItems", () => {
 				}),
 			).toThrow(/Route collision/);
 		} finally {
-			setBuildStagesEventEmitter(() => {});
+			installSyncEmitterUnsafe(() => {});
 		}
 	});
 
@@ -771,7 +776,7 @@ describe("generateSinglePage", () => {
 			generateSinglePage(workItems[0], {
 				...ctx,
 				existingSnapshots: snapshots,
-			}).pipe(Effect.provide(NodeFileSystem.layer)),
+			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
 		);
 		expect(second).not.toBeNull();
 		if (!second) throw new Error("Expected second result to be non-null");
@@ -824,6 +829,108 @@ describe("generateSinglePage", () => {
 });
 
 describe("writeSingleFile", () => {
+	/** The page fixture the OG tests below reuse. */
+	const ogPage = (): GeneratedPageResult => ({
+		workItem: {
+			item: { displayName: "Foo" } as GeneratedPageResult["workItem"]["item"],
+			categoryKey: "classes",
+			categoryConfig: {
+				folderName: "class",
+				displayName: "Classes",
+				singularName: "Class",
+			} as GeneratedPageResult["workItem"]["categoryConfig"],
+		},
+		content: "---\ntitle: Foo\ndescription: Foo desc\n---\n# Foo\n",
+		bodyContent: "# Foo\n",
+		frontmatter: { title: "Foo", description: "Foo desc" },
+		contentHash: "abc123",
+		frontmatterHash: "def456",
+		routePath: "/example-module/class/foo",
+		relativePathWithExt: "class/foo.mdx",
+		publishedTime: "2025-01-01T00:00:00.000Z",
+		modifiedTime: "2025-01-01T00:00:00.000Z",
+		isUnchanged: false,
+	});
+
+	// FORBIDS: swallowing an OgImageError at the call site. The service names
+	// its failures precisely so the diagnostic can reach issues.json; a caller
+	// that catches and drops it restores the exact state this replaced — a
+	// misconfigured og:image that is silently indistinguishable from none.
+	it("degrades on a misconfigured OG image AND reports it", async () => {
+		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "write-og-bad-"));
+		const events: PluginEvent[] = [];
+		const bus = makeEventBusLayer([{ minLevel: "trace", handle: (e) => events.push(e) }]);
+
+		const ctx: WriteSingleFileContext = {
+			buildId: TEST_BUILD_ID,
+			resolvedOutputDir: tmpDir,
+			buildTime: new Date().toISOString(),
+			siteUrl: "https://example.com",
+			packageName: "example-module",
+			// Neither absolute nor root-relative: unusable.
+			ogImage: "not-a-usable-path",
+		};
+
+		const result = await Effect.runPromise(
+			writeSingleFile(ogPage(), ctx).pipe(
+				Effect.provide(
+					Layer.mergeAll(
+						NodeFileSystem.layer,
+						TestOgServiceLayer,
+						bus as unknown as Layer.Layer<never>,
+						Layer.succeed(References.MinimumLogLevel, "None"),
+					),
+				),
+			),
+		);
+
+		// Degraded, not failed: the page is still written.
+		expect(result.status).toBe("new");
+		expect(fs.existsSync(path.join(tmpDir, "class/foo.mdx"))).toBe(true);
+		// And reported, so it lands in issues.json.
+		expect(events).toContainEqual(
+			expect.objectContaining({
+				_tag: "ConfigValidationWarning",
+				field: "ogImage",
+				value: "not-a-usable-path",
+			}),
+		);
+	});
+
+	// FORBIDS: emitting a warning when the image resolved fine — a false
+	// positive in issues.json is as bad as a missing one.
+	it("reports nothing when the OG image resolves", async () => {
+		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "write-og-ok-"));
+		const events: PluginEvent[] = [];
+		const bus = makeEventBusLayer([{ minLevel: "trace", handle: (e) => events.push(e) }]);
+
+		const ctx: WriteSingleFileContext = {
+			buildId: TEST_BUILD_ID,
+			resolvedOutputDir: tmpDir,
+			buildTime: new Date().toISOString(),
+			siteUrl: "https://example.com",
+			packageName: "example-module",
+			ogImage: "/images/og.png",
+		};
+
+		await Effect.runPromise(
+			writeSingleFile(ogPage(), ctx).pipe(
+				Effect.provide(
+					Layer.mergeAll(
+						NodeFileSystem.layer,
+						TestOgServiceLayer,
+						bus as unknown as Layer.Layer<never>,
+						Layer.succeed(References.MinimumLogLevel, "None"),
+					),
+				),
+			),
+		);
+
+		expect(events.filter((e) => e._tag === "ConfigValidationWarning")).toHaveLength(0);
+		const written = await fs.promises.readFile(path.join(tmpDir, "class/foo.mdx"), "utf8");
+		expect(written).toContain("https://example.com/images/og.png");
+	});
+
 	it("writes a changed file to disk and returns correct result", async () => {
 		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "write-single-"));
 
@@ -855,7 +962,9 @@ describe("writeSingleFile", () => {
 			buildTime: new Date().toISOString(),
 		};
 
-		const result = await Effect.runPromise(writeSingleFile(page, ctx).pipe(Effect.provide(NodeFileSystem.layer)));
+		const result = await Effect.runPromise(
+			writeSingleFile(page, ctx).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+		);
 		expect(result.status).toBe("new");
 		expect(result.snapshot.contentHash).toBe("abc123");
 		expect(result.snapshot.frontmatterHash).toBe("def456");
@@ -903,7 +1012,9 @@ describe("writeSingleFile", () => {
 			buildTime: new Date().toISOString(),
 		};
 
-		const result = await Effect.runPromise(writeSingleFile(page, ctx).pipe(Effect.provide(NodeFileSystem.layer)));
+		const result = await Effect.runPromise(
+			writeSingleFile(page, ctx).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+		);
 		expect(result.status).toBe("unchanged");
 
 		const exists = await fs.promises
@@ -943,7 +1054,9 @@ describe("Stream pipeline (native)", () => {
 			existingSnapshots: new Map(),
 		});
 
-		const results = await Effect.runPromise(program.pipe(Effect.provide(NodeFileSystem.layer)));
+		const results = await Effect.runPromise(
+			program.pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+		);
 
 		expect(results.length).toBe(workItems.length);
 		const written = results.filter((r) => r.status !== "unchanged");
@@ -987,7 +1100,7 @@ describe("Stream pipeline (native)", () => {
 				resolvedOutputDir: tmpDir,
 				pageConcurrency: 2,
 				existingSnapshots: new Map(),
-			}).pipe(Effect.provide(NodeFileSystem.layer)),
+			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
 		);
 
 		// Build snapshot map
@@ -1008,7 +1121,7 @@ describe("Stream pipeline (native)", () => {
 				resolvedOutputDir: tmpDir,
 				pageConcurrency: 2,
 				existingSnapshots: snapshots,
-			}).pipe(Effect.provide(NodeFileSystem.layer)),
+			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
 		);
 
 		// ALL items must still appear (not filtered)

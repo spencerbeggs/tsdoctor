@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: observability
 created: 2026-01-15
-updated: 2026-08-24
-last-synced: 2026-08-24
+updated: 2026-08-25
+last-synced: 2026-08-25
 completeness: 90
 related:
   - rspress-plugin-api-extractor/performance-observability.md
@@ -52,17 +52,21 @@ code-block errors:
 | `TwoslashCheckFailed` | `"trace"` | Environment snapshot emitted alongside every `TwoslashDiagnostic`. Carries `fsMapKeys` (VFS key list) and `compilerOptions` (JSON string) for offline reproduction. |
 | `PrettierError` | `"warn"` | A formatting failure from Prettier. Carries `file` and `reason`. |
 
-`ShikiError` also exists in the taxonomy but is not currently mapped to a
-counter by the metrics sink (hits the `default` branch).
+`ShikiError` also exists in the taxonomy and, since phase 3, maps to
+`BuildMetrics.shikiErrors` (undimensioned, plus a `{ scope }`-tagged copy).
+It previously hit the sink's `default` branch and reached no metric at all.
 
 ---
 
 ## Twoslash Error Flow
 
 The Twoslash transformer (`platforms/rspress/src/twoslash-transformer.ts`) runs inside a
-synchronous Shiki callback, outside any Effect fiber. It stores a module-level
-`emitEvent` variable (default: no-op) that `plugin.ts` wires via
-`setEventEmitter(emitSync)` right after creating the runtime emitter.
+synchronous Shiki callback, outside any Effect fiber. It reaches the bus through
+the shared sync-island bridge — `emitSync` from
+`observability/sync-emitter.ts`, which `plugin.ts` binds once via
+`installSyncEmitter(emitterRuntime)`. The seven per-module `emitEvent`
+variables and their `setXEventEmitter` setters are gone; see the
+Sync-Island Bridge section of `performance-observability.md`.
 
 When the Twoslash compiler reports an error, `handleTwoslashError` is called:
 
@@ -72,14 +76,14 @@ private handleTwoslashError(error: unknown, _code: string, file: string): void {
   const match = /TS(\d+)/.exec(message);
   const tsCode = match ? Number(match[1]) : 0;
 
-  emitEvent(PluginEvent.TwoslashDiagnostic({
-    ctx: { buildId: currentBuildId, file },
+  emitSync(PluginEvent.TwoslashDiagnostic({
+    ctx: { buildId: syncBuildId(), file },
     level: "warn",
     file, line: 0, col: 0, code: tsCode, message, snippet: "",
   }));
 
-  emitEvent(PluginEvent.TwoslashCheckFailed({
-    ctx: { buildId: currentBuildId, file },
+  emitSync(PluginEvent.TwoslashCheckFailed({
+    ctx: { buildId: syncBuildId(), file },
     level: "trace",
     file, code: tsCode,
     fsMapKeys: this.vfsKeysSnapshot(),
@@ -88,8 +92,8 @@ private handleTwoslashError(error: unknown, _code: string, file: string): void {
 }
 ```
 
-Both events are delivered synchronously via `emitEvent` — the sync-island
-bridge `makeRuntimeEmitter` calls `runtime.runSync(emit(event))`. The console
+Both events are delivered synchronously via `emitSync`, which calls
+`runtime.runSync(emit(event))` against the observability-only runtime. The console
 sink logs the `TwoslashDiagnostic` at `warn` level; the metrics sink increments
 `twoslashDiagnostics` and `twoslashErrors`; the trace sink (if active) writes
 both payloads to the JSONL file, including the VFS keys and compiler options
@@ -99,13 +103,12 @@ snapshot in `TwoslashCheckFailed`.
 
 ## Prettier Error Flow
 
-The Prettier formatter (`platforms/rspress/src/prettier-formatter.ts`) stores the same
-`emitEvent` module-level variable and emits a `PrettierError` from its
-`catch` block:
+The Prettier formatter (`platforms/rspress/src/prettier-formatter.ts`) uses the same
+bridge and emits a `PrettierError` from its `catch` block:
 
 ```typescript
-emitEvent(
-  PE.PrettierError({ ctx: { buildId: currentBuildId }, file: "unknown", reason: errorMsg, level: "warn" })
+emitSync(
+  PE.PrettierError({ ctx: { buildId: syncBuildId() }, file: "unknown", reason: errorMsg, level: "warn" })
 );
 ```
 
@@ -123,6 +126,7 @@ error counters from events:
 | ----- | ------------------- |
 | `TwoslashDiagnostic` | `BuildMetrics.twoslashDiagnostics`, `BuildMetrics.twoslashErrors` |
 | `PrettierError` | `BuildMetrics.prettierErrors` |
+| `ShikiError` | `BuildMetrics.shikiErrors` (also tagged `{ scope }`) |
 
 `twoslashDiagnostics` counts individual diagnostics. `twoslashErrors` counts
 affected code blocks (currently incremented once per diagnostic, same as
@@ -149,7 +153,7 @@ No error line is printed when both counters are zero.
 
 ## Persisted to `issues.json`
 
-Every event in this document is also collected by the fourth EventBus sink, the issues collector (`makeIssuesSink`, `src/observability/sinks/issues-sink.ts`), and written to `<cwd>/.api-docs/build/issues.json` on production builds. Route collisions and model-load failures also land in the artifact as `errors` rather than only `warnings`: `RouteCollisionDetected` uses the same sync-island pattern as Twoslash/Prettier (a module-level `emitEvent`, wired via `setBuildStagesEventEmitter` in `plugin.ts`), while `ModelLoadFailed` — since the phase-2 model redesign made loading Effect-typed (`Model.load` from `@tsdoctor/model`) — is emitted inside the Effect pipeline via `Effect.tapError` + `Effect.orDie` in `ConfigServiceLive`; the former `setModelLoaderEventEmitter` seam is deleted. Full schema, the event-to-bucket mapping and the monitor that reads the artifact are documented in `build-progress-and-issues.md`.
+Every event in this document is also collected by the fourth EventBus sink, the issues collector (`makeIssuesSink`, `src/observability/sinks/issues-sink.ts`), and written to `<cwd>/.api-docs/build/issues.json` on production builds. Route collisions and model-load failures also land in the artifact as `errors` rather than only `warnings`: `RouteCollisionDetected` uses the same sync-island bridge as Twoslash/Prettier (`emitSync` in `build-stages.ts`), while `ModelLoadFailed` — since the phase-2 model redesign made loading Effect-typed (`Model.load` from `@tsdoctor/model`) — is emitted inside the Effect pipeline via `Effect.tapError` + `Effect.orDie` in `ConfigServiceLive`; the former `setModelLoaderEventEmitter` seam is deleted. Full schema, the event-to-bucket mapping and the monitor that reads the artifact are documented in `build-progress-and-issues.md`.
 
 ---
 
@@ -161,8 +165,9 @@ Every event in this document is also collected by the fourth EventBus sink, the 
 | `src/observability/sinks/metrics-sink.ts` | Maps error events to `BuildMetrics` counters |
 | `src/observability/sinks/console-sink.ts` | Renders error events as human-readable lines |
 | `src/observability/sinks/trace-sink.ts` | Captures full error payloads (incl. VFS snapshot) to JSONL |
-| `src/twoslash-transformer.ts` | Emits `TwoslashDiagnostic` + `TwoslashCheckFailed` via `emitEvent` |
-| `src/prettier-formatter.ts` | Emits `PrettierError` via `emitEvent` |
+| `src/observability/sync-emitter.ts` | The one sync-island bridge: `installSyncEmitter`, `emitSync`, `syncBuildId` |
+| `src/twoslash-transformer.ts` | Emits `TwoslashDiagnostic` + `TwoslashCheckFailed` via `emitSync` |
+| `src/prettier-formatter.ts` | Emits `PrettierError` via `emitSync` |
 | `src/layers/build-metrics.ts` | `twoslashDiagnostics`, `twoslashErrors`, `prettierErrors` counters |
 | `src/layers/ObservabilityLive.ts` | `logBuildSummary` reads error counters |
 

@@ -67,56 +67,112 @@ The plugin uses Effect's Context/Layer/Service pattern for dependency injection.
 ```text
 plugin.ts (RSPress adapter)
   |
-  +-> EffectAppLayer (composed Layer stack)
+  +-> BuildEnvLayer (Context.References; provided to BOTH runtimes)
+  |     BuildId, Thresholds, PageConcurrency, SuppressExampleErrors
+  |
+  +-> EffectAppLayer = Layer.provideMerge(ConfigServiceLive, BaseLayer)
   |     |
-  |     +-> ConfigServiceLive
-  |     |     Resolves plugin options + RSPress config
-  |     |     into ResolvedBuildContext
+  |     +-> ConfigServiceLive          (a module-level const, not a factory)
+  |     |     Resolves plugin options + RSPress config into
+  |     |     ReadonlyArray<ResolvedApiConfig>
+  |     |
+  |     +-> PluginConfigLive           Layer.succeed(PluginConfig, options)
+  |     |
+  |     +-> HighlighterServiceLive(themes)
+  |     |     Shiki highlighter acquired/released at runtime lifetime
+  |     |
+  |     +-> TwoslashEnvironmentsLive   Per-config Twoslash environments
+  |     |
+  |     +-> OgServiceLive              Open Graph image resolution
+  |     |     (provided PlatformLive locally)
+  |     |
+  |     +-> TypeRegistryServiceLive    External package type loading
+  |     |     Edge-composed @tsdoctor/registry stack over layers/xdg.ts
+  |     |
+  |     +-> TwoslashCacheServiceLive   XDG sqlite Twoslash result cache
   |     |
   |     +-> SnapshotServiceLive (from @tsdoctor/snapshot)
   |     |     SQLite via @effected/store Store.layerSqlite
   |     |     StoreMigration list applied at layer construction
   |     |     WAL checkpoint finalizer via checkpointOnClose: true
   |     |
-  |     +-> TypeRegistryServiceLive
-  |     |     External package type loading
-  |     |     Edge-composed @tsdoctor/registry stack
-  |     |
-  |     +-> PathDerivationServiceLive
-  |     |     Route and output path computation
-  |     |
   |     +-> EventBus layer (from buildEventBus)
-  |     |     Synchronous fan-out: console, metrics, optional trace sinks
+  |     |     Synchronous fan-out: console, metrics, issues, render,
+  |     |     optional trace sinks
   |     |
-  |     +-> makeSummaryLoggerLayer
-  |     |     Slim Effect Logger gating residual Effect.log* calls
+  |     +-> metricStore.layer          Per-build MetricRegistry
   |     |
-  |     +-> NodeFileSystem.layer
-  |           Node implementation of the core `effect` FileSystem service
+  |     +-> makeSummaryLoggerLayer     Effect Logger gating Effect.log* calls
+  |     |
+  |     +-> NodeFileSystem.layer       Node FileSystem implementation
   |
-  +-> ManagedRuntime.make(EffectAppLayer)
-        Single runtime instance, shared across hooks
+  +-> ManagedRuntime.make(EffectAppLayer)        the main runtime
+  |
+  +-> ManagedRuntime.make(                        the sync-emitter runtime
+        eventBusLayer + metricStore.layer
+        + makeSummaryLoggerLayer + BuildEnvLayer)
 ```
+
+### Two runtimes, deliberately
+
+There are **two** `ManagedRuntime`s and they must not be merged back into one.
+
+The main runtime's layer opens two SQLite databases at construction — the snapshot store and the Twoslash result cache — because both cache-backed layers acquire their stack at layer-construction time rather than inside each method body (see [Layer acquisition](#layer-acquisition-and-memoization)). That makes `EffectAppLayer` **asynchronous to build**, and `makeRuntimeEmitter`'s `runtime.runSync` builds a runtime's layer before running anything, so the first sync emit from a remark plugin died with `AsyncFiberError` during RSPress's render pass — invisible to every unit test.
+
+The sync-island emitters therefore run on their own small runtime over `Layer.succeed`-only layers (`eventBusLayer`, `metricStore.layer`, the summary logger and `BuildEnvLayer`), which stays synchronously buildable. `metricStore.layer` is shared **by reference** between the two runtimes, which is what keeps the metrics sink's writes and `logBuildSummary`'s reads in one registry; breaking that sharing is the silent all-zeros failure the store exists to prevent. Beyond the bug that surfaced it, the split states an invariant worth keeping: **an event emitter has no business forcing a database open.**
+
+### Per-build configuration as `Context.Reference`s
+
+`src/BuildEnv.ts` holds the values that used to travel by hand as constructor arguments and god-object fields:
+
+| Reference | Default | Read by |
+| --- | --- | --- |
+| `BuildId` | `""` | `EventBus.emit` (fills `ctx.buildId`), `sync-emitter.ts` |
+| `Thresholds` | the `ResolvedObservability` defaults | `withPhase` / `withOp` (`observability/spans.ts`) |
+| `PageConcurrency` | `1` (`plugin.ts` provides `os.cpus().length`) | `build-program.ts` |
+| `SuppressExampleErrors` | `true` | `build-program.ts` |
+
+A `Context.Reference` carries a default, so a wiring mistake **succeeds quietly with the default** rather than failing. That is why the decoded plugin options are a `Context.Service` (`services/PluginConfig.ts`) and not a Reference: there is no sensible default for "which APIs is this site documenting", so forgetting to provide it must be a loud "service not provided". The same reasoning makes the Shiki themes a **layer argument** to `HighlighterServiceLive` rather than a Reference. Use a Reference only where the default is merely conservative, never where it would be silently wrong.
 
 ### Service Interfaces
 
 | Service | Location | Purpose |
 | --- | --- | --- |
-| `ConfigService` | `services/ConfigService.ts` | Resolve options into build context |
-| `SnapshotService` | `@tsdoctor/snapshot` (`packages/snapshot/src/SnapshotService.ts`, tag id `"@tsdoctor/snapshot/SnapshotService"`) | Incremental build tracking |
+| `ConfigService` | `services/ConfigService.ts` | Resolve options + RSPress config into `ReadonlyArray<ResolvedApiConfig>` |
+| `PluginConfig` | `services/PluginConfig.ts` | The decoded `PluginOptions` |
+| `HighlighterService` | `services/HighlighterService.ts` | The build's single Shiki highlighter |
+| `TwoslashEnvironments` | `services/TwoslashEnvironments.ts` | Per-compiler-config Twoslash environments and transformers |
+| `OgService` | `services/OgService.ts` | Open Graph image resolution, typed `OgImageError` |
+| `TwoslashCacheService` | `services/TwoslashCacheService.ts` | Persisted Twoslash result cache (load-once / save-once) |
 | `TypeRegistryService` | `services/TypeRegistryService.ts` | External type loading |
-| `PathDerivationService` | `services/PathDerivationService.ts` | Path computation |
+| `SnapshotService` | `@tsdoctor/snapshot` (`packages/snapshot/src/SnapshotService.ts`, tag id `"@tsdoctor/snapshot/SnapshotService"`) | Incremental build tracking |
+| `EventBus` | `observability/EventBus.ts` | Synchronous event fan-out |
+
+`PathDerivationService` is **deleted**. It was a `Layer.succeed` over two pure functions whose declared `PathDerivationError` was unreachable, and it was already bypassed at seven call sites that imported the pure functions from `path-derivation.ts` directly. `plugin.ts` even composed the layer into the stack without ever using it. The pure module and its tests remain — that is where the coverage always lived.
 
 ### Layer Implementations
 
 | Layer | Location | Key Dependencies |
 | --- | --- | --- |
-| `ConfigServiceLive` | `layers/ConfigServiceLive.ts` | PathDerivation, TypeRegistry |
+| `ConfigServiceLive` | `layers/ConfigServiceLive.ts` | `TypeRegistryService`, `PluginConfig` |
+| `HighlighterServiceLive(themes)` | `layers/HighlighterServiceLive.ts` | (none; `Effect.acquireRelease` over `createHighlighter`) |
+| `TwoslashEnvironmentsLive` | `layers/TwoslashEnvironmentsLive.ts` | (none) |
+| `OgServiceLive` | `layers/OgServiceLive.ts` | `FileSystem`, `Path` (provided `PlatformLive` locally) |
+| `TwoslashCacheServiceLive` | `layers/TwoslashCacheServiceLive.ts` | `@effected/store` `Cache`, `layers/xdg.ts` |
+| `TypeRegistryServiceLive` | `layers/TypeRegistryServiceLive.ts` | `@tsdoctor/registry`, `@effected/store`, `layers/xdg.ts`, `@effect/platform-node` |
 | `SnapshotServiceLive` | `@tsdoctor/snapshot` (`packages/snapshot/src/SnapshotServiceLive.ts`) | `@effected/store` (`Store.layerSqlite`) |
-| `TypeRegistryServiceLive` | `layers/TypeRegistryServiceLive.ts` | `@tsdoctor/registry`, `@effected/store`, `@effected/xdg`, `@effect/platform-node` |
-| `PathDerivationServiceLive` | `layers/PathDerivationServiceLive.ts` | (none) |
 | `buildEventBus` (EventBus layer) | `layers/ObservabilityLive.ts` | Synchronous fan-out event bus |
 | `makeSummaryLoggerLayer` | `layers/ObservabilityLive.ts` | Effect Logger gate for `Effect.log*` calls |
+
+`ConfigServiceLive` is a **zero-argument module-level `const`**, not a layer-returning factory. Layers memoize by reference, so a factory called twice mints two layers — with a second `ConfigService` capturing its own `TypeRegistry`. Making it a `const` turns "call it twice" into a type error rather than a test case. `HighlighterServiceLive` remains a factory (it takes the collected themes as its layer argument), which is why `plugin.ts` binds its result to a `const` before merging: a second call would acquire a second highlighter.
+
+### Layer acquisition and memoization
+
+`TypeRegistryServiceLive` and `TwoslashCacheServiceLive` used to call `Effect.provide(SomeLayerConst)` *inside each method body*. In Effect v4 `provideLayer` is a `scopedWith` over `buildWithScope` that forks a **child** `MemoMap` whose parent never built the layer, so the registry stack (XDG + `metadata.sqlite` + undici + `TypeCache`) and the Twoslash cache were each built and torn down twice per build. Both are now `Layer.effect(Service, …).pipe(Layer.provide(TheLayer))`, acquiring once at `ManagedRuntime` construction.
+
+Both cache-backed layers must **degrade to a cache miss** rather than fail. Moving acquisition to layer-construction time moved the failure mode from "this method fails and its local catch absorbs it" to "the `ManagedRuntime` build aborts the whole site build" — a purely structural-looking change that silently violated `TwoslashCacheService`'s documented contract. Both layers therefore wrap in `Layer.catchCause` and degrade; the type system was the only thing that noticed, when the layer's error channel went from `never` to `CacheError | AppDirsError | XdgEnvError`.
+
+Both also share one platform and XDG root, `src/layers/xdg.ts`, exporting `TSDOCTOR_NAMESPACE`, `PlatformLive` and `AppDirsLive`. Each file previously declared its own — including a copy-pasted `"tsdoctor"` namespace literal. Two distinct layer references build twice, and a drifted namespace literal is permanent and silent: the caches move directory, every lookup misses, and a build that should hit a warm Twoslash cache goes cold forever with nothing in the output to notice.
 
 ### Effect v4 and the peer dependency closure
 
@@ -128,7 +184,9 @@ The v3 peer-closure block (`@effect/cluster`, `@effect/experimental`, `@effect/r
 - The full `@effected` surface the four `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling), alongside `@typescript/vfs`. The released effected round-1 kit wave added two more: `@effected/jsonc` (canonical JSON-value hashing behind `@tsdoctor/bundle`'s `BundleHash.ts`) and `@effected/markdown` (frontmatter block assembly in `frontmatter.ts` and, transitively, `@tsdoctor/model`'s prose/render internals).
 - The four core workspaces themselves: `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot`, each `workspace:*`.
 
-`@effect/sql-sqlite-node` and `gray-matter` are **gone** from the plugin manifest — SQLite moved behind `@tsdoctor/snapshot`'s `Store.layerSqlite`, and frontmatter parsing moved to `@effected/yaml` (see `frontmatter.ts` in [Key Source Files](#key-source-files)). Do not prune the closure entries as "unused"; the plugin imports some of them directly (see `layers/TypeRegistryServiceLive.ts`, `sync-node-fs.ts`, `frontmatter.ts`) and the rest exist to keep the dependency graph closed.
+`@effect/sql-sqlite-node` and `gray-matter` are **gone** from the plugin manifest — SQLite moved behind `@tsdoctor/snapshot`'s `Store.layerSqlite`, and frontmatter parsing moved to `@effected/yaml` (see `frontmatter.ts` in [Key Source Files](#key-source-files)). Do not prune the closure entries as "unused"; the plugin imports some of them directly (see `layers/TypeRegistryServiceLive.ts`, `sync-node-fs.ts`, `frontmatter.ts`, `twoslash-transformer.ts`) and the rest exist to keep the dependency graph closed.
+
+`mdast-util-from-markdown` has moved to `devDependencies`: `twoslash-transformer.ts`'s `renderMarkdown` now parses through `@effected/markdown`'s `Markdown.parseResult` + `Mdast.toMdast`, passing `dialect: "commonmark"` explicitly (the kit defaults to GFM, and adopting GFM would be a product change, not a dependency swap). `mdast-util-to-hast` **stays a runtime dependency** — `@effected/markdown` puts markdown→HTML permanently out of scope, so `toHast` has no kit equivalent. On the dev side, `@effect/vitest` and `@effected/memfs` were added: the latter replaces a hand-stubbed `layerNoop` in one registry test. `TypeCache.test.ts`'s `layerNoop` is deliberately left alone — that one is fault injection, which memfs cannot do.
 
 A former `pnpm-workspace.yaml` override pinned `yuku-parser: ^0.6.12` to dodge a broken 0.6.7 publish that crashed `rolldown-plugin-dts` during the declaration build; the ecosystem now resolves a healthy version and the override (plus its `minimumReleaseAgeExclude` entries) has been removed.
 
@@ -214,14 +272,17 @@ A "Stage 2" that would emit the MDX pages on top of the library's `renderItem` b
 1. ApiExtractorPlugin(rawOptions)  -- factory
    - Decode options via Effect Schema
    - Classify api/apis via classifyApiConfig -> isInert
-   - Create ShikiCrossLinker instance
-   - Build Layer stack and ManagedRuntime
+   - Build BuildEnvLayer (References) + BaseLayer + EffectAppLayer
+   - Build the main ManagedRuntime and the sync-emitter ManagedRuntime
+   - installSyncEmitter(emitterRuntime)
 
 2. config(config, utils, isProd)  -- BEFORE route scanning
    - Pre-create output directories
    - Run Effect program (SKIPPED when inert):
-     - ConfigService.resolve() loads models, creates highlighter,
-       resolves types
+     - VfsRegistry.clear(), clearTypeRoutes(), clearTwoslashAccess()
+     - ConfigService.resolve() loads models, resolves types, registers
+       Twoslash environments -> ReadonlyArray<ResolvedApiConfig>
+     - installTwoslashAccess(yield* TwoslashEnvironments)
      - generateApiDocs() for each API config (concurrent)
      - Progress heartbeat forked when isProd (see build-progress-and-issues.md)
    - Register remark plugins (remarkWithApi, remarkApiCodeblocks)
@@ -307,34 +368,50 @@ An explicit `undefined` classifies as `missing`, not `disabled`, even though `Sc
 
 Two consumers read the classification:
 
-- `validateOptions` (`layers/ConfigServiceLive.ts`) treats null/empty as absent (`apis: []` is no longer an error on its own) and returns successfully on `disabled`, so `resolve()` produces a `ResolvedBuildContext` with an empty `apiConfigs` array.
+- `validateOptions` (`layers/ConfigServiceLive.ts`) treats null/empty as absent (`apis: []` is no longer an error on its own) and returns successfully on `disabled`, so `resolve()` produces an empty `ResolvedApiConfig` array.
 - `plugin.ts` computes `const isInert = classifyApiConfig(options) === "disabled"` once at factory time and uses it to gate the lifecycle hooks — see [Hook Execution Order](#hook-execution-order).
 
 When inert, `config()` never runs the doc generation Effect program at all: no model loading, no `ManagedRuntime` build and therefore no snapshot SQLite database. The empty `.api-docs/snapshot/` directory is still created, deliberately — a stray sync emitter (a deprecation warning, a user-authored `with-api` code block) can still force the runtime to build, and SQLite opens its file eagerly at layer construction, so it would fail without the directory. `afterBuild` likewise skips the build summary, the `issues.json` write and LLMs post-processing, and `config()` skips the LLMs `resolve.alias` plus the `themeConfig.apiExtractorScopes` / `globalUIComponents` injection (see `llms-integration.md`). The remark plugin registration and the runtime `source.include` entry still happen, because user-authored `with-api` code blocks work without any API model.
 
-The classifier is covered by `__test__/config-utils.test.ts`; the empty-build-context resolution for each inert spelling is covered by `__test__/config-service.test.ts`.
+The classifier is covered by `__test__/config-utils.test.ts`; the empty-result resolution for each inert spelling is covered by `__test__/config-service.test.ts`.
 
 ### ConfigService.resolve()
 
-The `ConfigServiceLive` (`layers/ConfigServiceLive.ts`) resolves raw plugin
-options + RSPress config into a `ResolvedBuildContext`:
+`ConfigServiceLive` (`layers/ConfigServiceLive.ts`) resolves the raw plugin
+options plus the RSPress config into the API configurations the pipeline runs
+over.
 
 **Inputs:**
 
-- `PluginOptions` (decoded at factory time)
-- `RspressConfigSubset` (extracted from RSPress UserConfig at config time)
+- `PluginConfig` (the decoded `PluginOptions`, from the layer context)
+- `RspressConfigSubset` (extracted from RSPress `UserConfig` at config time,
+  passed to `resolve`)
 
-**Outputs (`ResolvedBuildContext`):**
+**Output:** `ReadonlyArray<ResolvedApiConfig>` — fully resolved config per API
+(model, paths, categories, source, theme, `siteUrl`/`ogImage`, docs roots).
 
-- `apiConfigs[]` -- Fully resolved config per API (model, paths, categories)
-- `combinedVfs` -- Merged type definitions for all external packages
-- `highlighter` -- Shared Shiki highlighter instance
-- `tsEnvCache` -- TypeScript environment cache per package
-- `ogResolver` -- Open Graph image resolver
-- `shikiCrossLinker` -- Cross-linker for type references
-- `hideCutTransformer` / `hideCutLinesTransformer` -- Shiki transformers
-- `twoslashTransformer` -- Twoslash transformer (or undefined if disabled)
-- `pageConcurrency` -- Parallel page generation limit
+`ResolvedBuildContext`, the 16-field object this used to return, is **deleted**.
+It was a bag the build carried because there was nowhere else to put things,
+and most of it was neither produced nor owned by config resolution. Where each
+field went:
+
+| Former field | Now |
+| --- | --- |
+| `apiConfigs` | the entire return value |
+| `combinedVfs`, `resolvedCompilerOptions`, `logLevel` | deleted — zero production readers |
+| `twoslashTransformer` | deleted — `transformerFor(scope) ?? transformerFor()`, whose second operand could only fire when the first was already null |
+| `highlighter` | `HighlighterService` |
+| `ogResolver` | `OgService` |
+| `tsEnvCache`, and the `TwoslashManager` singleton behind it | `TwoslashEnvironments` |
+| `shikiCrossLinker` | one immutable `ShikiCrossLinker.fromRoutes(...)` per API, held behind that scope's `VfsRegistry` entry |
+| `twoslashCache` / `twoslashEnvHash` | `TwoslashCacheService` + a per-build value lifted in `plugin.ts` (the env hash **is** the cache key) |
+| `buildId`, `thresholds`, `logLevel`, `pageConcurrency`, `suppressExampleErrors` | `Context.Reference`s in `BuildEnv.ts` |
+| `hideCutTransformer`, `hideCutLinesTransformer` | module-level immutable consts, imported directly from `hide-cut-transformer.ts` (note the naming trap: the field named `hideCutTransformer` held `MemberFormatTransformer`) |
+
+The collapse is what makes phase 4 affordable. Its two build-scoped concerns —
+OG image generation and JSON-LD derivation — would otherwise each have had
+exactly one home: another field on the object and another argument on
+`ConfigServiceLive(options, shikiCrossLinker, buildId, thresholds)`.
 
 ### Schema Types
 
@@ -426,6 +503,11 @@ The plugin exports a `serve(options?: ServeOptions): Promise<void>` runner (`src
 | `sync-node-fs.ts` | Sync `FileSystem` bridge for running bundle discovery under the sync helper API |
 | `frontmatter.ts` | gray-matter-parity frontmatter split/join over `@effected/yaml` |
 | `markdown/prose-linker.ts` | Per-build prose cross-linker holder over the model `CrossLinker` |
+| `BuildEnv.ts` | The per-build `Context.Reference`s (`BuildId`, `Thresholds`, `PageConcurrency`, `SuppressExampleErrors`) |
+| `twoslash-access.ts` | Module-level holder bridging RSPress's render pass to `TwoslashEnvironments` |
+| `observability/sync-emitter.ts` | The one sync-island bridge (`installSyncEmitter` / `emitSync`) |
+| `og-resolver.ts` | Pure, filesystem-free OG URL/MIME/metadata helpers behind `OgService` |
+| `layers/xdg.ts` | `TSDOCTOR_NAMESPACE`, `PlatformLive`, `AppDirsLive` — one home for both cache-backed layers |
 | `layers/ConfigServiceLive.ts` | Config resolution, model loading |
 | `layers/ObservabilityLive.ts` | Metrics, logger, build summary |
 | `schemas/config.ts` | Effect Schema definitions |

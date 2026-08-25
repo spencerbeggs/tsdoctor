@@ -63,3 +63,22 @@ export function deriveOutputPaths(input: PathDerivationInput): DerivedPath[] {
 
 	return results;
 }
+
+/**
+ * The API scope key derived from a base route.
+ *
+ * @remarks
+ * Load-bearing and previously duplicated. Config resolution registers each
+ * API's Twoslash environment under this key and the build program looks it up
+ * by the same key; if the two derivations disagree, every lookup misses and
+ * `getTransformer` falls back to the build-wide environment. Per-scope
+ * type-checking degrades to build-wide with no error and nothing visibly
+ * wrong in the output — the failure mode is silent, which is why one
+ * definition matters more here than the duplication was costing.
+ *
+ * Falls back to the package name so a single-API site mounted at `/` still
+ * gets a non-empty scope.
+ */
+export function apiScopeOf(baseRoute: string, packageName: string): string {
+	return baseRoute.replace(/^\//, "").split("/")[0] || packageName;
+}

@@ -21,7 +21,8 @@ framework-free: no RSPress, no React, no I/O beyond model loading.
   (pure TSDoc accessors), `ApiItems` (`categorize` → `{ items, uncategorized }`,
   `namespaceMembers`), `EntryPoints` (`resolve` dedupe + `availableFrom`),
   `Routes` (`RouteCandidate`, `detectCollisions`, `RouteCollisionError`,
-  `sanitizeId`), `SyntheticBases` (`detect`, `BASE_CLASS_ANCHOR`), `Signature`
+  `sanitizeId`, `memberAnchor`, `memberAnchors`, `memberRouteKeys`),
+  `SyntheticBases` (`detect`, `BASE_CLASS_ANCHOR`), `Signature`
   (`format`, de-classed), `Render` (string API + `@alpha` `Render.tree` on
   `@effected/markdown`), the `CrossLinker` class
   (`fromRoutes`/`fromRefs`/`empty`/`link`/`linkHtml`) and the `@alpha`
@@ -31,7 +32,15 @@ framework-free: no RSPress, no React, no I/O beyond model loading.
   Package Consumption" in `build-architecture.md`). The plugin's
   `ApiExtractedPackage.extractPlainText` is a **different** algorithm from
   this package's prose extraction (it preserves `{@link}` and code fences);
-  they are not interchangeable. `internal/prose.ts`'s `phrasingFromMarkdown`
+  they are not interchangeable. `Routes.sanitizeId` is the **single** anchor
+  algorithm for the whole monorepo — the adapter's second copy in
+  `markdown/helpers.ts` is deleted, because the two had drifted (`_` and `$`
+  handled differently) and every member name containing either had a
+  cross-link that landed nowhere. `Routes.memberAnchors` keys by **member**,
+  not by sanitized name, so both halves of a static/instance collision get
+  distinct ids; `ApiItems.memberAnchors`/`memberRouteKeys` are the `ApiItem`
+  views. Do not add a third spelling.
+  `internal/prose.ts`'s `phrasingFromMarkdown`
   uses `@effected/markdown`'s `Markdown.parsePhrasingResult` rather than a
   full parse + `Paragraph` splice.
 - `__test__/mdx-vocabulary.test.ts` is the proof-consumer suite for
