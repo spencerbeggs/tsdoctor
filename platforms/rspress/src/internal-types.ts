@@ -11,6 +11,22 @@ export interface TypeResolutionCompilerOptions {
 	target?: ts.ScriptTarget;
 	module?: ts.ModuleKind;
 	moduleResolution?: ts.ModuleResolutionKind;
+	/**
+	 * Standard libraries to load. Both spellings are accepted and normalized:
+	 * the tsconfig form (`["ESNext", "DOM"]`) and the file-name form
+	 * (`["lib.esnext.d.ts"]`). Conversion happens once, at
+	 * `toProgrammaticCompilerOptions` in `twoslash-transformer.ts`.
+	 *
+	 * Defaults to `["ESNext", "DOM"]`.
+	 *
+	 * @remarks
+	 * Declaring `lib` REPLACES the default array wholesale rather than merging
+	 * with it (see `mergeCompilerOptions`). That is the surprising part: a
+	 * discovered `tsconfig.json` saying `lib: ["esnext"]` yields exactly that
+	 * and no DOM, so every `fromDir` site whose tsconfig declares `lib` gets no
+	 * DOM globals regardless of this default. Add `DOM` to that tsconfig if its
+	 * examples need it.
+	 */
 	lib?: string[];
 	types?: string[];
 	typeRoots?: string[];

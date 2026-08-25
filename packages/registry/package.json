@@ -34,6 +34,7 @@
 	"devDependencies": {
 		"@effect/platform-node": "catalog:effect",
 		"@effect/vitest": "catalog:effect",
+		"@effected/memfs": "catalog:effected",
 		"@effected/semver": "catalog:effected",
 		"@effected/store": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",

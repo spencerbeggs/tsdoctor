@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-24
-last-synced: 2026-08-24
+updated: 2026-08-25
+last-synced: 2026-08-25
 completeness: 90
 related:
   - rspress-plugin-api-extractor/build-architecture.md
@@ -46,7 +46,9 @@ As of phase 2 the system lives in its own framework-neutral package,
 dropped its direct `@effect/sql-sqlite-node` dependency and its
 `migrations/` directory. The live layer is rebuilt on `@effected/store`'s
 `Store.layerSqlite` (the adoption decision recorded in
-`tsdoctor-package-architecture.md`).
+`tsdoctor-package-architecture.md`, taken against `@effected/store@0.4.0`;
+`0.5.0` is the installed version as of 2026-08-25 and nothing in the port
+changed with it).
 
 ### Key Features
 

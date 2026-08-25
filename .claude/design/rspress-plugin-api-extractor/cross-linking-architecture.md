@@ -83,10 +83,10 @@ prepareWorkItems (build-stages.ts)
          │     prose-linker holder; both cross-linkers share the
          │     single route map
          │
-         ├─> shikiCrossLinker.reinitialize(routes, kinds, apiScope)
-         │     Stores routes/kinds per scope, builds classMembersMap
+         ├─> ShikiCrossLinker.fromRoutes(routes, kinds, apiScope)
+         │     A NEW immutable linker per API; builds classMembersMap
          │
-         └─> VfsRegistry.register(apiScope, { crossLinker: shikiCrossLinker, ... })
+         └─> VfsRegistry.register(apiScope, { crossLinker, ... })
                Makes cross-linker available to remark plugins
 
 Page generation (page-generators/*.ts)
@@ -94,7 +94,7 @@ Page generation (page-generators/*.ts)
         Markdown text → markdown text with [TypeName](/route) links
 
 Code block rendering (remark-api-codeblocks.ts)
-  └─> shikiCrossLinker.transformHast(hast, apiScope)
+  └─> VfsRegistry.get(apiScope).crossLinker.transformHast(hast)
         HAST → HAST with <a> anchors on type references
 ```
 
@@ -106,14 +106,24 @@ Both cross-linkers consume the same `crossLinkData.routes` map built once in `pr
 // src/markdown/prose-linker.ts — module-level holder
 let current: CrossLinker = CrossLinker.empty;
 
-// src/shiki-transformer.ts — instantiated per plugin call
-const shikiCrossLinker = new ShikiCrossLinker();
+// src/build-program.ts — one immutable linker per API, per build
+const shikiCrossLinker = ShikiCrossLinker.fromRoutes(routes, kinds, apiScope);
 ```
 
-The prose side is a module-level holder over the immutable model
-`CrossLinker` (swapped per build). The `ShikiCrossLinker` is created per
-plugin instantiation and passed into the `VfsRegistry` for scope-keyed
-retrieval by remark plugins.
+Both sides are now immutable and built the same way. The prose side is a
+module-level holder over the model `CrossLinker`, swapped per build. The
+`ShikiCrossLinker` is constructed once per API in `generateApiDocs` and stored
+behind that scope's `VfsRegistry` entry, from which the remark plugins retrieve
+it.
+
+This replaced a single long-lived instance created at plugin-factory time,
+threaded through `ConfigServiceLive`'s constructor and the build context, and
+mutated per API by `reinitialize()`. Scope isolation used to be a property of
+internal `…ByScope` maps plus a mutable `currentApiScope` any caller could
+reassign between a lookup and a render — with two APIs in one build, whichever
+resolved last owned it, so a code block could be linked against another
+package's routes. **A linker now IS a scope**, and cannot be pointed at
+another package's routes at all.
 
 ---
 
@@ -171,8 +181,11 @@ The routes map maps display names to route paths:
 - **Top-level items:** `"MyClass"` → `"/api/classes/myclass"`
 - **Class/interface members:** `"MyClass.method"` → `"/api/classes/myclass#method"`
 
-Member routes use `Routes.sanitizeId()` (`@tsdoctor/model`) for the
-anchor fragment. Only classes and interfaces register member routes.
+Member routes come from `ApiItems.memberRouteKeys()` and
+`ApiItems.memberAnchors()` (`@tsdoctor/model`), so the `#fragment` a key
+resolves to is the same one the page emits. Only classes and interfaces
+register member routes. See [Member Anchors](#member-anchors) for the key
+vocabulary and the static/instance rule.
 
 ---
 
@@ -186,12 +199,13 @@ including inside Twoslash hover tooltips.
 
 ### State
 
-Three scope-indexed Maps for multi-API isolation:
+Three read-only maps, all for the one scope this instance links:
 
 ```typescript
-private apiItemRoutesByScope: Map<string, Map<string, string>>;
-private apiItemKindsByScope: Map<string, Map<string, string>>;
-private classMembersMapByScope: Map<string, Map<string, string[]>>;
+private readonly apiItemRoutes: ReadonlyMap<string, string>;
+private readonly apiItemKinds: ReadonlyMap<string, string>;
+private readonly classMembersMap: ReadonlyMap<string, ReadonlyArray<string>>;
+public readonly apiScope: string;
 ```
 
 `classMembersMap` groups member names by their parent class/namespace.
@@ -202,22 +216,27 @@ For example, if routes contain `"Logger.addTransport"`, the map stores
 
 ```typescript
 class ShikiCrossLinker {
-  reinitialize(
-    routes: Map<string, string>,
-    kinds: Map<string, string>,
+  static fromRoutes(
+    routes: ReadonlyMap<string, string>,
+    kinds: ReadonlyMap<string, string>,
     apiScope: string,
-  ): void;
+  ): ShikiCrossLinker;
 
-  setApiScope(apiScope: string): void;
+  static readonly empty: ShikiCrossLinker;  // links nothing
 
-  transformHast(hast: Root, apiScope?: string): Root;
+  transformHast(hast: Root): Root;
 }
 ```
 
+There is no `reinitialize`, no `setApiScope` and **no scope parameter on
+`transformHast`** — the caller picks the scope by picking the linker, which is
+what `VfsRegistry.get(apiScope)` already does. Removing the parameter also
+removed a 230-line duplicate `transformRoot` that existed only to serve the
+scope-less overload.
+
 ### Three-Phase HAST Transformation
 
-`transformHast()` delegates to `transformRootWithScope()`, which walks
-the HAST tree in three phases per line:
+`transformHast()` walks the HAST tree in three phases per line:
 
 #### Phase 1: Class/Namespace Member Linking
 
@@ -307,13 +326,60 @@ Class and interface members use fragment anchors:
 
 ```text
 /api/classes/myclass#addtransport
-/api/classes/myclass#static-create
+/api/classes/myclass#instance-create
 /api/interfaces/iconfig#timeout
 ```
 
-Anchor IDs are generated by `Routes.sanitizeId(displayName, prefix?)`
-from `@tsdoctor/model`: lowercase, spaces/underscores → hyphens, strip
-special chars, optional prefix for disambiguation (e.g., `"static"`).
+Anchors come from `Routes.memberAnchors(members)` (`@tsdoctor/model`), reached
+through `ApiItems.memberAnchors(item)`, which computes the anchor for **every**
+member of a class in one pass and returns it keyed by the member's canonical
+reference. `Routes.sanitizeId(displayName, prefix?)` is the underlying
+spelling — lowercase, spaces/underscores → hyphens, other specials stripped —
+and `Routes.memberAnchor(displayName, prefix?)` is the named alias for a
+single member.
+
+**Collisions.** When several members sanitize to the same anchor, the
+highest-priority slot keeps the bare anchor and every other member is prefixed.
+Priority runs static method, static property, instance method, getter, instance
+property — static first, so the anchor agrees with the bare cross-link key,
+which resolves to the static member. In practice TypeScript forbids two members
+sharing a name within the same static-ness, so a collision is exactly one
+static and one instance member and only `instance-` is ever emitted:
+`static create()` keeps `#create` and the instance `create()` becomes
+`#instance-create`.
+
+The per-**member** keying is load-bearing. The previous adapter-side
+implementation keyed its prefix map by sanitized **name**, so both halves of a
+collision looked up the same entry and both rendered `id="static-create"` — two
+elements sharing one HTML id, and the instance member displaced from the anchor
+its own cross-link pointed at.
+
+### Member Cross-Link Keys
+
+`Routes.memberRouteKeys(className, members)`, reached through
+`ApiItems.memberRouteKeys(item)`, decides which member a qualified name means:
+
+| Key | Resolves to |
+| --- | --- |
+| `Registry.create` | the **static** member when the class has both; otherwise the only one |
+| `Registry.(create:static)` | the static member, explicitly |
+| `Registry.(create:instance)` | the instance member |
+| `Registry.prototype.create` | an alias for the instance member |
+
+`Registry.create` is the static access expression in TypeScript — the instance
+one is `registry.create` — so a prose author writing the qualified form means
+the static member. The disambiguating spellings are TSDoc declaration-reference
+selectors, the vocabulary API Extractor canonical references already carry, and
+`Registry.prototype.create` is real JavaScript rather than invented syntax.
+
+`Class#member` is deliberately **not** emitted: `#` is the URL fragment
+delimiter, so such a key reads ambiguously beside a route, and in modern
+TypeScript `#` denotes a private field.
+
+Selector keys are emitted **only** when a collision exists. On the
+overwhelmingly common class with no collision the bare key is complete, and
+every extra key is one more pattern the prose cross-linker compiles and tests
+against every string it links.
 
 ### Companion Name Cross-Link Priority
 
@@ -368,8 +434,11 @@ The generated file path matches this route by construction: `generateSinglePage`
 // Top-level item
 const route = `${baseRoute}/${folderName}/${displayName.toLowerCase()}`;
 
-// Class/interface member
-const memberRoute = `${itemRoute}#${Routes.sanitizeId(memberName)}`;
+// Class/interface members — anchors and keys from one model computation
+const anchors = ApiItems.memberAnchors(item);
+for (const [routeKey, memberId] of ApiItems.memberRouteKeys(item)) {
+  routes.set(routeKey, `${itemRoute}#${anchors.get(memberId)}`);
+}
 
 // Namespace member (qualified)
 const qualifiedRoute = `${baseRoute}/${folderName}/${qualifiedName.toLowerCase()}`;
@@ -486,13 +555,16 @@ const { workItems, crossLinkData } = prepareWorkItems({ ... });
 
 // Both cross-linkers share the same pre-built route map
 setProseLinker(crossLinkData.routes);
-shikiCrossLinker.reinitialize(
+const shikiCrossLinker = ShikiCrossLinker.fromRoutes(
   crossLinkData.routes,
   crossLinkData.kinds,
   apiScope,
 );
 
-// Register in VfsRegistry for remark plugin access
+// Register in VfsRegistry for remark plugin access. The highlighter comes
+// from the runtime-lifetime HighlighterService, so it is never absent — the
+// `if (highlighter)` guard this replaced could silently skip registration
+// for a whole scope.
 VfsRegistry.register(apiScope, {
   crossLinker: shikiCrossLinker,
   highlighter,
@@ -537,9 +609,12 @@ then post-processes the HAST with the ShikiCrossLinker:
 const vfsConfig = VfsRegistry.get(apiScopeValue);
 let hast = await generateShikiHast(source, vfsConfig.highlighter, ...);
 if (hast && vfsConfig.crossLinker) {
-  hast = vfsConfig.crossLinker.transformHast(hast, apiScopeValue);
+  hast = vfsConfig.crossLinker.transformHast(hast);
 }
 ```
+
+The scope is chosen by the registry lookup, not by an argument — the retrieved
+linker already links only that scope.
 
 The resulting HAST is base64-encoded and injected back onto the JSX node
 as a `hast` prop for browser rendering.
@@ -561,7 +636,6 @@ storing per-scope `VfsConfig` objects:
 
 ```typescript
 interface VfsConfig {
-  vfs: Map<string, VirtualFileSystem>;
   highlighter: Highlighter;
   crossLinker?: ShikiCrossLinker;
   twoslashTransformer?: ShikiTransformer;
@@ -573,12 +647,23 @@ interface VfsConfig {
 }
 ```
 
+The `vfs` field is **gone**. It had one production write (`new Map()`) and zero
+reads, and its declared type had rotted into a map of maps — `VirtualFileSystem`
+is itself a `Map<string, string>`.
+
 **Key methods:**
 
 - `register(apiScope, config)` -- Store config by scope
 - `get(apiScope)` -- Retrieve by scope (used by remark plugins)
-- `getByFilePath(filePath)` -- Extract scope from file path and
-  retrieve (used for user-authored code blocks)
+- `clear()` -- Drop every entry, called at the start of each build
+
+`getByFilePath` is **deleted**. It had zero production callers because
+`remark-with-api.ts`'s `inferApiScope` is a byte-identical reimplementation of
+its path→scope regex; the original was orphaned rather than falling out of use.
+Which module should own path→scope inference is a deliberate design question
+still open — note that `inferApiScope` matches `docs/en/{api}/`, a shape **no
+fixture site uses**, so cross-linking inside `remark-with-api` has never fired
+in a fixture build.
 
 ---
 
@@ -588,7 +673,9 @@ interface VfsConfig {
 | --- | --- |
 | `CrossLinker` (`link`, `linkHtml`, matching/backtick behavior) | `packages/model/__test__/cross-linker.test.ts`, `cross-linker-behavior.test.ts` |
 | ShikiCrossLinker (three-phase HAST transform, scope isolation) | `platforms/rspress/__test__/shiki-transformer.test.ts` |
-| VfsRegistry (scope registration, `getByFilePath`) | `platforms/rspress/__test__/vfs-registry.test.ts` |
+| VfsRegistry (scope registration, `clear`) | `platforms/rspress/__test__/vfs-registry.test.ts` |
+| Member anchor / page-id agreement | `platforms/rspress/__test__/markdown/anchor-invariant.test.ts` |
+| `Routes.memberAnchors` / `memberRouteKeys` | `packages/model/__test__/routes.test.ts` |
 
 ---
 
@@ -597,12 +684,13 @@ interface VfsConfig {
 | File | Purpose |
 | --- | --- |
 | `packages/model/src/CrossLinker.ts` | The immutable `CrossLinker` class (`fromRoutes`/`fromRefs`/`empty`/`link`/`linkHtml`) |
-| `packages/model/src/Routes.ts` | `RouteCandidate`, `detectCollisions`, `RouteCollisionError`, `sanitizeId` |
+| `packages/model/src/Routes.ts` | `RouteCandidate`, `detectCollisions`, `RouteCollisionError`, `sanitizeId`, `memberAnchor`, `memberAnchors`, `memberRouteKeys`, `MemberRef`/`MemberSlot` |
+| `packages/model/src/ApiItems.ts` | `memberAnchors(item)` / `memberRouteKeys(item)` — the `ApiItem` view of the above |
 | `packages/model/src/SyntheticBases.ts` | `SyntheticBases.detect` + `BASE_CLASS_ANCHOR` |
 | `src/markdown/prose-linker.ts` | Module-level prose-linker holder (`setProseLinker`/`linkProse`) |
 | `src/shiki-transformer.ts` | ShikiCrossLinker class + HAST transformation |
 | `src/vfs-registry.ts` | VfsRegistry connecting cross-linker to remark |
-| `src/build-program.ts` | Cross-linker initialization |
+| `src/build-program.ts` | Per-API `ShikiCrossLinker.fromRoutes` construction |
 | `src/build-stages.ts` | Route/kinds map construction in prepareWorkItems |
 | `src/markdown/helpers.ts` | `escapeMdxGenerics()` with backtick safety |
 | `src/remark-api-codeblocks.ts` | Generated code block cross-linking |
@@ -628,13 +716,18 @@ interface VfsConfig {
 1. **No external package links** -- Only types from the documented
    package are linked; external types (e.g., `ZodType`) are not
    cross-linked
-2. **Sanitization duplication — RETIRED** -- the hazard of `sanitizeId()`
-   logic duplicated between `build-stages.ts` and the cross-linker is
-   gone: `Routes.sanitizeId` (`@tsdoctor/model`) is now the single
-   route-side sanitizer used for member anchor routes. (The separate
-   `sanitizeId` in `markdown/helpers.ts` remains for page-side HTML ids
-   — a different concern with a slightly different algorithm, unchanged
-   from before.)
+2. **Sanitization duplication — GENUINELY RETIRED (2026-08-25).** An earlier
+   revision of this document claimed this hazard was retired when only the
+   route side had been unified; the adapter still carried a second, subtly
+   different `sanitizeId` in `markdown/helpers.ts` for page-side HTML `id=`
+   attributes. It kept `_` (which is in `\w`) and mapped `$` to `-`, while the
+   route side mapped `_` to `-` and deleted `$`. **Every class or interface
+   member whose name contained `_` or `$` therefore had a cross-link that
+   landed nowhere** — `get_value` was linked as `#get-value` and rendered as
+   `id="get_value"`. The page-side helper is now deleted and both sides call
+   `Routes`; the invariant is pinned by `__test__/markdown/anchor-invariant.test.ts`.
+   Do not add a second spelling: if page ids ever genuinely need different
+   treatment from route anchors, that is a design change, not a local helper.
 3. **HTML cross-links in tooltips** -- Phase 2 Twoslash tooltip parsing
    uses a regex that may not match all TypeScript declaration forms
 

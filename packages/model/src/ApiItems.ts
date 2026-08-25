@@ -11,6 +11,7 @@ import type { ApiClass, ApiInterface, ApiItem, ApiNamespace, ApiPackage } from "
 import { ApiItemKind } from "@microsoft/api-extractor-model";
 
 import type { ResolvedEntryItem } from "./EntryPoints.js";
+import * as Routes from "./Routes.js";
 import * as Tsdoc from "./Tsdoc.js";
 
 /**
@@ -200,4 +201,64 @@ export function sourceLink(item: ApiItem, target?: SourceLinkTarget): string | n
 	const ref = target.ref || "blob/main";
 	const baseUrl = `${target.url}/${ref}`;
 	return lineNumber ? `${baseUrl}/${filePath}#L${lineNumber}` : `${baseUrl}/${filePath}`;
+}
+
+/**
+ * The slot a class member occupies, for anchor disambiguation.
+ *
+ * @remarks
+ * Getters and setters are `Method` items whose display name carries the
+ * `get `/`set ` prefix — that is how API Extractor models them.
+ */
+function memberSlot(member: ApiItem): Routes.MemberSlot {
+	const isStatic = (member as { isStatic?: boolean }).isStatic === true;
+	const isAccessor =
+		member.kind === "Method" && (member.displayName.startsWith("get ") || member.displayName.startsWith("set "));
+	if (isAccessor) return "getter";
+	const isMethod = member.kind === "Method" || member.kind === "MethodSignature";
+	if (isStatic) return isMethod ? "static-method" : "static-property";
+	return isMethod ? "instance-method" : "instance-property";
+}
+
+/**
+ * Anchor id for every member of a class or interface, keyed by the member's
+ * canonical reference.
+ *
+ * @remarks
+ * The ONE place an API item is turned into the {@link Routes.MemberRef} shape
+ * anchor computation needs. Both the cross-link route map and the rendered
+ * page call this, so a member's `#fragment` and its `id=` cannot disagree —
+ * which they did before Task 1.1, when each side derived anchors separately.
+ *
+ * A canonical reference already distinguishes a static member from an
+ * instance member of the same name (`Foo.bar` vs `Foo#bar`), so it is the
+ * natural key; a member without one falls back to its display name.
+ *
+ * @public
+ */
+export function memberAnchors(item: ApiClass | ApiInterface): ReadonlyMap<string, string> {
+	return Routes.memberAnchors(memberRefs(item));
+}
+
+/** The {@link Routes.MemberRef} view of a class or interface's members. */
+function memberRefs(item: ApiClass | ApiInterface): Routes.MemberRef[] {
+	return item.members.map((member) => ({
+		id: member.canonicalReference?.toString() ?? member.displayName,
+		displayName: member.displayName,
+		slot: memberSlot(member),
+	}));
+}
+
+/**
+ * Cross-link keys for a class or interface's members, mapped to the member's
+ * canonical reference.
+ *
+ * @remarks
+ * The {@link Routes.memberRouteKeys} vocabulary over real API items — see
+ * there for which keys are emitted and why `Class#member` is not one of them.
+ *
+ * @public
+ */
+export function memberRouteKeys(item: ApiClass | ApiInterface): ReadonlyMap<string, string> {
+	return Routes.memberRouteKeys(item.displayName, memberRefs(item));
 }

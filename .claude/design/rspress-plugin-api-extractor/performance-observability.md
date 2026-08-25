@@ -109,8 +109,9 @@ whether `rspress dev` or `rspress build` is running.
 
 `BuildProgress` is emitted only by the production-only heartbeat fiber, not by
 a build-stage emit site — see `build-progress-and-issues.md`.
-`RouteCollisionDetected` is emitted through the `setBuildStagesEventEmitter`
-sync-island seam (detect-emit-throw at the route-collision check).
+`RouteCollisionDetected` is emitted through the shared sync-island bridge
+(`emitSync` in `build-stages.ts`, detect-emit-throw at the route-collision
+check).
 `ModelLoadFailed` no longer rides a sync-island seam: the phase-2 model
 redesign made loading Effect-typed (`Model.load` in `@tsdoctor/model`), so
 `ConfigServiceLive` emits it via `Effect.tapError` + `Effect.orDie` on the
@@ -128,7 +129,7 @@ Every event carries an `EventContext` envelope:
 
 ```typescript
 interface EventContext {
-  buildId: string;
+  buildId?: string;
   apiScope?: string;
   packageName?: string;
   version?: string;
@@ -140,7 +141,21 @@ interface EventContext {
 }
 ```
 
-All fields except `buildId` are optional — emit sites fill in what they know.
+**Every field is optional, `buildId` included, and emit sites do not pass it.**
+`emit` fills `ctx.buildId` from the `BuildId` `Context.Reference`
+(`src/BuildEnv.ts`) whenever the caller left it empty; a caller that sets a
+non-empty value keeps it, so a test can still emit with an explicit id.
+
+Making it optional was the fix for 24 sites that wrote `ctx: { buildId: "" }` —
+22 in `ConfigServiceLive`, where the real value sat three scopes up and was
+simply not reached, and every site in `TypeRegistryServiceLive`, where the
+layer is module-level and has no build to name. That second group is why a
+Reference is the fix and a find-and-replace is not: a Reference reaches code
+that no parameter can. A required field callers cannot reach is a field that
+gets faked.
+
+Sync-island sites, which have no fiber to read the Reference from, call
+`syncBuildId()` (see [Sync-Island Bridge](#sync-island-bridge)).
 
 ### Level Ladder
 
@@ -268,11 +283,16 @@ The heartbeat only covers the `config()` doc-generation phase (`resolve` + `gene
 
 Two helpers wrap Effects in `Effect.withSpan` and emit timing events:
 
-### `withPhase(phase, ctx, effect, thresholds?)`
+### `withPhase(phase, ctx, effect)`
 
 Emits `PhaseStarted` before and `PhaseCompleted` after. Measures wall-clock
 duration. If duration exceeds the threshold for that phase, also emits
-`SlowOperation`. Phase names map to threshold keys via `PHASE_THRESHOLD_KEY`:
+`SlowOperation`. **Thresholds are read from the `Thresholds`
+`Context.Reference`, not taken as a parameter** — the value used to travel
+`plugin.ts` → `ConfigServiceLive`'s fourth constructor argument → a
+`ResolvedBuildContext` field → a destructure in `build-program.ts` → every call
+site, while `obs.thresholds` held the same value one scope from where it
+started. Phase names map to threshold keys via `PHASE_THRESHOLD_KEY`:
 
 | Phase | Threshold key |
 | ----- | ------------- |
@@ -281,10 +301,12 @@ duration. If duration exceeds the threshold for that phase, also emits
 | `"write"` | `slowFileOperation` |
 | `"cleanup"` | `slowDbOperation` |
 
-### `withOp(operation, ctx, effect, threshold?)`
+### `withOp(operation, ctx, effect, thresholdKey?)`
 
-No phase events — emits `SlowOperation` only if duration exceeds `threshold`.
-Used for sub-operation timing inside a phase.
+No phase events — emits `SlowOperation` only if the duration exceeds the named
+threshold. Takes a **key** into `Thresholds` (default `"slowApiLoad"`) rather
+than a number, and reads the value from the Reference. Used for sub-operation
+timing inside a phase.
 
 Both helpers call `Effect.withSpan`, which creates OpenTelemetry-compatible
 spans in the Effect fiber context. **No OTLP exporter is wired in the live
@@ -315,7 +337,7 @@ Updates use `Metric.update(metric, n)` (v3's `Metric.increment` /
 
 ### Metric registry isolation
 
-`makeMetricStore()` gives each build its own `Metric.MetricRegistry` rather than relying on the process-wide default the `Context.Reference` falls back to — without it, dev-mode HMR rebuilds and same-process test runs would accumulate into one shared registry. It returns a `MetricStore` carrying both forms its two consumers need: `layer`, which Effect programs (`logBuildSummary`, `Metric.snapshot`) read through, and `context`, which the metrics sink writes through directly (see [Metrics Sink](#metrics-sink)). Both MUST be wired together — a caller that puts `metrics.layer` in the runtime but not `metrics.context` into the sink (or vice versa) silently reads and writes two different registries. The isolation has a real limit — it does not cover undimensioned metrics — documented in full in `render-phase-instrumentation.md`.
+`makeMetricStore()` gives each build its own `Metric.MetricRegistry` rather than relying on the process-wide default the `Context.Reference` falls back to — without it, dev-mode HMR rebuilds and same-process test runs would accumulate into one shared registry. It returns a `MetricStore` carrying both forms its two consumers need: `layer`, which Effect programs (`logBuildSummary`, `Metric.snapshot`) read through, and `context`, which the metrics sink writes through directly (see [Metrics Sink](#metrics-sink)). Both MUST be wired together — a caller that puts `metrics.layer` in the runtime but not `metrics.context` into the sink (or vice versa) silently reads and writes two different registries. The same requirement now spans **two** runtimes: `metrics.layer` is merged into the main runtime's `BaseLayer` **and** into the sync-emitter runtime, shared **by reference**, which is what keeps the sink's writes and `logBuildSummary`'s reads in one registry (see `build-architecture.md`). The isolation has a real limit — it does not cover undimensioned metrics — documented in full in `render-phase-instrumentation.md`.
 
 ### Summary logger layer
 
@@ -373,30 +395,49 @@ so `afterBuild` (and the `config()` catch block, on a fatal build) can read
 
 ## Sync-Island Bridge
 
-**Location:** `platforms/rspress/src/observability/EventBus.ts`
+**Location:** `platforms/rspress/src/observability/sync-emitter.ts`
 
-`makeRuntimeEmitter(runtime)` creates a synchronous bridge for callbacks that
-fire outside any Effect fiber:
+Seven modules run outside any Effect fiber — remark visitors, Shiki's
+`preprocess` hook, Prettier callbacks, the page-generation stages — and each
+carried its own byte-identical copy of the seam: a module-level `emitEvent`, a
+module-level `currentBuildId`, and a `setXEventEmitter(fn, buildId)` for
+`plugin.ts` to call. Two had already grown a third parameter for
+`slowCodeBlockMs`, which is how a duplicated seam decays: the copies stop being
+identical one caller at a time.
+
+The seam is **forced**; the duplication was not. All seven collapsed into one
+module:
 
 ```typescript
-const emitSync = makeRuntimeEmitter(effectRuntime);
-// (event: PluginEvent) => void — calls runtime.runSync(emit(event))
+installSyncEmitter(runtime);              // once, in plugin.ts
+emitSync(event);                          // from any sync island
+syncBuildId();                            // the build id, for an EventContext
+syncSlowCodeBlockMs();                    // the one config value a sync site needs
+clearSyncEmitter();                       // teardown / tests
+installSyncEmitterUnsafe(fn, opts?);      // @internal, for tests without a bus
 ```
 
-The Twoslash transformer and Prettier formatter each maintain a module-level
-`emitEvent` variable (default: no-op) that `plugin.ts` wires via
-`setEventEmitter(emitSync)` right after creating the runtime emitter. Error
-events flow through `emitEvent` and into the normal fan-out path. See
-`error-observability.md` for how the error variants are handled.
+`installSyncEmitter` takes a runtime and nothing else: every value the old
+setters carried is now a `Context.Reference`, read **once** at install time
+rather than per emit (an emit happens per code block on a large site, and these
+values are fixed for the build). The seven `setXEventEmitter` exports and their
+seven wiring calls in `plugin.ts` are deleted.
 
-The same pattern also covers `setBuildStagesEventEmitter` (`build-stages.ts`,
-detect-emit-throw at the route-collision check, plus the `ItemSkipped`
-emissions from categorization) and the Shiki-utils/OG-resolver/remark seams
-wired alongside it in `plugin.ts`. The former `setModelLoaderEventEmitter`
-seam is **deleted**: model loading is now Effect-typed end to end
-(`Model.load`), so `ModelLoadFailed` is emitted inside the Effect pipeline
-via `Effect.tapError` in `ConfigServiceLive` — no sync-island bridge needed;
-see `build-progress-and-issues.md`.
+**The runtime handed to `installSyncEmitter` must be synchronously buildable.**
+`runSync` builds the runtime's layer before running anything, so a runtime whose
+layer opens a database fails with `AsyncFiberError` at the first emit — from a
+remark plugin, during RSPress's render pass, invisible to every unit test. That
+is exactly why `plugin.ts` builds a second, observability-only `ManagedRuntime`
+for this; see the two-runtimes section of `build-architecture.md`.
+
+`makeRuntimeEmitter(runtime)` still exists in `EventBus.ts` as the primitive
+(`(event) => runtime.runSync(emit(event))`); `sync-emitter.ts` is the one
+consumer.
+
+`ModelLoadFailed` does not ride this bridge: model loading is Effect-typed
+(`Model.load`), so `ConfigServiceLive` emits it via `Effect.tapError` inside the
+pipeline. The former `setModelLoaderEventEmitter` / `setLoaderEventEmitter`
+seams are deleted. See `build-progress-and-issues.md`.
 
 ---
 
@@ -414,7 +455,9 @@ see `build-progress-and-issues.md`.
 | `src/observability/metric-report.ts` | `seriesFor`, `codeBlockReport` over `Metric.snapshot` — see `render-phase-instrumentation.md` |
 | `src/observability/sinks/issues-sink.ts` | Issues collector sink, `eventToIssue`, `writeIssuesJson` — see `build-progress-and-issues.md` |
 | `src/observability/heartbeat.ts` | Progress heartbeat fiber, `BuildProgress` event builder, `formatProgress` — see `build-progress-and-issues.md` |
-| `src/observability/spans.ts` | `withPhase`, `withOp`, `PHASE_THRESHOLD_KEY` |
+| `src/observability/spans.ts` | `withPhase`, `withOp`, `PHASE_THRESHOLD_KEY` (thresholds read from the `Thresholds` Reference) |
+| `src/observability/sync-emitter.ts` | The one sync-island bridge: `installSyncEmitter`, `emitSync`, `syncBuildId`, `syncSlowCodeBlockMs` |
+| `src/BuildEnv.ts` | `BuildId`, `Thresholds`, `PageConcurrency`, `SuppressExampleErrors` References |
 | `src/layers/build-metrics.ts` | `BuildMetrics` counters and histograms, `MetricStore`/`makeMetricStore` |
 | `src/layers/ObservabilityLive.ts` | `buildEventBus`, `BuiltSinks`, `logBuildSummary` |
 | `src/schemas/observability.ts` | `ObservabilityConfig`, `ResolvedObservability`, `resolveObservability` |

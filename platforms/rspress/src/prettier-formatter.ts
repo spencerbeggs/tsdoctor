@@ -1,16 +1,8 @@
 /* v8 ignore start -- Prettier integration wrapper, tested via page generator integration tests */
 import { format } from "prettier";
 import { addLogicalBlankLines } from "./code-post-processor.js";
-import type { PluginEvent } from "./observability/events.js";
 import { PluginEvent as PE } from "./observability/events.js";
-
-/** Module-level emitter injected by plugin.ts at startup. */
-let emitEvent: (event: PluginEvent) => void = () => {};
-let currentBuildId = "";
-export function setPrettierEventEmitter(fn: (event: PluginEvent) => void, buildId = ""): void {
-	emitEvent = fn;
-	currentBuildId = buildId;
-}
+import { emitSync, syncBuildId } from "./observability/sync-emitter.js";
 
 /**
  * Map code fence languages to Prettier parsers
@@ -93,7 +85,7 @@ export async function formatCode(code: string, language: string): Promise<Format
 		const errorMsg = error instanceof Error ? error.message : String(error);
 
 		// Metric derived from PrettierError event in MetricsSink
-		emitEvent(PE.PrettierError({ ctx: { buildId: currentBuildId }, file: "unknown", reason: errorMsg, level: "warn" }));
+		emitSync(PE.PrettierError({ ctx: { buildId: syncBuildId() }, file: "unknown", reason: errorMsg, level: "warn" }));
 
 		// Return original code on error (fallthrough behavior)
 		return {

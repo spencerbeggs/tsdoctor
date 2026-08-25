@@ -32,6 +32,7 @@ dependencies: []
   - [Phase 1 — Consolidation](#phase-1--consolidation)
   - [Phase 2 — Carve the Core](#phase-2--carve-the-core)
   - [Phase 3 — Instrumentation, then Scoping and Performance](#phase-3--instrumentation-then-scoping-and-performance)
+  - [Interlude — Pre-Phase-4 Adapter Refactor](#interlude--pre-phase-4-adapter-refactor)
   - [Phase 4 — SEO Layer](#phase-4--seo-layer)
   - [Phase 5 — VitePress Adapter and Doc IR](#phase-5--vitepress-adapter-and-doc-ir)
   - [Phase 6 — 1.0](#phase-6--10)
@@ -57,6 +58,7 @@ As of 2026-08-25, **phases 1 through 3 are complete**:
 - The phase 1 gate held: full monorepo build green (26 Turbo tasks), typecheck green, 1,236 tests / 0 failures (the plugin's ~1,033 plus the two libraries' suites).
 - **Phase 2 is code complete** (landed on `feat/tsdoctor-phase-2`, 2026-08-24, releases pending): `@tsdoctor/bundle` and `@tsdoctor/snapshot` exist, the model was redesigned to Effect v4 modules with the shims collapsed, the identity renames executed, and `gray-matter` replaced — see the phase 2 section below.
 - **Phase 3 is complete** (landed on `feat/phase-3`, 2026-08-25): render-phase code-block time is now attributed per scope and per code block via dimensional Effect metrics, and the resulting data decided fix priority — a persisted Twoslash result cache (fix (a)) shipped as the performance work, and per-scope TypeScript environments (fix (b)) shipped as the `with-api` scoping correctness fix the data gave no performance case for. Full record in `render-phase-instrumentation.md`.
+- **The pre-phase-4 adapter refactor is landed** (`feat/phase-4`, 2026-08-25) — an unnumbered interlude between phases 3 and 4, described below.
 - The plugin itself is pre-1.0 and RSPress-specific; the bundle spec is now formalized in `bundle-spec.md` (the informal three-file folder convention is superseded).
 
 ## The 1.0 Definition
@@ -100,9 +102,29 @@ Evidence that motivated the phase, recorded in `build-progress-and-issues.md`: o
 Corrected, per-scope/per-block attribution found **Twoslash accounts for ~97% of render-phase code-block time, concentrated in ~11% of blocks** (`sites/multi`: 129 blocks, 7.9s summed, 96.8% in Twoslash). The two candidate fixes resolved on that evidence:
 
 - (a) **Delivered as the performance work.** A persisted Twoslash result cache (`src/twoslash-cache.ts`, XDG sqlite-backed via `@effected/store` `Cache`), keyed on code plus a hash of the type environment and compiler options. Measured on `sites/multi`: render phase 8.1s → 0.2s on a warm cache, 14/14 hits, output byte-identical.
-- (b) **Delivered, but on correctness grounds, not performance ones.** Per-scope TypeScript environments (`TwoslashManager` now holds one transformer per distinct resolved compiler config instead of a singleton). The data gave it no performance case — 97% of the time is inside `twoslasher()`, and splitting one shared environment would reduce `tsEnvCache` sharing. It shipped anyway as the `with-api` scoping **correctness** fix, retiring the documented "first API's tsconfig wins" limitation (`type-loading-vfs.md`); the FILE set (the combined VFS) stays shared, so this is per-scope CONFIG, not per-scope files, and does not sharpen cache invalidation.
+- (b) **Delivered, but on correctness grounds, not performance ones.** Per-scope TypeScript environments — one transformer per distinct resolved compiler config instead of a singleton (the `TwoslashManager` singleton that held them became the `TwoslashEnvironments` service in the pre-phase-4 refactor below). The data gave it no performance case — 97% of the time is inside `twoslasher()`, and splitting one shared environment would reduce `tsEnvCache` sharing. It shipped anyway as the `with-api` scoping **correctness** fix, retiring the documented "first API's tsconfig wins" limitation (`type-loading-vfs.md`); the FILE set (the combined VFS) stays shared, so this is per-scope CONFIG, not per-scope files, and does not sharpen cache invalidation.
 
 **Gate: HELD** — per-scope, per-code-block attribution is live, produced data, and fix priority was decided from that data and recorded in `render-phase-instrumentation.md`.
+
+### Interlude — Pre-Phase-4 Adapter Refactor
+
+**COMPLETE** (landed on `feat/phase-4`, 2026-08-25). Not a numbered phase: no new capability, and the only intended behaviour changes are two labelled bug fixes. Phases 1–3 carved framework-neutral logic out into four core packages without anyone re-drawing the adapter around what was left, and phases 4 and 5 were about to add features on top of that residue.
+
+**The line in the sand was `ResolvedBuildContext`.** Phase 4 introduces two build-scoped concerns — OG image generation and JSON-LD derivation — and on the old shape there was exactly one home for each: another field on the 16-field god-object and another argument on `ConfigServiceLive(options, shikiCrossLinker, buildId, thresholds)`. Once phase 4 did that, the object would have had 18 fields and the factory 6 arguments, and every later step would cost more. It is now **deleted**: `resolve` returns `ReadonlyArray<ResolvedApiConfig>` and `ConfigServiceLive` is a zero-argument module-level `const`. See `build-architecture.md` for where all 16 fields went.
+
+What landed:
+
+- **New services** — `HighlighterService` (scoped at `ManagedRuntime` lifetime; the highlighter was never disposed, leaking one WASM instance per dev HMR rebuild), `OgService` (replacing the `OpenGraphResolver` class and its `undefined`-on-every-failure return with a typed `OgImageError`; `og-resolver.ts` is now pure and filesystem-free), `TwoslashEnvironments` (replacing the `getInstance()` singleton), `PluginConfig`. `PathDerivationService` was **deleted** — `Layer.succeed` over two pure functions, unreachable error type, already bypassed at seven call sites.
+- **A `Context.Reference` tier** (`src/BuildEnv.ts`) for `BuildId`, `Thresholds`, `PageConcurrency` and `SuppressExampleErrors`.
+- **Two runtimes, deliberately.** Hoisting the cache-backed layers out of service method bodies (they were rebuilding the XDG/sqlite stack twice per build) made the main layer asynchronous to build, which broke `runSync` from the sync islands. The emitters now run on a separate `Layer.succeed`-only runtime, with `metricStore.layer` shared by reference.
+- **Seven duplicated sync-emitter seams collapsed into one** `observability/sync-emitter.ts`; `EventContext.buildId` became optional and is filled centrally by `emit`, retiring 24 sites that passed `""`.
+- **Cross-linking** — `ShikiCrossLinker` is immutable and per-scope, `transformHast` lost its scope parameter, and a 230-line duplicate `transformRoot` went with it.
+- **Two live defects fixed.** Two `sanitizeId` implementations had diverged, so every class or interface member whose name contained `_` or `$` had a cross-link that landed nowhere — `cross-linking-architecture.md` had recorded that hazard as retired when only the route side had been unified. And compiler options reached Twoslash in the tsconfig `lib` spelling rather than the file-name form, so three of four resolution paths loaded zero lib files and rendered confidently degraded hovers with zero warnings; normalization now happens at one seam via `@effected/tsconfig-json`'s `TsEnumCodec`.
+- **Kit swaps** — `mdast-util-from-markdown` → `@effected/markdown` (`Markdown.parseResult` + `Mdast.toMdast`, commonmark dialect); `escapeYamlString` deleted in favour of `emitFrontmatterBlock`; `@effected/memfs` adopted in one registry test.
+
+Two fixture gaps were found and are worth acting on before phase 4 adds features: **no fixture site sets `siteUrl`**, so the entire OG path is dead in all five site builds, and **`inferApiScope` matches a `docs/en/{api}/` shape no fixture uses**, so cross-linking inside `remark-with-api` has never fired in a fixture build. Both were discovered only because a mutation turned out to be unobservable. Phase 4 should give one fixture site a `siteUrl` before starting, or its SEO work has no end-to-end target.
+
+Chunk 5 of the refactor plan (layer tiering, the error channel, the `ConfigServiceLive` split, `TsconfigLoaderSync`) is genuine quality work with no phase-4 coupling and may land alongside feature work; the core-package moves wait for phase 4 to finish.
 
 ### Phase 4 — SEO Layer
 

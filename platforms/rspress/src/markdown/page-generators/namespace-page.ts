@@ -1,5 +1,3 @@
-/* v8 ignore start -- page generator, tested via build-stages integration tests */
-
 import type { ApiDeclaredItem, ApiItem, ApiNamespace } from "@microsoft/api-extractor-model";
 import { ApiItemKind } from "@microsoft/api-extractor-model";
 import { ApiItems, Signature, Tsdoc } from "@tsdoctor/model";

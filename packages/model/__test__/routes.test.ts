@@ -142,3 +142,135 @@ describe("Routes.sanitizeId", () => {
 		expect(Routes.sanitizeId("create", "static")).toBe("static-create");
 	});
 });
+
+describe("sanitizeId divergence matrix", () => {
+	// These five inputs are the ones that made the adapter's second sanitizer
+	// disagree with this one. Measured against both implementations before
+	// Task 1.1 removed the duplicate; the "was" column is what the adapter's
+	// page-side helper produced.
+	it.each([
+		{ input: "get_value", anchor: "get-value", adapterWas: "get_value" },
+		{ input: "MY_CONST", anchor: "my-const", adapterWas: "my_const" },
+		{ input: "foo$bar", anchor: "foobar", adapterWas: "foo-bar" },
+		{ input: "a.b", anchor: "ab", adapterWas: "a-b" },
+		{ input: "toJSON", anchor: "tojson", adapterWas: "tojson" },
+	])("$input sanitizes to $anchor", ({ input, anchor }) => {
+		expect(Routes.sanitizeId(input)).toBe(anchor);
+	});
+
+	it("prefixes with a hyphen", () => {
+		expect(Routes.sanitizeId("create", "static")).toBe("static-create");
+	});
+});
+
+describe("memberAnchors", () => {
+	const ref = (id: string, displayName: string, slot: Routes.MemberSlot): Routes.MemberRef => ({
+		id,
+		displayName,
+		slot,
+	});
+
+	it("leaves a non-colliding member unprefixed", () => {
+		const anchors = Routes.memberAnchors([ref("a", "get_value", "instance-method")]);
+		expect(anchors.get("a")).toBe("get-value");
+	});
+
+	it("gives both halves of a static/instance collision DISTINCT anchors", () => {
+		const anchors = Routes.memberAnchors([
+			ref("static", "create", "static-method"),
+			ref("instance", "create", "instance-method"),
+		]);
+		// Static keeps the bare anchor, matching the bare cross-link key.
+		expect(anchors.get("static")).toBe("create");
+		expect(anchors.get("instance")).toBe("instance-create");
+		// The defect this replaces: both used to resolve to one anchor.
+		expect(anchors.get("instance")).not.toBe(anchors.get("static"));
+	});
+
+	it("prefixes a static property colliding with an instance method", () => {
+		const anchors = Routes.memberAnchors([
+			ref("sp", "flush", "static-property"),
+			ref("im", "flush", "instance-method"),
+		]);
+		expect(anchors.get("sp")).toBe("flush");
+		expect(anchors.get("im")).toBe("instance-flush");
+	});
+
+	it("prefixes an instance property colliding with an instance method", () => {
+		const anchors = Routes.memberAnchors([
+			ref("ip", "value", "instance-property"),
+			ref("im", "value", "instance-method"),
+		]);
+		// Both are instance slots, so the method leads and the property is
+		// displaced — the prefix marks the non-canonical side either way.
+		expect(anchors.get("im")).toBe("value");
+		expect(anchors.get("ip")).toBe("instance-value");
+	});
+
+	it("never emits the same anchor twice for one class", () => {
+		const anchors = Routes.memberAnchors([
+			ref("1", "create", "static-method"),
+			ref("2", "create", "instance-method"),
+			ref("3", "flush", "static-property"),
+			ref("4", "flush", "instance-method"),
+			ref("5", "get_value", "instance-method"),
+			ref("6", "MY_CONST", "static-property"),
+			ref("7", "toJSON", "instance-method"),
+		]);
+		const values = [...anchors.values()];
+		expect(new Set(values).size).toBe(values.length);
+	});
+});
+
+describe("memberRouteKeys", () => {
+	const ref = (id: string, displayName: string, slot: Routes.MemberSlot): Routes.MemberRef => ({
+		id,
+		displayName,
+		slot,
+	});
+
+	it("emits only the bare key when nothing collides", () => {
+		const keys = Routes.memberRouteKeys("Registry", [ref("m", "create", "instance-method")]);
+		expect([...keys.keys()]).toEqual(["Registry.create"]);
+		expect(keys.get("Registry.create")).toBe("m");
+	});
+
+	it("resolves the bare key to the STATIC member on a collision", () => {
+		const keys = Routes.memberRouteKeys("Registry", [
+			ref("i", "create", "instance-method"),
+			ref("s", "create", "static-method"),
+		]);
+		// `Registry.create` is the static access expression; the instance one
+		// is `registry.create`.
+		expect(keys.get("Registry.create")).toBe("s");
+	});
+
+	it("emits selector and prototype keys on a collision", () => {
+		const keys = Routes.memberRouteKeys("Registry", [
+			ref("i", "create", "instance-method"),
+			ref("s", "create", "static-method"),
+		]);
+		expect(keys.get("Registry.(create:static)")).toBe("s");
+		expect(keys.get("Registry.(create:instance)")).toBe("i");
+		expect(keys.get("Registry.prototype.create")).toBe("i");
+	});
+
+	it("never emits the JSDoc hash form", () => {
+		const keys = Routes.memberRouteKeys("Registry", [
+			ref("i", "create", "instance-method"),
+			ref("s", "create", "static-method"),
+		]);
+		// `#` is the URL fragment delimiter, and in modern TypeScript it means
+		// a private field.
+		expect([...keys.keys()].filter((k) => k.includes("#"))).toEqual([]);
+	});
+
+	it("does not emit selector keys for non-colliding members of a colliding class", () => {
+		const keys = Routes.memberRouteKeys("Registry", [
+			ref("i", "create", "instance-method"),
+			ref("s", "create", "static-method"),
+			ref("q", "quiet", "instance-method"),
+		]);
+		expect([...keys.keys()].filter((k) => k.includes("quiet"))).toEqual(["Registry.quiet"]);
+	});
+});

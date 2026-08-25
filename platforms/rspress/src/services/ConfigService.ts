@@ -2,16 +2,12 @@
 import type { ApiPackage } from "@microsoft/api-extractor-model";
 import type { Effect, Scope } from "effect";
 import { Context } from "effect";
-import type { Highlighter, ShikiTransformer } from "shiki";
 import type { ApiModelLoadError, ConfigValidationError, TypeRegistryError } from "../errors.js";
-import type { PackageJson, TypeResolutionCompilerOptions } from "../internal-types.js";
+import type { PackageJson } from "../internal-types.js";
 import type { ShikiThemeConfig } from "../markdown/shiki-utils.js";
-import type { OpenGraphResolver } from "../og-resolver.js";
-import type { CategoryConfig, LlmsPlugin, LogLevel, OpenGraphImageConfig, SourceConfig } from "../schemas/index.js";
-import type { ResolvedObservability } from "../schemas/observability.js";
-import type { ShikiCrossLinker } from "../shiki-transformer.js";
-import type { TwoslashResultCache } from "../twoslash-cache.js";
+import type { CategoryConfig, LlmsPlugin, OpenGraphImageConfig, SourceConfig } from "../schemas/index.js";
 import type { TwoslashCacheService } from "./TwoslashCacheService.js";
+import type { TwoslashEnvironments } from "./TwoslashEnvironments.js";
 /**
  * Subset of RSPress config needed by ConfigService.
  * Extracted from the UserConfig in beforeBuild/config hooks.
@@ -46,44 +42,25 @@ export interface ResolvedApiConfig {
 }
 
 /**
- * Everything needed to run the doc generation pipeline.
- * Produced by ConfigService.resolve().
- */
-export interface ResolvedBuildContext {
-	readonly apiConfigs: ReadonlyArray<ResolvedApiConfig>;
-	readonly combinedVfs: ReadonlyMap<string, string>;
-	readonly highlighter: Highlighter;
-	readonly resolvedCompilerOptions: TypeResolutionCompilerOptions;
-	readonly ogResolver: OpenGraphResolver | null;
-	readonly shikiCrossLinker: ShikiCrossLinker;
-	readonly hideCutTransformer: ShikiTransformer;
-	readonly hideCutLinesTransformer: ShikiTransformer;
-	readonly twoslashTransformer: ShikiTransformer | undefined;
-	/**
-	 * The build's Twoslash result cache, and the environment fingerprint it is
-	 * stored under. Held here so `afterBuild` can persist it once the render
-	 * phase has finished populating it.
-	 */
-	readonly twoslashCache: TwoslashResultCache;
-	readonly twoslashEnvHash: string;
-	readonly pageConcurrency: number;
-	readonly logLevel: LogLevel;
-	readonly suppressExampleErrors: boolean;
-	readonly thresholds: ResolvedObservability["thresholds"];
-	readonly buildId: string;
-}
-
-/**
- * ConfigService resolves plugin options + RSPress config into a fully
- * prepared build context with loaded models, type system, and resources.
+ * ConfigService resolves plugin options + RSPress config into the fully
+ * resolved API configurations the doc generation pipeline runs over.
+ *
+ * @remarks
+ * `resolve` returns the API configs and nothing else. It used to return a
+ * 16-field `ResolvedBuildContext` — a highlighter, an OG resolver, a
+ * cross-linker, a Twoslash transformer, a live mutable cache, compiler
+ * options, thresholds, concurrency — most of which config resolution neither
+ * produced nor owned; it was a bag the build carried because there was nowhere
+ * else to put things. Chunks 2–4 gave every one of those a home, and with one
+ * field left the type stopped earning its name.
  */
 export interface ConfigServiceShape {
 	readonly resolve: (
 		rspressConfig: RspressConfigSubset,
 	) => Effect.Effect<
-		ResolvedBuildContext,
+		ReadonlyArray<ResolvedApiConfig>,
 		ConfigValidationError | ApiModelLoadError | TypeRegistryError,
-		Scope.Scope | TwoslashCacheService
+		Scope.Scope | TwoslashCacheService | TwoslashEnvironments
 	>;
 }
 

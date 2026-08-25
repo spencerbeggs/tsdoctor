@@ -5,7 +5,6 @@ import { VfsRegistry } from "../src/vfs-registry.js";
 // Minimal mock VfsConfig for testing
 function makeConfig(overrides: Partial<VfsConfig> = {}): VfsConfig {
 	return {
-		vfs: new Map(),
 		// biome-ignore lint/suspicious/noExplicitAny: test mock
 		highlighter: {} as any,
 		packageName: overrides.packageName ?? "test-package",
@@ -72,37 +71,6 @@ describe("VfsRegistry", () => {
 
 	it("getScopes() returns empty array when no configs registered", () => {
 		expect(VfsRegistry.getScopes()).toEqual([]);
-	});
-
-	it("getByFilePath() returns config for matching path", () => {
-		const config = makeConfig({ apiScope: "my-pkg" });
-		VfsRegistry.register("my-pkg", config);
-
-		const result = VfsRegistry.getByFilePath("/project/docs/en/my-pkg/class/Foo.mdx");
-		expect(result).toBe(config);
-	});
-
-	it("getByFilePath() returns undefined for non-matching path", () => {
-		VfsRegistry.register("my-pkg", makeConfig());
-
-		const result = VfsRegistry.getByFilePath("/some/random/path.ts");
-		expect(result).toBeUndefined();
-	});
-
-	it("getByFilePath() handles Windows-style paths", () => {
-		const config = makeConfig({ apiScope: "my-pkg" });
-		VfsRegistry.register("my-pkg", config);
-
-		const result = VfsRegistry.getByFilePath("C:\\project\\docs\\en\\my-pkg\\class\\Foo.mdx");
-		expect(result).toBe(config);
-	});
-
-	it("getByFilePath() handles website/docs/en pattern", () => {
-		const config = makeConfig({ apiScope: "my-pkg" });
-		VfsRegistry.register("my-pkg", config);
-
-		const result = VfsRegistry.getByFilePath("/project/website/docs/en/my-pkg/interface/Bar.mdx");
-		expect(result).toBe(config);
 	});
 
 	it("register() overwrites existing config for same scope", () => {

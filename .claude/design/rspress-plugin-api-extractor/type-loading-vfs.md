@@ -142,7 +142,7 @@ ConfigServiceLive.resolve()
     +-> Prepend import statements to VFS declaration files
     |   (TypeReferenceExtractor)
     |
-    +-> Combined VFS passed to TwoslashManager
+    +-> Combined VFS registered with TwoslashEnvironments
     |   -> TypeScript language service resolves all references
     |
     +-> VFS config registered in VfsRegistry per API scope
@@ -158,7 +158,7 @@ that used to re-export it.
 
 The VFS is consumed in two places:
 
-1. **TwoslashManager** -- Provides type information for Twoslash
+1. **`TwoslashEnvironments`** -- Provides type information for Twoslash
    processing of code blocks (hover tooltips, type annotations)
 
 2. **VfsRegistry** -- Makes VFS config available to remark plugins
@@ -166,9 +166,31 @@ The VFS is consumed in two places:
 
 ### Per-scope TypeScript environments
 
-Each documented API is type-checked under the `tsconfig` / `compilerOptions` it declares. `ConfigServiceLive` resolves every API's raw config (memoised by config, so N APIs sharing a tsconfig read it once) and initializes one Twoslash environment per DISTINCT resolved configuration; `TwoslashManager` dedupes by a fingerprint of the resolved options, so APIs that agree on their config share an environment and the TypeScript language services built under it. `getTransformer(apiScope)` routes a block to its scope's environment, falling back to the first environment built for a block that belongs to no documented scope — a `with-api` fence on a page outside any package's route.
+Each documented API is type-checked under the `tsconfig` / `compilerOptions` it declares. `ConfigServiceLive` resolves every API's raw config (memoised by config, so N APIs sharing a tsconfig read it once) and calls `registerEnvironment` once per DISTINCT resolved configuration on the **`TwoslashEnvironments` service** (`services/TwoslashEnvironments.ts`, live layer `layers/TwoslashEnvironmentsLive.ts`). The service dedupes by a fingerprint of the ENCODED options (see [Compiler-option normalization](#compiler-option-normalization)), so APIs that agree on their config share an environment and the TypeScript language services built under it. `registerScope(apiScope, compilerOptions)` records which configuration a scope is documented under, and `transformerFor(apiScope)` routes a block to that environment — falling back to the FIRST environment registered for a block belonging to no documented scope, i.e. a `with-api` fence on a page outside any package's route.
 
-Resolution merges rather than replaces: `resolveTypeScriptConfig` starts from `DEFAULT_COMPILER_OPTIONS` and layers global, API, version and package overrides on top, so declaring `{ strict: false }` on one API changes only that.
+This replaces `TwoslashManager`, a `private constructor` + `getInstance()` singleton with mutable state and a hand-rolled static `reset()` standing in for layer substitution. Two consequences of the service form are worth stating:
+
+- **The fallback is the subsystem's most dangerous behaviour.** Every scope-routing bug degrades through it invisibly, so a test that only asserts "a transformer came back" asserts nothing. A registered scope must be asserted to get its OWN environment. The fingerprints computed by `registerEnvironment` and `registerScope` MUST agree; when they drifted apart once, every scope lookup missed, per-scope type-checking silently degraded to build-wide, and a 994-test suite stayed green through it.
+- **Access from the render pass goes through a holder, not a runtime.** `transformerFor` is called from the remark plugins, which RSPress invokes during the render pass outside any fiber. `src/twoslash-access.ts` is a module-level holder — the same shape as `markdown/prose-linker.ts` — installed from **inside** a fiber by `plugin.ts` (`installTwoslashAccess(yield* TwoslashEnvironments)`). A runtime-bound accessor is not an option and must not be "fixed" back into one: the main runtime's layer is asynchronous to build, so `runSync` dies with `AsyncFiberError`; and moving the service to the small sync-buildable runtime yields TWO instances, because layer memoization is per-`ManagedRuntime` `MemoMap` — `ConfigServiceLive` would populate one registry and the render pass would read a different, empty one, returning `null` for every block. Both failures are silent. The tell that the holder was never installed is the site build's own summary: `(unscoped): 18 blocks … 0 typechecked` instead of `18 typechecked`.
+
+The holder is cleared at the start of each build alongside `VfsRegistry.clear()` and `clearTypeRoutes()`. That last one matters for dev HMR: the module-level Twoslash type-route map used to accumulate for the process lifetime, so routes for renamed or deleted items survived across a dev session and every scope's routes merged into one global map.
+
+Resolution merges rather than replaces: `resolveTypeScriptConfig` starts from `DEFAULT_COMPILER_OPTIONS` and layers global, API, version and package overrides on top, so declaring `{ strict: false }` on one API changes only that. Note the one exception: a discovered tsconfig that **declares `lib`** replaces the array wholesale rather than merging, which is why every `fromDir` site resolves to `["lib.esnext.d.ts"]` with no DOM.
+
+### Compiler-option normalization
+
+`lib` has two spellings. The tsconfig JSON form (`["ESNext", "DOM"]`) is what users write and what `DEFAULT_COMPILER_OPTIONS` (`typescript-config.ts`) holds; TypeScript's programmatic `ts.CompilerOptions.lib` wants file names (`["lib.esnext.d.ts", "lib.dom.d.ts"]`). The two used to meet at a raw `as ts.CompilerOptions` cast, so **three of four resolution paths loaded zero lib files** — `ts.parseJsonConfigFileContent` does not populate `options.lib` when the tsconfig omits the key, so having a tsconfig was not enough; it had to declare `lib`.
+
+The consequence was silent. `handbookOptions.noErrorValidation: true` swallows the diagnostics, so nothing appears in `issues.json`, the console summary or the render-phase artifact. The tell is **degraded hovers, not errors**: with no `Array<T>` in scope, `const filtered: number[]` renders as `const filtered: {}` and `Promise<number[]>` as `Promise<{}>`. Measured on a fixture, 27 hovers vanished while the build still reported zero warnings.
+
+Both spellings are now accepted and normalized at ONE seam, `toProgrammaticCompilerOptions` in `twoslash-transformer.ts`, whose body is `TsEnumCodec.encodeCompilerOptions` from `@effected/tsconfig-json`. The cast is gone, and the file no longer imports `typescript` at all. Two rules follow:
+
+- **The environment fingerprint is computed on the ENCODED value.** Otherwise `{lib:["ESNext"]}` and `{lib:["lib.esnext.d.ts"]}` build two identical TypeScript environments — a silent cache regression on multi-API sites.
+- **`DEFAULT_COMPILER_OPTIONS` deliberately keeps the tsconfig spelling** (decided 2026-08-25), including `DOM`. Normalization at the seam is what finally makes the declared default effective; do not renormalize the constant, so it reads in the same spelling users write in their own `tsconfig.json`.
+
+Keeping `DOM` in the default carries a known, accepted risk: `Event`, `Request`, `Response`, `Headers`, `URL`, `Blob` and `File` are DOM globals *and* common library export names, so on a site with no tsconfig an example writing `const r: Response = …` for a library exporting its own `Response` resolves to DOM's and renders a confidently wrong hover rather than a `TS2304`. If that surfaces, the remedy is dropping `DOM` from the default.
+
+This repo could not reach the broken spelling — `@savvy-web/bundler` emits a `lib`-declaring `tsconfig.json` into every model folder — so the defect was consumer-facing only, for a bundle whose model folder carries no tsconfig. It is pinned by a synthetic four-path regression test (`__test__/compiler-options-seam.test.ts`) rather than by any fixture build.
 
 **The FILE set stays shared.** Every API's declarations live under `node_modules/<packageName>/` in one combined VFS, and the import prepender emits `import type { X } from "B"` whenever package A references a type owned by another documented package B — those references resolve only because B is in the same environment. Per-scope environments differ in their compiler *configuration*, not in what they can see. A consequence worth knowing: because the Twoslash result cache's generation key covers the whole VFS (`render-phase-instrumentation.md`), a change to any package still invalidates every package's cached blocks. Splitting the file set would sharpen that, but it would break cross-package references and is not planned.
 

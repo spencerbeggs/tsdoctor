@@ -11,6 +11,25 @@ import { escapeRegExp } from "./internal/text.js";
 import type { ApiItemRef, RouteFormatter } from "./types.js";
 
 /**
+ * A word-boundary-anchored pattern for a literal name.
+ *
+ * @remarks
+ * `\b` is an assertion ABOUT the adjacent character, not a delimiter: after a
+ * non-word character it matches only when a word character follows. A key in
+ * TSDoc selector form — `Registry.(create:instance)` — ends in `)`, so a
+ * trailing `\b` made it unmatchable in every realistic sentence position
+ * ("See Registry.(create:instance) for details." did not match). Escaping was
+ * never the problem; the boundary was. Names that end in a word character —
+ * every plain identifier and every `Class.member` key — get the same `\b`
+ * they always did, so this is a strict widening.
+ */
+const boundedPattern = (name: string): string => {
+	const lead = /^\w/.test(name) ? "\\b" : "";
+	const trail = /\w$/.test(name) ? "\\b" : "(?!\\w)";
+	return `${lead}${escapeRegExp(name)}${trail}`;
+};
+
+/**
  * Links known API item names in prose to their documentation routes. Matching
  * is longest-name-first with word boundaries, skipping code spans and existing
  * links.
@@ -53,7 +72,7 @@ export class CrossLinker {
 		for (const name of this.orderedNames) {
 			const route = this.routesByName.get(name);
 			if (route === undefined) continue;
-			const regex = new RegExp(`\\b${escapeRegExp(name)}\\b`, "g");
+			const regex = new RegExp(boundedPattern(name), "g");
 			result = result.replace(regex, (match, offset: number) => {
 				const before = result.slice(0, offset);
 				if (before.endsWith("](") || before.endsWith("[")) return match; // already a link
@@ -73,7 +92,7 @@ export class CrossLinker {
 		for (const name of this.orderedNames) {
 			const route = this.routesByName.get(name);
 			if (route === undefined) continue;
-			const regex = new RegExp(`\\b${escapeRegExp(name)}\\b(?![a-zA-Z])`, "g");
+			const regex = new RegExp(`${boundedPattern(name)}(?![a-zA-Z])`, "g");
 			result = result.replace(regex, (match, offset: number) => {
 				const beforeMatch = result.substring(0, offset);
 				if (beforeMatch.includes("<a") && !beforeMatch.includes("</a>")) {

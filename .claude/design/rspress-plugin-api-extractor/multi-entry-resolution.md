@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-05-26
-updated: 2026-08-24
-last-synced: 2026-08-24
+updated: 2026-08-25
+last-synced: 2026-08-25
 completeness: 90
 related:
   - rspress-plugin-api-extractor/multi-entry-point-support.md
@@ -65,7 +65,8 @@ The companion `const`+`type` pattern routes to `/variable/<name>` and `/type/<na
 3. Categorize items and extract namespace members via `ApiItems.categorize` / `ApiItems.namespaceMembers` (`@tsdoctor/model`); `categorize` returns `{ items, uncategorized }` and the adapter emits an `ItemSkipped` event per uncategorized item.
 4. Build `Routes.RouteCandidate[]` for all top-level items and namespace members, run `Routes.detectCollisions`, and throw `Routes.RouteCollisionError` on any collision.
 5. Build the cross-link routes/kinds maps (lowercased paths, no suffix), with bare names owned by the highest-priority kind.
-6. Construct `WorkItem[]`, attaching `availableFrom` from the resolved data (and `syntheticBase` on classes whose extends clause references a detected base).
+6. Compute `ApiItems.memberAnchors(item)` for each class and interface, so the cross-link route map's `#fragment` and the page's `id=` come from one computation (see `cross-linking-architecture.md`).
+7. Construct `WorkItem[]`, attaching `availableFrom` from the resolved data (plus `syntheticBase` on classes whose extends clause references a detected base, and `memberAnchors` on classes and interfaces).
 
 ```typescript
 interface WorkItem {
@@ -77,6 +78,8 @@ interface WorkItem {
   readonly availableFrom?: string[];
   /** Unexported base declaration to inline on this class page */
   readonly syntheticBase?: ApiItem;
+  /** Anchor id per member, keyed by canonical reference (classes/interfaces) */
+  readonly memberAnchors?: ReadonlyMap<string, string>;
 }
 ```
 
@@ -84,7 +87,7 @@ There is no `entryPointSegment` and no per-item collision flag on `WorkItem`. Th
 
 ## "Available from" rendering
 
-Every page generator accepts an optional `availableFrom?: string[]` as a trailing argument of `generate()` (`ClassPageGenerator` takes one further trailing `syntheticBase?: ApiItem` — see `page-generation-system.md`). When it lists more than one entry point, `generateAvailableFrom()` (`src/markdown/helpers.ts`) renders a line:
+Every page generator accepts an optional `availableFrom?: string[]` as a trailing argument of `generate()` (`ClassPageGenerator` takes two further trailing parameters, `syntheticBase?: ApiItem` and `memberAnchors?: ReadonlyMap<string, string>`; `InterfacePageGenerator` takes `memberAnchors` — see `page-generation-system.md`). When it lists more than one entry point, `generateAvailableFrom()` (`src/markdown/helpers.ts`) renders a line:
 
 ```text
 Available from: `package-name`, `package-name/testing`
@@ -107,8 +110,9 @@ prepareWorkItems()
     uncategorized item)
   → build Routes.RouteCandidate[] → Routes.detectCollisions()
     (throws Routes.RouteCollisionError on collision)
-  → build cross-link routes/kinds maps (lowercased, no suffix)
-  → construct WorkItem[] with availableFrom
+  → build cross-link routes/kinds maps (lowercased, no suffix), with member
+    anchors and keys from ApiItems.memberAnchors / memberRouteKeys
+  → construct WorkItem[] with availableFrom + memberAnchors
          |
 Stream pipeline (buildPipelineForApi)
   → generateSinglePage dispatches to the page generator with availableFrom

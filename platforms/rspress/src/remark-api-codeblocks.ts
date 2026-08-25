@@ -16,25 +16,12 @@ import type { ShikiTransformer } from "shiki";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
 import { generateShikiHast } from "./markdown/shiki-utils.js";
-import type { CodeBlockComponent, PluginEvent } from "./observability/events.js";
+import type { CodeBlockComponent } from "./observability/events.js";
 import { PluginEvent as PE } from "./observability/events.js";
+import { emitSync, syncBuildId, syncSlowCodeBlockMs } from "./observability/sync-emitter.js";
+import { setTwoslashFile } from "./twoslash-access.js";
 import { createTwoslashTimingWrapper } from "./twoslash-timing-wrapper.js";
-import { TwoslashManager } from "./twoslash-transformer.js";
 import { VfsRegistry } from "./vfs-registry.js";
-
-/** Module-level emitter injected by plugin.ts at startup. */
-let emitEvent: (event: PluginEvent) => void = () => {};
-let currentBuildId = "";
-let currentSlowCodeBlockMs = Number.POSITIVE_INFINITY;
-export function setRemarkApiCodeblocksEventEmitter(
-	fn: (event: PluginEvent) => void,
-	buildId = "",
-	slowCodeBlockMs = Number.POSITIVE_INFINITY,
-): void {
-	emitEvent = fn;
-	currentBuildId = buildId;
-	currentSlowCodeBlockMs = slowCodeBlockMs;
-}
 
 /**
  * Create an MDX JSX attribute value expression with proper estree AST.
@@ -146,7 +133,7 @@ export const remarkApiCodeblocks: Plugin<[undefined?], Root> = () => {
 
 		// Step 1b: wire file path into TwoslashManager so TwoslashDiagnostic.file carries real paths
 		if (file.path) {
-			TwoslashManager.getInstance().setCurrentFile(file.path);
+			setTwoslashFile(file.path);
 		}
 
 		// Visit JSX component nodes (ApiSignature, ApiMember, ApiExample)
@@ -178,9 +165,9 @@ export const remarkApiCodeblocks: Plugin<[undefined?], Root> = () => {
 				// Look up VFS config
 				const vfsConfig = VfsRegistry.get(apiScopeValue);
 				if (!vfsConfig) {
-					emitEvent(
+					emitSync(
 						PE.ConfigCascadeWarning({
-							ctx: { buildId: currentBuildId, file: currentFilePath },
+							ctx: { buildId: syncBuildId(), file: currentFilePath },
 							field: "vfs",
 							chosen: apiScopeValue,
 							ignored: [],
@@ -244,23 +231,23 @@ export const remarkApiCodeblocks: Plugin<[undefined?], Root> = () => {
 				// Post-process with cross-linker (synchronous)
 				const postStart = performance.now();
 				if (hast && vfsConfig.crossLinker) {
-					hast = vfsConfig.crossLinker.transformHast(hast, apiScopeValue);
+					hast = vfsConfig.crossLinker.transformHast(hast);
 				}
 				const postMs = performance.now() - postStart;
 
 				// Attribute this block. Twoslash runs entirely inside the transformer's
 				// `preprocess` hook, so the Shiki share is the render call minus that.
 				const totalBlockTime = renderMs + postMs;
-				emitEvent(
+				emitSync(
 					PE.CodeBlockProcessed({
-						ctx: { buildId: currentBuildId, apiScope: apiScopeValue, file: currentFilePath },
+						ctx: { buildId: syncBuildId(), apiScope: apiScopeValue, file: currentFilePath },
 						lang: "typescript",
 						component: node.name as CodeBlockComponent,
 						twoslash: isExample,
 						twoslashMs,
 						shikiMs: Math.max(0, renderMs - twoslashMs),
 						totalMs: totalBlockTime,
-						slow: totalBlockTime > currentSlowCodeBlockMs,
+						slow: totalBlockTime > syncSlowCodeBlockMs(),
 						level: "debug",
 					}),
 				);

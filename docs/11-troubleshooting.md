@@ -52,6 +52,7 @@ Detection runs on the lowercased route, so two items differing only in case (`Co
 **Fixes, by cause:**
 
 - **Intentional error:** annotate it so Twoslash expects it. Add `// @errors: <code>` to the block.
+- **Missing global (`Promise`, `Array`, `document`):** globals come from `lib`, which defaults to `["ESNext", "DOM"]`. A `tsconfig.json` or `compilerOptions` that declares `lib` replaces that array rather than adding to it, so name every lib the examples need.
 - **Missing external type:** add the package to `externalPackages` (or confirm `autoDetectDependencies` covers it) so its types load. See [Configuration](./02-configuration.md).
 - **Incomplete snippet:** flesh out the example, or suppress example errors for the whole site with `errors: { example: "suppress" }`.
 

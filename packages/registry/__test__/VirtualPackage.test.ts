@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
+import { MemoryFileSystem } from "@effected/memfs";
 import { Effect, FileSystem } from "effect";
 import { VirtualPackage, mergeVfs, prefixVfs } from "../src/index.js";
 
@@ -89,14 +90,11 @@ describe("VirtualPackage", () => {
 			const vfs = pkg.toVfs();
 			assert.strictEqual(vfs.get("node_modules/from-disk/index.d.ts"), "export declare const fromDisk: true;");
 		}).pipe(
-			Effect.provide(
-				FileSystem.layerNoop({
-					readFileString: (path) =>
-						path === "/decls/api.d.ts"
-							? Effect.succeed("export declare const fromDisk: true;")
-							: Effect.die(new Error(`unexpected read: ${path}`)),
-				}),
-			),
+			// A seeded in-memory volume rather than a hand-stubbed `layerNoop`.
+			// The stub had to spell out a `die` branch for every path it did not
+			// expect; memfs fails a missing read as a typed `NotFound` for free,
+			// and cannot fabricate content for a file the test never seeded.
+			Effect.provide(MemoryFileSystem.layerWith({ "/decls/api.d.ts": "export declare const fromDisk: true;" })),
 		),
 	);
 

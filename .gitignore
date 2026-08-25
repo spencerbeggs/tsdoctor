@@ -48,4 +48,12 @@ docs/superpowers
 
 # Ephemeral plugin observability artifacts (issues.json, trace JSONL)
 .api-docs/
+
+# Stray nested .claude/ directories. Tooling occasionally writes one inside a
+# workspace (one appeared under platforms/rspress/src/ during Chunk 0 and was
+# then removed by a lint-staged untracked-file stash, silently). The only
+# .claude/ this repo tracks is the one at the root, which the rules above
+# manage; anything nested is tool output and must not be committable.
+# The leading `*/` keeps the root directory out of the match.
+*/**/.claude/
 .claude/handoffs/

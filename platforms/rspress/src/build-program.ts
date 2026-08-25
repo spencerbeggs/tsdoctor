@@ -1,12 +1,22 @@
 import path from "node:path";
 import { SnapshotService } from "@tsdoctor/snapshot";
 import { Effect, FileSystem } from "effect";
+import { BuildId, PageConcurrency, SuppressExampleErrors } from "./BuildEnv.js";
 import type { CrossLinkData } from "./build-stages.js";
 import { buildPipelineForApi, cleanupAndCommit, prepareWorkItems, writeMetadata } from "./build-stages.js";
+// The two Shiki transformers are module-level immutable consts. They used to
+// travel through ResolvedBuildContext as data; importing them here is the same
+// value with one fewer indirection. Note the naming: the registry field
+// `hideCutTransformer` holds `MemberFormatTransformer`.
+import { HideCutLinesTransformer, MemberFormatTransformer } from "./hide-cut-transformer.js";
 import { setProseLinker } from "./markdown/index.js";
 import { withPhase } from "./observability/spans.js";
-import type { ResolvedApiConfig, ResolvedBuildContext } from "./services/ConfigService.js";
-import { TwoslashManager } from "./twoslash-transformer.js";
+import type { ResolvedApiConfig } from "./services/ConfigService.js";
+import { HighlighterService } from "./services/HighlighterService.js";
+import type { OgService } from "./services/OgService.js";
+import { TwoslashEnvironments } from "./services/TwoslashEnvironments.js";
+import { ShikiCrossLinker } from "./shiki-transformer.js";
+import { addTypeRoutes } from "./twoslash-transformer.js";
 import type { VfsConfig } from "./vfs-registry.js";
 import { VfsRegistry } from "./vfs-registry.js";
 
@@ -40,11 +50,19 @@ export interface GenerateApiDocsResult {
  */
 export function generateApiDocs(
 	apiConfig: ResolvedApiConfig & { suppressExampleErrors?: boolean },
-	buildContext: ResolvedBuildContext,
 	fileContextMap: Map<string, { api?: string; version?: string; file: string }>,
-): Effect.Effect<GenerateApiDocsResult, never, FileSystem.FileSystem | SnapshotService> {
+): Effect.Effect<
+	GenerateApiDocsResult,
+	never,
+	FileSystem.FileSystem | SnapshotService | HighlighterService | OgService | TwoslashEnvironments
+> {
 	return Effect.gen(function* () {
 		const fileSystem = yield* FileSystem.FileSystem;
+		const { highlighter } = yield* HighlighterService;
+		const environments = yield* TwoslashEnvironments;
+		const buildId = yield* BuildId;
+		const pageConcurrency = yield* PageConcurrency;
+		const suppressExampleErrors = yield* SuppressExampleErrors;
 		const snapshotSvc = yield* SnapshotService;
 
 		const {
@@ -60,22 +78,8 @@ export function generateApiDocs(
 			siteUrl,
 			ogImage,
 		} = apiConfig;
-		const suppressExampleErrors = apiConfig.suppressExampleErrors ?? true;
-
-		const {
-			shikiCrossLinker,
-			highlighter,
-			hideCutTransformer,
-			hideCutLinesTransformer,
-			twoslashTransformer,
-			ogResolver,
-			pageConcurrency,
-			thresholds,
-			buildId,
-		} = buildContext;
 
 		const phaseCtx = {
-			buildId,
 			packageName,
 		};
 
@@ -101,7 +105,6 @@ export function generateApiDocs(
 					packageName,
 				}),
 			),
-			thresholds,
 		);
 
 		// Initialize cross-linkers with the prepared data
@@ -112,27 +115,35 @@ export function generateApiDocs(
 		// e.g., baseRoute "/example-module" -> scope "example-module"
 		// When baseRoute is "/" (single-API mode), fall back to packageName to ensure a non-empty scope
 		const apiScope = baseRoute.replace(/^\//, "").split("/")[0] || packageName;
-		shikiCrossLinker.reinitialize(crossLinkData.routes, crossLinkData.kinds, apiScope);
-		TwoslashManager.addTypeRoutes(crossLinkData.routes);
+		// One immutable linker per API, held behind this scope's registry entry.
+		// It replaces a single instance mutated per API by `reinitialize()`: with
+		// two APIs in one build, whichever resolved last owned `currentApiScope`,
+		// so a code block could be linked against another package's routes.
+		const shikiCrossLinker = ShikiCrossLinker.fromRoutes(crossLinkData.routes, crossLinkData.kinds, apiScope);
+		addTypeRoutes(crossLinkData.routes);
 
-		// Register VFS config for the remark plugin
-		if (highlighter) {
-			const vfsConfig: VfsConfig = {
-				vfs: new Map(),
-				highlighter,
-				crossLinker: shikiCrossLinker,
-				packageName,
-				apiScope,
-			};
-			// Each scope is type-checked under the configuration its own package
-			// declares; the build-wide transformer is only the fallback.
-			const scopeTransformer = TwoslashManager.getInstance().getTransformer(apiScope) ?? twoslashTransformer;
-			if (scopeTransformer != null) vfsConfig.twoslashTransformer = scopeTransformer;
-			if (hideCutTransformer != null) vfsConfig.hideCutTransformer = hideCutTransformer;
-			if (hideCutLinesTransformer != null) vfsConfig.hideCutLinesTransformer = hideCutLinesTransformer;
-			if (apiConfig.theme != null) vfsConfig.theme = apiConfig.theme;
-			VfsRegistry.register(apiScope, vfsConfig);
-		}
+		// Register VFS config for the remark plugin. The highlighter comes from
+		// the runtime-lifetime HighlighterService, so unlike the old context
+		// field it is never absent — the `if (highlighter)` guard that used to
+		// wrap this could silently skip registration for a whole scope.
+		const vfsConfig: VfsConfig = {
+			highlighter,
+			crossLinker: shikiCrossLinker,
+			packageName,
+			apiScope,
+		};
+		// Each scope is type-checked under the configuration its own package
+		// declares; the build-wide transformer is only the fallback.
+		// `transformerFor` already falls back to the build-wide environment for an
+		// unknown scope, so the separate `?? twoslashTransformer` this replaces
+		// was unreachable: it could only fire when NO environment existed, in
+		// which case the fallback was null too.
+		const scopeTransformer = environments.transformerFor(apiScope);
+		if (scopeTransformer != null) vfsConfig.twoslashTransformer = scopeTransformer;
+		vfsConfig.hideCutTransformer = MemberFormatTransformer;
+		vfsConfig.hideCutLinesTransformer = HideCutLinesTransformer;
+		if (apiConfig.theme != null) vfsConfig.theme = apiConfig.theme;
+		VfsRegistry.register(apiScope, vfsConfig);
 
 		// Phase 2+3: Generate pages and write files via Stream pipeline
 		yield* Effect.logDebug(
@@ -144,6 +155,7 @@ export function generateApiDocs(
 			phaseCtx,
 			buildPipelineForApi({
 				buildId,
+				pageConcurrency,
 				workItems,
 				baseRoute,
 				packageName,
@@ -152,15 +164,13 @@ export function generateApiDocs(
 				...(source != null ? { source } : {}),
 				buildTime,
 				resolvedOutputDir,
-				pageConcurrency,
 				existingSnapshots,
 				...(suppressExampleErrors != null ? { suppressExampleErrors } : {}),
 				...(llmsPlugin != null ? { llmsPlugin } : {}),
-				...(ogResolver !== undefined ? { ogResolver } : {}),
+				...(apiConfig.docsRoot != null ? { docsRoot: apiConfig.docsRoot } : {}),
 				...(siteUrl != null ? { siteUrl } : {}),
 				...(ogImage != null ? { ogImage } : {}),
 			}),
-			thresholds,
 		);
 
 		const changedCount = fileResults.filter((r) => r.status !== "unchanged").length;
@@ -194,7 +204,6 @@ export function generateApiDocs(
 				...(apiName != null ? { apiName } : {}),
 				generatedFiles,
 			}),
-			thresholds,
 		);
 
 		// Phase 5: Cleanup and commit snapshots
@@ -207,7 +216,6 @@ export function generateApiDocs(
 				resolvedOutputDir,
 				generatedFiles,
 			}),
-			thresholds,
 		);
 
 		yield* Effect.logDebug(`Generated ${changedCount} API documentation files for ${packageName}`);

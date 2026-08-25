@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { VirtualPackage as VirtualPackageClass } from "@tsdoctor/registry";
+import ts from "typescript";
 
 import { describe, expect, it } from "vitest";
 import { ApiExtractedPackage } from "../src/api-extracted-package.js";
@@ -8,6 +9,48 @@ import { ApiExtractedPackage } from "../src/api-extracted-package.js";
 const FIXTURES_DIR = path.join(import.meta.dirname, "__fixtures__", "example-module");
 const API_MODEL_PATH = path.join(FIXTURES_DIR, "example-module.api.json");
 const EXPECTED_DTS_PATH = path.join(FIXTURES_DIR, "index.d.ts");
+
+/**
+ * Compile a reconstructed `.d.ts` in isolation and return its diagnostics.
+ *
+ * Issues #57 and #58 are both reported as compiler errors (TS1244/TS1253,
+ * TS2304), so the honest assertion is the diagnostic itself. Asserting the
+ * generated TEXT only proves the current spelling, not that a compiler accepts
+ * it — the distinction that let the `lib` defect survive elsewhere.
+ */
+const libSourceFileCache = new Map<string, ts.SourceFile>();
+
+function compileDts(dts: string): readonly ts.Diagnostic[] {
+	// `skipLibCheck` must stay OFF: it suppresses checking of `.d.ts` files
+	// wholesale, including the grammar errors these issues are about, so a
+	// harness that leaves it on asserts nothing. Verified — with it on, a class
+	// header stripped of `abstract` reports no diagnostics at all.
+	const fileName = "/__recon__.d.ts";
+	const options: ts.CompilerOptions = { noEmit: true, skipLibCheck: false, target: ts.ScriptTarget.ESNext };
+	const host = ts.createCompilerHost(options, true);
+	const originalGetSourceFile = host.getSourceFile.bind(host);
+	// Cache the default lib source files across calls. With `skipLibCheck` off
+	// every call type-checks the whole `lib.esnext.d.ts` chain, and a fresh host
+	// re-reads and re-parses it from disk each time — roughly a second per call,
+	// which is what pushed these tests past Vitest's 5s default under CI's
+	// parallel forks. The lib files are identical between calls, so parsing them
+	// once is safe; only the fixture under test differs.
+	host.getSourceFile = (name, lang, onError, shouldCreate) => {
+		if (name === fileName) return ts.createSourceFile(name, dts, lang, true);
+		const cached = libSourceFileCache.get(name);
+		if (cached !== undefined) return cached;
+		const parsed = originalGetSourceFile(name, lang, onError, shouldCreate);
+		if (parsed !== undefined) libSourceFileCache.set(name, parsed);
+		return parsed;
+	};
+	host.fileExists = (name) => name === fileName || ts.sys.fileExists(name);
+	host.readFile = (name) => (name === fileName ? dts : ts.sys.readFile(name));
+	return ts.getPreEmitDiagnostics(ts.createProgram([fileName], options, host));
+}
+
+const diagnosticCodes = (dts: string): number[] => compileDts(dts).map((d) => d.code);
+const diagnosticMessages = (dts: string): string[] =>
+	compileDts(dts).map((d) => ts.flattenDiagnosticMessageText(d.messageText, " "));
 
 describe("ApiExtractedPackage", () => {
 	const expectedDts = fs.readFileSync(EXPECTED_DTS_PATH, "utf-8");
@@ -315,7 +358,7 @@ describe("ApiExtractedPackage", () => {
 		});
 	});
 
-	describe("abstract classes", () => {
+	describe("abstract classes (issue #57)", () => {
 		const ABSTRACT_MODEL_PATH = path.join(import.meta.dirname, "__fixtures__", "abstract-class", "abstract.api.json");
 		const generated = ApiExtractedPackage.fromApiModel(ABSTRACT_MODEL_PATH)
 			.generateVfs()
@@ -331,9 +374,17 @@ describe("ApiExtractedPackage", () => {
 			expect(generated).toMatch(/abstract buildProject\b/);
 			expect(generated).toMatch(/abstract classify\b/);
 		});
+
+		it("reports no TS1244/TS1253 when compiled (issue #57)", () => {
+			// The issue is a COMPILER diagnostic, so assert the diagnostic, not the
+			// text that happens to avoid it. `abstract` on the members without
+			// `abstract` on the header is TS1244 (methods) / TS1253 (properties).
+			const codes = diagnosticCodes(generated);
+			expect(codes.filter((c) => c === 1244 || c === 1253)).toEqual([]);
+		}, 20_000);
 	});
 
-	describe("rollup alias collisions", () => {
+	describe("rollup alias collisions (issue #58)", () => {
 		const ALIAS_MODEL_PATH = path.join(import.meta.dirname, "__fixtures__", "alias-collision", "alias.api.json");
 		const generated = ApiExtractedPackage.fromApiModel(ALIAS_MODEL_PATH)
 			.generateVfs()
@@ -347,5 +398,14 @@ describe("ApiExtractedPackage", () => {
 			expect(generated).toContain("CoverageLevelName");
 			expect(generated).not.toContain("CoverageLevelName$1");
 		});
+
+		it("leaves no undefined `$N` alias name when compiled (issue #58)", () => {
+			// TS2304 "Cannot find name" is what an unresolved `CoverageLevelName$1`
+			// produces. Other TS2304s are expected here — the fixture references
+			// external types this standalone compile does not provide — so assert on
+			// the specific name rather than on an empty diagnostic list.
+			const unresolved = diagnosticMessages(generated).filter((m) => /\$\d/.test(m));
+			expect(unresolved).toEqual([]);
+		}, 20_000);
 	});
 });

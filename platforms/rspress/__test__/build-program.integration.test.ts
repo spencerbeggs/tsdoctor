@@ -3,16 +3,18 @@ import os from "node:os";
 import path from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect, Layer, References } from "effect";
+import type { Root } from "hast";
 import { createHighlighter } from "shiki";
 import { describe, expect, it } from "vitest";
 import { generateApiDocs } from "../src/build-program.js";
 import { CategoryResolver } from "../src/category-resolver.js";
+import { TwoslashEnvironmentsLive } from "../src/layers/TwoslashEnvironmentsLive.js";
 import { loadApiModel } from "../src/model-loader.js";
 import { DEFAULT_CATEGORIES } from "../src/schemas/index.js";
-import type { ResolvedApiConfig, ResolvedBuildContext } from "../src/services/ConfigService.js";
-import { ShikiCrossLinker } from "../src/shiki-transformer.js";
-import { makeTwoslashCache } from "../src/twoslash-cache.js";
-import { MockSnapshotServiceLayer } from "./utils/layers.js";
+import type { ResolvedApiConfig } from "../src/services/ConfigService.js";
+import { HighlighterService } from "../src/services/HighlighterService.js";
+import { VfsRegistry } from "../src/vfs-registry.js";
+import { MockSnapshotServiceLayer, TestOgServiceLayer } from "./utils/layers.js";
 
 describe("generateApiDocs (Effect program)", () => {
 	it("generates docs for fixture model and populates crossLinkData + fileContextMap", async () => {
@@ -34,44 +36,68 @@ describe("generateApiDocs (Effect program)", () => {
 			outputDir: tmpDir,
 			baseRoute: "/example-module",
 			categories,
-			suppressExampleErrors: true,
-		};
-
-		const buildContext: ResolvedBuildContext = {
-			apiConfigs: [apiConfig],
-			combinedVfs: new Map(),
-			highlighter,
-			resolvedCompilerOptions: {},
-			ogResolver: null,
-			shikiCrossLinker: new ShikiCrossLinker(),
-			hideCutTransformer: { name: "mock-hide-cut" },
-			hideCutLinesTransformer: { name: "mock-hide-cut-lines" },
-			twoslashTransformer: undefined,
-			twoslashCache: makeTwoslashCache(),
-			twoslashEnvHash: "test-env",
-			pageConcurrency: 2,
-			logLevel: "info" as const,
-			suppressExampleErrors: true,
-			buildId: "test-build",
-			thresholds: {
-				slowCodeBlock: 100,
-				slowPageGeneration: 500,
-				slowApiLoad: 1000,
-				slowFileOperation: 50,
-				slowHttpRequest: 2000,
-				slowDbOperation: 100,
-			},
 		};
 
 		const fileContextMap = new Map<string, { api?: string; version?: string; file: string }>();
 
-		const program = generateApiDocs(apiConfig, buildContext, fileContextMap);
+		const program = generateApiDocs(apiConfig, fileContextMap);
 		const testLayer = Layer.mergeAll(
 			NodeFileSystem.layer,
 			MockSnapshotServiceLayer,
+			Layer.succeed(HighlighterService, { highlighter }),
+			TestOgServiceLayer,
+			TwoslashEnvironmentsLive,
 			Layer.succeed(References.MinimumLogLevel, "None"),
 		);
 		const result = await Effect.runPromise(program.pipe(Effect.provide(testLayer)));
+
+		// FORBIDS: registering a linker that is not built from THIS api's routes
+		// (an empty one, a shared one, one hoisted out of the per-API call). The
+		// suite is otherwise blind to it — the pages still generate; only the
+		// rendered HTML loses every `api-type-link` anchor.
+		const registered = VfsRegistry.get("example-module")?.crossLinker;
+		expect(registered).toBeDefined();
+		expect(registered?.apiScope).toBe("example-module");
+		{
+			const name = [...result.crossLinkData.routes.keys()].find((k) => !k.includes("."));
+			expect(name).toBeDefined();
+			const hast: Root = {
+				type: "root",
+				children: [
+					{
+						type: "element",
+						tagName: "pre",
+						properties: {},
+						children: [
+							{
+								type: "element",
+								tagName: "code",
+								properties: {},
+								children: [
+									{
+										type: "element",
+										tagName: "span",
+										properties: { class: "line" },
+										children: [
+											{
+												type: "element",
+												tagName: "span",
+												properties: {},
+												children: [{ type: "text", value: name as string }],
+											},
+										],
+									},
+								],
+							},
+						],
+					},
+				],
+			};
+			registered?.transformHast(hast);
+			const html = JSON.stringify(hast);
+			expect(html).toContain("api-type-link");
+			expect(html).toContain(result.crossLinkData.routes.get(name as string));
+		}
 
 		// Cross-link data should be populated
 		expect(result.crossLinkData.routes.size).toBeGreaterThan(0);

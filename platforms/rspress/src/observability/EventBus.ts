@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Option } from "effect";
+import { BuildId } from "../BuildEnv.js";
 import type { EventLevel, PluginEvent } from "./events.js";
 import { LEVEL_RANK, levelOf } from "./events.js";
 import type { EventSink } from "./sinks/types.js";
@@ -33,11 +34,31 @@ export function makeEventBusLayer(sinks: readonly EventSink[]): Layer.Layer<Even
 	return Layer.succeed(EventBus, makeShape(sinks));
 }
 
-/** Emit when a bus is in context; silently no-op otherwise. */
+/**
+ * Emit when a bus is in context; silently no-op otherwise.
+ *
+ * @remarks
+ * Fills `ctx.buildId` from the {@link BuildId} Reference when the caller left
+ * it empty, which is why no emit site passes one. Before this, 24 sites wrote
+ * `ctx: { buildId: "" }` — 22 in `ConfigServiceLive`, where the real value sat
+ * three scopes up and was simply not reached, and every site in
+ * `TypeRegistryServiceLive`, where the layer is module-level and there is no
+ * build to name. The second group is why a Reference is the fix and a
+ * find-and-replace is not: a Reference reaches code that no parameter can.
+ *
+ * A caller that sets a non-empty `buildId` keeps it, so a test can still emit
+ * with an explicit id.
+ */
 export function emit(event: PluginEvent): Effect.Effect<void> {
-	return Effect.serviceOption(EventBus).pipe(
-		Effect.flatMap((maybe) => (Option.isSome(maybe) ? maybe.value.emit(event) : Effect.void)),
-	);
+	return Effect.gen(function* () {
+		const maybe = yield* Effect.serviceOption(EventBus);
+		if (Option.isNone(maybe)) return;
+		const filled =
+			(event.ctx.buildId ?? "") === ""
+				? ({ ...event, ctx: { ...event.ctx, buildId: yield* BuildId } } as PluginEvent)
+				: event;
+		yield* maybe.value.emit(filled);
+	});
 }
 
 /**

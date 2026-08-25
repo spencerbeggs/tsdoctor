@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { Thresholds } from "../BuildEnv.js";
 import type { ResolvedObservability } from "../schemas/observability.js";
 import { emit } from "./EventBus.js";
 import type { EventContext } from "./events.js";
@@ -30,9 +31,13 @@ export function withPhase<A, E, R>(
 	phase: string,
 	ctx: EventContext,
 	effect: Effect.Effect<A, E, R>,
-	thresholds: ResolvedObservability["thresholds"],
 ): Effect.Effect<A, E, R> {
 	return Effect.gen(function* () {
+		// Read from context rather than taken as a parameter. The value used to
+		// travel plugin.ts -> ConfigServiceLive's 4th argument -> a
+		// ResolvedBuildContext field -> a destructure in build-program.ts -> here,
+		// while `obs.thresholds` held it one scope from where it started.
+		const thresholds = yield* Thresholds;
 		yield* emit(PluginEvent.PhaseStarted({ ctx, level: "debug", phase }));
 		const start = performance.now();
 		const result = yield* Effect.withSpan(`phase.${phase}`)(effect);
@@ -68,9 +73,10 @@ export function withOp<A, E, R>(
 	operation: string,
 	ctx: EventContext,
 	effect: Effect.Effect<A, E, R>,
-	threshold: number,
+	thresholdKey: keyof ResolvedObservability["thresholds"] = "slowApiLoad",
 ): Effect.Effect<A, E, R> {
 	return Effect.gen(function* () {
+		const threshold = (yield* Thresholds)[thresholdKey];
 		const start = performance.now();
 		const result = yield* Effect.withSpan(`op.${operation}`)(effect);
 		const elapsed = performance.now() - start;
