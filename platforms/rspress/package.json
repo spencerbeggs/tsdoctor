@@ -73,7 +73,7 @@
 		"@types/react": "catalog:build",
 		"@types/react-dom": "catalog:build",
 		"@types/unist": "^3.0.3",
-		"mdast-util-from-markdown": "^2.0.2",
+		"mdast-util-from-markdown": "^2.0.3",
 		"mdast-util-mdx-jsx": "^3.2.0",
 		"react": "catalog:build",
 		"react-dom": "catalog:build",
