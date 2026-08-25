@@ -87,6 +87,27 @@ If pages still look wrong after that, remove your `outDir` (for example `dist/`)
 
 **Fix:** confirm the model file on disk reflects your source change — rebuild your library so a fresh `.api.json` is emitted — then run the docs build again. When in doubt, clear the Rspack cache as above so nothing is served from a previous run.
 
+## Twoslash cache shows 0 hits even though nothing changed
+
+**Symptom:** you are benchmarking build times, expect the Twoslash cache to report hits on a repeat build, but the summary shows `Twoslash cache: 0/0 hits`.
+
+**Cause:** two independent caches are in play, and it is easy to clear the wrong one. RSPress's own Rspack build cache (`node_modules/.cache/rspack`, the one in [Stale build output](#stale-build-output-after-editing-the-plugin-or-a-model)) can skip recompiling your MDX entirely when nothing it tracks has changed. When that happens, the render phase that runs Twoslash never runs, so the Twoslash result cache is never even consulted — `0/0` means "not asked," not "not warm." A fast repeat build in that state is Rspack's cache doing its job, not the Twoslash cache.
+
+**Fix:** to exercise or benchmark the Twoslash cache specifically, clear Rspack's cache but leave the Twoslash cache alone so the MDX genuinely recompiles and the render phase actually runs:
+
+```bash
+rm -rf node_modules/.cache/rspack
+npx rspress build
+```
+
+To clear the Twoslash cache itself, for example if you suspect a corrupted entry:
+
+```bash
+rm -rf ~/.cache/tsdoctor/twoslash.sqlite*
+```
+
+See [Twoslash result cache](./02-configuration.md#twoslash-result-cache) for how the cache is keyed and why it degrades to a full type-check rather than failing.
+
 ## Nothing happens with LLMs files
 
 **Symptom:** `llmsPlugin` is configured but no `llms*.txt` files appear.

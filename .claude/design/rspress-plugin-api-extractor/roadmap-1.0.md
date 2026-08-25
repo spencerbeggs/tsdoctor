@@ -3,9 +3,9 @@ status: draft
 module: rspress-plugin-api-extractor
 category: meta
 created: 2026-08-24
-updated: 2026-08-24
-last-synced: 2026-08-24
-completeness: 70
+updated: 2026-08-25
+last-synced: 2026-08-25
+completeness: 75
 related:
   - rspress-plugin-api-extractor/tsdoctor-package-architecture.md
   - rspress-plugin-api-extractor/monorepo-consolidation.md
@@ -15,12 +15,13 @@ related:
   - rspress-plugin-api-extractor/performance-observability.md
   - rspress-plugin-api-extractor/type-loading-vfs.md
   - rspress-plugin-api-extractor/llms-integration.md
+  - rspress-plugin-api-extractor/render-phase-instrumentation.md
 dependencies: []
 ---
 
 # Road to 1.0.0
 
-> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done — **phase 1 is complete and released** (merged via PR #163 and shipped to npm on 2026-08-24; see `monorepo-consolidation.md`). For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session and should be treated as settled unless a section explicitly labels them open.
+> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done — **phases 1 through 3 are complete** (phase 1 merged via PR #163 and shipped to npm on 2026-08-24; phase 2 code complete 2026-08-24; phase 3 complete 2026-08-25, landed on `feat/phase-3` — see `monorepo-consolidation.md` and `render-phase-instrumentation.md`). For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session (phase 3's instrument-first sequencing included) and should be treated as settled unless a section explicitly labels them open.
 
 ## Table of Contents
 
@@ -46,7 +47,7 @@ The target package architecture (what each `@tsdoctor/*` package contains and wh
 
 ## Current State
 
-As of 2026-08-24, **phase 1 is complete and released** (executed on `feat/tsdoctor-phase-1`, merged to `main` via PR #163):
+As of 2026-08-25, **phases 1 through 3 are complete**:
 
 - The `@tsdoctor` npm org is registered and the first releases under it have shipped from this repo to npm and GitHub Releases: `@tsdoctor/registry@0.1.0`, `@tsdoctor/model@0.1.0` and `rspress-plugin-api-extractor@0.8.9`, tagged in the `<package>@<version>` format.
 - The old npm packages `type-registry-effect` and `api-extractor-llms` are deprecated with pointers to their successors, and their GitHub repos are archived.
@@ -55,6 +56,7 @@ As of 2026-08-24, **phase 1 is complete and released** (executed on `feat/tsdoct
 - The workspace-layout open question was resolved: the plugin workspace moved from `package/` to `platforms/rspress/` (core libraries under `packages/`, framework adapters under `platforms/`).
 - The phase 1 gate held: full monorepo build green (26 Turbo tasks), typecheck green, 1,236 tests / 0 failures (the plugin's ~1,033 plus the two libraries' suites).
 - **Phase 2 is code complete** (landed on `feat/tsdoctor-phase-2`, 2026-08-24, releases pending): `@tsdoctor/bundle` and `@tsdoctor/snapshot` exist, the model was redesigned to Effect v4 modules with the shims collapsed, the identity renames executed, and `gray-matter` replaced — see the phase 2 section below.
+- **Phase 3 is complete** (landed on `feat/phase-3`, 2026-08-25): render-phase code-block time is now attributed per scope and per code block via dimensional Effect metrics, and the resulting data decided fix priority — a persisted Twoslash result cache (fix (a)) shipped as the performance work, and per-scope TypeScript environments (fix (b)) shipped as the `with-api` scoping correctness fix the data gave no performance case for. Full record in `render-phase-instrumentation.md`.
 - The plugin itself is pre-1.0 and RSPress-specific; the bundle spec is now formalized in `bundle-spec.md` (the informal three-file folder convention is superseded).
 
 ## The 1.0 Definition
@@ -91,16 +93,16 @@ Each phase has a gate that must hold before the next phase starts. Phases are or
 
 ### Phase 3 — Instrumentation, then Scoping and Performance
 
-**Settled decision: instrument first, decide after.** The phase starts by extending the EventBus/metrics system (`performance-observability.md`) to attribute render-phase time per scope and per code block — the existing evidence (below) shows where the time goes in aggregate but not which scopes or blocks dominate.
+**COMPLETE** (landed on branch `feat/phase-3`, 2026-08-25). **Settled decision: instrument first, decide after** — held, and paid for itself: the first two measurement attempts were both wrong (a batch-window `await`-crossing bug, and a mislabeled Twoslash/Shiki split) in ways that would have sent the optimization effort at the wrong target. Full record, measured data and both delivered fixes are in `render-phase-instrumentation.md`.
 
-Evidence already recorded in `build-progress-and-issues.md`: on the effected/website consumer site (22 APIs), the plugin's own doc generation completed in ~2s while RSPress's render pass took 3m20s with 184/184 code blocks slow (>500ms) — Twoslash type-checking during the render phase is the dominant cost.
+Evidence that motivated the phase, recorded in `build-progress-and-issues.md`: on the effected/website consumer site (22 APIs), the plugin's own doc generation completed in ~2s while RSPress's render pass took 3m20s with 184/184 code blocks slow (>500ms) — Twoslash type-checking during the render phase is the dominant cost.
 
-Candidate fixes, recorded as **hypotheses pending evidence, not commitments**:
+Corrected, per-scope/per-block attribution found **Twoslash accounts for ~97% of render-phase code-block time, concentrated in ~11% of blocks** (`sites/multi`: 129 blocks, 7.9s summed, 96.8% in Twoslash). The two candidate fixes resolved on that evidence:
 
-- (a) A persisted Twoslash result cache keyed on (code hash, VFS/tsconfig hash).
-- (b) Per-scope TypeScript environments instead of one combined VFS. Note that (b) is also the `with-api` scoping **correctness** fix — each leaf path gets the config of the bundle it documents — and retires the documented "first API's tsconfig wins" limitation (`type-loading-vfs.md`). It likely happens regardless of the perf data; the evidence decides its priority, not its existence.
+- (a) **Delivered as the performance work.** A persisted Twoslash result cache (`src/twoslash-cache.ts`, XDG sqlite-backed via `@effected/store` `Cache`), keyed on code plus a hash of the type environment and compiler options. Measured on `sites/multi`: render phase 8.1s → 0.2s on a warm cache, 14/14 hits, output byte-identical.
+- (b) **Delivered, but on correctness grounds, not performance ones.** Per-scope TypeScript environments (`TwoslashManager` now holds one transformer per distinct resolved compiler config instead of a singleton). The data gave it no performance case — 97% of the time is inside `twoslasher()`, and splitting one shared environment would reduce `tsEnvCache` sharing. It shipped anyway as the `with-api` scoping **correctness** fix, retiring the documented "first API's tsconfig wins" limitation (`type-loading-vfs.md`); the FILE set (the combined VFS) stays shared, so this is per-scope CONFIG, not per-scope files, and does not sharpen cache invalidation.
 
-**Gate:** per-scope, per-code-block attribution is live and has produced data; fix priority is decided from that data and recorded in the deferred `render-phase-instrumentation.md`.
+**Gate: HELD** — per-scope, per-code-block attribution is live, produced data, and fix priority was decided from that data and recorded in `render-phase-instrumentation.md`.
 
 ### Phase 4 — SEO Layer
 
@@ -133,7 +135,7 @@ Each of these docs is authored in the phase that produces the evidence or the se
 | Doc | Written in | Covers |
 | --- | --- | --- |
 | `bundle-spec.md` | Phase 2 — **written** (2026-08-24, during phase-2 planning) | The versioned bundle manifest and fetcher contracts |
-| `render-phase-instrumentation.md` | Phase 3 | Per-scope/per-block attribution design and the measured data |
+| `render-phase-instrumentation.md` | Phase 3 — **written** (2026-08-25) | Per-scope/per-block attribution design, the measured data and both delivered fixes |
 | `structured-data-and-og.md` | Phase 4 | JSON-LD mapping and OG image pipeline |
 | `doc-ir-and-pages.md` | Phase 5 | The `@tsdoctor/pages` IR, shaped by the RSPress + VitePress consumers |
 
@@ -144,7 +146,7 @@ Also idea-stage and deliberately unscheduled (no phase, no gate): `@tsdoctor/cli
 - **Why consolidate:** release cascade pain. A change to `@effected/*` previously required releasing `type-registry-effect`, then bumping and releasing here — two release hops for one change. Moving development into this monorepo eliminates them. The package split's original benefit (isolated test surfaces, forced-clean APIs) is preserved by workspace boundaries instead of repo boundaries.
 - **Why the VitePress-alpha 1.0 gate:** a 1.0 promise on seams only one consumer has exercised is a guess. The alpha is the cheapest honest proof that the adapter contract holds.
 - **Why the doc IR waits for phase 5:** an abstraction extracted from two live consumers is shaped by real needs; one designed up front for a hypothetical second consumer is shaped by speculation and calcifies wrong.
-- **Why instrument before optimizing:** the aggregate evidence says Twoslash-in-render dominates, but the two candidate fixes have very different costs and the data to rank them does not exist yet.
+- **Why instrument before optimizing:** the aggregate evidence said Twoslash-in-render dominates, but the two candidate fixes had very different costs and no data existed to rank them — and the sequencing paid for itself, since the first two measurement attempts were both wrong in ways that would have misdirected the fix.
 - **Why TS7 is off the critical path:** the bundle spec decouples doc generation from the toolchain that produced the `api.json`, so api-extractor's TS7 story cannot block 1.0.
 
 ## Related Documentation
@@ -153,8 +155,9 @@ Also idea-stage and deliberately unscheduled (no phase, no gate): `@tsdoctor/cli
 - **Bundle spec (phase 2, written):** `bundle-spec.md`
 - **Phase 1 executed record:** `monorepo-consolidation.md`
 - **Current plugin architecture & shared-library delegation:** `build-architecture.md`
-- **Render-phase performance evidence:** `build-progress-and-issues.md`
-- **EventBus/metrics system to extend in phase 3:** `performance-observability.md`
+- **Render-phase performance evidence that motivated phase 3:** `build-progress-and-issues.md`
+- **Phase 3 record — per-scope/per-block attribution, measured data, both delivered fixes:** `render-phase-instrumentation.md`
+- **EventBus/dimensional metrics system phase 3 extended:** `performance-observability.md`
 - **Combined-VFS limitation retired by phase 3 fix (b):** `type-loading-vfs.md`
 - **LLM-first documentation mission:** `llms-integration.md`
 - **Snapshot system repositioned in phase 2:** `snapshot-tracking-system.md`

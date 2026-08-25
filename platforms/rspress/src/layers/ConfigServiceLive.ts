@@ -8,6 +8,7 @@ import type { Scope } from "effect";
 import { Effect, Layer, Metric } from "effect";
 import type { ShikiTransformer } from "shiki";
 import { createHighlighter } from "shiki";
+import ts from "typescript";
 import { ApiExtractedPackage } from "../api-extracted-package.js";
 import { CategoryResolver } from "../category-resolver.js";
 import {
@@ -42,8 +43,10 @@ import type { ResolvedObservability } from "../schemas/observability.js";
 import type { ResolvedApiConfig, ResolvedBuildContext, RspressConfigSubset } from "../services/ConfigService.js";
 import { ConfigService } from "../services/ConfigService.js";
 import { PathDerivationService } from "../services/PathDerivationService.js";
+import { TwoslashCacheService } from "../services/TwoslashCacheService.js";
 import { TypeRegistryService } from "../services/TypeRegistryService.js";
 import type { ShikiCrossLinker } from "../shiki-transformer.js";
+import { makeTwoslashCache, twoslashEnvHash } from "../twoslash-cache.js";
 import { TwoslashManager } from "../twoslash-transformer.js";
 import { TypeReferenceExtractor } from "../type-reference-extractor.js";
 import { resolveTypeScriptConfig } from "../typescript-config.js";
@@ -288,6 +291,12 @@ export function ConfigServiceLive(
 
 						let firstApiTsconfig: SingleApiConfig["tsconfig"] | MultiApiConfig["tsconfig"];
 						let firstApiCompilerOptions: SingleApiConfig["compilerOptions"] | MultiApiConfig["compilerOptions"];
+						/**
+						 * Raw TypeScript config per API scope. Each documented package is
+						 * type-checked under its OWN configuration; the build no longer picks
+						 * one and applies it to everything.
+						 */
+						const scopeTsConfigs = new Map<string, TypeScriptConfig | undefined>();
 
 						/**
 						 * Emit a typed ModelLoadFailed event for a failed model load, then
@@ -398,6 +407,7 @@ export function ConfigServiceLive(
 									// Capture tsconfig for later resolution
 									firstApiTsconfig = api.tsconfig;
 									firstApiCompilerOptions = api.compilerOptions;
+									scopeTsConfigs.set(apiScopeOf(baseRoute, api.packageName), rawTsConfig(api));
 
 									if (rspressMultiVersion && api.versions) {
 										// Versioned single-API mode
@@ -612,28 +622,22 @@ export function ConfigServiceLive(
 									}
 								} else if (options.apis) {
 									// === Multi-API mode ===
-									// Deterministically select tsconfig: first API with tsconfig wins
+									// Each API is type-checked under its own configuration. The
+									// first API's config is still tracked, but only as the fallback
+									// for code blocks that belong to no documented scope.
 									const apisWithTsconfig = options.apis.filter((a) => a.tsconfig);
 									if (apisWithTsconfig.length > 0) {
 										firstApiTsconfig = apisWithTsconfig[0].tsconfig;
-										const uniqueTsconfigs = new Set(apisWithTsconfig.map((a) => String(a.tsconfig)));
-										if (uniqueTsconfigs.size > 1) {
-											const chosen = String(firstApiTsconfig);
-											const ignored = [...uniqueTsconfigs].filter((t) => t !== chosen);
-											yield* emit(
-												PluginEvent.ConfigCascadeWarning({
-													ctx: { buildId: "" },
-													level: "warn",
-													field: "tsconfig",
-													chosen,
-													ignored,
-												}),
-											);
-										}
 									}
 									const apisWithCompilerOptions = options.apis.filter((a) => a.compilerOptions);
 									if (apisWithCompilerOptions.length > 0) {
 										firstApiCompilerOptions = apisWithCompilerOptions[0].compilerOptions;
+									}
+									for (const a of options.apis) {
+										const scopeRoute = yield* pathService.normalizeBaseRoute(
+											a.baseRoute ?? `/${unscopedName(a.packageName)}`,
+										);
+										scopeTsConfigs.set(apiScopeOf(scopeRoute, a.packageName), rawTsConfig(a));
 									}
 
 									const multiResults = yield* Effect.forEach(
@@ -814,14 +818,51 @@ export function ConfigServiceLive(
 						}
 
 						// --- 7. Twoslash init ---
-						const twoslashStartMs = performance.now();
-						TwoslashManager.getInstance().initialize(
-							combinedVfs,
-							undefined,
-							undefined,
-							undefined,
-							resolvedCompilerOptions,
+						// The result cache is keyed on the type environment, so it has to be
+						// loaded after the VFS is final and before any block is rendered.
+						// The compiler version is part of the environment: lib.d.ts ships with
+						// TypeScript and inference changes between releases, so a cached
+						// result is only valid for the compiler that produced it.
+						const twoslashEnv = twoslashEnvHash(combinedVfs, `typescript@${ts.version}`);
+						const cacheSvc = yield* TwoslashCacheService;
+						const restored = yield* cacheSvc.load(twoslashEnv);
+						const twoslashCache = makeTwoslashCache(restored);
+						yield* emit(
+							PluginEvent.TwoslashCacheLoaded({
+								ctx: { buildId: "" },
+								level: "debug",
+								envHash: twoslashEnv,
+								entries: restored.size,
+							}),
 						);
+
+						const twoslashStartMs = performance.now();
+						const manager = TwoslashManager.getInstance();
+
+						// The build-wide options come first, so they become the fallback
+						// environment for code blocks that belong to no documented scope.
+						manager.initialize(combinedVfs, undefined, undefined, undefined, resolvedCompilerOptions, twoslashCache);
+
+						// Then one environment per API that declares its own configuration.
+						// Resolution is memoised by raw config, so N APIs sharing a tsconfig
+						// read it once; TwoslashManager in turn dedupes by RESOLVED options,
+						// so they also share a single TypeScript environment.
+						const resolvedByRawConfig = new Map<string, TypeResolutionCompilerOptions>();
+						for (const [apiScope, rawConfig] of scopeTsConfigs) {
+							if (rawConfig === undefined) {
+								manager.registerScope(apiScope, resolvedCompilerOptions);
+								continue;
+							}
+							const rawKey = JSON.stringify([String(rawConfig.tsconfig ?? ""), rawConfig.compilerOptions ?? null]);
+							let scopeOptions = resolvedByRawConfig.get(rawKey);
+							if (scopeOptions === undefined) {
+								scopeOptions = yield* Effect.promise(() => resolveTypeScriptConfig(projectRoot, rawConfig));
+								resolvedByRawConfig.set(rawKey, scopeOptions);
+							}
+							manager.initialize(combinedVfs, undefined, undefined, undefined, scopeOptions, twoslashCache);
+							manager.registerScope(apiScope, scopeOptions);
+						}
+
 						yield* emit(
 							PluginEvent.TwoslashInitialized({
 								ctx: { buildId: "" },
@@ -903,6 +944,8 @@ export function ConfigServiceLive(
 							hideCutTransformer,
 							hideCutLinesTransformer,
 							twoslashTransformer,
+							twoslashCache,
+							twoslashEnvHash: twoslashEnv,
 							pageConcurrency: os.cpus().length,
 							logLevel: logLevel === "none" ? "info" : logLevel,
 							suppressExampleErrors,
@@ -912,11 +955,31 @@ export function ConfigServiceLive(
 					}) as Effect.Effect<
 						ResolvedBuildContext,
 						ConfigValidationError | ApiModelLoadError | TypeRegistryError,
-						Scope.Scope
+						Scope.Scope | TwoslashCacheService
 					>,
 			};
 		}),
 	);
+}
+
+/**
+ * Derive the API scope key from a base route, matching the derivation in
+ * `build-program.ts` so config resolution and the remark plugins agree on the
+ * name a code block is attributed to.
+ */
+function apiScopeOf(baseRoute: string, packageName: string): string {
+	return baseRoute.replace(/^\//, "").split("/")[0] || packageName;
+}
+
+/** The raw TypeScript config an API declares, or undefined when it declares none. */
+function rawTsConfig(api: { tsconfig?: unknown; compilerOptions?: unknown }): TypeScriptConfig | undefined {
+	if (api.tsconfig == null && api.compilerOptions == null) return undefined;
+	const cfg: TypeScriptConfig = {};
+	if (api.tsconfig != null) cfg.tsconfig = api.tsconfig as NonNullable<TypeScriptConfig["tsconfig"]>;
+	if (api.compilerOptions != null) {
+		cfg.compilerOptions = api.compilerOptions as NonNullable<TypeScriptConfig["compilerOptions"]>;
+	}
+	return cfg;
 }
 
 /**

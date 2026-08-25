@@ -22,7 +22,7 @@
  * // @filename: example.ts
  * ```
  */
-export const RE_CONFIG = /^\/\/\s?@\w+/;
+const RE_CONFIG = /^\/\/\s?@\w+/;
 
 /**
  * Annotation markers: query, completion, and highlight markers.
@@ -42,7 +42,7 @@ export const RE_CONFIG = /^\/\/\s?@\w+/;
  * // ^^^^ description text
  * ```
  */
-export const RE_ANNOTATION = /^\/\/\s*\^[?|^]/;
+const RE_ANNOTATION = /^\/\/\s*\^[?|^]/;
 
 /**
  * Cut directives: control which code is visible in output.
@@ -58,7 +58,7 @@ export const RE_ANNOTATION = /^\/\/\s*\^[?|^]/;
  * // ---cut-end---
  * ```
  */
-export const RE_CUT = /^\/\/\s?---cut/;
+const RE_CUT = /^\/\/\s?---cut/;
 
 /**
  * Test whether a trimmed line is any Twoslash directive.
@@ -71,16 +71,6 @@ export const RE_CUT = /^\/\/\s?---cut/;
  */
 export function isTwoslashDirective(trimmedLine: string): boolean {
 	return RE_CONFIG.test(trimmedLine) || RE_ANNOTATION.test(trimmedLine) || RE_CUT.test(trimmedLine);
-}
-
-/**
- * Test whether a trimmed line is a cut directive.
- *
- * @param trimmedLine - The line with leading/trailing whitespace removed
- * @returns true if the line is a Twoslash cut directive
- */
-export function isCutDirective(trimmedLine: string): boolean {
-	return RE_CUT.test(trimmedLine);
 }
 
 /**

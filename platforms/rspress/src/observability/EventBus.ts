@@ -33,9 +33,6 @@ export function makeEventBusLayer(sinks: readonly EventSink[]): Layer.Layer<Even
 	return Layer.succeed(EventBus, makeShape(sinks));
 }
 
-/** No sinks: every emit is a no-op, wantsLevel always false. */
-export const EventBusNoop: Layer.Layer<EventBus> = makeEventBusLayer([]);
-
 /** Emit when a bus is in context; silently no-op otherwise. */
 export function emit(event: PluginEvent): Effect.Effect<void> {
 	return Effect.serviceOption(EventBus).pipe(

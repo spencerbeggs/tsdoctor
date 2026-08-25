@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-24
-last-synced: 2026-08-24
+updated: 2026-08-25
+last-synced: 2026-08-25
 completeness: 85
 related:
   - rspress-plugin-api-extractor/build-architecture.md
@@ -45,7 +45,6 @@ src/runtime/components/
 ├── ParametersTable/       # parameter table
 ├── EnumMembersTable/      # enum member/value table
 ├── MarkdownContent/       # rendered markdown body
-├── MarkdownText/          # inline markdown text
 ├── SignatureToolbar/      # shared toolbar (wrap/copy buttons)
 ├── SignatureCode/         # shared Shiki HTML + Twoslash code display
 ├── ApiLlmsPackageActions/ # LLMs scope actions (globalUIComponents)

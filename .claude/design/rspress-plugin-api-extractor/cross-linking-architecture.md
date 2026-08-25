@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: cross-linking
 created: 2026-01-17
-updated: 2026-08-24
-last-synced: 2026-08-24
+updated: 2026-08-25
+last-synced: 2026-08-25
 completeness: 90
 related:
   - rspress-plugin-api-extractor/page-generation-system.md
@@ -211,8 +211,6 @@ class ShikiCrossLinker {
   setApiScope(apiScope: string): void;
 
   transformHast(hast: Root, apiScope?: string): Root;
-
-  createTransformer(): ShikiTransformer;  // deprecated, returns no-op
 }
 ```
 

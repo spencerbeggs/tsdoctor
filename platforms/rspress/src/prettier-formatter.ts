@@ -104,17 +104,3 @@ export async function formatCode(code: string, language: string): Promise<Format
 		};
 	}
 }
-
-/**
- * Check if a language is supported for Prettier formatting
- */
-export function isPrettierSupported(language: string): boolean {
-	return language.toLowerCase() in LANGUAGE_TO_PARSER;
-}
-
-/**
- * Get the Prettier parser for a language
- */
-export function getPrettierParser(language: string): string | undefined {
-	return LANGUAGE_TO_PARSER[language.toLowerCase()];
-}

@@ -3,14 +3,15 @@ status: current
 module: rspress-plugin-api-extractor
 category: observability
 created: 2026-01-17
-updated: 2026-08-24
-last-synced: 2026-08-24
+updated: 2026-08-25
+last-synced: 2026-08-25
 completeness: 90
 related:
   - rspress-plugin-api-extractor/build-progress-and-issues.md
   - rspress-plugin-api-extractor/error-observability.md
   - rspress-plugin-api-extractor/build-architecture.md
   - rspress-plugin-api-extractor/snapshot-tracking-system.md
+  - rspress-plugin-api-extractor/render-phase-instrumentation.md
 dependencies: []
 ---
 
@@ -22,12 +23,11 @@ dependencies: []
 - [EventBus: Synchronous Fan-Out](#eventbus-synchronous-fan-out)
 - [PluginEvent Taxonomy](#pluginevent-taxonomy)
 - [Correlation Envelope and Level Ladder](#correlation-envelope-and-level-ladder)
-- [Four Sinks](#four-sinks)
+- [Five Sinks](#five-sinks)
 - [Progress Heartbeat](#progress-heartbeat)
 - [Span Substrate](#span-substrate)
 - [Build Metrics](#build-metrics)
 - [Build Summary](#build-summary)
-- [Programmatic Stream Tee (Deferred)](#programmatic-stream-tee-deferred)
 - [Sync-Island Bridge](#sync-island-bridge)
 - [File Locations](#file-locations)
 
@@ -35,12 +35,7 @@ dependencies: []
 
 ## Overview
 
-Build observability is wired through a **synchronous fan-out EventBus** backed
-by four sinks: a console sink (human-readable or JSON, level-filtered), an
-issues sink (accumulates diagnostic events into the `.api-docs/build/issues.json`
-artifact, production builds only), a full-fidelity JSONL trace sink (opt-in,
-captures every event), and a metrics sink (translates events to `BuildMetrics`
-counters and histograms).
+Build observability is wired through a **synchronous fan-out EventBus** backed by five sinks: a console sink (human-readable or JSON, level-filtered), an issues sink (accumulates diagnostic events into the `.api-docs/build/issues.json` artifact, production builds only), a full-fidelity JSONL trace sink (opt-in, captures every event), a metrics sink (translates events to `BuildMetrics` counters and histograms, dimensioned where a breakdown is worth querying), and a render sink (the sample-shaped render-phase data that does not belong in the metric registry — see `render-phase-instrumentation.md`).
 
 The entire observability module lives under `platforms/rspress/src/observability/`. The
 plugin creates the bus once during initialization and tears it down at the end
@@ -85,9 +80,6 @@ whose `minLevel` admits the event's rank, so the metrics sink at
 The free `emit(event)` and `wantsLevel(level)` functions use
 `Effect.serviceOption(EventBus)` and are no-ops when no bus is in context,
 requiring `R = never` so they are safe to call from any effect.
-
-`EventBusNoop` is `makeEventBusLayer([])` — useful in tests that do not want
-observable side effects.
 
 ---
 
@@ -169,9 +161,9 @@ admits events ranked 0–2 — lower rank means higher severity and always emitt
 
 ---
 
-## Four Sinks
+## Five Sinks
 
-All four implement `EventSink` (`platforms/rspress/src/observability/sinks/types.ts`):
+All five implement `EventSink` (`platforms/rspress/src/observability/sinks/types.ts`):
 
 ```typescript
 interface EventSink {
@@ -209,12 +201,11 @@ Mode is selected by the sink's `json` option, which `buildEventBus` passes throu
 
 **Location:** `platforms/rspress/src/observability/sinks/trace-sink.ts`
 
-`makeTraceSink(path)` returns
-`EventSink & { flush: () => void; setPath: (p: string) => void }`.
+`makeTraceSink(tracePath)` returns `EventSink & { flush: () => void }`.
 
 - `minLevel: "trace"`, `capturesPayload: true` — captures every event regardless of console level.
-- The trace path is now resolved eagerly at plugin-factory time — `resolveObservability` derives `<cwd>/.api-docs/build/trace-<buildId>.jsonl` from `cwd` (known at factory time, unlike the RSPress `outDir`), so `buildEventBus` always constructs the sink with a concrete path and it opens (creates the parent directory, truncates the file) immediately.
-- `setPath` is retained on the returned sink but is no longer called anywhere in `plugin.ts`; the deferred-open mode it supports (construct without a path, bind one later) is unused now that the path no longer depends on RSPress's `outDir`.
+- The trace path is resolved eagerly at plugin-factory time — `resolveObservability` derives `<cwd>/.api-docs/build/trace-<buildId>.jsonl` from `cwd` (known at factory time, unlike the RSPress `outDir`), so `buildEventBus` always constructs the sink with a concrete path and it opens (creates the parent directory, truncates the file) immediately. The path is therefore a required argument.
+- The deferred-open mode this sink once supported (construct without a path, bind one later via `setPath`) existed only for the era when the path depended on `outDir`. Nothing called it after that changed, and it has been deleted.
 - Calls `appendFileSync` per event (synchronous, nothing buffered).
 - `flush()` is a no-op: sync appends mean nothing is held in memory.
 
@@ -227,9 +218,7 @@ for the `.api-docs/` directory this trace file now lives in, alongside `issues.j
 
 **Location:** `platforms/rspress/src/observability/sinks/metrics-sink.ts`
 
-`makeMetricsSink()` returns an `EventSink` with `minLevel: "trace"`. It
-translates events to `BuildMetrics` via `Effect.runSync`. The fan-out is
-synchronous, so metric counts are exact when `logBuildSummary` reads them.
+`makeMetricsSink(context)` returns an `EventSink` with `minLevel: "trace"`. It takes the build's `MetricStore.context` (see [Build Metrics](#build-metrics)) and writes through `metric.updateUnsafe(input, context)` rather than `Effect.runSync(Metric.update(...))` — the sink runs on the synchronous EventBus fan-out, outside any fiber, so a bare `runSync` would resolve the `MetricRegistry` Reference default and write to a different registry than the one `logBuildSummary` and `Metric.snapshot` read through `metrics.layer`. The fan-out itself is still synchronous, so metric counts are exact when `logBuildSummary` reads them.
 
 | Event | Metric(s) updated |
 | ----- | ----------------- |
@@ -238,14 +227,14 @@ synchronous, so metric counts are exact when `logBuildSummary` reads them.
 | `ApiDocsCompleted` | `apisCompleted` |
 | `TwoslashDiagnostic` | `twoslashDiagnostics`, `twoslashErrors` |
 | `PrettierError` | `prettierErrors` |
-| `CodeBlockProcessed` | `codeblockTotal`, `codeblockDuration`, `codeblockShikiDuration` (if `shikiMs > 0`), `codeblockSlow` |
+| `ShikiError` | `shikiErrors` |
+| `CodeBlockProcessed` | `codeblockTotal`, `codeblockDuration`, `codeblockTimeMs`, `codeblockTwoslashMs`, `codeblockShikiMs`, `codeblockTwoslashTotal`, `codeblockShikiDuration` (if `shikiMs > 0`), `codeblockSlow` |
 | `VfsGenerated` | `vfsFiles` |
 | `ImportsPrepended` | `importsPrepended` |
-| `PhaseCompleted` | `phaseDuration` |
+| `PhaseCompleted` | `phaseDuration`, `phaseTimeMs` |
 | `DefaultApplied` | `configDefaultsApplied` |
 
-Unmapped tags (including `ShikiError`) hit the `default` branch and are
-silently ignored. See the inline-metrics note below.
+Every mapped event still updates the plain counter/histogram the summary reads for build-wide totals. `FileDecision`, `TwoslashDiagnostic`, `PrettierError`, `ShikiError`, `CodeBlockProcessed` and `PhaseCompleted` additionally record a `Metric.withAttributes` copy tagged with bounded dimensions (scope, status, component, TS code, phase) — `ShikiError` used to hit the sink's `default` branch and reach no metric at all. The dimensional recording pattern, the full attribute set per metric and the reader (`metric-report.ts`) that breaks a series down are documented in `render-phase-instrumentation.md`; this table stays the map of event to metric NAME. Any other tag not listed here hits the `default` branch and is silently ignored.
 
 **Not event-derived:** `externalPackagesTotal` and `apiVersionsLoaded` remain
 inline `Metric.update` calls in `ConfigServiceLive`. The only candidate
@@ -256,6 +245,12 @@ not a configured count — deriving it here would change the metric's semantics.
 inside the `Effect.forEach` over `apiConfigs`, and the metrics sink maps it to
 `apisCompleted`. The heartbeat reads that counter for the generate-phase
 denominator — see `build-progress-and-issues.md`.
+
+### Render Sink
+
+**Location:** `platforms/rspress/src/observability/sinks/render-sink.ts`
+
+`makeRenderSink()` returns an `EventSink & { snapshot: () => RenderPhaseSamples }` with `minLevel: "trace"`. It holds the render-phase data that is sample-shaped rather than metric-shaped: per-file rollups keyed by `ctx.file`, the slowest 25 code blocks, and the wall-clock window from the first code-block event to the last (used as a cross-check against the summed per-block spans). File paths are an unbounded dimension — one metric series per page would grow the registry with the site — which is the line between what belongs here and what belongs in the Metrics Sink above. Production builds write its snapshot to `.api-docs/build/render-phase.json`. Full mechanism, the additivity cross-check and the measured data are in `render-phase-instrumentation.md`.
 
 ---
 
@@ -318,6 +313,10 @@ Updates use `Metric.update(metric, n)` (v3's `Metric.increment` /
 `Metric.incrementBy` are gone). The counter and histogram state shapes read by
 `logBuildSummary` via `Metric.value` are unchanged.
 
+### Metric registry isolation
+
+`makeMetricStore()` gives each build its own `Metric.MetricRegistry` rather than relying on the process-wide default the `Context.Reference` falls back to — without it, dev-mode HMR rebuilds and same-process test runs would accumulate into one shared registry. It returns a `MetricStore` carrying both forms its two consumers need: `layer`, which Effect programs (`logBuildSummary`, `Metric.snapshot`) read through, and `context`, which the metrics sink writes through directly (see [Metrics Sink](#metrics-sink)). Both MUST be wired together — a caller that puts `metrics.layer` in the runtime but not `metrics.context` into the sink (or vice versa) silently reads and writes two different registries. The isolation has a real limit — it does not cover undimensioned metrics — documented in full in `render-phase-instrumentation.md`.
+
 ### Summary logger layer
 
 `makeSummaryLoggerLayer(logLevel)` builds the slim Effect Logger that gates
@@ -346,38 +345,29 @@ totals.
 ```typescript
 function buildEventBus(obs: ResolvedObservability): BuiltSinks {
   const issues = makeIssuesSink();
+  const render = makeRenderSink();
+  // The sink writes through `metrics.context`; callers MUST also put
+  // `metrics.layer` in the runtime's stack so reads resolve the same registry.
+  const metrics = makeMetricStore();
   const sinks: EventSink[] = [
     makeConsoleSink(obs.logLevel, { json: obs.json }),
-    makeMetricsSink(),
+    makeMetricsSink(metrics.context),
     issues,
+    render,
   ];
   const trace = obs.tracePath ? makeTraceSink(obs.tracePath) : null;
   if (trace) sinks.push(trace);
-  return { layer: makeEventBusLayer(sinks), trace, issues };
+  return { layer: makeEventBusLayer(sinks), trace, issues, render, metrics };
 }
 ```
 
-`obs.tracePath` is always resolved eagerly now (see [Trace Sink](#trace-sink)), so there is no deferred-path parameter to thread through — the earlier `traceIsDefault` flag and the corresponding `setPath` rebind in `plugin.ts`'s `config()` hook are gone.
+`obs.tracePath` is always resolved eagerly (see [Trace Sink](#trace-sink)), so there is no deferred-path parameter to thread through.
 
 `BuiltSinks.trace` is retained at the plugin level so `afterBuild` can call
 `trace.flush()` before disposing the runtime. `BuiltSinks.issues` is retained
 so `afterBuild` (and the `config()` catch block, on a fatal build) can read
 `issues.snapshot()` and write `.api-docs/build/issues.json` — see
-`build-progress-and-issues.md`.
-
----
-
-## Programmatic Stream Tee (Deferred)
-
-**Location:** `platforms/rspress/src/observability/stream.ts`
-
-`makeStreamSink()` creates a bounded sliding `Queue<PluginEvent>` (capacity
-1024). The returned `EventSink` offers events into the queue; when full, the
-oldest entry is dropped. The companion `stream` drains events as a
-`Stream.Stream<PluginEvent>`.
-
-**This sink is NOT wired into the live plugin.** To use it, export the sink
-from `makeStreamSink` and pass it to `makeEventBusLayer` at the call site.
+`build-progress-and-issues.md`. `BuiltSinks.render` and `BuiltSinks.metrics` exist for the same reason: `afterBuild` reads `render.snapshot()` plus `Metric.snapshot` through `metrics.layer` to build the per-scope/per-block report and write `.api-docs/build/render-phase.json` — see `render-phase-instrumentation.md`. `metrics.layer` MUST be part of the `ManagedRuntime`'s layer stack, or `logBuildSummary` reads a different registry than the one the sink wrote through.
 
 ---
 
@@ -415,16 +405,17 @@ see `build-progress-and-issues.md`.
 | File | Purpose |
 | ---- | ------- |
 | `src/observability/events.ts` | `PluginEvent` taggedEnum, `EventLevel`, `LEVEL_RANK`, `EventContext`, `levelOf` |
-| `src/observability/EventBus.ts` | `EventBus` tag, `makeShape`, `makeEventBusLayer`, `emit`, `wantsLevel`, `makeRuntimeEmitter`, `EventBusNoop` |
+| `src/observability/EventBus.ts` | `EventBus` tag, `makeShape`, `makeEventBusLayer`, `emit`, `wantsLevel`, `makeRuntimeEmitter` |
 | `src/observability/sinks/types.ts` | `EventSink` interface |
 | `src/observability/sinks/console-sink.ts` | Level-filtered console output (human-readable or JSON) |
 | `src/observability/sinks/trace-sink.ts` | Full-fidelity JSONL file sink |
-| `src/observability/sinks/metrics-sink.ts` | Event-to-BuildMetrics translation |
+| `src/observability/sinks/metrics-sink.ts` | Event-to-BuildMetrics translation, dimensioned via `Metric.withAttributes` |
+| `src/observability/sinks/render-sink.ts` | Sample-shaped render-phase data (per file, slowest blocks) — see `render-phase-instrumentation.md` |
+| `src/observability/metric-report.ts` | `seriesFor`, `codeBlockReport` over `Metric.snapshot` — see `render-phase-instrumentation.md` |
 | `src/observability/sinks/issues-sink.ts` | Issues collector sink, `eventToIssue`, `writeIssuesJson` — see `build-progress-and-issues.md` |
 | `src/observability/heartbeat.ts` | Progress heartbeat fiber, `BuildProgress` event builder, `formatProgress` — see `build-progress-and-issues.md` |
 | `src/observability/spans.ts` | `withPhase`, `withOp`, `PHASE_THRESHOLD_KEY` |
-| `src/observability/stream.ts` | Best-effort sliding-queue stream tee (exported, not wired) |
-| `src/layers/build-metrics.ts` | `BuildMetrics` counters and histograms |
+| `src/layers/build-metrics.ts` | `BuildMetrics` counters and histograms, `MetricStore`/`makeMetricStore` |
 | `src/layers/ObservabilityLive.ts` | `buildEventBus`, `BuiltSinks`, `logBuildSummary` |
 | `src/schemas/observability.ts` | `ObservabilityConfig`, `ResolvedObservability`, `resolveObservability` |
 
@@ -433,6 +424,7 @@ see `build-progress-and-issues.md`.
 ## Related Documentation
 
 - **Build Progress & Issues Artifact:** `build-progress-and-issues.md` — the progress heartbeat (and its known coverage gap), the `.api-docs/build/issues.json` artifact and its monitor
+- **Render-Phase Instrumentation:** `render-phase-instrumentation.md` — dimensional metrics and the render sink in full: measurement technique, the additivity cross-check, the `.api-docs/build/render-phase.json` artifact and the measured data
 - **Error Observability:** `error-observability.md` — how Twoslash and Prettier errors flow through the bus
 - **Build Architecture:** `build-architecture.md` — plugin structure and service layer
 - **Snapshot Tracking System:** `snapshot-tracking-system.md` — `FileDecision` events and file-write metrics

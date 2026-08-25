@@ -374,7 +374,7 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
  * - Remove extra blank lines between headings and code blocks
  * - Ensure single blank line between sections
  */
-export function normalizeMarkdownSpacing(content: string): string {
+function normalizeMarkdownSpacing(content: string): string {
 	return (
 		content
 			// Remove multiple consecutive blank lines (3+ blank lines -> 1 blank line)

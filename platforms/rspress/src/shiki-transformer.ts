@@ -1,5 +1,4 @@
 import type { Element, ElementContent, Root } from "hast";
-import type { ShikiTransformer } from "shiki";
 
 /**
  * A Shiki transformer that adds cross-links to type references in code blocks.
@@ -37,13 +36,9 @@ import type { ShikiTransformer } from "shiki";
  * const crossLinker = new ShikiCrossLinker();
  * crossLinker.reinitialize(routes, kinds, "my-api");
  * crossLinker.setApiScope("my-api");
- * const transformer = crossLinker.createTransformer();
  *
- * // Use with Shiki
- * const html = await codeToHtml(code, {
- *   lang: "typescript",
- *   transformers: [transformer]
- * });
+ * // Cross-link the finalized HAST, after Shiki and Twoslash have run
+ * const linked = crossLinker.transformHast(hast, "my-api");
  * ```
  *
  * @see the `@tsdoctor/model` CrossLinker for the markdown equivalent
@@ -174,27 +169,6 @@ export class ShikiCrossLinker {
 	private getClassMembersForScope(scope: string | null): Map<string, string[]> {
 		if (!scope) return new Map();
 		return this.classMembersMapByScope.get(scope) || new Map();
-	}
-
-	/**
-	 * Create a Shiki transformer that adds cross-links to type references in code blocks.
-	 *
-	 * **DEPRECATED:** This method now returns a no-op transformer. Cross-linking has been
-	 * moved to post-processing via {@link transformHast} to avoid interfering with Twoslash
-	 * popup positioning. The Twoslash transformer calculates popup positions based on the
-	 * original span structure, and modifying spans during the Shiki pipeline caused popups
-	 * to appear offset from their intended positions.
-	 *
-	 * @param _apiScope - Unused, kept for API compatibility
-	 * @returns A no-op Shiki transformer
-	 * @deprecated Use {@link transformHast} after Shiki processing completes instead
-	 */
-	public createTransformer(_apiScope?: string): ShikiTransformer {
-		// No-op transformer - cross-linking is now done via transformHast() post-processing
-		// to avoid interfering with Twoslash popup positioning
-		return {
-			name: "api-docs-cross-linker",
-		};
 	}
 
 	/**

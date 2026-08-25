@@ -8,7 +8,7 @@ import { PluginEvent } from "./events.js";
  * Maps phase names to threshold keys in ResolvedObservability["thresholds"].
  * Used by withPhase to determine the breach threshold for a given phase.
  */
-export const PHASE_THRESHOLD_KEY: Record<string, keyof ResolvedObservability["thresholds"]> = {
+const PHASE_THRESHOLD_KEY: Record<string, keyof ResolvedObservability["thresholds"]> = {
 	modelLoad: "slowApiLoad",
 	resolve: "slowApiLoad",
 	generate: "slowPageGeneration",

@@ -47,6 +47,15 @@ function render(event: PluginEvent): string {
 			return `Twoslash TS${event.code} in ${event.file}:${event.line}:${event.col}: ${event.message}`;
 		case "TwoslashCheckFailed":
 			return `Twoslash check failed (TS${event.code}) in ${event.file}; ${event.fsMapKeys.length} VFS files`;
+		case "TwoslashCacheLoaded":
+			return event.entries > 0
+				? `Twoslash cache: restored ${event.entries} cached result(s)`
+				: "Twoslash cache: cold (no cached results for this type environment)";
+		case "TwoslashCacheSaved": {
+			const total = event.hits + event.misses;
+			const pct = total > 0 ? Math.round((event.hits / total) * 100) : 0;
+			return `Twoslash cache: ${event.hits}/${total} hits (${pct}%), ${event.entries} entries${event.persisted ? " (saved)" : ""}`;
+		}
 		case "PageGenerated":
 			return `page ${event.category}/${event.item} (${event.durationMs}ms)`;
 		case "FileDecision":

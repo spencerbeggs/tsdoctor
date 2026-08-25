@@ -34,9 +34,12 @@ The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned via `catalog:eff
   construction, WAL checkpoint finalizer)
 - `TypeRegistryServiceLive` — external package type loading; edge-composes the
   `@tsdoctor/registry` stack itself (the library ships no platform layer)
+- `TwoslashCacheServiceLive` — persists Twoslash results between builds in an
+  XDG sqlite `@effected/store` Cache; a hit skips the type-check entirely, which
+  is ~97% of render-phase code-block time (`render-phase-instrumentation.md`)
 - `PathDerivationServiceLive` — route and output path computation
 - `EventBus` layer (from `buildEventBus`) — synchronous fan-out event bus
-  wiring console, metrics, issues, and optional JSONL trace sinks
+  wiring console, metrics, issues, render, and optional JSONL trace sinks
 - `NodeFileSystem.layer` (`@effect/platform-node`) — Node implementation of the
   core `effect` FileSystem service
 
@@ -63,24 +66,25 @@ The plugin emits structured `PluginEvent` values through a **synchronous
 fan-out EventBus** (`src/observability/EventBus.ts`) rather than writing
 directly to the console or incrementing metrics inline.
 
-`buildEventBus(obs)` (`layers/ObservabilityLive.ts`) composes four sinks:
+`buildEventBus(obs)` (`layers/ObservabilityLive.ts`) composes five sinks:
 
 - **Console sink** — human-readable one-liners (or JSON at `logLevel: "debug"`),
   filtered by the configured level
 - **Metrics sink** — translates events to `BuildMetrics` counters/histograms
-  via `Effect.runSync`; exact counts are available when `logBuildSummary` runs
-  in `afterBuild`
+  against the build's own `MetricStore`; tags scope/component/phase/TS-code
+  where a breakdown is worth querying, so `metric-report.ts` can read it back
+  from `Metric.snapshot` without a bespoke aggregator
 - **Issues sink** — accumulates diagnostic events; written to
   `.api-docs/build/issues.json` on production builds
+- **Render sink** — sample-shaped render-phase data (per file, slowest blocks)
+  that is unbounded-cardinality and so does not belong in the metric registry;
+  written to `.api-docs/build/render-phase.json` on production builds
 - **Trace sink** (opt-in) — full-fidelity JSONL under `.api-docs/build/`;
   `minLevel: "trace"`, independent of console level
 
 Twoslash and Prettier error callbacks fire outside Effect fibers.
 `makeRuntimeEmitter(runtime)` creates a sync bridge (`runtime.runSync(emit(event))`);
 `plugin.ts` injects it into both modules via `setEventEmitter(emitSync)`.
-
-A best-effort stream tee (`src/observability/stream.ts`) is exported but not
-wired into the live plugin — available for custom integrations.
 
 OpenTelemetry spans (`Effect.withSpan`) exist in the span substrate
 (`src/observability/spans.ts`) but no OTLP exporter is wired. This is a dormant
@@ -141,13 +145,14 @@ which the global biome rule would rewrite to `.js`.
 - `src/sync-node-fs.ts` — sync `FileSystem` bridge so bundle discovery runs under the sync helper API
 - `src/model-loader.ts` — plain functions over `@tsdoctor/model`'s `Model.load` (typed `ModelLoadError`)
 - `src/frontmatter.ts` — gray-matter-parity frontmatter split/join over `@effected/yaml` (the `gray-matter` dep is gone); the parse side deliberately keeps the hand-rolled gray-matter-parity split (`@effected/markdown`'s `FrontmatterSource.split` was evaluated and rejected — its strict fence grammar conflicts with the pinned gray-matter quirks), while emission uses `FrontmatterSource.join` + `Yaml.stringify({ quoteCompat: "yaml-1.1", quoteStyle: "double" })` to quote only the scalars a YAML 1.1 resolver would coerce
-- `src/observability/` — EventBus, PluginEvent taxonomy, sinks, heartbeat, span helpers, stream tee
+- `src/twoslash-cache.ts` — persisted Twoslash result cache: env fingerprint, sync cache object, gzip codec
+- `src/observability/` — EventBus, PluginEvent taxonomy, sinks, heartbeat, span helpers, metric reporting
   - `events.ts` — `PluginEvent` taggedEnum, `EventLevel`, `EventContext`, `levelOf`
-  - `EventBus.ts` — synchronous fan-out bus, `makeRuntimeEmitter`, `EventBusNoop`
-  - `sinks/` — `console-sink.ts`, `trace-sink.ts`, `metrics-sink.ts`, `issues-sink.ts`, `types.ts`
+  - `EventBus.ts` — synchronous fan-out bus, `makeRuntimeEmitter`
+  - `sinks/` — `console-sink.ts`, `trace-sink.ts`, `metrics-sink.ts`, `issues-sink.ts`, `render-sink.ts`, `types.ts`
+  - `metric-report.ts` — `seriesFor` / `codeBlockReport` over `Metric.snapshot`
   - `heartbeat.ts` — production-only `BuildProgress` heartbeat fiber
   - `spans.ts` — `withPhase`, `withOp`, `PHASE_THRESHOLD_KEY`
-  - `stream.ts` — best-effort sliding-queue stream tee (exported, not wired to live plugin)
 - `src/schemas/` — Effect Schema definitions (config, opengraph, performance, observability)
 - `src/services/` — Effect service interfaces (`Context.Service`)
 - `src/layers/` — Effect Layer implementations
@@ -224,7 +229,6 @@ page generators, or cross-linking:
 - @../../.claude/design/rspress-plugin-api-extractor/page-generation-system.md
 - @../../.claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md
 - @../../.claude/design/rspress-plugin-api-extractor/import-generation-system.md
-- @../../.claude/design/rspress-plugin-api-extractor/source-mapping-system.md
 
 **Runtime components & SSG** — load when modifying React components or
 SSG-MD rendering:
@@ -251,3 +255,4 @@ progress heartbeat, or the `issues.json` artifact:
 - @../../.claude/design/rspress-plugin-api-extractor/performance-observability.md
 - @../../.claude/design/rspress-plugin-api-extractor/error-observability.md
 - @../../.claude/design/rspress-plugin-api-extractor/build-progress-and-issues.md
+- @../../.claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md

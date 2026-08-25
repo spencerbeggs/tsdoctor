@@ -91,7 +91,7 @@ ApiExtractorPlugin({
 
 Each entry in `apis` has the same shape as the single-API config, with two differences. `model` is required, because multi-API mode has no `versions` field, and each entry defaults to its own `/{packageName}/api` route so the packages do not collide — set `baseRoute` per entry only to override that default. See the [multi-package recipe](./05-multi-package.md).
 
-One constraint applies to `tsconfig` and `compilerOptions` in multi-API mode: Twoslash type-checks all code examples in a single shared TypeScript environment for the whole build, so per-entry values are not honored. The first entry in the array that provides one wins, and the plugin logs a warning when the others differ. Make the configured tsconfigs equivalent across entries, or set the intended one on the first entry only.
+Each entry's `tsconfig` and `compilerOptions` type-check that package's own code examples, including a `with-api` fence in that package's docs; a neighboring entry's config never applies. `compilerOptions` merges over the defaults rather than replacing them, so setting one option on an entry changes only that option for that entry. Entries that declare the same configuration share a single TypeScript environment, so agreeing on a shared `tsconfig` across entries costs nothing extra. Only the compiler configuration is scoped per API — the declaration files for every documented package still live in one combined virtual file system, so a type owned by one package resolves correctly when another package's example references it.
 
 ```ts
 ApiExtractorPlugin({
@@ -228,6 +228,18 @@ api: {
 ```
 
 Each spec takes `name` and `version`, plus an optional `tsconfig` and `compilerOptions` that control how that package's types load.
+
+## Twoslash result cache
+
+Type-checking code examples is by far the most expensive part of generating a page, so Twoslash results are cached between builds automatically — there is nothing to configure. The cache lives in your machine's XDG cache directory (`~/.cache/tsdoctor/twoslash.sqlite`), not in the repository or your `outDir`, so there is nothing to commit or gitignore.
+
+Each entry is keyed on the code, the compiler options, the declarations for the API it belongs to and the TypeScript version that checked them, so a cached result is never served under a compiler or configuration that would produce a different answer — upgrading TypeScript starts a fresh generation even when your declarations have not changed. That safety comes with coarse invalidation: any change to a documented API's types starts a fresh generation for that API, but an unchanged API's cache stays warm across CI reruns, prose-only edits and config or theme changes. The build summary reports the hit rate:
+
+```text
+Twoslash cache: 14/14 hits (100%), 14 entries
+```
+
+An unreadable or missing cache degrades to a full type-check rather than failing the build. See [Troubleshooting](./11-troubleshooting.md#twoslash-cache-shows-0-hits-even-though-nothing-changed) if the reported hit rate looks wrong when you are benchmarking build times.
 
 ## Open Graph images
 

@@ -45,7 +45,7 @@ This mirrors the `multi` example site. The first package has no `baseRoute`, so 
 
 ## Required fields differ from single-API mode
 
-In `apis` mode, `model` is required on every entry. There is no `versions` field, so each package needs an explicit model. `packageName` is required as always. Everything else (`name`, `packageJson`, `tsconfig`, `theme`, `categories`, `source`, `externalPackages`, `ogImage`, `llmsPlugin`) is optional and behaves just as it does in the single-package recipe, with one exception: `tsconfig` and `compilerOptions` are shared across the whole portal. Twoslash type-checks all code examples in one shared TypeScript environment, so the first entry that provides a `tsconfig` wins and the rest are ignored with a warning. Make them equivalent across entries, or set the intended one on the first entry only.
+In `apis` mode, `model` is required on every entry. There is no `versions` field, so each package needs an explicit model. `packageName` is required as always. Everything else (`name`, `packageJson`, `tsconfig`, `theme`, `categories`, `source`, `externalPackages`, `ogImage`, `llmsPlugin`) is optional and behaves just as it does in the single-package recipe. `tsconfig` and `compilerOptions` are per entry: `kitchensink`'s code examples are type-checked under `kitchensink`'s `tsconfig` above, and `versioned-module`'s under the plugin's defaults, since it declares none. Entries that declare the same config share one TypeScript environment; either way, every package's declarations live in one combined virtual file system, so a type from one documented package still resolves when another package's example references it.
 
 ## Portal from a directory of models
 

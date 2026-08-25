@@ -11,6 +11,7 @@ import { loadApiModel } from "../src/model-loader.js";
 import { DEFAULT_CATEGORIES } from "../src/schemas/index.js";
 import type { ResolvedApiConfig, ResolvedBuildContext } from "../src/services/ConfigService.js";
 import { ShikiCrossLinker } from "../src/shiki-transformer.js";
+import { makeTwoslashCache } from "../src/twoslash-cache.js";
 import { MockSnapshotServiceLayer } from "./utils/layers.js";
 
 describe("generateApiDocs (Effect program)", () => {
@@ -46,6 +47,8 @@ describe("generateApiDocs (Effect program)", () => {
 			hideCutTransformer: { name: "mock-hide-cut" },
 			hideCutLinesTransformer: { name: "mock-hide-cut-lines" },
 			twoslashTransformer: undefined,
+			twoslashCache: makeTwoslashCache(),
+			twoslashEnvHash: "test-env",
 			pageConcurrency: 2,
 			logLevel: "info" as const,
 			suppressExampleErrors: true,

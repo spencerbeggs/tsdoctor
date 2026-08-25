@@ -2,9 +2,8 @@ import type { FileSnapshot } from "@tsdoctor/snapshot";
 import { SnapshotService, hashContent } from "@tsdoctor/snapshot";
 import { Effect, Layer, Option, Ref } from "effect";
 import { deriveOutputPaths, normalizeBaseRoute } from "../../src/path-derivation.js";
-import { CrossLinkerService } from "../../src/services/CrossLinkerService.js";
 import { PathDerivationService } from "../../src/services/PathDerivationService.js";
-import { ShikiService } from "../../src/services/ShikiService.js";
+import { TwoslashCacheService } from "../../src/services/TwoslashCacheService.js";
 import { TypeRegistryService } from "../../src/services/TypeRegistryService.js";
 
 /**
@@ -67,18 +66,12 @@ export const MockTypeRegistryServiceLayer = Layer.succeed(TypeRegistryService, {
 });
 
 /**
- * Mock CrossLinkerService with no-op registration.
+ * Mock TwoslashCacheService: always a cold cache, and saves go nowhere.
+ *
+ * Tests exercising config resolution must not touch the user's real XDG cache,
+ * and must not have their results depend on whether a previous run warmed it.
  */
-export const MockCrossLinkerServiceLayer = Layer.succeed(CrossLinkerService, {
-	registerItems: (_data, _scope) => Effect.void,
-	generateInlineCodeLinks: (text) => Effect.succeed(text),
-	getCrossLinkData: Effect.succeed({ routes: new Map(), kinds: new Map() }),
-});
-
-/**
- * Mock ShikiService returning placeholder HTML.
- */
-export const MockShikiServiceLayer = Layer.succeed(ShikiService, {
-	highlightCode: (code, _lang, _transformers, _meta) => Effect.succeed(`<pre><code>${code}</code></pre>`),
-	getCrossLinkerTransformer: Effect.succeed({ name: "mock-cross-linker" }),
+export const MockTwoslashCacheServiceLayer = Layer.succeed(TwoslashCacheService, {
+	load: () => Effect.succeed(new Map()),
+	save: () => Effect.void,
 });
