@@ -16,17 +16,24 @@ import type { ShikiTransformer } from "shiki";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
 import { generateShikiHast } from "./markdown/shiki-utils.js";
-import type { PluginEvent } from "./observability/events.js";
+import type { CodeBlockComponent, PluginEvent } from "./observability/events.js";
 import { PluginEvent as PE } from "./observability/events.js";
+import { createTwoslashTimingWrapper } from "./twoslash-timing-wrapper.js";
 import { TwoslashManager } from "./twoslash-transformer.js";
 import { VfsRegistry } from "./vfs-registry.js";
 
 /** Module-level emitter injected by plugin.ts at startup. */
 let emitEvent: (event: PluginEvent) => void = () => {};
 let currentBuildId = "";
-export function setRemarkApiCodeblocksEventEmitter(fn: (event: PluginEvent) => void, buildId = ""): void {
+let currentSlowCodeBlockMs = Number.POSITIVE_INFINITY;
+export function setRemarkApiCodeblocksEventEmitter(
+	fn: (event: PluginEvent) => void,
+	buildId = "",
+	slowCodeBlockMs = Number.POSITIVE_INFINITY,
+): void {
 	emitEvent = fn;
 	currentBuildId = buildId;
+	currentSlowCodeBlockMs = slowCodeBlockMs;
 }
 
 /**
@@ -187,9 +194,20 @@ export const remarkApiCodeblocks: Plugin<[undefined?], Root> = () => {
 				// Build transformers based on component type
 				const transformers: ShikiTransformer[] = [];
 
+				// Per-block Twoslash attribution. The wrapper is created fresh for each
+				// block so the accumulator below cannot be raced by the sibling blocks
+				// this plugin renders concurrently; it delegates to the shared
+				// transformer instance, so the TypeScript environment cache is still
+				// reused across blocks.
+				let twoslashMs = 0;
+
 				if (node.name === "ApiExample" && vfsConfig.twoslashTransformer) {
 					// Examples get Twoslash for type information
-					transformers.push(vfsConfig.twoslashTransformer);
+					transformers.push(
+						createTwoslashTimingWrapper(vfsConfig.twoslashTransformer, (duration) => {
+							twoslashMs += duration;
+						}),
+					);
 				} else if (node.name === "ApiMember" && vfsConfig.hideCutTransformer) {
 					// Member signatures get hide-cut transformer (hides class wrapper + imports)
 					transformers.push(vfsConfig.hideCutTransformer);
@@ -200,20 +218,52 @@ export const remarkApiCodeblocks: Plugin<[undefined?], Root> = () => {
 					}
 				}
 
-				// Generate HAST
+				// Generate HAST.
+				//
+				// Timing note: `unist-util-visit` is synchronous, so every block's IIFE
+				// on a page is started before any of them resumes from an `await`. A
+				// span measured ACROSS the await therefore reports the whole page's
+				// batch window, not this block's cost — which is why the earlier
+				// wall-clock attempt reported a near-identical duration for every block
+				// on a page. `highlighter.codeToHast` is synchronous, so the render work
+				// happens during the synchronous prefix of `generateShikiHast`, before
+				// it yields: measuring around the CALL (not the await) captures this
+				// block's real cost and keeps the numbers additive.
 				const isExample = node.name === "ApiExample" && !!vfsConfig.twoslashTransformer;
-				let hast = await generateShikiHast(
+				const shikiStart = performance.now();
+				const hastPromise = generateShikiHast(
 					source,
 					vfsConfig.highlighter,
 					transformers.length > 0 ? transformers : undefined,
 					isExample,
 					vfsConfig.theme,
 				);
+				const renderMs = performance.now() - shikiStart;
+				let hast = await hastPromise;
 
-				// Post-process with cross-linker
+				// Post-process with cross-linker (synchronous)
+				const postStart = performance.now();
 				if (hast && vfsConfig.crossLinker) {
 					hast = vfsConfig.crossLinker.transformHast(hast, apiScopeValue);
 				}
+				const postMs = performance.now() - postStart;
+
+				// Attribute this block. Twoslash runs entirely inside the transformer's
+				// `preprocess` hook, so the Shiki share is the render call minus that.
+				const totalBlockTime = renderMs + postMs;
+				emitEvent(
+					PE.CodeBlockProcessed({
+						ctx: { buildId: currentBuildId, apiScope: apiScopeValue, file: currentFilePath },
+						lang: "typescript",
+						component: node.name as CodeBlockComponent,
+						twoslash: isExample,
+						twoslashMs,
+						shikiMs: Math.max(0, renderMs - twoslashMs),
+						totalMs: totalBlockTime,
+						slow: totalBlockTime > currentSlowCodeBlockMs,
+						level: "debug",
+					}),
+				);
 
 				// Inject hast attribute (base64-encoded)
 				const hastBase64 = hast ? Buffer.from(JSON.stringify(hast), "utf-8").toString("base64") : "";

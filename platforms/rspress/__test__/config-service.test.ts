@@ -9,14 +9,14 @@ import type { ResolvedApiConfig, ResolvedBuildContext, RspressConfigSubset } fro
 import { ConfigService } from "../src/services/ConfigService.js";
 import { TypeRegistryService } from "../src/services/TypeRegistryService.js";
 import { ShikiCrossLinker } from "../src/shiki-transformer.js";
-import { MockTypeRegistryServiceLayer } from "./utils/layers.js";
+import { MockTwoslashCacheServiceLayer, MockTypeRegistryServiceLayer } from "./utils/layers.js";
 
 const fixtureModel = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
 
 const makeTestLayer = (options: PluginOptions) =>
 	Layer.provideMerge(
 		ConfigServiceLive(options, new ShikiCrossLinker()),
-		Layer.mergeAll(PathDerivationServiceLive, MockTypeRegistryServiceLayer),
+		Layer.mergeAll(PathDerivationServiceLive, MockTypeRegistryServiceLayer, MockTwoslashCacheServiceLayer),
 	);
 
 describe("ConfigService types", () => {
@@ -309,7 +309,7 @@ describe("ConfigServiceLive.resolve", () => {
 
 		const testLayer = Layer.provideMerge(
 			ConfigServiceLive(options, new ShikiCrossLinker()),
-			Layer.mergeAll(PathDerivationServiceLive, FailingTypeRegistryLayer),
+			Layer.mergeAll(PathDerivationServiceLive, FailingTypeRegistryLayer, MockTwoslashCacheServiceLayer),
 		);
 
 		const program = Effect.gen(function* () {

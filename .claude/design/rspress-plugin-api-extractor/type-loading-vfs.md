@@ -3,13 +3,12 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-24
-last-synced: 2026-08-24
+updated: 2026-08-25
+last-synced: 2026-08-25
 completeness: 85
 related:
   - rspress-plugin-api-extractor/import-generation-system.md
   - rspress-plugin-api-extractor/multi-entry-vfs.md
-  - rspress-plugin-api-extractor/source-mapping-system.md
   - rspress-plugin-api-extractor/build-architecture.md
 dependencies: []
 ---
@@ -165,9 +164,15 @@ The VFS is consumed in two places:
 2. **VfsRegistry** -- Makes VFS config available to remark plugins
    (`remarkWithApi`, `remarkApiCodeblocks`) for user-authored code blocks
 
-### Single global tsconfig in multi-API mode
+### Per-scope TypeScript environments
 
-Twoslash runs one shared TypeScript environment over the combined VFS for the whole build, so per-API `tsconfig` / `compilerOptions` in `MultiApiConfig` are not honored: the first API in the `apis` array that provides one wins (deterministic) and a `ConfigCascadeWarning` is emitted when the others differ. The constraint is documented in `@remarks` TSDoc on `MultiApiConfig.tsconfig` in `src/schemas/config.ts`; users should ensure the configured tsconfigs are equivalent or set the intended one on the first API only.
+Each documented API is type-checked under the `tsconfig` / `compilerOptions` it declares. `ConfigServiceLive` resolves every API's raw config (memoised by config, so N APIs sharing a tsconfig read it once) and initializes one Twoslash environment per DISTINCT resolved configuration; `TwoslashManager` dedupes by a fingerprint of the resolved options, so APIs that agree on their config share an environment and the TypeScript language services built under it. `getTransformer(apiScope)` routes a block to its scope's environment, falling back to the first environment built for a block that belongs to no documented scope — a `with-api` fence on a page outside any package's route.
+
+Resolution merges rather than replaces: `resolveTypeScriptConfig` starts from `DEFAULT_COMPILER_OPTIONS` and layers global, API, version and package overrides on top, so declaring `{ strict: false }` on one API changes only that.
+
+**The FILE set stays shared.** Every API's declarations live under `node_modules/<packageName>/` in one combined VFS, and the import prepender emits `import type { X } from "B"` whenever package A references a type owned by another documented package B — those references resolve only because B is in the same environment. Per-scope environments differ in their compiler *configuration*, not in what they can see. A consequence worth knowing: because the Twoslash result cache's generation key covers the whole VFS (`render-phase-instrumentation.md`), a change to any package still invalidates every package's cached blocks. Splitting the file set would sharpen that, but it would break cross-package references and is not planned.
+
+This retires the former limitation, under which the first API in the `apis` array that provided a `tsconfig` won for the whole build and a `ConfigCascadeWarning` was emitted when the others differed.
 
 ## Virtual File System (VFS)
 
@@ -238,7 +243,5 @@ without Twoslash enhancements.
   `import-generation-system.md` -- Import statement generation for VFS
 - **Multi-Entry VFS:**
   `multi-entry-vfs.md` -- VFS `.d.ts` generation for multi-entry packages
-- **Source Mapping:**
-  `source-mapping-system.md` -- Standalone source-map utility
 - **Build Architecture:**
   `build-architecture.md` -- Service layer and plugin structure

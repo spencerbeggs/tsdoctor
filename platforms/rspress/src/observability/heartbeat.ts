@@ -52,7 +52,7 @@ export function formatProgress(e: Extract<PluginEvent, { _tag: "BuildProgress" }
 export type ProgressPhase = "resolve" | "generate" | "done";
 
 /** Read the five progress counters into a snapshot. */
-export const readCounts: Effect.Effect<ProgressCounts> = Effect.gen(function* () {
+const readCounts: Effect.Effect<ProgressCounts> = Effect.gen(function* () {
 	const vfsFiles = (yield* Metric.value(BuildMetrics.vfsFiles)).count;
 	const externalPackages = (yield* Metric.value(BuildMetrics.externalPackagesTotal)).count;
 	const apisCompleted = (yield* Metric.value(BuildMetrics.apisCompleted)).count;

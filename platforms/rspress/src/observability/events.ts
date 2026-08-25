@@ -27,6 +27,12 @@ interface Base {
 	readonly level: EventLevel;
 }
 
+/**
+ * The render-phase path that produced a code block, used to attribute
+ * `CodeBlockProcessed` timings.
+ */
+export type CodeBlockComponent = "ApiSignature" | "ApiMember" | "ApiExample" | "with-api";
+
 export interface ImportRef {
 	readonly from: string;
 	readonly symbols: readonly string[];
@@ -83,6 +89,16 @@ export type PluginEvent = Data.TaggedEnum<{
 	TsCacheCreated: Base & { readonly compilerOptions: string; readonly durationMs: number };
 	VfsMerged: Base & { readonly totalFiles: number; readonly packages: readonly string[] };
 	TwoslashInitialized: Base & { readonly durationMs: number; readonly vfsFileCount: number };
+	/** A persisted Twoslash generation was restored (or found absent) at startup. */
+	TwoslashCacheLoaded: Base & { readonly envHash: string; readonly entries: number };
+	/** End-of-build outcome of the Twoslash result cache. */
+	TwoslashCacheSaved: Base & {
+		readonly envHash: string;
+		readonly hits: number;
+		readonly misses: number;
+		readonly entries: number;
+		readonly persisted: boolean;
+	};
 
 	// Multi-entry & routing
 	EntryPointResolved: Base & { readonly itemCount: number };
@@ -105,8 +121,22 @@ export type PluginEvent = Data.TaggedEnum<{
 	ItemSkipped: Base & { readonly item: string; readonly kind: string; readonly reason: string };
 	CodeBlockProcessed: Base & {
 		readonly lang: string;
-		readonly shikiMs: number;
+		/**
+		 * Which render-phase path produced this block. The three `Api*` values are the
+		 * JSX components page generators emit (rendered by `remarkApiCodeblocks`);
+		 * `with-api` is a user-authored ```ts with-api fence (`remarkWithApi`).
+		 */
+		readonly component: CodeBlockComponent;
+		/** True when the Twoslash transformer actually ran on this block. */
+		readonly twoslash: boolean;
+		/**
+		 * Time inside the Twoslash transformer's `preprocess` hook — the whole
+		 * `twoslasher()` type-check. Zero when `twoslash` is false.
+		 */
 		readonly twoslashMs: number;
+		/** Shiki tokenization/rendering only: the `codeToHast` call minus `twoslashMs`. */
+		readonly shikiMs: number;
+		/** Whole-block wall clock, including Prettier and cross-linking around the render. */
 		readonly totalMs: number;
 		readonly slow: boolean;
 	};

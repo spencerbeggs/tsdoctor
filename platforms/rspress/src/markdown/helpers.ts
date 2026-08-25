@@ -436,7 +436,7 @@ export function stripTwoslashDirectives(code: string): string {
  * // // ---cut---
  * ```
  */
-export function formatImportsWithCut(imports: ImportStatement[]): string {
+function formatImportsWithCut(imports: ImportStatement[]): string {
 	if (imports.length === 0) {
 		return "";
 	}

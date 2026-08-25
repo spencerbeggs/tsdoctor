@@ -47,7 +47,8 @@ The plugin reads your `.api.json` model and writes one MDX page per public API i
 ## Features
 
 - Generates API docs from `.api.json` models for classes, interfaces, functions, type aliases, enums, variables and namespaces.
-- Type-checks code examples and adds Twoslash hover tooltips that show inferred types.
+- Type-checks code examples and adds Twoslash hover tooltips that show inferred types, each documented package under its own `tsconfig`.
+- Caches Twoslash results between builds, so repeat builds over an unchanged API render code blocks near-instantly.
 - Cross-links type references between pages, so a type named in a signature links to its own page.
 - Inlines compiler-generated base declarations (the `Foo_base` pattern from Effect `Schema.Class`, `Data.TaggedError` and mixin factories) in a "Base Class" section on the owning class page instead of documenting them as orphan variables.
 - Drives single-package sites, multi-package portals, RSPress multiVersion and i18n from one plugin.

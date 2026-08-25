@@ -124,7 +124,10 @@ export function generateApiDocs(
 				packageName,
 				apiScope,
 			};
-			if (twoslashTransformer != null) vfsConfig.twoslashTransformer = twoslashTransformer;
+			// Each scope is type-checked under the configuration its own package
+			// declares; the build-wide transformer is only the fallback.
+			const scopeTransformer = TwoslashManager.getInstance().getTransformer(apiScope) ?? twoslashTransformer;
+			if (scopeTransformer != null) vfsConfig.twoslashTransformer = scopeTransformer;
 			if (hideCutTransformer != null) vfsConfig.hideCutTransformer = hideCutTransformer;
 			if (hideCutLinesTransformer != null) vfsConfig.hideCutLinesTransformer = hideCutLinesTransformer;
 			if (apiConfig.theme != null) vfsConfig.theme = apiConfig.theme;

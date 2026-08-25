@@ -10,6 +10,8 @@ import type { OpenGraphResolver } from "../og-resolver.js";
 import type { CategoryConfig, LlmsPlugin, LogLevel, OpenGraphImageConfig, SourceConfig } from "../schemas/index.js";
 import type { ResolvedObservability } from "../schemas/observability.js";
 import type { ShikiCrossLinker } from "../shiki-transformer.js";
+import type { TwoslashResultCache } from "../twoslash-cache.js";
+import type { TwoslashCacheService } from "./TwoslashCacheService.js";
 /**
  * Subset of RSPress config needed by ConfigService.
  * Extracted from the UserConfig in beforeBuild/config hooks.
@@ -57,6 +59,13 @@ export interface ResolvedBuildContext {
 	readonly hideCutTransformer: ShikiTransformer;
 	readonly hideCutLinesTransformer: ShikiTransformer;
 	readonly twoslashTransformer: ShikiTransformer | undefined;
+	/**
+	 * The build's Twoslash result cache, and the environment fingerprint it is
+	 * stored under. Held here so `afterBuild` can persist it once the render
+	 * phase has finished populating it.
+	 */
+	readonly twoslashCache: TwoslashResultCache;
+	readonly twoslashEnvHash: string;
 	readonly pageConcurrency: number;
 	readonly logLevel: LogLevel;
 	readonly suppressExampleErrors: boolean;
@@ -71,7 +80,11 @@ export interface ResolvedBuildContext {
 export interface ConfigServiceShape {
 	readonly resolve: (
 		rspressConfig: RspressConfigSubset,
-	) => Effect.Effect<ResolvedBuildContext, ConfigValidationError | ApiModelLoadError | TypeRegistryError, Scope.Scope>;
+	) => Effect.Effect<
+		ResolvedBuildContext,
+		ConfigValidationError | ApiModelLoadError | TypeRegistryError,
+		Scope.Scope | TwoslashCacheService
+	>;
 }
 
 export class ConfigService extends Context.Service<ConfigService, ConfigServiceShape>()(

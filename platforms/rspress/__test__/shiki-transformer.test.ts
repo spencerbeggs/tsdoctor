@@ -770,21 +770,6 @@ const x = formatEntry();`;
 		});
 	});
 
-	describe("createTransformer (deprecated no-op)", () => {
-		it("should return a no-op transformer with the expected name", () => {
-			const transformer = linker.createTransformer();
-			expect(transformer.name).toBe("api-docs-cross-linker");
-			// no hooks attached
-			expect(transformer.code).toBeUndefined();
-			expect(transformer.span).toBeUndefined();
-		});
-
-		it("should accept an apiScope argument for API compatibility", () => {
-			const transformer = linker.createTransformer("some-scope");
-			expect(transformer.name).toBe("api-docs-cross-linker");
-		});
-	});
-
 	describe("transformHast structural early-returns", () => {
 		it("should return the root unchanged when there is no <pre> element", () => {
 			const root: Root = { type: "root", children: [] };

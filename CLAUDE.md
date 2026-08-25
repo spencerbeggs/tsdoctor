@@ -174,7 +174,6 @@ page generators, Shiki transformers, or cross-linking:
 - @./.claude/design/rspress-plugin-api-extractor/page-generation-system.md
 - @./.claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md
 - @./.claude/design/rspress-plugin-api-extractor/import-generation-system.md
-- @./.claude/design/rspress-plugin-api-extractor/source-mapping-system.md
 
 **Runtime components & SSG** — load when modifying React components or
 SSG-MD dual-mode rendering:
@@ -202,6 +201,7 @@ tracking, the progress heartbeat, or the `issues.json` artifact:
 - @./.claude/design/rspress-plugin-api-extractor/performance-observability.md
 - @./.claude/design/rspress-plugin-api-extractor/error-observability.md
 - @./.claude/design/rspress-plugin-api-extractor/build-progress-and-issues.md
+- @./.claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md
 
 **Roadmap & @tsdoctor consolidation** — load when working on the road to
 1.0.0, the `@tsdoctor/*` package architecture, or consolidation history

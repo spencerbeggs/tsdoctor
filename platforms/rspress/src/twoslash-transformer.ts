@@ -1,4 +1,5 @@
 /* v8 ignore start -- Shiki/Twoslash integration, requires full highlighter setup for testing */
+import type { TwoslashTypesCache } from "@shikijs/twoslash";
 import { rendererRich, transformerTwoslash } from "@shikijs/twoslash";
 import type { VirtualFileSystem } from "@tsdoctor/registry";
 import type { VirtualTypeScriptEnvironment } from "@typescript/vfs";
@@ -318,13 +319,39 @@ function renderMarkdownInline(markdown: string, context: string): ElementContent
  *
  * @see {@link TypeRegistryService} for VFS generation
  */
+/**
+ * Fingerprint a compiler configuration so environments can be deduped and code
+ * blocks routed to the right one. Keys are sorted, so two configurations that
+ * differ only in property order share an environment.
+ */
+function twoslashConfigKey(options: TypeResolutionCompilerOptions): string {
+	const entries = Object.entries(options as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+	return JSON.stringify(entries);
+}
+
 export class TwoslashManager {
 	private static instance: TwoslashManager | null = null;
 
 	/**
-	 * Twoslash transformer instance
+	 * Transformers keyed by compiler-config fingerprint.
+	 *
+	 * One environment per DISTINCT configuration, not per API: two packages
+	 * documented under the same compiler options share an environment, and with
+	 * it the TypeScript language services Twoslash builds per block. A build
+	 * where every API agrees on its config therefore costs exactly what the
+	 * single shared environment used to.
 	 */
-	private transformer: ShikiTransformer | null = null;
+	private environments = new Map<string, ShikiTransformer>();
+
+	/** API scope to config fingerprint, for `getTransformer(scope)`. */
+	private scopeConfigs = new Map<string, string>();
+
+	/**
+	 * Fingerprint of the first environment initialized, used for code blocks
+	 * that carry no scope — a `with-api` fence in a page outside any documented
+	 * package's route.
+	 */
+	private defaultConfigKey: string | null = null;
 
 	/**
 	 * VFS keys snapshot captured at initialize() time.
@@ -377,6 +404,7 @@ export class TwoslashManager {
 		_reserved2?: undefined,
 		tsEnvCache?: Map<string, VirtualTypeScriptEnvironment>,
 		compilerOptions?: TypeResolutionCompilerOptions,
+		typesCache?: TwoslashTypesCache,
 	): void {
 		// Convert VFS Map to record for Twoslash extraFiles
 		const extraFiles: Record<string, string> = {};
@@ -392,7 +420,13 @@ export class TwoslashManager {
 		this._resolvedCompilerOptions = resolvedOptions;
 
 		// Create the transformer with virtual file system
-		this.transformer = transformerTwoslash({
+		const configKey = twoslashConfigKey(resolvedOptions);
+		if (this.defaultConfigKey === null) this.defaultConfigKey = configKey;
+		if (this.environments.has(configKey)) {
+			// An API earlier in the build already built this exact environment.
+			return;
+		}
+		const transformer = transformerTwoslash({
 			renderer: rendererRich({
 				// Custom hover info processor that preserves namespace/interface hovers
 				// The default processor removes lines like "interface Foo" or "namespace Bar"
@@ -412,6 +446,11 @@ export class TwoslashManager {
 			}),
 			// Pass TypeScript environment cache for reusing language services across code blocks
 			...(tsEnvCache != null ? { cache: tsEnvCache } : {}),
+			// Persisted Twoslash result cache. Shiki calls read/write around the
+			// whole `twoslasher()` call, so a hit skips the type-check entirely —
+			// which is ~97% of render-phase code-block time (see
+			// render-phase-instrumentation.md).
+			...(typesCache != null ? { typesCache } : {}),
 			twoslashOptions: {
 				// Pass the virtual file system to Twoslash via extraFiles
 				extraFiles, // Provide all our type declaration files
@@ -432,16 +471,30 @@ export class TwoslashManager {
 				this.handleTwoslashError(error, code, this.currentFilePath);
 			},
 		});
+		this.environments.set(configKey, transformer);
 
 		// Logged via Effect logger in ConfigServiceLive; no console output here
 	}
 
 	/**
-	 * Get the initialized Twoslash transformer.
-	 * Returns null if not initialized.
+	 * Associate an API scope with the compiler configuration it is documented
+	 * under, so its code blocks are type-checked with that configuration.
 	 */
-	public getTransformer(): ShikiTransformer | null {
-		return this.transformer;
+	public registerScope(apiScope: string, compilerOptions: TypeResolutionCompilerOptions): void {
+		this.scopeConfigs.set(apiScope, twoslashConfigKey(compilerOptions));
+	}
+
+	/**
+	 * Get the Twoslash transformer for an API scope.
+	 *
+	 * An unknown or absent scope falls back to the first environment built: a
+	 * `with-api` fence can appear on a page outside any documented package's
+	 * route, and type-checking it under some configuration beats not checking it.
+	 * Returns null before any environment is initialized.
+	 */
+	public getTransformer(apiScope?: string): ShikiTransformer | null {
+		const key = (apiScope != null ? this.scopeConfigs.get(apiScope) : undefined) ?? this.defaultConfigKey;
+		return key != null ? (this.environments.get(key) ?? null) : null;
 	}
 
 	/**
@@ -458,7 +511,9 @@ export class TwoslashManager {
 	 * Clear the Twoslash transformer (useful for testing or reinitializing)
 	 */
 	public clear(): void {
-		this.transformer = null;
+		this.environments.clear();
+		this.scopeConfigs.clear();
+		this.defaultConfigKey = null;
 	}
 
 	/**

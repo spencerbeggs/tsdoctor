@@ -1,268 +1,268 @@
-import { Effect, Metric } from "effect";
+import type { Metric } from "effect";
 import { describe, expect, it } from "vitest";
-import { BuildMetrics } from "../../../src/layers/build-metrics.js";
+import { BuildMetrics, makeMetricStore } from "../../../src/layers/build-metrics.js";
 import { PluginEvent } from "../../../src/observability/events.js";
 import { makeMetricsSink } from "../../../src/observability/sinks/metrics-sink.js";
 
 const ctx = { buildId: "b1" };
 
+// biome-ignore lint/suspicious/noExplicitAny: a heterogeneous metric map is the point of the helper
+type AnyMetric = Metric.Metric<any, any>;
+
+/**
+ * Run `f` against a fresh sink and return how far each named metric advanced.
+ *
+ * These are DELTAS, not absolutes, and deliberately so: a metric store does not
+ * isolate UNDIMENSIONED metrics. Effect resolves an attribute-free metric's
+ * registry entry once and caches it on the metric object, so these module-level
+ * constants accumulate across every test in the process regardless of which
+ * store is passed. The dimensioned code-block metrics DO isolate and are
+ * asserted exactly in `metric-report.test.ts`; see the isolation caveat on
+ * `makeMetricStore`.
+ */
+function measure<K extends string>(
+	metrics: Record<K, AnyMetric>,
+	f: (sink: ReturnType<typeof makeMetricsSink>) => void,
+): Record<K, number> {
+	const store = makeMetricStore();
+	const sink = makeMetricsSink(store.context);
+	const read = (metric: AnyMetric): number => (metric.valueUnsafe(store.context) as { count?: number }).count ?? 0;
+
+	const entries = Object.entries(metrics) as Array<[K, AnyMetric]>;
+	const before = new Map(entries.map(([key, metric]) => [key, read(metric)]));
+	f(sink);
+	return Object.fromEntries(entries.map(([key, metric]) => [key, read(metric) - (before.get(key) ?? 0)])) as Record<
+		K,
+		number
+	>;
+}
+
+function fileDecision(status: "new" | "modified" | "unchanged") {
+	return PluginEvent.FileDecision({
+		ctx,
+		level: "debug",
+		file: "class/foo.mdx",
+		status,
+		contentHash: "abc123",
+		frontmatterHash: "def456",
+		source: "snapshot",
+	});
+}
+
+const FILE_METRICS = {
+	total: BuildMetrics.filesTotal,
+	new: BuildMetrics.filesNew,
+	modified: BuildMetrics.filesModified,
+	unchanged: BuildMetrics.filesUnchanged,
+};
+
 describe("makeMetricsSink", () => {
 	it("declares minLevel 'trace' so it captures every event", () => {
-		expect(makeMetricsSink().minLevel).toBe("trace");
+		expect(makeMetricsSink(makeMetricStore().context).minLevel).toBe("trace");
 	});
 
-	it("increments filesTotal and filesNew when FileDecision{status:'new'} is handled", async () => {
-		const sink = makeMetricsSink();
+	it("increments filesTotal and filesNew when FileDecision{status:'new'} is handled", () => {
+		expect(measure(FILE_METRICS, (sink) => sink.handle(fileDecision("new")))).toEqual({
+			total: 1,
+			new: 1,
+			modified: 0,
+			unchanged: 0,
+		});
+	});
 
-		const beforeTotal = await Effect.runPromise(Metric.value(BuildMetrics.filesTotal));
-		const beforeNew = await Effect.runPromise(Metric.value(BuildMetrics.filesNew));
+	it("increments filesModified when FileDecision{status:'modified'} is handled", () => {
+		expect(measure(FILE_METRICS, (sink) => sink.handle(fileDecision("modified")))).toEqual({
+			total: 1,
+			new: 0,
+			modified: 1,
+			unchanged: 0,
+		});
+	});
 
-		sink.handle(
-			PluginEvent.FileDecision({
-				ctx,
-				level: "debug",
-				file: "class/foo.mdx",
-				status: "new",
-				contentHash: "abc123",
-				frontmatterHash: "def456",
-				source: "snapshot",
-			}),
+	it("increments filesUnchanged when FileDecision{status:'unchanged'} is handled", () => {
+		expect(measure(FILE_METRICS, (sink) => sink.handle(fileDecision("unchanged")))).toEqual({
+			total: 1,
+			new: 0,
+			modified: 0,
+			unchanged: 1,
+		});
+	});
+
+	it("increments pagesGenerated when PageGenerated is handled", () => {
+		const d = measure({ pages: BuildMetrics.pagesGenerated }, (sink) =>
+			sink.handle(
+				PluginEvent.PageGenerated({
+					ctx,
+					level: "info",
+					item: "Pipeline",
+					category: "Classes",
+					codeblockCount: 2,
+					durationMs: 5,
+				}),
+			),
 		);
 
-		const afterTotal = await Effect.runPromise(Metric.value(BuildMetrics.filesTotal));
-		const afterNew = await Effect.runPromise(Metric.value(BuildMetrics.filesNew));
-
-		expect(afterTotal.count).toBeGreaterThanOrEqual(beforeTotal.count + 1);
-		expect(afterNew.count).toBeGreaterThanOrEqual(beforeNew.count + 1);
+		expect(d.pages).toBe(1);
 	});
 
-	it("increments filesModified when FileDecision{status:'modified'} is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const before = await Effect.runPromise(Metric.value(BuildMetrics.filesModified));
-
-		sink.handle(
-			PluginEvent.FileDecision({
-				ctx,
-				level: "debug",
-				file: "class/foo.mdx",
-				status: "modified",
-				contentHash: "abc",
-				frontmatterHash: "def",
-				source: "snapshot",
-			}),
+	it("increments apisCompleted when ApiDocsCompleted is handled", () => {
+		const d = measure({ apis: BuildMetrics.apisCompleted }, (sink) =>
+			sink.handle(PluginEvent.ApiDocsCompleted({ ctx, level: "debug", packageName: "@modules/kitchensink" })),
 		);
 
-		const after = await Effect.runPromise(Metric.value(BuildMetrics.filesModified));
-		expect(after.count).toBeGreaterThanOrEqual(before.count + 1);
+		expect(d.apis).toBe(1);
 	});
 
-	it("increments filesUnchanged when FileDecision{status:'unchanged'} is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const before = await Effect.runPromise(Metric.value(BuildMetrics.filesUnchanged));
-
-		sink.handle(
-			PluginEvent.FileDecision({
-				ctx,
-				level: "debug",
-				file: "class/foo.mdx",
-				status: "unchanged",
-				contentHash: "abc",
-				frontmatterHash: "def",
-				source: "disk-fallback",
-			}),
+	it("increments twoslashDiagnostics and twoslashErrors when TwoslashDiagnostic is handled", () => {
+		const d = measure({ diagnostics: BuildMetrics.twoslashDiagnostics, errors: BuildMetrics.twoslashErrors }, (sink) =>
+			sink.handle(
+				PluginEvent.TwoslashDiagnostic({
+					ctx,
+					level: "warn",
+					file: "class/foo.mdx",
+					line: 1,
+					col: 1,
+					code: 2440,
+					message: "Import declaration conflicts",
+					snippet: "import { x } from 'y';",
+				}),
+			),
 		);
 
-		const after = await Effect.runPromise(Metric.value(BuildMetrics.filesUnchanged));
-		expect(after.count).toBeGreaterThanOrEqual(before.count + 1);
+		expect(d).toEqual({ diagnostics: 1, errors: 1 });
 	});
 
-	it("increments pagesGenerated when PageGenerated is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const before = await Effect.runPromise(Metric.value(BuildMetrics.pagesGenerated));
-
-		sink.handle(
-			PluginEvent.PageGenerated({
-				ctx,
-				level: "info",
-				item: "Pipeline",
-				category: "Classes",
-				codeblockCount: 2,
-				durationMs: 5,
-			}),
+	it("increments prettierErrors when PrettierError is handled", () => {
+		const d = measure({ prettier: BuildMetrics.prettierErrors }, (sink) =>
+			sink.handle(PluginEvent.PrettierError({ ctx, level: "warn", file: "class/foo.mdx", reason: "syntax" })),
 		);
 
-		const after = await Effect.runPromise(Metric.value(BuildMetrics.pagesGenerated));
-		expect(after.count).toBeGreaterThanOrEqual(before.count + 1);
+		expect(d.prettier).toBe(1);
 	});
 
-	it("increments apisCompleted when ApiDocsCompleted is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const before = await Effect.runPromise(Metric.value(BuildMetrics.apisCompleted));
-
-		sink.handle(PluginEvent.ApiDocsCompleted({ ctx, level: "debug", packageName: "@modules/kitchensink" }));
-
-		const after = await Effect.runPromise(Metric.value(BuildMetrics.apisCompleted));
-		expect(after.count).toBeGreaterThanOrEqual(before.count + 1);
-	});
-
-	it("increments twoslashDiagnostics and twoslashErrors when TwoslashDiagnostic is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const beforeDiagnostics = await Effect.runPromise(Metric.value(BuildMetrics.twoslashDiagnostics));
-		const beforeErrors = await Effect.runPromise(Metric.value(BuildMetrics.twoslashErrors));
-
-		sink.handle(
-			PluginEvent.TwoslashDiagnostic({
-				ctx,
-				level: "warn",
-				file: "class/foo.mdx",
-				line: 1,
-				col: 1,
-				code: 2440,
-				message: "Import declaration conflicts",
-				snippet: "import { x } from 'y';",
-			}),
+	it("records duration, shiki duration and the slow counter when a slow CodeBlockProcessed is handled", () => {
+		const d = measure(
+			{
+				total: BuildMetrics.codeblockTotal,
+				slow: BuildMetrics.codeblockSlow,
+				duration: BuildMetrics.codeblockDuration,
+				shikiDuration: BuildMetrics.codeblockShikiDuration,
+				timeMs: BuildMetrics.codeblockTimeMs,
+				twoslashMs: BuildMetrics.codeblockTwoslashMs,
+				shikiMs: BuildMetrics.codeblockShikiMs,
+				twoslashBlocks: BuildMetrics.codeblockTwoslashTotal,
+			},
+			(sink) =>
+				sink.handle(
+					PluginEvent.CodeBlockProcessed({
+						ctx,
+						level: "debug",
+						lang: "ts",
+						component: "ApiExample",
+						twoslash: true,
+						shikiMs: 30,
+						twoslashMs: 70,
+						totalMs: 120,
+						slow: true,
+					}),
+				),
 		);
 
-		const afterDiagnostics = await Effect.runPromise(Metric.value(BuildMetrics.twoslashDiagnostics));
-		const afterErrors = await Effect.runPromise(Metric.value(BuildMetrics.twoslashErrors));
-
-		expect(afterDiagnostics.count).toBeGreaterThanOrEqual(beforeDiagnostics.count + 1);
-		expect(afterErrors.count).toBeGreaterThanOrEqual(beforeErrors.count + 1);
+		// The summed-millisecond counters carry the split the histograms cannot.
+		expect(d).toEqual({
+			total: 1,
+			slow: 1,
+			duration: 1,
+			shikiDuration: 1,
+			timeMs: 120,
+			twoslashMs: 70,
+			shikiMs: 30,
+			twoslashBlocks: 1,
+		});
 	});
 
-	it("increments prettierErrors when PrettierError is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const before = await Effect.runPromise(Metric.value(BuildMetrics.prettierErrors));
-
-		sink.handle(PluginEvent.PrettierError({ ctx, level: "warn", file: "class/foo.mdx", reason: "syntax" }));
-
-		const after = await Effect.runPromise(Metric.value(BuildMetrics.prettierErrors));
-		expect(after.count).toBeGreaterThanOrEqual(before.count + 1);
-	});
-
-	it("records duration, shiki duration and the slow counter when a slow CodeBlockProcessed is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const beforeTotal = await Effect.runPromise(Metric.value(BuildMetrics.codeblockTotal));
-		const beforeDuration = await Effect.runPromise(Metric.value(BuildMetrics.codeblockDuration));
-		const beforeShiki = await Effect.runPromise(Metric.value(BuildMetrics.codeblockShikiDuration));
-		const beforeSlow = await Effect.runPromise(Metric.value(BuildMetrics.codeblockSlow));
-
-		sink.handle(
-			PluginEvent.CodeBlockProcessed({
-				ctx,
-				level: "debug",
-				lang: "ts",
-				shikiMs: 30,
-				twoslashMs: 70,
-				totalMs: 120,
-				slow: true,
-			}),
+	it("skips the shiki histogram and slow counter when shikiMs is 0 and not slow", () => {
+		const d = measure(
+			{
+				total: BuildMetrics.codeblockTotal,
+				slow: BuildMetrics.codeblockSlow,
+				shikiDuration: BuildMetrics.codeblockShikiDuration,
+				twoslashBlocks: BuildMetrics.codeblockTwoslashTotal,
+			},
+			(sink) =>
+				sink.handle(
+					PluginEvent.CodeBlockProcessed({
+						ctx,
+						level: "debug",
+						lang: "ts",
+						component: "ApiSignature",
+						twoslash: false,
+						shikiMs: 0,
+						twoslashMs: 0,
+						totalMs: 4,
+						slow: false,
+					}),
+				),
 		);
 
-		const afterTotal = await Effect.runPromise(Metric.value(BuildMetrics.codeblockTotal));
-		const afterDuration = await Effect.runPromise(Metric.value(BuildMetrics.codeblockDuration));
-		const afterShiki = await Effect.runPromise(Metric.value(BuildMetrics.codeblockShikiDuration));
-		const afterSlow = await Effect.runPromise(Metric.value(BuildMetrics.codeblockSlow));
-
-		expect(afterTotal.count).toBeGreaterThanOrEqual(beforeTotal.count + 1);
-		expect(afterDuration.count).toBeGreaterThanOrEqual(beforeDuration.count + 1);
-		expect(afterShiki.count).toBeGreaterThanOrEqual(beforeShiki.count + 1);
-		expect(afterSlow.count).toBeGreaterThanOrEqual(beforeSlow.count + 1);
+		// A block Twoslash never ran on must not be counted as typechecked.
+		expect(d).toEqual({ total: 1, slow: 0, shikiDuration: 0, twoslashBlocks: 0 });
 	});
 
-	it("skips the shiki histogram and slow counter when shikiMs is 0 and not slow", async () => {
-		const sink = makeMetricsSink();
-
-		const beforeTotal = await Effect.runPromise(Metric.value(BuildMetrics.codeblockTotal));
-		const beforeShiki = await Effect.runPromise(Metric.value(BuildMetrics.codeblockShikiDuration));
-		const beforeSlow = await Effect.runPromise(Metric.value(BuildMetrics.codeblockSlow));
-
-		sink.handle(
-			PluginEvent.CodeBlockProcessed({
-				ctx,
-				level: "debug",
-				lang: "ts",
-				shikiMs: 0,
-				twoslashMs: 0,
-				totalMs: 4,
-				slow: false,
-			}),
+	it("increments vfsFiles when VfsGenerated is handled", () => {
+		const d = measure({ vfs: BuildMetrics.vfsFiles }, (sink) =>
+			sink.handle(
+				PluginEvent.VfsGenerated({ ctx, level: "debug", file: "index.d.ts", declCount: 12, contentHash: "h" }),
+			),
 		);
 
-		const afterTotal = await Effect.runPromise(Metric.value(BuildMetrics.codeblockTotal));
-		const afterShiki = await Effect.runPromise(Metric.value(BuildMetrics.codeblockShikiDuration));
-		const afterSlow = await Effect.runPromise(Metric.value(BuildMetrics.codeblockSlow));
-
-		expect(afterTotal.count).toBeGreaterThanOrEqual(beforeTotal.count + 1);
-		// 0ms shiki observation is guarded out; slow counter untouched.
-		expect(afterShiki.count).toBe(beforeShiki.count);
-		expect(afterSlow.count).toBe(beforeSlow.count);
+		expect(d.vfs).toBe(1);
 	});
 
-	it("increments vfsFiles when VfsGenerated is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const before = await Effect.runPromise(Metric.value(BuildMetrics.vfsFiles));
-
-		sink.handle(PluginEvent.VfsGenerated({ ctx, level: "debug", file: "index.d.ts", declCount: 12, contentHash: "h" }));
-
-		const after = await Effect.runPromise(Metric.value(BuildMetrics.vfsFiles));
-		expect(after.count).toBeGreaterThanOrEqual(before.count + 1);
-	});
-
-	it("increments importsPrepended when ImportsPrepended is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const before = await Effect.runPromise(Metric.value(BuildMetrics.importsPrepended));
-
-		sink.handle(
-			PluginEvent.ImportsPrepended({
-				ctx,
-				level: "debug",
-				file: "index.d.ts",
-				imports: [{ from: "zod", symbols: ["ZodType"] }],
-			}),
+	it("increments importsPrepended when ImportsPrepended is handled", () => {
+		const d = measure({ imports: BuildMetrics.importsPrepended }, (sink) =>
+			sink.handle(
+				PluginEvent.ImportsPrepended({
+					ctx,
+					level: "debug",
+					file: "index.d.ts",
+					imports: [{ from: "zod", symbols: ["ZodType"] }],
+				}),
+			),
 		);
 
-		const after = await Effect.runPromise(Metric.value(BuildMetrics.importsPrepended));
-		expect(after.count).toBeGreaterThanOrEqual(before.count + 1);
+		expect(d.imports).toBe(1);
 	});
 
-	it("records phaseDuration when PhaseCompleted is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const before = await Effect.runPromise(Metric.value(BuildMetrics.phaseDuration));
-
-		sink.handle(PluginEvent.PhaseCompleted({ ctx, level: "info", phase: "generate", durationMs: 250 }));
-
-		const after = await Effect.runPromise(Metric.value(BuildMetrics.phaseDuration));
-		expect(after.count).toBeGreaterThanOrEqual(before.count + 1);
-	});
-
-	it("increments configDefaultsApplied when DefaultApplied is handled", async () => {
-		const sink = makeMetricsSink();
-
-		const before = await Effect.runPromise(Metric.value(BuildMetrics.configDefaultsApplied));
-
-		sink.handle(
-			PluginEvent.DefaultApplied({ ctx, level: "debug", path: "llms.scopes", value: "true", reason: "default" }),
+	it("records phaseDuration when PhaseCompleted is handled", () => {
+		const d = measure({ phase: BuildMetrics.phaseDuration }, (sink) =>
+			sink.handle(PluginEvent.PhaseCompleted({ ctx, level: "info", phase: "generate", durationMs: 250 })),
 		);
 
-		const after = await Effect.runPromise(Metric.value(BuildMetrics.configDefaultsApplied));
-		expect(after.count).toBeGreaterThanOrEqual(before.count + 1);
+		expect(d.phase).toBe(1);
 	});
 
-	it("ignores unmapped event tags without throwing", () => {
-		const sink = makeMetricsSink();
-		expect(() =>
-			sink.handle(PluginEvent.ShikiError({ ctx, level: "warn", file: "f.mdx", reason: "bad" })),
-		).not.toThrow();
+	it("increments configDefaultsApplied when DefaultApplied is handled", () => {
+		const d = measure({ defaults: BuildMetrics.configDefaultsApplied }, (sink) =>
+			sink.handle(
+				PluginEvent.DefaultApplied({ ctx, level: "debug", path: "llms.scopes", value: "true", reason: "default" }),
+			),
+		);
+
+		expect(d.defaults).toBe(1);
+	});
+
+	it("ignores unmapped event tags without touching any counter", () => {
+		let threw = false;
+		const d = measure({ total: BuildMetrics.codeblockTotal, files: BuildMetrics.filesTotal }, (sink) => {
+			try {
+				sink.handle(PluginEvent.ShikiError({ ctx, level: "warn", file: "f.mdx", reason: "bad" }));
+			} catch {
+				threw = true;
+			}
+		});
+
+		expect(threw).toBe(false);
+		expect(d).toEqual({ total: 0, files: 0 });
 	});
 });
