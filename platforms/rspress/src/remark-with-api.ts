@@ -153,7 +153,19 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 						]
 					: [];
 
-				// Render with Shiki and Twoslash - get HAST for component rendering
+				// Render with Shiki and Twoslash - get HAST for component rendering.
+				//
+				// Timing caveat specific to this path: unlike the generated-page path,
+				// this uses Shiki's standalone `codeToHast`, which is genuinely async
+				// (it resolves a lazily-created singleton highlighter). We cannot
+				// measure around a synchronous call the way `remark-api-codeblocks.ts`
+				// does, so this span crosses an await and concurrently-rendered blocks
+				// on the same page can land inside it. `twoslashMs` is unaffected — it
+				// is measured inside the synchronous `preprocess` hook — but `shikiMs`
+				// below is an UPPER BOUND for this component, not an exact cost.
+				// Switching to the scope's shared highlighter would make it exact, but
+				// would break `with-api` fences on pages outside any documented scope,
+				// which have no registry entry and no highlighter.
 				const shikiStart = performance.now();
 				let hast = await codeToHast(code, {
 					lang,
@@ -168,12 +180,18 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 					transformers,
 				});
 
-				// Post-process with cross-linker after Twoslash has positioned popups
+				const renderMs = performance.now() - shikiStart;
+
+				// Post-process with cross-linker after Twoslash has positioned popups.
+				// Deliberately AFTER the renderMs capture above: cross-linking is
+				// synchronous work that is not Shiki rendering, so folding it into
+				// shikiMs would overstate the Shiki share. Excluded here, it falls into
+				// the report's derived `otherMs` instead — the same split the
+				// generated-page path in `remark-api-codeblocks.ts` makes.
 				if (apiScope) {
 					hast = shikiCrossLinker.transformHast(hast, apiScope);
 				}
 
-				const renderMs = performance.now() - shikiStart;
 				const totalBlockTime = performance.now() - blockStart;
 
 				// Block stats derived from CodeBlockProcessed event in MetricsSink
@@ -192,6 +210,7 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 						// so the Shiki share is the render call minus that. The remainder of
 						// the block (Prettier, cross-linking) shows up only in `totalMs`.
 						twoslashMs,
+						// Upper bound on this path — see the timing caveat above.
 						shikiMs: Math.max(0, renderMs - twoslashMs),
 						totalMs: totalBlockTime,
 						slow: isSlow,

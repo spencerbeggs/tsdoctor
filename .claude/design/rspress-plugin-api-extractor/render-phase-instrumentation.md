@@ -399,13 +399,21 @@ improvement there measures Rspack's cache, not this one.
   gate is attribution, not progress reporting. The `Effect.scoped` block hosting
   the existing heartbeat still ends when `config()` returns, so a render-phase
   ticker needs its own lifetime rather than that fiber.
-- **`with-api` timing still crosses an await.** `remark-with-api.ts` calls the
-  standalone async `codeToHast` from `shiki` (the singleton API) rather than a
-  highlighter method, and awaits Prettier before it. Its `twoslashMs` is exact —
-  measured inside the synchronous `preprocess` hook — but its `totalMs` and
-  `shikiMs` retain the batch-window inflation described above. This matters
-  little in practice (that path is a small minority of blocks on an API docs
-  site) but the numbers are not comparable to the generated path's.
+- **`with-api` `shikiMs` is an upper bound, not an exact cost.**
+  `remark-with-api.ts` calls the standalone async `codeToHast` from `shiki`,
+  which resolves a lazily-created singleton highlighter and is therefore
+  genuinely async — the span has to cross an await, so concurrently-rendered
+  blocks on the same page can land inside it. `twoslashMs` is unaffected
+  (measured inside the synchronous `preprocess` hook). Cross-linking used to be
+  folded into this span too, overstating the Shiki share on top of the
+  interleaving; it is now captured after `renderMs` and falls into the derived
+  `otherMs`, matching the split the generated-page path makes.
+
+  Making `shikiMs` exact here would mean rendering through the scope's shared
+  highlighter (a synchronous call, as in `remark-api-codeblocks.ts`), but that
+  highlighter only exists for documented scopes — a `with-api` fence on a page
+  outside any package's route has no registry entry, and would stop rendering.
+  So the bound stays, deliberately.
 - **Fixture-scale data.** `sites/multi` has 14 Twoslash blocks. The per-block
   cost and the component split are consistent with the effected/website
   evidence, but the conclusion has not been re-measured at 22-API scale.
