@@ -3,7 +3,7 @@
  * not once per method call.
  *
  * @remarks
- * Both `TypeRegistryServiceLive` and `TwoslashCacheServiceLive` used to call
+ * Both `TypeRegistryService.layer` and `TwoslashCacheService.layer` used to call
  * `Effect.provide(TheLayer)` *inside* each service method. Layer memoization is
  * by reference through a MemoMap, and `Effect.provide` builds into a forked map
  * whose parent has never built that layer — so each call constructed the whole
@@ -23,7 +23,6 @@ import path from "node:path";
 import { describe, expect, it } from "@effect/vitest";
 import type { Layer } from "effect";
 import { Effect, ManagedRuntime } from "effect";
-import { TwoslashCacheServiceLive } from "../../src/layers/TwoslashCacheServiceLive.js";
 import { TSDOCTOR_NAMESPACE } from "../../src/layers/xdg.js";
 import { TwoslashCacheService } from "../../src/services/TwoslashCacheService.js";
 
@@ -50,10 +49,10 @@ function sqliteFiles(dir: string): string[] {
 		.sort();
 }
 
-describe("TwoslashCacheServiceLive acquisition", () => {
+describe("TwoslashCacheService.layer acquisition", () => {
 	it("opens one database for many calls, and releases it with the runtime", async () => {
 		await withIsolatedXdg(async (cacheHome) => {
-			const runtime = ManagedRuntime.make(TwoslashCacheServiceLive);
+			const runtime = ManagedRuntime.make(TwoslashCacheService.layer);
 
 			// Several round trips through both methods. With the layer provided
 			// per method this still "works" — it just rebuilds the stack each
@@ -88,7 +87,7 @@ describe("TwoslashCacheServiceLive acquisition", () => {
 			// never fails a build that would otherwise succeed.
 			fs.writeFileSync(path.join(cacheHome, TSDOCTOR_NAMESPACE), "not a directory");
 
-			const runtime = ManagedRuntime.make(TwoslashCacheServiceLive);
+			const runtime = ManagedRuntime.make(TwoslashCacheService.layer);
 			const restored = await runtime
 				.runPromise(
 					Effect.gen(function* () {
@@ -116,7 +115,7 @@ describe("the XDG namespace has one definition", () => {
 		// hit a warm Twoslash cache goes cold forever with no error. The house
 		// rule asks for the absence of a second spelling to be pinned, so this
 		// asserts no source file names the namespace as a bare literal.
-		const sources = ["src/layers/TypeRegistryServiceLive.ts", "src/layers/TwoslashCacheServiceLive.ts"];
+		const sources = ["src/services/TypeRegistryService.ts", "src/services/TwoslashCacheService.ts"];
 		for (const rel of sources) {
 			const text = fs.readFileSync(path.join(import.meta.dirname, "..", "..", rel), "utf8");
 			expect(text).not.toMatch(/namespace:\s*"tsdoctor"/);
@@ -133,8 +132,8 @@ describe("Layer composition shape", () => {
 	// source text is the sanctioned tool for a structural property like this,
 	// and it is the shape a regression would actually take.
 	const sources = {
-		"TwoslashCacheServiceLive.ts": "src/layers/TwoslashCacheServiceLive.ts",
-		"TypeRegistryServiceLive.ts": "src/layers/TypeRegistryServiceLive.ts",
+		"TwoslashCacheService.ts": "src/services/TwoslashCacheService.ts",
+		"TypeRegistryService.ts": "src/services/TypeRegistryService.ts",
 	} as const;
 
 	for (const [label, rel] of Object.entries(sources)) {
@@ -158,7 +157,7 @@ describe("Layer composition shape", () => {
 		// Hoisting acquisition is what made this necessary: while the stack was
 		// provided per method, a construction failure surfaced as that method's
 		// failure and the in-method handler absorbed it.
-		const built: Layer.Layer<TwoslashCacheService, never, never> = TwoslashCacheServiceLive;
+		const built: Layer.Layer<TwoslashCacheService, never, never> = TwoslashCacheService.layer;
 		expect(built).toBeDefined();
 	});
 });

@@ -1,21 +1,27 @@
 import { NodeFileSystem } from "@effect/platform-node";
 import type { FileSnapshot } from "@tsdoctor/snapshot";
-import { SnapshotService, hashContent } from "@tsdoctor/snapshot";
+import { SnapshotService } from "@tsdoctor/snapshot";
 import { Effect, Layer, Option, Path, Ref } from "effect";
-import { OgServiceLive } from "../../src/layers/OgServiceLive.js";
+import { OgService } from "../../src/services/OgService.js";
 import { TwoslashCacheService } from "../../src/services/TwoslashCacheService.js";
 import { TypeRegistryService } from "../../src/services/TypeRegistryService.js";
-import { makeTwoslashCache } from "../../src/twoslash-cache.js";
 
 /**
- * Mock SnapshotService with in-memory Map storage.
+ * A STATEFUL SnapshotService double, backed by an in-memory Map.
+ *
+ * @remarks
+ * Deliberately not `SnapshotService.layerTest()`. That double is stateless —
+ * every lookup misses and every write is discarded — which is the right shape
+ * for a test that only needs the service present. These tests exercise
+ * incremental-build behaviour, where a write has to be visible to the read that
+ * follows it; against a stateless double, "unchanged file is skipped" would
+ * pass for the wrong reason, because nothing was ever stored to compare with.
  */
 export const MockSnapshotServiceLayer = Layer.effect(
 	SnapshotService,
 	Effect.gen(function* () {
 		const store = yield* Ref.make(new Map<string, FileSnapshot>());
 		return {
-			hashContent,
 			getSnapshot: (outputDir: string, filePath: string) =>
 				Ref.get(store).pipe(Effect.map((m) => Option.fromUndefinedOr(m.get(`${outputDir}::${filePath}`)))),
 			getAllForDirectory: (outputDir: string) =>
@@ -51,12 +57,14 @@ export const MockSnapshotServiceLayer = Layer.effect(
 );
 
 /**
- * Mock TypeRegistryService returning empty VFS and cache.
+ * TypeRegistryService resolving every spec unchanged and loading an empty VFS.
+ *
+ * @remarks
+ * A thin alias over the service's own double, kept because it is referenced by
+ * name across the suite. New tests can call `TypeRegistryService.layerTest()`
+ * directly, and pass overrides for the members they actually exercise.
  */
-export const MockTypeRegistryServiceLayer = Layer.succeed(TypeRegistryService, {
-	resolveVersions: (packages) => Effect.succeed(packages),
-	loadPackages: (_packages) => Effect.succeed({ vfs: new Map() }),
-});
+export const MockTypeRegistryServiceLayer = TypeRegistryService.layerTest();
 
 /**
  * Mock TwoslashCacheService: always a cold cache, and saves go nowhere.
@@ -64,15 +72,7 @@ export const MockTypeRegistryServiceLayer = Layer.succeed(TypeRegistryService, {
  * Tests exercising config resolution must not touch the user's real XDG cache,
  * and must not have their results depend on whether a previous run warmed it.
  */
-export const MockTwoslashCacheServiceLayer = Layer.succeed(TwoslashCacheService, {
-	load: () => Effect.succeed(new Map()),
-	save: () => Effect.void,
-	// A real in-memory generation, not a stub: `registerEnvironment` hands this
-	// to the Twoslash transformers, so a cache that cannot be read or written
-	// would change the render path's shape rather than merely its persistence.
-	open: () => Effect.succeed(makeTwoslashCache()),
-	persist: () => Effect.succeed(Option.none()),
-});
+export const MockTwoslashCacheServiceLayer = TwoslashCacheService.layerTest();
 
 /**
  * The real `OgService` over the Node platform.
@@ -85,4 +85,4 @@ export const MockTwoslashCacheServiceLayer = Layer.succeed(TwoslashCacheService,
  * behaviour it would stub out is covered directly in
  * `__test__/layers/og-service.test.ts`.
  */
-export const TestOgServiceLayer = Layer.provide(OgServiceLive, Layer.mergeAll(NodeFileSystem.layer, Path.layer));
+export const TestOgServiceLayer = Layer.provide(OgService.layer, Layer.mergeAll(NodeFileSystem.layer, Path.layer));

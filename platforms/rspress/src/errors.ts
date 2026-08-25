@@ -1,32 +1,30 @@
 import { Data } from "effect";
 
-// --- Fatal errors (abort build) ---
-
-export const ConfigValidationErrorBase = Data.TaggedError("ConfigValidationError");
+const ConfigValidationErrorBase = Data.TaggedError("ConfigValidationError");
 
 export class ConfigValidationError extends ConfigValidationErrorBase<{
+	/** The config field at fault, as a user would spell it: `externalPackages`. */
 	readonly field: string;
 	readonly reason: string;
+	/**
+	 * The original failure, when this wraps one.
+	 *
+	 * @remarks
+	 * Carried rather than stringified into {@link reason}. Three of this error's
+	 * call sites wrap something that threw — a tsconfig parse, a `package.json`
+	 * read, an `externalPackages` conflict check — and `String(error)` at the
+	 * boundary discards the stack and any typed structure the original had,
+	 * which is exactly what made these failures hard to act on when they were
+	 * still untyped defects.
+	 */
+	readonly cause?: unknown;
 }> {
 	get message(): string {
 		return `Config validation failed for '${this.field}': ${this.reason}`;
 	}
 }
 
-export const ApiModelLoadErrorBase = Data.TaggedError("ApiModelLoadError");
-
-export class ApiModelLoadError extends ApiModelLoadErrorBase<{
-	readonly modelPath: string;
-	readonly reason: string;
-}> {
-	get message(): string {
-		return `Failed to load API model at '${this.modelPath}': ${this.reason}`;
-	}
-}
-
-// --- Recoverable errors (skip item, continue pipeline) ---
-
-export const TypeRegistryErrorBase = Data.TaggedError("TypeRegistryError");
+const TypeRegistryErrorBase = Data.TaggedError("TypeRegistryError");
 
 export class TypeRegistryError extends TypeRegistryErrorBase<{
 	readonly packageName: string;
@@ -35,42 +33,5 @@ export class TypeRegistryError extends TypeRegistryErrorBase<{
 }> {
 	get message(): string {
 		return `Type registry error for '${this.packageName}@${this.version}': ${this.reason}`;
-	}
-}
-
-export const PageGenerationErrorBase = Data.TaggedError("PageGenerationError");
-
-export class PageGenerationError extends PageGenerationErrorBase<{
-	readonly itemName: string;
-	readonly category: string;
-	readonly reason: string;
-}> {
-	get message(): string {
-		return `Page generation failed for ${this.category} '${this.itemName}': ${this.reason}`;
-	}
-}
-
-// --- Ignorable errors (log only) ---
-
-export const TwoslashProcessingErrorBase = Data.TaggedError("TwoslashProcessingError");
-
-export class TwoslashProcessingError extends TwoslashProcessingErrorBase<{
-	readonly file: string;
-	readonly errorCode: string;
-	readonly reason: string;
-}> {
-	get message(): string {
-		return `Twoslash error ${this.errorCode} in '${this.file}': ${this.reason}`;
-	}
-}
-
-export const PrettierFormatErrorBase = Data.TaggedError("PrettierFormatError");
-
-export class PrettierFormatError extends PrettierFormatErrorBase<{
-	readonly file: string;
-	readonly reason: string;
-}> {
-	get message(): string {
-		return `Prettier format error in '${this.file}': ${this.reason}`;
 	}
 }

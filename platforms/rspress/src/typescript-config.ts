@@ -290,16 +290,3 @@ export async function resolveTypeScriptConfig(
 
 	return options;
 }
-
-/**
- * Check if a TypeScriptConfig has any configuration.
- *
- * @param config - TypeScript config to check
- * @returns True if config has tsconfig or compilerOptions
- */
-export function hasTypeScriptConfig(config?: TypeScriptConfig): boolean {
-	if (!config) {
-		return false;
-	}
-	return Boolean(config.tsconfig || config.compilerOptions);
-}

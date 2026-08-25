@@ -2,7 +2,7 @@ import type { ApiFunction } from "@microsoft/api-extractor-model";
 import { ApiItems, Tsdoc } from "@tsdoctor/model";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FunctionPageGenerator } from "../../../src/markdown/page-generators/function-page.js";
-import type { LlmsPlugin, SourceConfig } from "../../../src/schemas/index.js";
+import type { LlmsPlugin, SourceConfig } from "../../../src/schemas/config.js";
 
 // Mock dependencies
 vi.mock("@tsdoctor/model", async (importOriginal) => {

@@ -41,12 +41,7 @@ git changes.
 
 As of phase 2 the system lives in its own framework-neutral package,
 **`@tsdoctor/snapshot`** (`packages/snapshot`), consumed by the plugin via
-`workspace:*`. The extraction carried over `SnapshotService`,
-`SnapshotServiceLive`, `content-hash.ts` and `SnapshotDbError`; the plugin
-dropped its direct `@effect/sql-sqlite-node` dependency and its
-`migrations/` directory. The live layer is rebuilt on `@effected/store`'s
-`Store.layerSqlite` (the adoption decision recorded in
-`tsdoctor-package-architecture.md`, taken against `@effected/store@0.4.0`;
+`workspace:*`. The extraction carried over `SnapshotService`, its live layer, `content-hash.ts` and `SnapshotDbError`; the plugin dropped its direct `@effect/sql-sqlite-node` dependency and its `migrations/` directory. The live layer is rebuilt on `@effected/store`'s `Store.layerSqlite` (the adoption decision recorded in `tsdoctor-package-architecture.md`, taken against `@effected/store@0.4.0`;
 `0.5.0` is the installed version as of 2026-08-25 and nothing in the port
 changed with it).
 
@@ -70,21 +65,12 @@ changed with it).
 
 ### Effect Service Layer
 
-The snapshot system uses Effect's service pattern with a clean separation
-between interface and implementation:
+The snapshot system uses Effect's service pattern, with the tag, the shape and the live layer co-located:
 
-**Service interface** (`packages/snapshot/src/SnapshotService.ts`):
-
-```typescript
-export class SnapshotService extends Context.Service<
-  SnapshotService,
-  SnapshotServiceShape
->()("@tsdoctor/snapshot/SnapshotService") {}
-```
+Both live in `packages/snapshot/src/SnapshotService.ts`: the tag is `class SnapshotService extends Context.Service<SnapshotService, SnapshotServiceShape>()("@tsdoctor/snapshot/SnapshotService")`, and the live layer is a static on it, `SnapshotService.layer(dbPath)`. The separate `SnapshotServiceLive.ts` module is deleted — the package now follows the same co-location the adapter's services do.
 
 The `SnapshotServiceShape` defines methods:
 
-- `hashContent(content)` -- SHA-256 content hashing
 - `getSnapshot(outputDir, filePath)` -- single snapshot lookup
 - `getAllForDirectory(outputDir)` -- pre-load all snapshots
 - `getFilePaths(outputDir)` -- list tracked paths
@@ -93,39 +79,31 @@ The `SnapshotServiceShape` defines methods:
 - `deleteSnapshot(outputDir, filePath)` -- remove single snapshot
 - `cleanupStale(outputDir, currentFiles)` -- remove stale entries
 
-**Live implementation** (`packages/snapshot/src/SnapshotServiceLive.ts`):
+`hashContent` is **not** on the shape. It had zero consumers in the method form, and being non-effectful it forced every test double to supply it; the standalone `hashContent` export from `@tsdoctor/snapshot` is unchanged and is what `build-stages.ts` imports.
 
-`SnapshotServiceLive(dbPath)` is built on `@effected/store`'s
-`Store.layerSqlite({ filename: dbPath, migrations, checkpointOnClose: true })`:
-layer construction opens the SQLite database (via the same
-`@effect/sql-sqlite-node` `SqliteClient` under the hood, WAL on by default)
-and applies the `StoreMigration` list before the service is available.
-Migration 1 is the former `001_create_snapshots` SQL, carried over verbatim.
-All queries and the transactional batch upsert run through `store.client` —
-the full `effect/unstable/sql` tagged-template `SqlClient`. The
-`checkpointOnClose: true` option registers the WAL checkpoint
-(`PRAGMA wal_checkpoint(TRUNCATE)`) as a scope finalizer **inside**
-`@effected/store` itself; the package's own hand-written
-`Effect.addFinalizer` for this was deleted once the option shipped (a
-dogfood expansion adopted from the effected round-1 kit wave — see
-`tsdoctor-package-architecture.md`). The layer's error channel carries
-Store's typed `StoreError | StoreMigrationError`. The hand-wired
+`SnapshotService.layer(dbPath)` is built on `@effected/store`'s `Store.layerSqlite({ filename: dbPath, migrations, checkpointOnClose: true })`: layer construction opens the SQLite database (via the same `@effect/sql-sqlite-node` `SqliteClient` under the hood, WAL on by default) and applies the `StoreMigration` list before the service is available. Migration 1 is the former `001_create_snapshots` SQL, carried over verbatim. All queries and the transactional batch upsert run through `store.client` — the full `effect/unstable/sql` tagged-template `SqlClient`. The `checkpointOnClose: true` option registers the WAL checkpoint (`PRAGMA wal_checkpoint(TRUNCATE)`) as a scope finalizer **inside** `@effected/store` itself; the package's own hand-written `Effect.addFinalizer` for this was deleted once the option shipped (a dogfood expansion adopted from the effected round-1 kit wave — see `tsdoctor-package-architecture.md`). The layer's error channel carries Store's typed `StoreError | StoreMigrationError`. The hand-wired
 `@effect/sql-sqlite-node` + `Migrator` stack this replaces is gone; in
 exchange the package gains Store's `migrate`/`rollback(toId)`/`status`
 surface.
+
+`SnapshotService.layer` is a **parameterized factory** — call it once per database path and bind the result to a `const`, since layers memoize by reference and a fresh call at each provide site would open the database more than once. The parent directory of `dbPath` must already exist; `plugin.ts` `mkdirSync`s it before building the stack.
+
+Its error channel stays `StoreError | StoreMigrationError` all the way out to `AppLayers.app`, deliberately. The adapter's two cache-backed layers degrade on a construction failure; this one does not — a snapshot database that cannot be opened or migrated should stop the build loudly rather than silently regenerate every page.
+
+`SnapshotService.makeTest(overrides)` / `layerTest(overrides)` are the in-memory doubles. Defaults describe a build with **no prior snapshot** — every lookup misses, every write is accepted and discarded — which is the state a first build or a fresh clone is in and the state the disk-fallback path is written against. `cleanupStale` defaults to reporting nothing stale rather than echoing its input: a double that claimed files were stale would have the caller delete them from disk.
 
 ### Data Flow
 
 ```text
 Plugin initialization (plugin.ts)
     |
-    +-> SnapshotServiceLive(dbPath)   [from @tsdoctor/snapshot]
+    +-> SnapshotService.layer(dbPath)   [from @tsdoctor/snapshot]
     |   +-> Store.layerSqlite({ filename: dbPath, migrations })
     |   +-> migration 1 (former 001_create_snapshots) applied at construction
     |   +-> WAL checkpoint registered as scope finalizer (checkpointOnClose: true)
     |
-    +-> Layer composed into EffectAppLayer
-    +-> ManagedRuntime.make(EffectAppLayer)
+    +-> Composed into the CoreLayer tier by makeAppLayers (layers/AppLayer.ts)
+    +-> ManagedRuntime.make(appLayers.app)
 
 Build execution (build-program.ts)
     |
@@ -148,8 +126,7 @@ Build execution (build-program.ts)
 
 | File | Purpose |
 | --- | --- |
-| `packages/snapshot/src/SnapshotService.ts` | Effect `Context.Service` tag and interface |
-| `packages/snapshot/src/SnapshotServiceLive.ts` | `Store.layerSqlite` implementation (migrations inline) |
+| `packages/snapshot/src/SnapshotService.ts` | Tag, interface, `SnapshotService.layer(dbPath)` (`Store.layerSqlite`, migrations inline) and the `makeTest`/`layerTest` doubles |
 | `packages/snapshot/src/content-hash.ts` | SHA-256 hashing functions (pure, standalone) |
 | `platforms/rspress/src/build-stages.ts` | Change detection in `generateSinglePage` (imports `SnapshotService`, `hashContent`, `hashFrontmatter` from `@tsdoctor/snapshot`) |
 | `platforms/rspress/src/build-program.ts` | Orchestrates snapshot loading and cleanup |
@@ -199,7 +176,7 @@ boundary, before any migration 2 exists, which is the safe window.
 ### WAL Lifecycle
 
 The SQLite connection uses WAL mode (Store's SQLite backing has WAL on by
-default). `SnapshotServiceLive` passes `checkpointOnClose: true` to
+default). `SnapshotService.layer` passes `checkpointOnClose: true` to
 `Store.layerSqlite`, which registers the WAL-checkpoint scope finalizer
 (`PRAGMA wal_checkpoint(TRUNCATE)`) **inside `@effected/store`** on close —
 the package no longer hand-writes this finalizer itself. `(c)` (passing
@@ -214,7 +191,7 @@ the checkpoint. In dev mode, the runtime stays alive for HMR rebuilds.
 
 ### Inert builds never open the database
 
-`SnapshotServiceLive(dbPath)` is composed into the layer stack unconditionally, but SQLite only opens the file when the `ManagedRuntime` is actually built. An inert plugin (`api: null`, `apis: null` or `apis: []` — see the inert configuration section of `build-architecture.md`) never runs the doc generation program, so no runtime is built and no `api-docs.db` appears. `plugin.ts` still creates the empty `<cwd>/.api-docs/snapshot/` directory on that path, deliberately: a stray sync emitter (a deprecation warning, a user-authored `with-api` code block) can force the runtime to build after all, and SQLite's eager open would fail without the parent directory.
+`SnapshotService.layer(dbPath)` is composed into the layer stack unconditionally, but SQLite only opens the file when the `ManagedRuntime` is actually built. An inert plugin (`api: null`, `apis: null` or `apis: []` — see the inert configuration section of `build-architecture.md`) never runs the doc generation program, so no runtime is built and no `api-docs.db` appears. `plugin.ts` still creates the empty `<cwd>/.api-docs/snapshot/` directory on that path, deliberately: a stray sync emitter (a deprecation warning, a user-authored `with-api` code block) can force the runtime to build after all, and SQLite's eager open would fail without the parent directory.
 
 ---
 
@@ -456,7 +433,7 @@ File statistics tracked via Effect Metrics (counters):
 
 - `files.total`, `files.new`, `files.modified`, `files.unchanged`
 
-Read at build end by `logBuildSummary` in `ObservabilityLive.ts`.
+Read at build end by `logBuildSummary` in `layers/observability.ts`.
 
 ---
 

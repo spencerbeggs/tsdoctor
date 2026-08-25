@@ -500,7 +500,7 @@ export class TwoslashEnvironmentRegistry {
 		});
 		this.environments.set(configKey, transformer);
 
-		// Logged via Effect logger in ConfigServiceLive; no console output here
+		// Logged via Effect logger in ConfigService.layer; no console output here
 	}
 
 	/**
@@ -633,7 +633,7 @@ export function addTypeRoutes(routes: Map<string, string>): void {
  *
  * Clears ONLY the routes. The environments are per-build too, but they are
  * owned by the layer now, so nothing here can discard the per-scope
- * transformers `ConfigServiceLive` just built.
+ * transformers `ConfigService.layer` just built.
  */
 export function clearTypeRoutes(): void {
 	typeRoutes.clear();

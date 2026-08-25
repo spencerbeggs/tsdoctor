@@ -114,7 +114,7 @@ a build-stage emit site — see `build-progress-and-issues.md`.
 check).
 `ModelLoadFailed` no longer rides a sync-island seam: the phase-2 model
 redesign made loading Effect-typed (`Model.load` in `@tsdoctor/model`), so
-`ConfigServiceLive` emits it via `Effect.tapError` + `Effect.orDie` on the
+`layers/config-resolution.ts` emits it via `Effect.tapError` + `Effect.orDie` on the
 load pipeline — the former `setModelLoaderEventEmitter` (and the
 `setLoaderEventEmitter` companion) are deleted. Both events feed the console
 sink and the issues artifact — see `build-progress-and-issues.md`.
@@ -147,7 +147,7 @@ interface EventContext {
 non-empty value keeps it, so a test can still emit with an explicit id.
 
 Making it optional was the fix for 24 sites that wrote `ctx: { buildId: "" }` —
-22 in `ConfigServiceLive`, where the real value sat three scopes up and was
+22 in config resolution, where the real value sat three scopes up and was
 simply not reached, and every site in `TypeRegistryServiceLive`, where the
 layer is module-level and has no build to name. That second group is why a
 Reference is the fix and a find-and-replace is not: a Reference reaches code
@@ -251,10 +251,11 @@ for the `.api-docs/` directory this trace file now lives in, alongside `issues.j
 
 Every mapped event still updates the plain counter/histogram the summary reads for build-wide totals. `FileDecision`, `TwoslashDiagnostic`, `PrettierError`, `ShikiError`, `CodeBlockProcessed` and `PhaseCompleted` additionally record a `Metric.withAttributes` copy tagged with bounded dimensions (scope, status, component, TS code, phase) — `ShikiError` used to hit the sink's `default` branch and reach no metric at all. The dimensional recording pattern, the full attribute set per metric and the reader (`metric-report.ts`) that breaks a series down are documented in `render-phase-instrumentation.md`; this table stays the map of event to metric NAME. Any other tag not listed here hits the `default` branch and is silently ignored.
 
-**Not event-derived:** `externalPackagesTotal` and `apiVersionsLoaded` remain
-inline `Metric.update` calls in `ConfigServiceLive`. The only candidate
-event (`TypeRegistryEvent{BatchComplete}`) carries a `loaded` (succeeded) count,
-not a configured count — deriving it here would change the metric's semantics.
+**Not event-derived:** `externalPackagesTotal` and `apiVersionsLoaded` are inline `Metric.update` calls in `layers/config-resolution.ts`. The only candidate event (`TypeRegistryEvent{BatchComplete}`) carries a `loaded` (succeeded) count, not a configured count — deriving it here would change the metric's semantics.
+
+**Both were escaping the build's registry until phase-4 chunk 5.** They were updated with `Effect.runSync(Metric.update(...))` from inside `Effect.promise` bodies. Run outside the fiber, that resolves the `Metric.MetricRegistry` `Context.Reference` **default** — a process-wide Map — rather than the build's own registry, so `logBuildSummary` read a registry nothing had written to. Both are now `yield* Metric.update(...)` inside the generator.
+
+The bug class matters more than the two sites: `Metric.value` **cannot detect it**, because it reads the right number either way. Only `Metric.snapshot` containment can, and such a test has to live in its own file (`__test__/config-service-metrics.test.ts`) — an attribute-free module-level metric constant has its registry hook cached process-wide on first touch, so any earlier test in the same process binds it to whichever registry ran first.
 `apisCompleted`, by contrast, IS event-derived: `plugin.ts` emits an
 `ApiDocsCompleted` event via `Effect.tap` on each `generateApiDocs` result
 inside the `Effect.forEach` over `apiConfigs`, and the metrics sink maps it to
@@ -289,7 +290,7 @@ Emits `PhaseStarted` before and `PhaseCompleted` after. Measures wall-clock
 duration. If duration exceeds the threshold for that phase, also emits
 `SlowOperation`. **Thresholds are read from the `Thresholds`
 `Context.Reference`, not taken as a parameter** — the value used to travel
-`plugin.ts` → `ConfigServiceLive`'s fourth constructor argument → a
+`plugin.ts` → `ConfigServiceLive`'s fourth constructor argument (a factory that no longer exists) → a
 `ResolvedBuildContext` field → a destructure in `build-program.ts` → every call
 site, while `obs.thresholds` held the same value one scope from where it
 started. Phase names map to threshold keys via `PHASE_THRESHOLD_KEY`:
@@ -318,9 +319,7 @@ plugin.** The spans are a dormant seam for future integration.
 
 **Location:** `platforms/rspress/src/layers/build-metrics.ts`
 
-`BuildMetrics` is extracted from `ObservabilityLive.ts` into its own module to
-avoid circular imports between the metrics sink and the layer that assembles
-sinks. It provides Effect `Metric.counter` and `Metric.histogram` instances.
+`BuildMetrics` is extracted from `layers/observability.ts` into its own module to avoid circular imports between the metrics sink and the layer that assembles sinks. `layers/observability.ts` no longer re-exports it either, so `BuildMetrics` has exactly one import path. It provides Effect `Metric.counter` and `Metric.histogram` instances.
 
 Under Effect v4 the `MetricBoundaries` module is gone — histogram boundaries
 are passed inline as an options object:
@@ -337,7 +336,7 @@ Updates use `Metric.update(metric, n)` (v3's `Metric.increment` /
 
 ### Metric registry isolation
 
-`makeMetricStore()` gives each build its own `Metric.MetricRegistry` rather than relying on the process-wide default the `Context.Reference` falls back to — without it, dev-mode HMR rebuilds and same-process test runs would accumulate into one shared registry. It returns a `MetricStore` carrying both forms its two consumers need: `layer`, which Effect programs (`logBuildSummary`, `Metric.snapshot`) read through, and `context`, which the metrics sink writes through directly (see [Metrics Sink](#metrics-sink)). Both MUST be wired together — a caller that puts `metrics.layer` in the runtime but not `metrics.context` into the sink (or vice versa) silently reads and writes two different registries. The same requirement now spans **two** runtimes: `metrics.layer` is merged into the main runtime's `BaseLayer` **and** into the sync-emitter runtime, shared **by reference**, which is what keeps the sink's writes and `logBuildSummary`'s reads in one registry (see `build-architecture.md`). The isolation has a real limit — it does not cover undimensioned metrics — documented in full in `render-phase-instrumentation.md`.
+`makeMetricStore()` gives each build its own `Metric.MetricRegistry` rather than relying on the process-wide default the `Context.Reference` falls back to — without it, dev-mode HMR rebuilds and same-process test runs would accumulate into one shared registry. It returns a `MetricStore` carrying both forms its two consumers need: `layer`, which Effect programs (`logBuildSummary`, `Metric.snapshot`) read through, and `context`, which the metrics sink writes through directly (see [Metrics Sink](#metrics-sink)). Both MUST be wired together — a caller that puts `metrics.layer` in the runtime but not `metrics.context` into the sink (or vice versa) silently reads and writes two different registries. The same requirement spans **two** runtimes, and `makeAppLayers` (`layers/AppLayer.ts`) is what enforces it: the `MetricStore` arrives as a single input and its `layer` goes into the observability tier that BOTH returned stacks are built from, shared by reference. Returning both stacks from one call is what makes wiring them from different stores structurally impossible rather than merely discouraged (see `build-architecture.md`). The isolation has a real limit — it does not cover undimensioned metrics — documented in full in `render-phase-instrumentation.md`.
 
 ### Summary logger layer
 
@@ -354,7 +353,7 @@ formatting.
 
 ## Build Summary
 
-**Location:** `platforms/rspress/src/layers/ObservabilityLive.ts`
+**Location:** `platforms/rspress/src/layers/observability.ts`
 
 `logBuildSummary` is an Effect program that reads all metric snapshots and logs
 a human-readable summary. It is called once in `afterBuild` (skipped on HMR
@@ -435,7 +434,7 @@ for this; see the two-runtimes section of `build-architecture.md`.
 consumer.
 
 `ModelLoadFailed` does not ride this bridge: model loading is Effect-typed
-(`Model.load`), so `ConfigServiceLive` emits it via `Effect.tapError` inside the
+(`Model.load`), so `layers/config-resolution.ts` emits it via `Effect.tapError` inside the
 pipeline. The former `setModelLoaderEventEmitter` / `setLoaderEventEmitter`
 seams are deleted. See `build-progress-and-issues.md`.
 
@@ -459,7 +458,8 @@ seams are deleted. See `build-progress-and-issues.md`.
 | `src/observability/sync-emitter.ts` | The one sync-island bridge: `installSyncEmitter`, `emitSync`, `syncBuildId`, `syncSlowCodeBlockMs` |
 | `src/BuildEnv.ts` | `BuildId`, `Thresholds`, `PageConcurrency`, `SuppressExampleErrors` References |
 | `src/layers/build-metrics.ts` | `BuildMetrics` counters and histograms, `MetricStore`/`makeMetricStore` |
-| `src/layers/ObservabilityLive.ts` | `buildEventBus`, `BuiltSinks`, `logBuildSummary` |
+| `src/layers/observability.ts` | `buildEventBus`, `BuiltSinks`, `logBuildSummary`, `makeSummaryLoggerLayer` (renamed from `ObservabilityLive.ts`) |
+| `src/layers/AppLayer.ts` | `makeAppLayers` — composes both runtimes' layer stacks, sharing `metrics.layer` by reference |
 | `src/schemas/observability.ts` | `ObservabilityConfig`, `ResolvedObservability`, `resolveObservability` |
 
 ---

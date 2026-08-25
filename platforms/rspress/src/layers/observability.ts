@@ -16,8 +16,6 @@ import type { ResolvedObservability } from "../schemas/observability.js";
 import type { MetricStore } from "./build-metrics.js";
 import { BuildMetrics, makeMetricStore } from "./build-metrics.js";
 
-export { BuildMetrics } from "./build-metrics.js";
-
 function formatTime(date: Date): string {
 	return date.toTimeString().slice(0, 8);
 }

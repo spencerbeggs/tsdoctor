@@ -18,9 +18,10 @@
 
 import type { TwoslashTypesCache } from "@shikijs/twoslash";
 import type { VirtualFileSystem } from "@tsdoctor/registry";
-import { Context } from "effect";
+import { Context, Layer } from "effect";
 import type { ShikiTransformer } from "shiki";
 import type { TypeResolutionCompilerOptions } from "../internal-types.js";
+import { TwoslashEnvironmentRegistry } from "../twoslash-transformer.js";
 
 /** Everything one Twoslash environment needs to be built. */
 export interface RegisterEnvironmentOptions {
@@ -88,4 +89,32 @@ export interface TwoslashEnvironmentsShape {
 
 export class TwoslashEnvironments extends Context.Service<TwoslashEnvironments, TwoslashEnvironmentsShape>()(
 	"rspress-plugin-api-extractor/TwoslashEnvironments",
-) {}
+) {
+	/**
+	 * One environment registry per runtime.
+	 *
+	 * @remarks
+	 * `Layer.sync` rather than `Layer.succeed`: the registry is mutable, and a
+	 * `Layer.succeed` would capture a single instance shared by every layer graph
+	 * that referenced this const — including, in a test run, every test file in
+	 * the process. Building it when the layer builds is what makes substitution
+	 * work: a test that wants an isolated registry provides its own layer, which
+	 * is what the old static `TwoslashManager.reset()` was standing in for.
+	 *
+	 * Deliberately NOT `Layer.effect` with a finalizer. The registry holds Shiki
+	 * transformers, which the render pass uses AFTER `config()` returns — the same
+	 * lifetime constraint the highlighter has, and for the same reason.
+	 */
+	static readonly layer: Layer.Layer<TwoslashEnvironments> = Layer.sync(this, () => make());
+}
+
+const make = (): TwoslashEnvironmentsShape => {
+	const registry = new TwoslashEnvironmentRegistry();
+	return {
+		registerEnvironment: (options) => registry.registerEnvironment(options),
+		registerScope: (apiScope, compilerOptions) => registry.registerScope(apiScope, compilerOptions),
+		transformerFor: (apiScope) => registry.transformerFor(apiScope),
+		setCurrentFile: (path) => registry.setCurrentFile(path),
+		reportErrorForTest: (error, code, file) => registry.reportErrorForTest(error, code, file),
+	};
+};

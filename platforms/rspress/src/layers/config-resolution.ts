@@ -3,9 +3,7 @@ import path from "node:path";
 import type { ApiEntryPoint, ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
 import type { VirtualFileSystem } from "@tsdoctor/registry";
 import { hashContent } from "@tsdoctor/snapshot";
-import type { Scope } from "effect";
-import { Effect, Layer, Metric } from "effect";
-import ts from "typescript";
+import { Effect, Metric } from "effect";
 import { ApiExtractedPackage } from "../api-extracted-package.js";
 import { BuildId } from "../BuildEnv.js";
 import { CategoryResolver } from "../category-resolver.js";
@@ -16,7 +14,6 @@ import {
 	mergeLlmsPluginConfig,
 	validateExternalPackages,
 } from "../config-utils.js";
-import type { ApiModelLoadError, TypeRegistryError } from "../errors.js";
 import { ConfigValidationError } from "../errors.js";
 import type { LoadedModel, PackageJson, TypeResolutionCompilerOptions, TypeScriptConfig } from "../internal-types.js";
 import { normalizeThemeConfig } from "../markdown/shiki-utils.js";
@@ -26,6 +23,7 @@ import { emit, wantsLevel } from "../observability/EventBus.js";
 import type { ImportRef } from "../observability/events.js";
 import { PluginEvent } from "../observability/events.js";
 import { withPhase } from "../observability/spans.js";
+import { deriveSiteUrl } from "../og-resolver.js";
 import { apiScopeOf, deriveOutputPaths, normalizeBaseRoute, unscopedName } from "../path-derivation.js";
 import type {
 	ExternalPackageSpec,
@@ -33,18 +31,17 @@ import type {
 	PluginOptions,
 	SingleApiConfig,
 	VersionConfig,
-} from "../schemas/index.js";
-import { DEFAULT_CATEGORIES } from "../schemas/index.js";
-import type { ResolvedApiConfig, RspressConfigSubset } from "../services/ConfigService.js";
-import { ConfigService } from "../services/ConfigService.js";
+} from "../schemas/config.js";
+import { DEFAULT_CATEGORIES } from "../schemas/config.js";
+import type { ConfigServiceShape, ResolvedApiConfig, RspressConfigSubset } from "../services/ConfigService.js";
 import { PluginConfig } from "../services/PluginConfig.js";
-import { TwoslashCacheService } from "../services/TwoslashCacheService.js";
-import { TwoslashEnvironments } from "../services/TwoslashEnvironments.js";
 import { TypeRegistryService } from "../services/TypeRegistryService.js";
-import { twoslashEnvHash } from "../twoslash-cache.js";
 import { TypeReferenceExtractor } from "../type-reference-extractor.js";
-import { resolveTypeScriptConfig } from "../typescript-config.js";
-import { BuildMetrics } from "./ObservabilityLive.js";
+import type { ApiResultAccumulator, VfsEntryPayload } from "./api-results.js";
+import { emitVfsPayloadEvents, mergeApiResult } from "./api-results.js";
+import { BuildMetrics } from "./build-metrics.js";
+import { mergeExternalTypes } from "./external-types.js";
+import { registerTypeEnvironments, resolveTsConfigTyped } from "./type-environment.js";
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -53,17 +50,6 @@ import { BuildMetrics } from "./ObservabilityLive.js";
 interface RspressMultiVersion {
 	default: string;
 	versions: string[];
-}
-
-interface VfsEntryPayload {
-	file: string;
-	entryPoint: string;
-	declCount: number;
-	contentHash: string;
-	content: string;
-	/** True only when import statements were actually prepended to this entry. */
-	hasImports: boolean;
-	importRefs: readonly ImportRef[];
 }
 
 /**
@@ -213,9 +199,12 @@ function validateOptions(
  * would build a second `ConfigService` with its own captured `TypeRegistry`.
  * The options come from {@link PluginConfig} now, so there is nothing to pass
  * and nothing to call twice.
+ *
+ * The `Layer` around this lives on the service, as `ConfigService.layer`. The
+ * implementation stays here rather than in the service module because it is
+ * the bulk of config resolution; the service module declares the contract.
  */
-export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistryService | PluginConfig> = Layer.effect(
-	ConfigService,
+export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeRegistryService | PluginConfig> =
 	Effect.gen(function* () {
 		// Capture services from the layer context
 		const typeRegistry = yield* TypeRegistryService;
@@ -248,6 +237,10 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 					const rspressLang = rspressConfig.lang;
 					const docsRoot = rspressConfig.root;
 					const rspressRoot = docsRoot || process.cwd();
+					// Derived from RSPress's own config rather than a plugin option — see
+					// `deriveSiteUrl`. `undefined` when the site declares no `siteOrigin`,
+					// which turns the OG path off rather than emitting relative URLs.
+					const siteUrl = deriveSiteUrl(rspressConfig.siteOrigin, rspressConfig.base);
 
 					// --- 3. Category resolution ---
 					const categoryResolver = new CategoryResolver();
@@ -257,6 +250,8 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 					const apiConfigs: ResolvedApiConfig[] = [];
 					const combinedVfs = new Map<string, string>();
 					const allExternalPackages: ExternalPackageSpec[] = [];
+					/** The three above, as one value the merge helper can take. */
+					const acc: ApiResultAccumulator = { apiConfigs, combinedVfs, allExternalPackages };
 
 					let firstApiTsconfig: SingleApiConfig["tsconfig"] | MultiApiConfig["tsconfig"];
 					let firstApiCompilerOptions: SingleApiConfig["compilerOptions"] | MultiApiConfig["compilerOptions"];
@@ -302,26 +297,51 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 							const { apiPackage, source: loaderSource } = yield* withModelLoadEvents(
 								loadApiModel(model as PathLike | (() => Promise<ApiModel | LoadedModel>)),
 							);
-							return yield* Effect.promise(async () => {
+							{
 								const resolvedCategories = categoryResolver.resolveCategoryConfig(pluginDefaults, api.categories);
 								const resolvedSource = categoryResolver.resolveSourceConfig(api.source, loaderSource);
 								const resolvedLlms = mergeLlmsPluginConfig(options.llmsPlugin, api.llmsPlugin);
 
-								// Load package.json
+								// Load package.json. A missing or malformed file is a user
+								// misconfiguration, not bad wiring, so it fails TYPED — it used
+								// to throw from inside an `Effect.promise` body and escape as an
+								// untyped defect, which killed the build with no `issues.json`
+								// entry (the issues sink only ever sees events).
 								const packageJson = api.packageJson
-									? await loadPackageJson(api.packageJson as PathLike | (() => Promise<PackageJson>))
+									? yield* Effect.tryPromise({
+											try: () => loadPackageJson(api.packageJson as PathLike | (() => Promise<PackageJson>)),
+											catch: (cause) =>
+												new ConfigValidationError({
+													field: "packageJson",
+													reason: cause instanceof Error ? cause.message : String(cause),
+													cause,
+												}),
+										})
 									: undefined;
 
-								// Validate that explicit externalPackages don't conflict with peerDependencies
-								validateExternalPackages(api.externalPackages, packageJson);
+								// Validate that explicit externalPackages don't conflict with
+								// peerDependencies. Typed for the same reason as above.
+								yield* Effect.try({
+									try: () => validateExternalPackages(api.externalPackages, packageJson),
+									catch: (cause) =>
+										new ConfigValidationError({
+											field: "externalPackages",
+											reason: cause instanceof Error ? cause.message : String(cause),
+											cause,
+										}),
+								});
 
 								// Collect external packages
 								const externalPackages =
 									api.externalPackages || extractAutoDetectedPackages(packageJson, api.autoDetectDependencies);
 
-								// Track external packages
+								// Track external packages. `yield*` rather than `Effect.runSync`:
+								// run from inside the fiber, this resolves the BUILD's metric
+								// registry. A bare `runSync` here resolved the `MetricRegistry`
+								// Reference DEFAULT instead, so the count landed in a
+								// process-wide registry that `logBuildSummary` never reads.
 								if (externalPackages && externalPackages.length > 0) {
-									Effect.runSync(Metric.update(BuildMetrics.externalPackagesTotal, externalPackages.length));
+									yield* Metric.update(BuildMetrics.externalPackagesTotal, externalPackages.length);
 								}
 
 								// Generate virtual file system from API model for Twoslash
@@ -349,14 +369,14 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 										...(resolvedSource != null ? { source: resolvedSource } : {}),
 										...(packageJson != null ? { packageJson } : {}),
 										...(resolvedLlms != null ? { llmsPlugin: resolvedLlms } : {}),
-										...(options.siteUrl != null ? { siteUrl: options.siteUrl } : {}),
+										...(siteUrl != null ? { siteUrl } : {}),
 										...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),
 										docsDir: path.dirname(outputDir),
 										...(docsRoot != null ? { docsRoot } : {}),
 										...(resolvedTheme != null ? { theme: resolvedTheme } : {}),
 									} satisfies ResolvedApiConfig,
 								};
-							});
+							}
 						});
 
 					// Model loading + VFS reconstruction. These are fused inside the
@@ -421,8 +441,12 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 													ogImage: versionOgImage,
 												} = yield* withModelLoadEvents(loadVersionModel(versionConfig));
 
-												return yield* Effect.promise(async () => {
-													Effect.runSync(Metric.update(BuildMetrics.apiVersionsLoaded, 1));
+												{
+													// `yield*`, not `Effect.runSync`: see the note on the same
+													// metric in processSimpleApi above — a bare `runSync` resolves
+													// the `MetricRegistry` Reference DEFAULT, writing to a
+													// process-wide registry `logBuildSummary` never reads.
+													yield* Metric.update(BuildMetrics.apiVersionsLoaded, 1);
 													const resolvedCategories = categoryResolver.resolveCategoryConfig(
 														pluginDefaults,
 														api.categories,
@@ -431,15 +455,34 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 													const resolvedSource = categoryResolver.resolveSourceConfig(api.source, versionSource);
 													const resolvedLlms = mergeLlmsPluginConfig(options.llmsPlugin, api.llmsPlugin, versionLlms);
 
-													// Load package.json (version config takes precedence)
+													// Load package.json (version config takes precedence). Typed:
+													// a missing or malformed file is a user misconfiguration.
 													const packageJson =
 														versionPackageJson ||
 														(api.packageJson
-															? await loadPackageJson(api.packageJson as PathLike | (() => Promise<PackageJson>))
+															? yield* Effect.tryPromise({
+																	try: () =>
+																		loadPackageJson(api.packageJson as PathLike | (() => Promise<PackageJson>)),
+																	catch: (cause) =>
+																		new ConfigValidationError({
+																			field: "packageJson",
+																			reason: cause instanceof Error ? cause.message : String(cause),
+																			cause,
+																		}),
+																})
 															: undefined);
 
 													// Validate external packages
-													validateExternalPackages(versionExternalPackages || api.externalPackages, packageJson);
+													yield* Effect.try({
+														try: () =>
+															validateExternalPackages(versionExternalPackages || api.externalPackages, packageJson),
+														catch: (cause) =>
+															new ConfigValidationError({
+																field: "externalPackages",
+																reason: cause instanceof Error ? cause.message : String(cause),
+																cause,
+															}),
+													});
 
 													// Collect external packages (version > package > auto-detected)
 													const autoDetectOptions = versionAutoDetectDependencies || api.autoDetectDependencies;
@@ -449,7 +492,7 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 														extractAutoDetectedPackages(packageJson, autoDetectOptions);
 
 													if (externalPackages && externalPackages.length > 0) {
-														Effect.runSync(Metric.update(BuildMetrics.externalPackagesTotal, externalPackages.length));
+														yield* Metric.update(BuildMetrics.externalPackagesTotal, externalPackages.length);
 													}
 
 													// Generate VFS
@@ -478,57 +521,22 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 															...(resolvedSource != null ? { source: resolvedSource } : {}),
 															...(packageJson != null ? { packageJson } : {}),
 															...(resolvedLlms != null ? { llmsPlugin: resolvedLlms } : {}),
-															...(options.siteUrl != null ? { siteUrl: options.siteUrl } : {}),
+															...(siteUrl != null ? { siteUrl } : {}),
 															...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),
 															docsDir: path.dirname(outputDir),
 															...(docsRoot != null ? { docsRoot } : {}),
 															...(resolvedTheme != null ? { theme: resolvedTheme } : {}),
 														} satisfies ResolvedApiConfig,
 													};
-												});
+												}
 											}),
 										{ concurrency: "unbounded" },
 									);
 
 									// Flatten and merge version results
 									for (const result of versionResults) {
-										for (const [filepath, content] of result.vfs.entries()) {
-											combinedVfs.set(filepath, content);
-										}
-										if (result.externalPackages.length > 0) {
-											allExternalPackages.push(...result.externalPackages);
-										}
-										if (result.config) {
-											apiConfigs.push(result.config);
-										}
-										for (const payload of result.vfsPayloads) {
-											yield* emit(
-												PluginEvent.VfsGenerated({
-													ctx: {
-														packageName: api.packageName,
-														...(payload.entryPoint ? { entryPoint: payload.entryPoint } : {}),
-													},
-													level: "debug",
-													file: payload.file,
-													declCount: payload.declCount,
-													contentHash: payload.contentHash,
-													...(wantTrace && payload.content ? { content: payload.content } : {}),
-												}),
-											);
-											if (payload.hasImports) {
-												yield* emit(
-													PluginEvent.ImportsPrepended({
-														ctx: {
-															packageName: api.packageName,
-															...(payload.entryPoint ? { entryPoint: payload.entryPoint } : {}),
-														},
-														level: "debug",
-														file: payload.file,
-														imports: wantTrace ? payload.importRefs : [],
-													}),
-												);
-											}
-										}
+										mergeApiResult(acc, result);
+										yield* emitVfsPayloadEvents(api.packageName, result.vfsPayloads, wantTrace);
 									}
 								} else if (api.model) {
 									// Non-versioned single-API mode
@@ -546,41 +554,8 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 									const dp = derivedPaths[0];
 									if (dp) {
 										const result = yield* processSimpleApi(api, api.model, dp.outputDir, dp.routeBase, wantTrace);
-										for (const [filepath, content] of result.vfs.entries()) {
-											combinedVfs.set(filepath, content);
-										}
-										if (result.externalPackages.length > 0) {
-											allExternalPackages.push(...result.externalPackages);
-										}
-										apiConfigs.push(result.config);
-										for (const payload of result.vfsPayloads) {
-											yield* emit(
-												PluginEvent.VfsGenerated({
-													ctx: {
-														packageName: api.packageName,
-														...(payload.entryPoint ? { entryPoint: payload.entryPoint } : {}),
-													},
-													level: "debug",
-													file: payload.file,
-													declCount: payload.declCount,
-													contentHash: payload.contentHash,
-													...(wantTrace && payload.content ? { content: payload.content } : {}),
-												}),
-											);
-											if (payload.hasImports) {
-												yield* emit(
-													PluginEvent.ImportsPrepended({
-														ctx: {
-															packageName: api.packageName,
-															...(payload.entryPoint ? { entryPoint: payload.entryPoint } : {}),
-														},
-														level: "debug",
-														file: payload.file,
-														imports: wantTrace ? payload.importRefs : [],
-													}),
-												);
-											}
-										}
+										mergeApiResult(acc, result);
+										yield* emitVfsPayloadEvents(api.packageName, result.vfsPayloads, wantTrace);
 									}
 								}
 							} else if (options.apis) {
@@ -621,49 +596,17 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 											if (!dp) return [];
 
 											const result = yield* processSimpleApi(api, api.model, dp.outputDir, dp.routeBase, wantTrace);
-											for (const payload of result.vfsPayloads) {
-												yield* emit(
-													PluginEvent.VfsGenerated({
-														ctx: {
-															packageName: api.packageName,
-															...(payload.entryPoint ? { entryPoint: payload.entryPoint } : {}),
-														},
-														level: "debug",
-														file: payload.file,
-														declCount: payload.declCount,
-														contentHash: payload.contentHash,
-														...(wantTrace && payload.content ? { content: payload.content } : {}),
-													}),
-												);
-												if (payload.hasImports) {
-													yield* emit(
-														PluginEvent.ImportsPrepended({
-															ctx: {
-																packageName: api.packageName,
-																...(payload.entryPoint ? { entryPoint: payload.entryPoint } : {}),
-															},
-															level: "debug",
-															file: payload.file,
-															imports: wantTrace ? payload.importRefs : [],
-														}),
-													);
-												}
-											}
+											yield* emitVfsPayloadEvents(api.packageName, result.vfsPayloads, wantTrace);
 											return [result];
 										}),
 									{ concurrency: "unbounded" },
 								);
 
-								// Flatten and merge results
+								// Flatten and merge results. Events were emitted inside the
+								// per-API effect above, so this path only merges.
 								for (const results of multiResults) {
 									for (const result of results) {
-										for (const [filepath, content] of result.vfs.entries()) {
-											combinedVfs.set(filepath, content);
-										}
-										if (result.externalPackages.length > 0) {
-											allExternalPackages.push(...result.externalPackages);
-										}
-										apiConfigs.push(result.config);
+										mergeApiResult(acc, result);
 									}
 								}
 							}
@@ -696,8 +639,9 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 							globalTsConfig.compilerOptions = firstApiCompilerOptions as TypeResolutionCompilerOptions;
 						}
 					}
-					const resolvedCompilerOptions: TypeResolutionCompilerOptions = yield* Effect.promise(() =>
-						resolveTypeScriptConfig(projectRoot, globalTsConfig),
+					const resolvedCompilerOptions: TypeResolutionCompilerOptions = yield* resolveTsConfigTyped(
+						projectRoot,
+						globalTsConfig,
 					);
 
 					yield* emit(
@@ -710,142 +654,20 @@ export const ConfigServiceLive: Layer.Layer<ConfigService, never, TypeRegistrySe
 					);
 
 					// --- 6. External type loading (recoverable) ---
-					// Twoslash builds its own per-block TypeScript environment from the
-					// combined VFS, so we only need to fetch the external declarations and
-					// merge them in here — no separate TypeScript-cache pre-build.
-					//
-					// First-party packages (the ones being documented) are served from their
-					// generated virtual VFS, which is authoritative — their published version
-					// may not exist (an optimistic next version) and, if it did, fetching it
-					// would clobber the api.json-derived declarations. Exclude them.
-					const documentedPackageNames = new Set(apiConfigs.map((config) => config.packageName));
-					const externalPackagesToLoad = allExternalPackages.filter((pkg) => !documentedPackageNames.has(pkg.name));
-
-					const typeLoadResult = yield* Effect.result(
-						Effect.gen(function* () {
-							if (externalPackagesToLoad.length > 0) {
-								// Resolve version specs (ranges / npm tags) to exact published
-								// versions and drop unpublished / workspace-only packages: the CDN
-								// backing loadPackages requires exact versions and 404s on ranges
-								// or unpublished packages.
-								const resolvedPackages = yield* typeRegistry.resolveVersions(externalPackagesToLoad);
-								const droppedCount = externalPackagesToLoad.length - resolvedPackages.length;
-								if (droppedCount > 0) {
-									yield* emit(
-										PluginEvent.ExternalPackageSkipped({
-											ctx: {},
-											level: "debug",
-											reason: `${droppedCount} unresolvable package(s) (unpublished or workspace-only)`,
-										}),
-									);
-								}
-
-								if (resolvedPackages.length > 0) {
-									const result = yield* typeRegistry.loadPackages(resolvedPackages);
-
-									// Merge external package VFS into combined VFS
-									for (const [filePath, content] of result.vfs.entries()) {
-										combinedVfs.set(filePath, content);
-									}
-
-									yield* emit(
-										PluginEvent.VfsMerged({
-											ctx: {},
-											level: "debug",
-											totalFiles: result.vfs.size,
-											packages: resolvedPackages.map((p) => p.name),
-										}),
-									);
-								}
-							}
-						}),
-					);
-
-					if (typeLoadResult._tag === "Failure") {
-						yield* emit(
-							PluginEvent.ConfigCascadeWarning({
-								ctx: {},
-								level: "warn",
-								field: "externalTypes",
-								chosen: "empty VFS",
-								ignored: [typeLoadResult.failure.message ?? String(typeLoadResult.failure)],
-							}),
-						);
-					}
+					yield* mergeExternalTypes(typeRegistry, combinedVfs, apiConfigs, allExternalPackages);
 
 					// --- 7. Twoslash init ---
-					// The result cache is keyed on the type environment, so it has to be
-					// loaded after the VFS is final and before any block is rendered.
-					// The compiler version is part of the environment: lib.d.ts ships with
-					// TypeScript and inference changes between releases, so a cached
-					// result is only valid for the compiler that produced it.
-					const twoslashEnv = twoslashEnvHash(combinedVfs, `typescript@${ts.version}`);
-					const cacheSvc = yield* TwoslashCacheService;
-					// The service holds the generation for the rest of the build: the
-					// render pass that populates it runs after config() returns.
-					const twoslashCache = yield* cacheSvc.open(twoslashEnv);
-					yield* emit(
-						PluginEvent.TwoslashCacheLoaded({
-							ctx: {},
-							level: "debug",
-							envHash: twoslashEnv,
-							entries: twoslashCache.entries().size,
-						}),
-					);
-
-					const twoslashStartMs = performance.now();
-					const environments = yield* TwoslashEnvironments;
-
-					// The build-wide options come first, so they become the fallback
-					// environment for code blocks that belong to no documented scope.
-					environments.registerEnvironment({
-						vfs: combinedVfs,
-						compilerOptions: resolvedCompilerOptions,
-						typesCache: twoslashCache,
+					yield* registerTypeEnvironments({
+						combinedVfs,
+						resolvedCompilerOptions,
+						scopeTsConfigs,
+						projectRoot,
 					});
 
-					// Then one environment per API that declares its own configuration.
-					// Resolution is memoised by raw config, so N APIs sharing a tsconfig
-					// read it once; the registry in turn dedupes by RESOLVED options,
-					// so they also share a single TypeScript environment.
-					const resolvedByRawConfig = new Map<string, TypeResolutionCompilerOptions>();
-					for (const [apiScope, rawConfig] of scopeTsConfigs) {
-						if (rawConfig === undefined) {
-							environments.registerScope(apiScope, resolvedCompilerOptions);
-							continue;
-						}
-						const rawKey = JSON.stringify([String(rawConfig.tsconfig ?? ""), rawConfig.compilerOptions ?? null]);
-						let scopeOptions = resolvedByRawConfig.get(rawKey);
-						if (scopeOptions === undefined) {
-							scopeOptions = yield* Effect.promise(() => resolveTypeScriptConfig(projectRoot, rawConfig));
-							resolvedByRawConfig.set(rawKey, scopeOptions);
-						}
-						environments.registerEnvironment({
-							vfs: combinedVfs,
-							compilerOptions: scopeOptions,
-							typesCache: twoslashCache,
-						});
-						environments.registerScope(apiScope, scopeOptions);
-					}
-
-					yield* emit(
-						PluginEvent.TwoslashInitialized({
-							ctx: {},
-							level: "debug",
-							durationMs: Math.round(performance.now() - twoslashStartMs),
-							vfsFileCount: combinedVfs.size,
-						}),
-					);
-
 					return apiConfigs;
-				}) as Effect.Effect<
-					ReadonlyArray<ResolvedApiConfig>,
-					ConfigValidationError | ApiModelLoadError | TypeRegistryError,
-					Scope.Scope | TwoslashCacheService | TwoslashEnvironments
-				>,
+				}),
 		};
-	}),
-);
+	});
 
 /** The raw TypeScript config an API declares, or undefined when it declares none. */
 function rawTsConfig(api: { tsconfig?: unknown; compilerOptions?: unknown }): TypeScriptConfig | undefined {

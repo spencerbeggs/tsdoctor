@@ -78,7 +78,7 @@ export function makeMetricStore(): MetricStore {
  * build still gets its own counters — see {@link MetricRegistryLive}.
  *
  * Extracted into its own module so that `metrics-sink.ts` can import it
- * without creating a circular dependency through `ObservabilityLive.ts`
+ * without creating a circular dependency through `observability.ts`
  * (which itself imports `metrics-sink.ts`).
  */
 export const BuildMetrics = {

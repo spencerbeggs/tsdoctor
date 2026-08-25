@@ -4,12 +4,12 @@
  *
  * @remarks
  * Each of these used to travel by hand. `thresholds` made a four-hop journey —
- * `plugin.ts` → `ConfigServiceLive`'s fourth constructor argument →
+ * `plugin.ts` → `ConfigService.layer`'s fourth constructor argument →
  * a `ResolvedBuildContext` field → destructured in `build-program.ts` → every
  * `withPhase` call — while `obs.thresholds` already held the same value one
  * scope away. `buildId` was worse: 24 event emit sites wrote
  * `ctx: { buildId: "" }` because the value was not reachable from where they
- * stood, and in `TypeRegistryServiceLive` it genuinely was not — that layer is
+ * stood, and in `TypeRegistryService.layer` it genuinely was not — that layer is
  * module-level and has no build to name. A Reference is the fix precisely
  * because it reaches module-level code that no parameter can.
  *
@@ -56,7 +56,7 @@ export const Thresholds = Context.Reference<ResolvedObservability["thresholds"]>
  * How many pages the build pipeline generates concurrently.
  *
  * @remarks
- * Defaults to the CPU count, which is what `ConfigServiceLive` computed
+ * Defaults to the CPU count, which is what `ConfigService.layer` computed
  * inline. Kept a Reference rather than a constant so a consumer with a
  * constrained CI runner can lower it without a code change.
  */

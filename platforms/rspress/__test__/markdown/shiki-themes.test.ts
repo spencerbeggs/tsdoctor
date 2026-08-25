@@ -2,7 +2,7 @@
  * The theme set the build's highlighter loads.
  *
  * @remarks
- * This moved from `ConfigServiceLive.resolve()` (reading RESOLVED api configs)
+ * This moved from `ConfigService.layer.resolve()` (reading RESOLVED api configs)
  * to a layer that builds before `resolve()` runs (reading RAW option configs).
  * The tests below pin the equivalence that makes that sound, and each was
  * watched failing under the edit it forbids.
@@ -68,7 +68,7 @@ describe("collectShikiThemes", () => {
 	});
 
 	// The differential that makes the move sound. The deleted code looped over
-	// RESOLVED api configs inside `ConfigServiceLive.resolve()`; this loops over
+	// RESOLVED api configs inside `ConfigService.layer.resolve()`; this loops over
 	// the RAW option configs from a layer that builds before `resolve()` runs.
 	// `legacyCollect` is that deleted loop, verbatim, so the two can be diffed.
 	it("agrees with the resolved-config loop it replaced", () => {
@@ -95,7 +95,7 @@ describe("collectShikiThemes", () => {
 			{},
 		];
 		// A resolved config's `theme` is exactly `normalizeThemeConfig(api.theme)`
-		// — see `ConfigServiceLive`'s two assembly sites — so this is the input
+		// — see `ConfigService.layer`'s two assembly sites — so this is the input
 		// the old loop actually saw.
 		const resolved = raws.map((api) => ({ theme: normalizeThemeConfig(api.theme) }));
 

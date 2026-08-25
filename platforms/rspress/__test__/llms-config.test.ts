@@ -9,7 +9,7 @@
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 import { mergeLlmsPluginConfig, normalizeLlmsPluginConfig } from "../src/config-utils.js";
-import { LlmsPlugin } from "../src/schemas/index.js";
+import { LlmsPlugin } from "../src/schemas/config.js";
 
 describe("LlmsPlugin schema", () => {
 	const decode = Schema.decodeUnknownSync(LlmsPlugin);

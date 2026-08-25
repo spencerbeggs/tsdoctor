@@ -1,4 +1,4 @@
-import type { CategoryConfig, SourceConfig } from "./schemas/index.js";
+import type { CategoryConfig, SourceConfig } from "./schemas/config.js";
 
 /**
  * Resolver for category and source configurations with proper precedence handling.

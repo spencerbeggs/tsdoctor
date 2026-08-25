@@ -5,7 +5,6 @@ import { Effect, Option } from "effect";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import type { FileSnapshot } from "../src/SnapshotService.js";
 import { SnapshotService } from "../src/SnapshotService.js";
-import { SnapshotServiceLive } from "../src/SnapshotServiceLive.js";
 
 function makeSnapshot(overrides: Partial<FileSnapshot> = {}): FileSnapshot {
 	return {
@@ -20,7 +19,7 @@ function makeSnapshot(overrides: Partial<FileSnapshot> = {}): FileSnapshot {
 	};
 }
 
-describe("SnapshotServiceLive", () => {
+describe("SnapshotService.layer", () => {
 	let tmpDir: string;
 	let dbPath: string;
 
@@ -43,7 +42,7 @@ describe("SnapshotServiceLive", () => {
 			return result;
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotServiceLive(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
 
 		expect(Option.isSome(result)).toBe(true);
 		const value = Option.getOrThrow(result);
@@ -61,7 +60,7 @@ describe("SnapshotServiceLive", () => {
 			return yield* svc.getSnapshot("/nonexistent", "missing.mdx");
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotServiceLive(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
 
 		expect(Option.isNone(result)).toBe(true);
 	});
@@ -80,7 +79,7 @@ describe("SnapshotServiceLive", () => {
 			return { count, all };
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotServiceLive(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
 
 		expect(result.count).toBe(3);
 		expect(result.all).toHaveLength(3);
@@ -106,7 +105,7 @@ describe("SnapshotServiceLive", () => {
 			return { stale, remaining };
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotServiceLive(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
 
 		expect([...result.stale].sort()).toEqual(["api/class/AlsoRemove.mdx", "api/class/Remove.mdx"]);
 		expect(result.remaining).toHaveLength(1);
@@ -127,7 +126,7 @@ describe("SnapshotServiceLive", () => {
 			return { before, after };
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotServiceLive(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
 
 		expect(Option.isSome(result.before)).toBe(true);
 		expect(Option.isNone(result.after)).toBe(true);
@@ -147,7 +146,7 @@ describe("SnapshotServiceLive", () => {
 			return paths;
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotServiceLive(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
 
 		expect([...result].sort()).toEqual(["api/class/A.mdx", "api/enum/B.mdx"]);
 	});

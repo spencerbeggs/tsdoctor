@@ -10,4 +10,3 @@
 export { hashContent, hashFrontmatter, normalizeContent } from "./content-hash.js";
 export type { FileSnapshot, SnapshotServiceShape } from "./SnapshotService.js";
 export { SnapshotDbError, SnapshotService } from "./SnapshotService.js";
-export { SnapshotServiceLive } from "./SnapshotServiceLive.js";

@@ -24,7 +24,7 @@ import {
 } from "./llms-processing.js";
 import { emit } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
-import type { LlmsPlugin } from "./schemas/index.js";
+import type { LlmsPlugin } from "./schemas/config.js";
 
 /**
  * Input for the processLlmsFiles Effect program.

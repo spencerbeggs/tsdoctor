@@ -40,9 +40,9 @@ export function makeEventBusLayer(sinks: readonly EventSink[]): Layer.Layer<Even
  * @remarks
  * Fills `ctx.buildId` from the {@link BuildId} Reference when the caller left
  * it empty, which is why no emit site passes one. Before this, 24 sites wrote
- * `ctx: { buildId: "" }` — 22 in `ConfigServiceLive`, where the real value sat
+ * `ctx: { buildId: "" }` — 22 in `ConfigService.layer`, where the real value sat
  * three scopes up and was simply not reached, and every site in
- * `TypeRegistryServiceLive`, where the layer is module-level and there is no
+ * `TypeRegistryService.layer`, where the layer is module-level and there is no
  * build to name. The second group is why a Reference is the fix and a
  * find-and-replace is not: a Reference reaches code that no parameter can.
  *

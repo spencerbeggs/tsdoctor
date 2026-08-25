@@ -8,7 +8,7 @@ import { SemVer } from "@effected/semver";
 import type { ApiModel } from "@microsoft/api-extractor-model";
 import { Effect } from "effect";
 import type { LoadedModel, PackageJson } from "./internal-types.js";
-import type { AutoDetectDependencies, ExternalPackageSpec, LlmsPlugin, VersionConfig } from "./schemas/index.js";
+import type { AutoDetectDependencies, ExternalPackageSpec, LlmsPlugin, VersionConfig } from "./schemas/config.js";
 
 /**
  * Type guard to check if version value is a full VersionConfig

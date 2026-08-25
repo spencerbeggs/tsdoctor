@@ -9,8 +9,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createPageMetadata, imageMimeType, ogAltText, resolveOgUrl } from "../src/og-resolver.js";
-import type { OpenGraphImageMetadata } from "../src/schemas/index.js";
+import { createPageMetadata, deriveSiteUrl, imageMimeType, ogAltText, resolveOgUrl } from "../src/og-resolver.js";
+import type { OpenGraphImageMetadata } from "../src/schemas/opengraph.js";
 
 describe("resolveOgUrl", () => {
 	it("passes an absolute http URL through", () => {
@@ -177,5 +177,52 @@ describe("edge cases", () => {
 
 	it("concatenates without normalizing a trailing slash on siteUrl", () => {
 		expect(resolveOgUrl("https://example.com/", "/images/og.png")).toBe("https://example.com//images/og.png");
+	});
+});
+
+describe("deriveSiteUrl", () => {
+	// The plugin's `siteUrl` option is gone; the canonical URL now comes from
+	// RSPress's own `siteOrigin` + `base`, which is the only place that knows
+	// where the site is actually deployed.
+
+	it("joins siteOrigin and base, per RSPress's siteOrigin + base + routePath order", () => {
+		expect(deriveSiteUrl("https://foo.github.io", "/bar/")).toBe("https://foo.github.io/bar");
+	});
+
+	it("returns the bare origin when base is the default root", () => {
+		expect(deriveSiteUrl("https://example.com", "/")).toBe("https://example.com");
+		expect(deriveSiteUrl("https://example.com", undefined)).toBe("https://example.com");
+	});
+
+	it("leaves no trailing slash, since callers append a route beginning with /", () => {
+		// FORBIDS a naive `${origin}${base}` join: with base "/bar/" that yields
+		// "…/bar/" and every og:url gets a doubled slash before the route.
+		for (const base of ["/bar/", "bar", "/bar", "bar/", "//bar//"]) {
+			expect(deriveSiteUrl("https://foo.github.io", base)).toBe("https://foo.github.io/bar");
+		}
+		expect(deriveSiteUrl("https://example.com/", "/")).toBe("https://example.com");
+	});
+
+	it("falls back to a root-relative prefix without a siteOrigin", () => {
+		// RSPress's own documented fallback is `base + routePath` when siteOrigin
+		// is unset, and matching it is what makes the tags inspectable under
+		// `rspress dev` on localhost, where no configured origin could be right.
+		expect(deriveSiteUrl(undefined, "/bar/")).toBe("/bar");
+		expect(deriveSiteUrl("", "/bar/")).toBe("/bar");
+		expect(deriveSiteUrl("   ", "/bar/")).toBe("/bar");
+	});
+
+	it("yields an empty prefix at the site root, leaving routes root-relative", () => {
+		// FORBIDS returning "/" here: the caller appends a route that already
+		// starts with "/", so a "/" prefix doubles it into "//api/...", which a
+		// browser reads as a protocol-relative URL pointing at a host named "api".
+		expect(deriveSiteUrl(undefined, "/")).toBe("");
+		expect(deriveSiteUrl(undefined, undefined)).toBe("");
+		expect(resolveOgUrl(deriveSiteUrl(undefined, "/"), "/images/og.png")).toBe("/images/og.png");
+	});
+
+	it("composes with resolveOgUrl into exactly one slash", () => {
+		const siteUrl = deriveSiteUrl("https://foo.github.io", "/bar/");
+		expect(resolveOgUrl(siteUrl as string, "/og.png")).toBe("https://foo.github.io/bar/og.png");
 	});
 });

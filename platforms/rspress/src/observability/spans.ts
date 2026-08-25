@@ -34,7 +34,7 @@ export function withPhase<A, E, R>(
 ): Effect.Effect<A, E, R> {
 	return Effect.gen(function* () {
 		// Read from context rather than taken as a parameter. The value used to
-		// travel plugin.ts -> ConfigServiceLive's 4th argument -> a
+		// travel plugin.ts -> ConfigService.layer's 4th argument -> a
 		// ResolvedBuildContext field -> a destructure in build-program.ts -> here,
 		// while `obs.thresholds` held it one scope from where it started.
 		const thresholds = yield* Thresholds;

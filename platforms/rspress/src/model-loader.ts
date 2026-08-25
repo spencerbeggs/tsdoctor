@@ -11,10 +11,10 @@ import type {
 	CategoryConfig,
 	ExternalPackageSpec,
 	LlmsPlugin,
-	OpenGraphImageConfig,
 	SourceConfig,
 	VersionConfig,
-} from "./schemas/index.js";
+} from "./schemas/config.js";
+import type { OpenGraphImageConfig } from "./schemas/opengraph.js";
 
 /**
  * The typed failures a model load can produce. Path loads fail with

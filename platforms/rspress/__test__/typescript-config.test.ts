@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { TypeResolutionCompilerOptions, TypeScriptConfig } from "../src/internal-types.js";
 import {
 	DEFAULT_COMPILER_OPTIONS,
-	hasTypeScriptConfig,
 	mergeCompilerOptions,
 	resolveTypeScriptConfig,
 	resolveTypeScriptConfigSingle,
@@ -305,32 +304,5 @@ describe("resolveTypeScriptConfigSingleAsync", () => {
 		expect(result.target).toBe(99); // From async function
 		expect(result.strict).toBe(false); // Overridden by compilerOptions
 		expect(result.module).toBe(99); // From compilerOptions
-	});
-});
-
-describe("hasTypeScriptConfig", () => {
-	it("returns false for undefined", () => {
-		expect(hasTypeScriptConfig(undefined)).toBe(false);
-	});
-
-	it("returns false for empty config", () => {
-		expect(hasTypeScriptConfig({})).toBe(false);
-	});
-
-	it("returns true if tsconfig is specified", () => {
-		expect(hasTypeScriptConfig({ tsconfig: "tsconfig.json" })).toBe(true);
-	});
-
-	it("returns true if compilerOptions is specified", () => {
-		expect(hasTypeScriptConfig({ compilerOptions: { target: 99 } })).toBe(true);
-	});
-
-	it("returns true if both are specified", () => {
-		expect(
-			hasTypeScriptConfig({
-				tsconfig: "tsconfig.json",
-				compilerOptions: { target: 99 },
-			}),
-		).toBe(true);
 	});
 });

@@ -10,16 +10,25 @@ Extracted from the plugin in phase 2 of the consolidation and rebuilt on
 
 ## Key Facts
 
-- Modules: `SnapshotService.ts` (the `Context.Service` tag — id
-  `"@tsdoctor/snapshot/SnapshotService"` — plus `SnapshotServiceShape`,
-  `FileSnapshot` and the `SnapshotDbError` tagged error),
-  `SnapshotServiceLive.ts` (`SnapshotServiceLive(dbPath)` on
-  `Store.layerSqlite({ filename, migrations, checkpointOnClose: true })`;
-  migration 1 is the former `001_create_snapshots` SQL, applied at layer
+- Modules: `SnapshotService.ts` — the `Context.Service` tag (id
+  `"@tsdoctor/snapshot/SnapshotService"`), `SnapshotServiceShape`,
+  `FileSnapshot`, the `SnapshotDbError` tagged error and the service's own
+  layer and test doubles — and `content-hash.ts` (pure
+  `hashContent`/`hashFrontmatter`/`normalizeContent`).
+- The service owns its layer as a static: `SnapshotService.layer(dbPath)` over
+  `Store.layerSqlite({ filename, migrations, checkpointOnClose: true })`.
+  Migration 1 is the former `001_create_snapshots` SQL, applied at layer
   construction; `checkpointOnClose: true` registers the WAL checkpoint as a
-  scope finalizer inside `@effected/store` itself — no hand-written
-  finalizer here), `content-hash.ts`
-  (pure `hashContent`/`hashFrontmatter`/`normalizeContent`).
+  scope finalizer inside `@effected/store` itself — no hand-written finalizer
+  here. It is a factory: call it once per database path and bind the result to
+  a `const`, since layers memoize by reference.
+- `SnapshotService.makeTest(overrides)` / `layerTest(overrides)` are the
+  in-memory doubles — every lookup misses, every write is accepted and
+  discarded, and `cleanupStale` reports nothing stale (a double claiming files
+  were stale would have the caller delete them from disk).
+- `hashContent` is **not** on `SnapshotServiceShape`; it never had a consumer in
+  method form. The standalone `hashContent` export from the package root is
+  unchanged and is what callers already used.
 - Peers only: `effect` (`catalog:effect:peers`) and `@effected/store`
   (`catalog:effected:peers`) — never hand-pin `@effected` ranges.
 - All queries and the transactional batch upsert run through `store.client`
@@ -30,8 +39,10 @@ Extracted from the plugin in phase 2 of the consolidation and rebuilt on
   on first run — harmless (`CREATE TABLE IF NOT EXISTS`). The bundle
   fingerprints table (`bundle-spec.md`) is planned as migration 2.
 - Primary consumer is `platforms/rspress/` (`workspace:*`): `build-stages.ts`
-  imports `SnapshotService`, `hashContent`, `hashFrontmatter`; `plugin.ts`
-  composes `SnapshotServiceLive(<cwd>/.api-docs/snapshot/api-docs.db)`.
+  imports `SnapshotService`, `hashContent`, `hashFrontmatter`;
+  `layers/AppLayer.ts` composes `SnapshotService.layer(dbPath)` for the
+  `<cwd>/.api-docs/snapshot/api-docs.db` path `plugin.ts` resolves and
+  `mkdirSync`s.
 - Builds with `defineBuild()` (`savvy.build.ts`, `@savvy-web/bundler`);
   tsconfig extends `@savvy-web/bundler/tsconfig/ecma.json`. Source
   `package.json` stays `"private": true`; `publishConfig` drives publishing.

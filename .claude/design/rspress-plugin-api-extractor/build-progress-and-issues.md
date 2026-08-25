@@ -111,7 +111,7 @@ Every other event tag returns `null` from `eventToIssue` and is not collected. T
 `RouteCollisionDetected` and `ModelLoadFailed` existed in the `PluginEvent` taxonomy from early on but had no emit site — each now has one, though after the phase-2 model redesign they reach the bus by different routes:
 
 - `RouteCollisionDetected` — the route-collision check in `build-stages.ts` emits it via `emitSync` before throwing (sync-island pattern, same as the Twoslash/Prettier error flow in `error-observability.md`). The seven per-module seams this used to require — `setBuildStagesEventEmitter` and its Twoslash/Prettier/Shiki-utils/OG/remark siblings — collapsed into one `observability/sync-emitter.ts`, bound once by `installSyncEmitter(emitterRuntime)` in `plugin.ts`. See the Sync-Island Bridge section of `performance-observability.md`.
-- `ModelLoadFailed` — emitted inside the Effect pipeline: model loading is Effect-typed since the phase-2 redesign (`Model.load` from `@tsdoctor/model`, typed `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), so `ConfigServiceLive` attaches `Effect.tapError` (emit) + `Effect.orDie` to the load. The former `setModelLoaderEventEmitter` and `setLoaderEventEmitter` sync-island seams are **deleted** — no bridge is needed when the failure already flows through a fiber.
+- `ModelLoadFailed` — emitted inside the Effect pipeline: model loading is Effect-typed since the phase-2 redesign (`Model.load` from `@tsdoctor/model`, typed `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), so `layers/config-resolution.ts` attaches `Effect.tapError` (emit) + `Effect.orDie` to the load. The former `setModelLoaderEventEmitter` and `setLoaderEventEmitter` sync-island seams are **deleted** — no bridge is needed when the failure already flows through a fiber.
 
 ### Schema
 
@@ -190,11 +190,12 @@ This is a real observability gap, not a nice-to-have: on a large site the heartb
 | `src/observability/sinks/issues-sink.ts` | `Issue`, `IssuesSnapshot`, `eventToIssue`, `makeIssuesSink`, `writeIssuesJson` |
 | `src/observability/sinks/console-sink.ts` | Renders `BuildProgress` via `formatProgress` |
 | `src/layers/build-metrics.ts` | `apisCompleted` counter |
-| `src/layers/ObservabilityLive.ts` | `buildEventBus` wiring the issues sink + eager trace path |
+| `src/layers/observability.ts` | `buildEventBus` wiring the issues sink + eager trace path |
 | `src/schemas/observability.ts` | `progressInterval` → `progressIntervalMs` resolution, eager `tracePath` derivation |
 | `src/build-stages.ts` | `RouteCollisionDetected` emit site (via `emitSync`) |
 | `src/observability/sync-emitter.ts` | `installSyncEmitter` / `emitSync` / `syncBuildId` — the one sync-island bridge |
-| `src/layers/ConfigServiceLive.ts` | `ModelLoadFailed` emit site (`Effect.tapError` + `Effect.orDie` on `Model.load`) |
+| `src/layers/config-resolution.ts` | `ModelLoadFailed` emit site (`Effect.tapError` + `Effect.orDie` on `Model.load`); the typed `ConfigValidationError` failures |
+| `src/layers/type-environment.ts` | `resolveTsConfigTyped` — the malformed-tsconfig `ConfigValidationError` |
 | `src/plugin.ts` | Real `isProd` threading, phase `Ref`, heartbeat fork, issues write (`afterBuild` + fatal-path `catch`) |
 | `plugin/monitors/monitors.json` | Registers the `doc-build-issues` monitor |
 | `plugin/monitors/watch-issues.mjs` | Poll loop, `diagnose` debounce, notification copy |

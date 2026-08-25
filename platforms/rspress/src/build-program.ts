@@ -9,7 +9,7 @@ import { buildPipelineForApi, cleanupAndCommit, prepareWorkItems, writeMetadata 
 // value with one fewer indirection. Note the naming: the registry field
 // `hideCutTransformer` holds `MemberFormatTransformer`.
 import { HideCutLinesTransformer, MemberFormatTransformer } from "./hide-cut-transformer.js";
-import { setProseLinker } from "./markdown/index.js";
+import { setProseLinker } from "./markdown/prose-linker.js";
 import { withPhase } from "./observability/spans.js";
 import type { ResolvedApiConfig } from "./services/ConfigService.js";
 import { HighlighterService } from "./services/HighlighterService.js";

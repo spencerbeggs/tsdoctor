@@ -19,7 +19,7 @@
  * 2. **Moving the service to the small sync-buildable runtime does not help.**
  *    Layer memoization is per-`ManagedRuntime` `MemoMap`, not global, so ONE
  *    layer reference across TWO runtimes builds TWO instances. Probed on
- *    `effect@4.0.0-rc.109`: `instances: 1 2  built: 2`. `ConfigServiceLive`
+ *    `effect@4.0.0-rc.109`: `instances: 1 2  built: 2`. `ConfigService.layer`
  *    would populate one registry and the render pass would read a different,
  *    empty one — `transformerFor` returns `null` for every block and every code
  *    block renders untype-checked, with nothing failing.
@@ -59,7 +59,7 @@ let current: Pick<TwoslashEnvironmentsShape, "transformerFor" | "setCurrentFile"
  *
  * @remarks
  * Called from `plugin.ts`'s Effect program, beside the other seam wiring, and
- * NOT from `ConfigServiceLive` — config resolution should compute a value, not
+ * NOT from `ConfigService.layer` — config resolution should compute a value, not
  * also mutate module state on the side.
  */
 export function installTwoslashAccess(environments: TwoslashEnvironmentsShape): void {

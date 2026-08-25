@@ -1,10 +1,37 @@
+/**
+ * Reading a `tsconfig.json` into the compiler options the plugin consumes.
+ *
+ * @remarks
+ * A thin adapter over `@effected/tsconfig-json`'s `TsconfigLoaderSync`, which
+ * owns `extends` chain resolution (including package specifiers), JSONC
+ * parsing and relative-path handling. This module used to hand-roll all three
+ * over TypeScript's `parseJsonConfigFileContent`.
+ *
+ * **The loader returns the tsconfig SPELLING, not the programmatic one.**
+ * `target` is `"es2025"` rather than `ts.ScriptTarget.ES2025`, and `lib` is
+ * `["esnext"]` rather than `["lib.esnext.d.ts"]`. That is fine, and it is why
+ * the normalization seam had to land first: `toProgrammaticCompilerOptions`
+ * (`twoslash-transformer.ts`) converts at ONE place, and
+ * {@link TypeResolutionCompilerOptions} accepts both spellings by design. Do
+ * not convert here — a second conversion site is exactly the drift that made
+ * three of four resolution paths load zero lib files once already.
+ *
+ * @packageDocumentation
+ */
+
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, isAbsolute, resolve } from "node:path";
-import ts from "typescript";
+import path from "node:path";
+import { TsconfigLoaderSync } from "@effected/tsconfig-json";
 import type { TypeResolutionCompilerOptions } from "./internal-types.js";
 
 /**
  * Error thrown when tsconfig.json parsing fails.
+ *
+ * @remarks
+ * Retained as the plugin's own type rather than surfacing the kit's
+ * `TsconfigParseError`/`TsconfigExtendsError` directly: `typescript-config.ts`
+ * branches on `instanceof TsConfigParseError` to decide whether a failure is
+ * already reported, and both kit errors mean the same thing to that caller.
  */
 export class TsConfigParseError extends Error {
 	constructor(
@@ -18,217 +45,92 @@ export class TsConfigParseError extends Error {
 }
 
 /**
- * Result of parsing a tsconfig.json file.
+ * The sync host the kit loader reads through.
+ *
+ * @remarks
+ * `node:path` satisfies `SyncPath` verbatim. The filesystem half is two
+ * functions, so no shim module is needed.
  */
-export interface TsConfigParseResult {
-	/** Resolved compiler options */
-	compilerOptions: TypeResolutionCompilerOptions;
-	/** Path to the resolved config file */
-	configPath: string;
-	/** All extended config paths in resolution order (base to derived) */
-	extendedPaths: string[];
-}
+const syncHost = {
+	fileSystem: {
+		exists: existsSync,
+		readFile: (filePath: string): string => readFileSync(filePath, "utf8"),
+	},
+	path,
+} as const;
 
 /**
- * Parse a tsconfig.json file and extract compiler options relevant for type resolution.
- *
- * This function uses TypeScript's native config parsing which automatically handles:
- * - `extends` chains (resolves and merges all extended configs)
- * - Comments in JSON (JSONC support)
- * - Relative path resolution
+ * Parse a `tsconfig.json` and extract the compiler options used for type
+ * resolution.
  *
  * @param configPath - Path to tsconfig.json (relative or absolute)
  * @param projectRoot - Project root directory for resolving relative paths
- * @returns Parsed compiler options
+ * @returns The declared compiler options, in the tsconfig spelling
  * @throws TsConfigParseError if the config cannot be read or parsed
  *
  * @example
  * ```ts
  * const options = parseTsConfig("tsconfig.json", "/path/to/project");
- * // Returns: { target: 99, module: 99, lib: ["ESNext", "DOM"], ... }
+ * // Returns: { target: "es2025", module: "nodenext", lib: ["esnext"], ... }
  * ```
  */
 export function parseTsConfig(configPath: string, projectRoot: string): TypeResolutionCompilerOptions {
-	const result = parseTsConfigWithMetadata(configPath, projectRoot);
-	return result.compilerOptions;
-}
+	const absolutePath = path.isAbsolute(configPath) ? configPath : path.resolve(projectRoot, configPath);
 
-/**
- * Parse a tsconfig.json file and return detailed metadata including extended paths.
- *
- * @param configPath - Path to tsconfig.json (relative or absolute)
- * @param projectRoot - Project root directory for resolving relative paths
- * @returns Parse result with compiler options and metadata
- * @throws TsConfigParseError if the config cannot be read or parsed
- *
- * @example
- * ```ts
- * const result = parseTsConfigWithMetadata("tsconfig.json", "/path/to/project");
- * console.log(result.configPath);      // Absolute path to resolved config
- * console.log(result.extendedPaths);   // ["base.json", "tsconfig.json"]
- * console.log(result.compilerOptions); // Merged compiler options
- * ```
- */
-export function parseTsConfigWithMetadata(configPath: string, projectRoot: string): TsConfigParseResult {
-	// Resolve absolute path
-	const absolutePath = isAbsolute(configPath) ? configPath : resolve(projectRoot, configPath);
-
-	// Verify file exists
 	if (!existsSync(absolutePath)) {
 		throw new TsConfigParseError(absolutePath, "File not found");
 	}
 
-	// Read the config file
-	const configFileContent = ts.readConfigFile(absolutePath, (path) => readFileSync(path, "utf-8"));
-
-	if (configFileContent.error) {
-		const message = ts.flattenDiagnosticMessageText(configFileContent.error.messageText, "\n");
-		throw new TsConfigParseError(absolutePath, message, configFileContent.error);
-	}
-
-	// Parse JSON config content with extends chain resolution
-	const configDir = dirname(absolutePath);
-	const parsedConfig = ts.parseJsonConfigFileContent(
-		configFileContent.config,
-		ts.sys,
-		configDir,
-		undefined, // existing options
-		absolutePath, // config file name for error messages
-	);
-
-	// Check for parsing errors (filtering out "no inputs found" which is expected
-	// when parsing tsconfig in isolation for compiler options only)
-	const significantErrors = parsedConfig.errors.filter((error) => {
-		const message = ts.flattenDiagnosticMessageText(error.messageText, "\n");
-		// TS18003: No inputs were found in config file
-		return error.code !== 18003 && !message.includes("No inputs were found");
-	});
-
-	if (significantErrors.length > 0) {
-		const errorMessages = significantErrors
-			.map((error) => ts.flattenDiagnosticMessageText(error.messageText, "\n"))
-			.join("; ");
-		throw new TsConfigParseError(absolutePath, errorMessages, significantErrors);
-	}
-
-	// Track extended paths
-	const extendedPaths: string[] = [absolutePath];
-
-	// Extract and collect extended paths from the raw config
-	collectExtendedPaths(configFileContent.config, configDir, extendedPaths);
-
-	// Convert TypeScript CompilerOptions to our subset
-	const tsOptions = parsedConfig.options;
-	const compilerOptions = extractTypeResolutionOptions(tsOptions);
-
-	return {
-		compilerOptions,
-		configPath: absolutePath,
-		extendedPaths,
-	};
-}
-
-/**
- * Recursively collect extended config paths.
- * @internal
- */
-function collectExtendedPaths(config: unknown, baseDir: string, paths: string[]): void {
-	if (!config || typeof config !== "object") {
-		return;
-	}
-
-	const configObj = config as Record<string, unknown>;
-	const extendsValue = configObj.extends;
-
-	if (typeof extendsValue === "string") {
-		const extendedPath = resolveExtendedPath(extendsValue, baseDir);
-		if (extendedPath && !paths.includes(extendedPath)) {
-			paths.unshift(extendedPath); // Add to beginning (base configs first)
-		}
-	} else if (Array.isArray(extendsValue)) {
-		// TypeScript 5.0+ supports array extends
-		for (const ext of extendsValue) {
-			if (typeof ext === "string") {
-				const extendedPath = resolveExtendedPath(ext, baseDir);
-				if (extendedPath && !paths.includes(extendedPath)) {
-					paths.unshift(extendedPath);
-				}
-			}
-		}
-	}
-}
-
-/**
- * Resolve an extended config path.
- * @internal
- */
-function resolveExtendedPath(extendsValue: string, baseDir: string): string | null {
+	let options: Record<string, unknown>;
 	try {
-		// If it starts with ./ or ../, resolve relative to baseDir
-		if (extendsValue.startsWith(".")) {
-			return resolve(baseDir, extendsValue);
-		}
-		// If it's a package path, try to resolve it
-		// TypeScript handles this internally, we just note it exists
-		return extendsValue;
-	} catch {
-		return null;
+		options = TsconfigLoaderSync.compilerOptions(absolutePath, syncHost) as unknown as Record<string, unknown>;
+	} catch (error) {
+		throw new TsConfigParseError(absolutePath, error instanceof Error ? error.message : String(error), error);
 	}
+
+	return extractTypeResolutionOptions(options);
 }
 
 /**
- * Extract TypeResolutionCompilerOptions from full TypeScript CompilerOptions.
- * @internal
+ * Narrow the full compiler options to the ones the plugin actually consumes.
+ *
+ * @remarks
+ * Deliberately a whitelist. Everything here reaches Twoslash's TypeScript
+ * environment, and passing through options the plugin does not understand
+ * would let a consumer's unrelated build setting change how examples
+ * type-check.
  */
-function extractTypeResolutionOptions(tsOptions: ts.CompilerOptions): TypeResolutionCompilerOptions {
-	const options: TypeResolutionCompilerOptions = {};
+function extractTypeResolutionOptions(options: Record<string, unknown>): TypeResolutionCompilerOptions {
+	const result: TypeResolutionCompilerOptions = {};
 
-	// Map target
-	if (tsOptions.target !== undefined) {
-		options.target = tsOptions.target;
+	// The loader reports these in the tsconfig spelling; the type accepts both,
+	// and the seam converts. A number would be a caller-supplied programmatic
+	// value, which is equally valid.
+	const scalar = (value: unknown): string | number | undefined =>
+		typeof value === "string" || typeof value === "number" ? value : undefined;
+
+	const target = scalar(options.target);
+	if (target !== undefined) result.target = target;
+	const module_ = scalar(options.module);
+	if (module_ !== undefined) result.module = module_;
+	const moduleResolution = scalar(options.moduleResolution);
+	if (moduleResolution !== undefined) result.moduleResolution = moduleResolution;
+	const jsx = scalar(options.jsx);
+	if (jsx !== undefined) result.jsx = jsx;
+
+	if (typeof options.strict === "boolean") result.strict = options.strict;
+	if (typeof options.skipLibCheck === "boolean") result.skipLibCheck = options.skipLibCheck;
+	if (typeof options.esModuleInterop === "boolean") result.esModuleInterop = options.esModuleInterop;
+	if (typeof options.allowSyntheticDefaultImports === "boolean") {
+		result.allowSyntheticDefaultImports = options.allowSyntheticDefaultImports;
 	}
 
-	// Map module
-	if (tsOptions.module !== undefined) {
-		options.module = tsOptions.module;
-	}
+	// Empty arrays are dropped rather than passed through: `lib: []` would
+	// REPLACE the default library set with nothing (see the note on
+	// TypeResolutionCompilerOptions.lib), type-checking every example against no
+	// globals at all.
+	if (Array.isArray(options.lib) && options.lib.length > 0) result.lib = options.lib.map(String);
+	if (Array.isArray(options.types) && options.types.length > 0) result.types = options.types.map(String);
 
-	// Map moduleResolution
-	if (tsOptions.moduleResolution !== undefined) {
-		options.moduleResolution = tsOptions.moduleResolution;
-	}
-
-	// Map lib (convert from enum values to string names)
-	if (tsOptions.lib !== undefined && tsOptions.lib.length > 0) {
-		options.lib = tsOptions.lib;
-	}
-
-	// Map boolean options
-	if (tsOptions.strict !== undefined) {
-		options.strict = tsOptions.strict;
-	}
-
-	if (tsOptions.skipLibCheck !== undefined) {
-		options.skipLibCheck = tsOptions.skipLibCheck;
-	}
-
-	if (tsOptions.esModuleInterop !== undefined) {
-		options.esModuleInterop = tsOptions.esModuleInterop;
-	}
-
-	if (tsOptions.allowSyntheticDefaultImports !== undefined) {
-		options.allowSyntheticDefaultImports = tsOptions.allowSyntheticDefaultImports;
-	}
-
-	// Map jsx
-	if (tsOptions.jsx !== undefined) {
-		options.jsx = tsOptions.jsx;
-	}
-
-	// Map types
-	if (tsOptions.types !== undefined && tsOptions.types.length > 0) {
-		options.types = tsOptions.types;
-	}
-
-	return options;
+	return result;
 }

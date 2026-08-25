@@ -4,24 +4,15 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { NodeFileSystem } from "@effect/platform-node";
 import type { RspressPlugin, UserConfig } from "@rspress/core";
-import { SnapshotServiceLive } from "@tsdoctor/snapshot";
-import { Effect, FileSystem, Layer, ManagedRuntime, Option, Ref, Schema } from "effect";
-import { BuildId, PageConcurrency, SuppressExampleErrors, Thresholds } from "./BuildEnv.js";
+import { Effect, FileSystem, ManagedRuntime, Option, Ref, Schema } from "effect";
 import type { GenerateApiDocsResult } from "./build-program.js";
 import { generateApiDocs } from "./build-program.js";
 import { fromDir, fromParentDir } from "./config-helpers.js";
 import { classifyApiConfig, mergeLlmsPluginConfig } from "./config-utils.js";
-import { ConfigServiceLive } from "./layers/ConfigServiceLive.js";
-import { HighlighterServiceLive } from "./layers/HighlighterServiceLive.js";
-import { buildEventBus, logBuildSummary, makeSummaryLoggerLayer } from "./layers/ObservabilityLive.js";
-import { OgServiceLive } from "./layers/OgServiceLive.js";
-import { TwoslashCacheServiceLive } from "./layers/TwoslashCacheServiceLive.js";
-import { TwoslashEnvironmentsLive } from "./layers/TwoslashEnvironmentsLive.js";
-import { TypeRegistryServiceLive } from "./layers/TypeRegistryServiceLive.js";
-import { PlatformLive } from "./layers/xdg.js";
-import { collectShikiThemes, normalizeThemeConfig } from "./markdown/shiki-utils.js";
+import { makeAppLayers } from "./layers/AppLayer.js";
+import { buildEventBus, logBuildSummary } from "./layers/observability.js";
+import { normalizeThemeConfig } from "./markdown/shiki-utils.js";
 import { emit } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
 import type { ProgressPhase } from "./observability/heartbeat.js";
@@ -33,10 +24,9 @@ import { emitSync, installSyncEmitter } from "./observability/sync-emitter.js";
 import { deriveOutputPaths, normalizeBaseRoute, unscopedName } from "./path-derivation.js";
 import { remarkApiCodeblocks } from "./remark-api-codeblocks.js";
 import { remarkWithApi } from "./remark-with-api.js";
-import { PluginOptions } from "./schemas/index.js";
+import { PluginOptions } from "./schemas/config.js";
 import { resolveObservability } from "./schemas/observability.js";
 import { ConfigService } from "./services/ConfigService.js";
-import { PluginConfig } from "./services/PluginConfig.js";
 import { TwoslashCacheService } from "./services/TwoslashCacheService.js";
 import { TwoslashEnvironments } from "./services/TwoslashEnvironments.js";
 import { clearTwoslashAccess, installTwoslashAccess, twoslashTransformerFor } from "./twoslash-access.js";
@@ -105,51 +95,20 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 	// path, but a stray sync emitter (a deprecation warning, a `with-api` code
 	// block) can still build it, and SQLite would then fail to open the file.
 	fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-	// Per-build configuration, provided to BOTH runtimes. Sharing the same
-	// values is what lets a sync island and an Effect program agree on the
-	// build id and the slow-block threshold without either being handed them.
-	const BuildEnvLayer = Layer.mergeAll(
-		Layer.succeed(BuildId, buildId),
-		Layer.succeed(Thresholds, obs.thresholds),
-		Layer.succeed(PageConcurrency, os.cpus().length),
-		Layer.succeed(SuppressExampleErrors, options.errors?.example !== "show"),
-	);
+	// Bound to a const: this is a layer FACTORY, and layers memoize by
+	// reference, so a second call would mint a second stack — a second
+	// highlighter, a second snapshot database, a second metric registry.
+	const appLayers = makeAppLayers({
+		options,
+		obs,
+		buildId,
+		dbPath,
+		pageConcurrency: os.cpus().length,
+		eventBus: eventBusLayer,
+		metrics: metricStore,
+	});
 
-	// The decoded options, as a service rather than a constructor argument —
-	// see PluginConfig for why it is not a Reference.
-	const PluginConfigLive = Layer.succeed(PluginConfig, options);
-
-	// Bound to a const: HighlighterServiceLive is a factory, and layers memoize
-	// by reference, so a second call here would acquire a second highlighter.
-	const HighlighterLive = HighlighterServiceLive(
-		collectShikiThemes(options.api ? [options.api] : (options.apis ?? [])),
-	);
-
-	const BaseLayer = Layer.mergeAll(
-		eventBusLayer,
-		PluginConfigLive,
-		HighlighterLive,
-		TwoslashEnvironmentsLive,
-		// Provided its platform locally rather than merged: `Layer.mergeAll` puts
-		// layers side by side without feeding dependencies, so a bare
-		// `OgServiceLive` would leave FileSystem/Path unsatisfied in the runtime's
-		// requirement channel. Task 5.1 tiers this properly.
-		Layer.provide(OgServiceLive, PlatformLive),
-		BuildEnvLayer,
-		// Scope metric state to this build. Metric.MetricRegistry is a
-		// Context.Reference whose default Map is shared by every context that does
-		// not override it, so without this every build in a process accumulates
-		// into one registry. This layer MUST carry the same registry the metrics
-		// sink writes through, or reads and writes silently diverge.
-		metricStore.layer,
-		TypeRegistryServiceLive,
-		NodeFileSystem.layer,
-		SnapshotServiceLive(dbPath),
-		TwoslashCacheServiceLive,
-		makeSummaryLoggerLayer(obs.logLevel),
-	);
-	const EffectAppLayer = Layer.provideMerge(ConfigServiceLive, BaseLayer);
-	const effectRuntime = ManagedRuntime.make(EffectAppLayer);
+	const effectRuntime = ManagedRuntime.make(appLayers.app);
 
 	// The sync-island emitters get their OWN runtime over the observability
 	// layers alone, and it must stay synchronously buildable.
@@ -166,9 +125,7 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 	// `Layer.succeed`. `metricStore.layer` is shared BY REFERENCE with
 	// `BaseLayer`, so the metrics sink and `logBuildSummary` still read and
 	// write one registry.
-	const emitterRuntime = ManagedRuntime.make(
-		Layer.mergeAll(eventBusLayer, metricStore.layer, makeSummaryLoggerLayer(obs.logLevel), BuildEnvLayer),
-	);
+	const emitterRuntime = ManagedRuntime.make(appLayers.emitter);
 	installSyncEmitter(emitterRuntime);
 
 	// File context map (shared across hooks)
@@ -299,6 +256,11 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 			const rspressLocales = (_config as { locales?: Array<{ lang: string }> }).locales?.map((l) => l.lang) ?? [];
 			const rspressLang = (_config as { lang?: string }).lang;
 			const rspressMultiVersion = (_config as { multiVersion?: { default: string; versions: string[] } }).multiVersion;
+			// The canonical site URL comes from RSPress, not from a plugin option:
+			// it concatenates as `siteOrigin + base + routePath`, and the plugin's
+			// former `siteUrl` could disagree with it silently.
+			const rspressSiteOrigin = _config.siteOrigin;
+			const rspressBase = _config.base;
 
 			// Capture RSPress LLMs config for afterBuild processing
 			rspressLlmsEnabled = Boolean((_config as { llms?: boolean | object }).llms);
@@ -379,6 +341,8 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 						...(rspressLocales.length > 0 ? { locales: rspressLocales.map((lang) => ({ lang })) } : {}),
 						...(rspressLang != null ? { lang: rspressLang } : {}),
 						...(docsRoot != null ? { root: docsRoot } : {}),
+						...(rspressSiteOrigin != null ? { siteOrigin: rspressSiteOrigin } : {}),
+						...(rspressBase != null ? { base: rspressBase } : {}),
 					};
 
 					await effectRuntime.runPromise(
@@ -401,7 +365,7 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 
 							// Bind the render pass to this build's Twoslash environments.
 							// Wired here, beside the other seams, rather than inside
-							// ConfigServiceLive — config resolution should compute a value,
+							// ConfigService.layer — config resolution should compute a value,
 							// not also mutate module state as a side effect. See
 							// twoslash-access.ts for why this is a holder and not a
 							// runtime-bound accessor.

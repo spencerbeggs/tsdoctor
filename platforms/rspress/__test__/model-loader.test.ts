@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LoadedModel, PackageJson } from "../src/internal-types.js";
 import { loadApiModel, loadPackageJson, loadVersionModel } from "../src/model-loader.js";
-import type { VersionConfig } from "../src/schemas/index.js";
+import type { VersionConfig } from "../src/schemas/config.js";
 
 /**
  * Tests for the adapter-local model-loader functions. The path-based model

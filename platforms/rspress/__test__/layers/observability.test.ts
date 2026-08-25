@@ -3,12 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { Effect, Metric } from "effect";
 import { describe, expect, it, vi } from "vitest";
-import {
-	BuildMetrics,
-	buildEventBus,
-	logBuildSummary,
-	makeSummaryLoggerLayer,
-} from "../../src/layers/ObservabilityLive.js";
+import { BuildMetrics } from "../../src/layers/build-metrics.js";
+import { buildEventBus, logBuildSummary, makeSummaryLoggerLayer } from "../../src/layers/observability.js";
 import type { ResolvedObservability } from "../../src/schemas/observability.js";
 
 /**
@@ -21,7 +17,7 @@ let isolationSeq = 0;
 function isolate<A, E, R>(program: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> {
 	isolationSeq += 1;
 	return Effect.provideService(program, Metric.CurrentMetricAttributes, {
-		ObservabilityLiveTest: `case-${isolationSeq}`,
+		observabilityTest: `case-${isolationSeq}`,
 	});
 }
 
