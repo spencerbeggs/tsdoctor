@@ -1,5 +1,17 @@
 # @tsdoctor/model
 
+## 0.2.1
+
+### Bug Fixes
+
+- Prose parsing in `Render` now uses `@effected/markdown`'s phrasing-level `Markdown.parsePhrasingResult` instead of a full document parse and paragraph splice — identical output for the whitespace-normalized single-line prose TSDoc extraction produces, without the per-fragment `Root` construction. [#167][#167]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#167]: https://github.com/spencerbeggs/tsdoctor/pull/167
+
 ## 0.2.0
 
 ### Breaking Changes
