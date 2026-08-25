@@ -31,7 +31,12 @@ framework-free: no RSPress, no React, no I/O beyond model loading.
   Package Consumption" in `build-architecture.md`). The plugin's
   `ApiExtractedPackage.extractPlainText` is a **different** algorithm from
   this package's prose extraction (it preserves `{@link}` and code fences);
-  they are not interchangeable.
+  they are not interchangeable. `internal/prose.ts`'s `phrasingFromMarkdown`
+  uses `@effected/markdown`'s `Markdown.parsePhrasingResult` rather than a
+  full parse + `Paragraph` splice.
+- `__test__/mdx-vocabulary.test.ts` is the proof-consumer suite for
+  `@effected/markdown`'s MDX vocabulary (construction/serialization),
+  seeding the phase-5 `@tsdoctor/pages` IR seam.
 - Builds with `defineBuild()` (`savvy.build.ts`, `@savvy-web/bundler`);
   tsconfig extends `@savvy-web/bundler/tsconfig/ecma.json`. Source
   `package.json` stays `"private": true`; `publishConfig` drives publishing.

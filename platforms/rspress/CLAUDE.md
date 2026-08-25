@@ -98,9 +98,10 @@ docs for the full architecture.
   `@effect/sql-sqlite-node` is **gone** — SQLite moved behind
   `@tsdoctor/snapshot`; `gray-matter` is gone too (see `src/frontmatter.ts`)
 - `ioredis` + the `@effected/*` closure (`semver`/`store`/`tsconfig-json`/
-  `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`) +
-  `@typescript/vfs` — peer-closure deps (some imported directly, e.g. by
-  `layers/TypeRegistryServiceLive.ts`, `sync-node-fs.ts`, `frontmatter.ts`).
+  `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
+  `markdown`) + `@typescript/vfs` — peer-closure deps (some imported
+  directly, e.g. by `layers/TypeRegistryServiceLive.ts`, `sync-node-fs.ts`,
+  `frontmatter.ts`).
   Do NOT prune as "unused" — see the peer dependency closure section in
   `build-architecture.md`. `@effected/*` deps are declared as
   `catalog:effected` (supplied by `@effected/pnpm-plugin-effect`; see
@@ -139,7 +140,7 @@ which the global biome rule would rewrite to `.js`.
 - `src/config-helpers.ts` — `fromDir`/`fromParentDir` config builders, delegating discovery to `@tsdoctor/bundle`
 - `src/sync-node-fs.ts` — sync `FileSystem` bridge so bundle discovery runs under the sync helper API
 - `src/model-loader.ts` — plain functions over `@tsdoctor/model`'s `Model.load` (typed `ModelLoadError`)
-- `src/frontmatter.ts` — gray-matter-parity frontmatter split/join over `@effected/yaml` (the `gray-matter` dep is gone)
+- `src/frontmatter.ts` — gray-matter-parity frontmatter split/join over `@effected/yaml` (the `gray-matter` dep is gone); the parse side deliberately keeps the hand-rolled gray-matter-parity split (`@effected/markdown`'s `FrontmatterSource.split` was evaluated and rejected — its strict fence grammar conflicts with the pinned gray-matter quirks), while emission uses `FrontmatterSource.join` + `Yaml.stringify({ quoteCompat: "yaml-1.1", quoteStyle: "double" })` to quote only the scalars a YAML 1.1 resolver would coerce
 - `src/observability/` — EventBus, PluginEvent taxonomy, sinks, heartbeat, span helpers, stream tee
   - `events.ts` — `PluginEvent` taggedEnum, `EventLevel`, `EventContext`, `levelOf`
   - `EventBus.ts` — synchronous fan-out bus, `makeRuntimeEmitter`, `EventBusNoop`

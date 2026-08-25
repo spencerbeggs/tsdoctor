@@ -36,6 +36,7 @@
 		"@effect/vitest": "catalog:effect",
 		"@effected/github": "catalog:effected",
 		"@effected/glob": "catalog:effected",
+		"@effected/jsonc": "catalog:effected",
 		"@effected/memfs": "catalog:effected",
 		"@effected/npm": "catalog:effected",
 		"@effected/package-json": "catalog:effected",
@@ -51,6 +52,7 @@
 	"peerDependencies": {
 		"@effected/github": "catalog:effected:peers",
 		"@effected/glob": "catalog:effected:peers",
+		"@effected/jsonc": "catalog:effected:peers",
 		"@effected/npm": "catalog:effected:peers",
 		"@effected/package-json": "catalog:effected:peers",
 		"@effected/store": "catalog:effected:peers",

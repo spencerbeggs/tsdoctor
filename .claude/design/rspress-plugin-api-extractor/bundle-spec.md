@@ -168,7 +168,7 @@ Two consequences:
 
 1. **Override detection is mechanical.** A field is user-overridden iff its source outranks the derivation that would otherwise supply it. An `inferred` field tracks upstream changes (a tagline change propagates into the inferred alt text); an authored field is pinned.
 2. **Two-level diff against the store** (`@tsdoctor/snapshot`):
-   - **Coarse:** per-layer file hashes (canonical-normalize + SHA-256, the same discipline as `content-hash.ts` — see `snapshot-tracking-system.md`). All layer hashes match → skip resolution entirely.
+   - **Coarse:** per-layer file hashes (canonical-normalize + SHA-256 via `@tsdoctor/bundle`'s `BundleHash.ts`, built on `@effected/jsonc`'s `JsoncFingerprint` — RFC 8785/JCS canonicalization through core's `Crypto` service, the same normalize-then-hash discipline as `content-hash.ts` — see `snapshot-tracking-system.md`). All layer hashes match → skip resolution entirely.
    - **Fine:** per-field diff of the `ResolvedBundle` when a layer hash differs, with each field mapped to an **invalidation scope**: version → version-embedding surfaces only; tagline → page titles + OG; deps/peerDeps → registry reload + Twoslash env rebuild; tsconfig → all code blocks; registries → download/availability UI only. Field fingerprints hash the `{value, source}` **pair**, not the value alone — an override flip that leaves the value unchanged is still a visible diff to change detection.
 
 This lifts the existing snapshot philosophy one level: today the store hashes OUTPUTS (generated MDX) to skip writes; this hashes INPUTS at field granularity to skip generation.
@@ -194,6 +194,8 @@ The npm and GitHub fetchers live in `packages/bundle/src/BundleFetch.ts` (`fetch
 - **GitHub release assets carry no integrity metadata**, so extraction is integrity-unverified for the GitHub fetcher (the npm path is integrity-verified via `@effected/npm`'s tarball handling). Public-repo assets only for now.
 
 **Discovery requires only layer 0.** The legacy `fromDir` required a `package.json`; per the ladder's enrich-never-gate rule, the implemented discovery accepts a folder containing just the `<name>.api.json` (the bundle name falls back to the model's own name field). The other legacy semantics are preserved: multi-model disambiguation, unscoped-name preference, caller overrides win, strict parent scan, and the empty-parent error. Parent-directory scanning (`discoverBundles`) takes no shared per-bundle name/version overrides — adapter-level defaulting stays in the adapter.
+
+Reading the discovery-time name/version pair from `package.json` (`readDiscoveryPackageJson` in `BundleDiscovery.ts`) originally used a bespoke two-field `Schema.Struct` sniffer; that sniffer is now `@effected/package-json`'s `LenientManifest.parse` — malformed JSON text or a non-object document still fails typed as `invalidPackageJson` (matching the old sniffer), but a malformed individual field now degrades to absence rather than failing the whole read, applying the ladder's enrich-never-gate rule at field granularity (the bundle's own name, from the api.json model, still covers a nameless discovery).
 
 ## Phase 2 Scope
 

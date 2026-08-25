@@ -4,7 +4,7 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/build-architecture.md",
-			"hash": "37d21f4b4de357c9eb69a66f9f8e577cc7f9e2b2c78db3e2ee0e5640f9de1d39",
+			"hash": "161a772a1acfc99e47420262f6a0414a0178c874c112b31dc410a9c039ab0534",
 			"recordedAt": "2026-08-24"
 		},
 		{
@@ -70,7 +70,7 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/page-generation-system.md",
-			"hash": "49bb09abbdcef4ab83c54eac243ae5b905264d55ed015dcac6d5fde4d97c106e",
+			"hash": "42113ae4c34d90172bd7a50fbdd2fbae1f9b5c2bdc9f5e3b007075a590b370f4",
 			"recordedAt": "2026-08-24"
 		},
 		{
@@ -82,13 +82,13 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/roadmap-1.0.md",
-			"hash": "2347eeef5b641fa18b3489a1e43fbb642a19d951249c530c1bb455e6d1bab168",
+			"hash": "b8fb39735257de51444aaaea0363d209ab9dda1337cd087c5c63a4bd6df5507e",
 			"recordedAt": "2026-08-24"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/snapshot-tracking-system.md",
-			"hash": "107f4ad655d24630a920aa0d717e3ab9ba6087972b946b651858f219e5a63cd5",
+			"hash": "4d1a1c3da13b4d99f6a1cb54e594cda81dec59eea6c361c031fb7d763e8f82d1",
 			"recordedAt": "2026-08-24"
 		},
 		{
@@ -106,7 +106,7 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md",
-			"hash": "43894889055cd4930d75cdb52fd5d87365908c62ab89fff875166acc2fb763da",
+			"hash": "32eca5bc1cb8e2f4d2cbdbb64ca6a23bd7e9403bf700d45c58849b325ae17c30",
 			"recordedAt": "2026-08-24"
 		},
 		{
@@ -214,25 +214,25 @@
 		{
 			"source": "packages/bundle/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/bundle-spec.md",
-			"hash": "3c03f6b11c3557fb911304ecf5626315e99f89daf9d248c7b4faaf8205fdbd29",
+			"hash": "ff886428a14c75d9093f2a7d86062f12a20ce435e5e425acd2edbc613b5119b9",
 			"recordedAt": "2026-08-24"
 		},
 		{
 			"source": "packages/bundle/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/roadmap-1.0.md",
-			"hash": "2347eeef5b641fa18b3489a1e43fbb642a19d951249c530c1bb455e6d1bab168",
+			"hash": "b8fb39735257de51444aaaea0363d209ab9dda1337cd087c5c63a4bd6df5507e",
 			"recordedAt": "2026-08-24"
 		},
 		{
 			"source": "packages/bundle/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md",
-			"hash": "43894889055cd4930d75cdb52fd5d87365908c62ab89fff875166acc2fb763da",
+			"hash": "32eca5bc1cb8e2f4d2cbdbb64ca6a23bd7e9403bf700d45c58849b325ae17c30",
 			"recordedAt": "2026-08-24"
 		},
 		{
 			"source": "packages/model/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/build-architecture.md",
-			"hash": "37d21f4b4de357c9eb69a66f9f8e577cc7f9e2b2c78db3e2ee0e5640f9de1d39",
+			"hash": "161a772a1acfc99e47420262f6a0414a0178c874c112b31dc410a9c039ab0534",
 			"recordedAt": "2026-08-24"
 		},
 		{
@@ -250,7 +250,7 @@
 		{
 			"source": "packages/model/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md",
-			"hash": "43894889055cd4930d75cdb52fd5d87365908c62ab89fff875166acc2fb763da",
+			"hash": "32eca5bc1cb8e2f4d2cbdbb64ca6a23bd7e9403bf700d45c58849b325ae17c30",
 			"recordedAt": "2026-08-24"
 		},
 		{
@@ -268,25 +268,25 @@
 		{
 			"source": "packages/snapshot/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/bundle-spec.md",
-			"hash": "3c03f6b11c3557fb911304ecf5626315e99f89daf9d248c7b4faaf8205fdbd29",
+			"hash": "ff886428a14c75d9093f2a7d86062f12a20ce435e5e425acd2edbc613b5119b9",
 			"recordedAt": "2026-08-24"
 		},
 		{
 			"source": "packages/snapshot/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/snapshot-tracking-system.md",
-			"hash": "107f4ad655d24630a920aa0d717e3ab9ba6087972b946b651858f219e5a63cd5",
+			"hash": "4d1a1c3da13b4d99f6a1cb54e594cda81dec59eea6c361c031fb7d763e8f82d1",
 			"recordedAt": "2026-08-24"
 		},
 		{
 			"source": "packages/snapshot/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md",
-			"hash": "43894889055cd4930d75cdb52fd5d87365908c62ab89fff875166acc2fb763da",
+			"hash": "32eca5bc1cb8e2f4d2cbdbb64ca6a23bd7e9403bf700d45c58849b325ae17c30",
 			"recordedAt": "2026-08-24"
 		},
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/build-architecture.md",
-			"hash": "37d21f4b4de357c9eb69a66f9f8e577cc7f9e2b2c78db3e2ee0e5640f9de1d39",
+			"hash": "161a772a1acfc99e47420262f6a0414a0178c874c112b31dc410a9c039ab0534",
 			"recordedAt": "2026-08-24"
 		},
 		{
@@ -346,7 +346,7 @@
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/page-generation-system.md",
-			"hash": "49bb09abbdcef4ab83c54eac243ae5b905264d55ed015dcac6d5fde4d97c106e",
+			"hash": "42113ae4c34d90172bd7a50fbdd2fbae1f9b5c2bdc9f5e3b007075a590b370f4",
 			"recordedAt": "2026-08-24"
 		},
 		{
@@ -358,7 +358,7 @@
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/snapshot-tracking-system.md",
-			"hash": "107f4ad655d24630a920aa0d717e3ab9ba6087972b946b651858f219e5a63cd5",
+			"hash": "4d1a1c3da13b4d99f6a1cb54e594cda81dec59eea6c361c031fb7d763e8f82d1",
 			"recordedAt": "2026-08-24"
 		},
 		{

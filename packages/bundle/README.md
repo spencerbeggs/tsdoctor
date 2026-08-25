@@ -29,7 +29,7 @@ This is an ESM-only package. `effect` and the `@effected/*` packages are peer de
 ## Quick start
 
 ```ts
-import { NodeFileSystem } from "@effect/platform-node";
+import { NodeCrypto, NodeFileSystem } from "@effect/platform-node";
 import { Effect, Layer, Path } from "effect";
 import { fingerprintResolvedBundle, loadBundle, resolveBundleFrom } from "@tsdoctor/bundle";
 
@@ -40,10 +40,13 @@ const program = Effect.gen(function* () {
     tagline: "Every API Extractor feature in one module",
   });
   console.log(resolved.name); // { value: "...", source: "manifest.leaf" | "packageJson" | ... }
-  console.log(fingerprintResolvedBundle(resolved)); // per-field SHA-256 fingerprints
+  console.log(yield* fingerprintResolvedBundle(resolved)); // per-field SHA-256 fingerprints
 });
 
-program.pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, Path.layer)), Effect.runPromise);
+program.pipe(
+  Effect.provide(Layer.mergeAll(NodeFileSystem.layer, Path.layer, NodeCrypto.layer)),
+  Effect.runPromise,
+);
 ```
 
 Every resolved field carries `{ value, source }`, so "did the user override this or did we derive it?" is a rank comparison, not a heuristic. The fingerprints feed a snapshot store: unchanged inputs mean generation can be skipped at the granularity of exactly the surfaces a changed field invalidates.
@@ -56,9 +59,9 @@ Every resolved field carries `{ value, source }`, so "did the user override this
 - `BundleManifest`, `decodeBundleManifest` — the `tsdoctor.json` spec-1 schema; unknown fields and unknown registry types degrade gracefully instead of rejecting.
 - `PlatformOverrides`, `decodePlatformOverrides` — the top-ranked data-override tier a consumer passes through platform options.
 - `resolveBundle` / `resolveBundleFrom` — the pure six-tier resolver producing a `ResolvedBundle` of `Provenanced` fields, with the documented inference rules (Open Graph alt-text chain, MIME from extension).
-- `hashLayerText`, `hashJsonValue`, `canonicalJson`, `fingerprintResolvedBundle` — canonical-normalization hashing for coarse (per-layer) and fine (per-field) change detection.
+- `hashLayerText`, `hashJsonValue`, `fingerprintResolvedBundle` — RFC 8785 (JCS) canonicalization plus SHA-256 (via `@effected/jsonc`'s `JsoncFingerprint`) for coarse (per-layer) and fine (per-field) change detection. Canonicalization is strict: an `undefined`-valued member or non-plain object fails typed rather than being silently dropped.
 
-All filesystem-touching functions keep `FileSystem` and `Path` in the Effect `R` channel; provide a platform layer (for example `@effect/platform-node`) once at the application boundary.
+All filesystem-touching functions keep `FileSystem` and `Path` in the Effect `R` channel, and the hashing functions keep `Crypto` there too; provide platform layers (for example `@effect/platform-node`'s `NodeFileSystem.layer`, `Path.layer` and `NodeCrypto.layer`) once at the application boundary.
 
 ## License
 

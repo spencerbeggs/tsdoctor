@@ -14,9 +14,11 @@ Extracted from the plugin in phase 2 of the consolidation and rebuilt on
   `"@tsdoctor/snapshot/SnapshotService"` — plus `SnapshotServiceShape`,
   `FileSnapshot` and the `SnapshotDbError` tagged error),
   `SnapshotServiceLive.ts` (`SnapshotServiceLive(dbPath)` on
-  `Store.layerSqlite({ filename, migrations })`; migration 1 is the former
-  `001_create_snapshots` SQL, applied at layer construction; WAL checkpoint
-  registered as a scope finalizer via `store.client`), `content-hash.ts`
+  `Store.layerSqlite({ filename, migrations, checkpointOnClose: true })`;
+  migration 1 is the former `001_create_snapshots` SQL, applied at layer
+  construction; `checkpointOnClose: true` registers the WAL checkpoint as a
+  scope finalizer inside `@effected/store` itself — no hand-written
+  finalizer here), `content-hash.ts`
   (pure `hashContent`/`hashFrontmatter`/`normalizeContent`).
 - Peers only: `effect` (`catalog:effect:peers`) and `@effected/store`
   (`catalog:effected:peers`) — never hand-pin `@effected` ranges.

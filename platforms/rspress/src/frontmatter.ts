@@ -1,3 +1,4 @@
+import { FrontmatterSource, FrontmatterSourceBlock, FrontmatterSourceSplit } from "@effected/markdown";
 import { Yaml, YamlStringifyOptions } from "@effected/yaml";
 import { Effect } from "effect";
 
@@ -18,16 +19,20 @@ export interface ParsedFrontmatter {
  * Stringify options shared by both emit sites.
  *
  * `lineWidth: 0` disables wrapping so long titles/descriptions/URLs stay on
- * one line, and `defaultScalarStyle: "double-quoted"` quotes every string
- * value. The forced quoting matters for downstream consumers: RSPress parses
- * the emitted frontmatter with js-yaml (YAML 1.1-flavored), where an unquoted
- * ISO timestamp such as `2024-01-15T12:00:00.000Z` decodes to a `Date` object
- * instead of a string. Quoting every value keeps the decoded representation
- * identical across YAML 1.1 and 1.2 parsers.
+ * one line. The quoting matters for downstream consumers: RSPress parses the
+ * emitted frontmatter with js-yaml (YAML 1.1-flavored), where an unquoted
+ * ISO timestamp such as `2024-01-15T12:00:00.000Z` decodes to a `Date`
+ * object instead of a string. `quoteCompat: "yaml-1.1"` quotes exactly the
+ * plain scalars a YAML 1.1 resolver would coerce (timestamps, `yes`/`no`/
+ * `on`/`off` booleans, legacy octal/sexagesimal numbers), keeping the
+ * decoded representation identical across YAML 1.1 and 1.2 parsers without
+ * quoting every value; `quoteStyle: "double"` makes the quotes that do
+ * appear double quotes.
  */
 const STRINGIFY_OPTIONS = YamlStringifyOptions.make({
 	lineWidth: 0,
-	defaultScalarStyle: "double-quoted",
+	quoteCompat: "yaml-1.1",
+	quoteStyle: "double",
 });
 
 const OPEN_DELIMITER = "---";
@@ -61,6 +66,14 @@ const CLOSE_SEARCH = "\n---";
  * (`---toml`) as an engine name and throws for unregistered engines; this
  * split treats such input as "no frontmatter" instead. The plugin never emits
  * or consumes language-tagged frontmatter.
+ *
+ * `@effected/markdown`'s `FrontmatterSource.split` was evaluated for this
+ * path and deliberately NOT adopted: its grammar is strict by design (a
+ * fence line is exactly `---`, an unterminated block is not frontmatter),
+ * while this contract pins gray-matter's `indexOf`-based quirks (`\n----`
+ * closes, trailing-space close lines close, a missing close means
+ * all-frontmatter). The emission half (`stringifyFrontmatter` /
+ * `emitFrontmatterBlock`) does use `FrontmatterSource.join`.
  *
  * Representation parity with js-yaml is verified by characterization tests
  * (`__test__/frontmatter.test.ts`) pinning hashes captured under gray-matter.
@@ -155,7 +168,12 @@ export function stringifyFrontmatter(content: string, data: Record<string, unkno
 		return body;
 	}
 	const yaml = Effect.runSync(Yaml.stringify(data, STRINGIFY_OPTIONS));
-	return `---\n${yaml}---\n${body}`;
+	return FrontmatterSource.join(
+		FrontmatterSourceSplit.make({
+			frontmatter: FrontmatterSourceBlock.make({ format: "yaml", value: yaml }),
+			body,
+		}),
+	);
 }
 
 /**
@@ -176,5 +194,10 @@ export function stringifyFrontmatter(content: string, data: Record<string, unkno
  */
 export function emitFrontmatterBlock(data: Record<string, unknown>): string {
 	const yaml = Effect.runSync(Yaml.stringify(data, STRINGIFY_OPTIONS));
-	return `---\n${yaml}---\n\n`;
+	return FrontmatterSource.join(
+		FrontmatterSourceSplit.make({
+			frontmatter: FrontmatterSourceBlock.make({ format: "yaml", value: yaml }),
+			body: "\n",
+		}),
+	);
 }

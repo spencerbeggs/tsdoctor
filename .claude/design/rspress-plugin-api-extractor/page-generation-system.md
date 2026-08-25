@@ -299,7 +299,10 @@ more than one entry point.
   multi-entry items (returns empty string for single-entry)
 - `generateFrontmatter()` -- YAML frontmatter with OG tags, emitted via
   `emitFrontmatterBlock` (`src/frontmatter.ts`, `@effected/yaml`
-  `Yaml.stringify` with double-quoted scalars for js-yaml 1.1 consumers)
+  `Yaml.stringify` with `quoteCompat: "yaml-1.1"` + `quoteStyle: "double"` --
+  double-quoting only the scalars a YAML 1.1 resolver would coerce
+  (timestamps, `yes`/`no`/`on`/`off`, legacy numbers) -- then assembled into
+  the fenced block via `@effected/markdown`'s `FrontmatterSource.join`)
 - `prepareExampleCode()` -- Adds imports and `// @noErrors` for Twoslash
 - `stripTwoslashDirectives()` -- Removes directives for copy button
 - `sanitizeId()` -- URL-safe HTML IDs

@@ -10,25 +10,19 @@
  */
 
 import type { PhrasingContent } from "@effected/markdown";
-import { Markdown, Paragraph, Text } from "@effected/markdown";
+import { Markdown, Text } from "@effected/markdown";
 import { Result } from "effect";
 
 /**
- * Parse a single-line markdown prose string into phrasing nodes. Multiple
- * paragraphs collapse into one phrasing run (prose from TSDoc extraction is
- * whitespace-normalized single-line text). Falls back to a literal Text node
- * when the string does not parse.
+ * Parse a single-line markdown prose string into phrasing nodes. The whole
+ * input is treated as one paragraph's inline content (prose from TSDoc
+ * extraction is whitespace-normalized single-line text). Falls back to a
+ * literal Text node when the string does not parse.
  */
 export const phrasingFromMarkdown = (prose: string): ReadonlyArray<PhrasingContent> => {
-	const parsed = Markdown.parseResult(prose);
+	const parsed = Markdown.parsePhrasingResult(prose);
 	if (Result.isFailure(parsed)) {
 		return [new Text({ value: prose })];
 	}
-	const phrasing: PhrasingContent[] = [];
-	for (const child of parsed.success.children) {
-		if (child instanceof Paragraph) {
-			phrasing.push(...child.children);
-		}
-	}
-	return phrasing.length > 0 ? phrasing : [new Text({ value: prose })];
+	return parsed.success.length > 0 ? parsed.success : [new Text({ value: prose })];
 };

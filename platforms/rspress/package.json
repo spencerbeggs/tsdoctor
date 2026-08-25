@@ -31,6 +31,8 @@
 		"@effect/platform-node": "catalog:effect",
 		"@effected/github": "catalog:effected",
 		"@effected/glob": "catalog:effected",
+		"@effected/jsonc": "catalog:effected",
+		"@effected/markdown": "catalog:effected",
 		"@effected/npm": "catalog:effected",
 		"@effected/package-json": "catalog:effected",
 		"@effected/semver": "catalog:effected",
