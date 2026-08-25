@@ -1,5 +1,26 @@
 # rspress-plugin-api-extractor
 
+## 0.9.1
+
+### Bug Fixes
+
+- Emitted frontmatter now quotes only the scalars a YAML 1.1 resolver would coerce (timestamps, `yes`/`no`/`on`/`off`, legacy octal and sexagesimal numbers) via `@effected/yaml`'s `quoteCompat: "yaml-1.1"`, instead of double-quoting every string value. Decoded data is identical across YAML 1.1 and 1.2 parsers, frontmatter hashes are unchanged, and unchanged pages are not rewritten; freshly written pages simply carry fewer gratuitous quotes.
+- Frontmatter emission is assembled with `@effected/markdown`'s `FrontmatterSource.join` (byte-identical output); the parse path deliberately keeps its gray-matter-parity split, whose pinned `indexOf` quirks the kit's strict fence grammar rejects by design. [#167][#167]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/bundle | dependency | updated | 0.1.0 | 0.2.0 |
+| @tsdoctor/model | dependency | updated | 0.2.0 | 0.2.1 |
+| @tsdoctor/snapshot | dependency | updated | 0.1.0 | 0.1.1 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#167]: https://github.com/spencerbeggs/tsdoctor/pull/167
+
 ## 0.9.0
 
 ### Dependencies

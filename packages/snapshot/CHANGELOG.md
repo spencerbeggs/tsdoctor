@@ -1,5 +1,17 @@
 # @tsdoctor/snapshot
 
+## 0.1.1
+
+### Bug Fixes
+
+- The WAL checkpoint on clean shutdown now uses `@effected/store`'s `checkpointOnClose: true` option on `Store.layerSqlite` instead of a hand-written scope finalizer — same `PRAGMA wal_checkpoint(TRUNCATE)` behavior, provably ordered before the connection closes. No API change. [#167][#167]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#167]: https://github.com/spencerbeggs/tsdoctor/pull/167
+
 ## 0.1.0
 
 ### Features
