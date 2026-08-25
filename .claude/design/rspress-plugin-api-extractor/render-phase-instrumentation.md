@@ -354,11 +354,25 @@ worktrees and untouched by cleaning `dist/`.
 
 ### Soundness and invalidation
 
-The key covers every input: the per-entry key is the code (plus language), and
-the type environment and compiler options are folded into the blob's identity
-via `twoslashEnvHash`. Any VFS change therefore starts a fresh generation,
-because a declaration change anywhere can legitimately change any block's
-inferred types. Generations coexist, keyed by environment hash.
+A result depends on the code, the compiler options, the declarations it is
+checked against, and the compiler doing the checking. The keys cover all four:
+the per-entry key carries the code, its language and the compiler options;
+`twoslashEnvHash` carries the VFS and the TypeScript version. Any change to a
+declaration or to the compiler starts a fresh generation, and generations
+coexist keyed by environment hash.
+
+The TypeScript version is load-bearing and was missing from the first version
+of this key — caught in review. `lib.d.ts` ships with the compiler and
+inference changes between releases, so upgrading TypeScript against unchanged
+declarations produces different hovers; without the version in the key a warm
+cache would have served results from the previous compiler and stayed wrong
+until the API's own declarations happened to change. Verified by simulating a
+compiler change, which correctly drops the cache to 0 hits.
+
+One input is deliberately NOT derived into a key: the `@shikijs/twoslash` /
+`twoslash` renderer version, which determines the shape of the stored `nodes`.
+`TWOSLASH_CACHE_FORMAT` is the manual lever for that — bump it when upgrading
+those packages.
 
 That soundness buys coarse invalidation: the cache makes repeat builds over an
 **unchanged** API nearly free — CI re-runs, prose-only edits, theme and config

@@ -9,6 +9,9 @@ import {
 	twoslashEnvHash,
 } from "../src/twoslash-cache.js";
 
+/** A fixed toolchain fingerprint, so VFS-driven tests vary only the VFS. */
+const TS = "typescript@5.9.0";
+
 /** A minimal stand-in for what `twoslasher()` hands back to Shiki. */
 function result(code: string, nodes: unknown = [{ type: "hover", start: 0, length: 3, text: "string" }]) {
 	return { nodes, code } as never;
@@ -25,14 +28,14 @@ describe("twoslashEnvHash", () => {
 			["a.d.ts", "declare const a: 1;"],
 		]);
 
-		expect(twoslashEnvHash(a)).toBe(twoslashEnvHash(b));
+		expect(twoslashEnvHash(a, TS)).toBe(twoslashEnvHash(b, TS));
 	});
 
 	it("changes when any declaration changes", () => {
 		const before = new Map([["a.d.ts", "declare const a: 1;"]]);
 		const after = new Map([["a.d.ts", "declare const a: 2;"]]);
 
-		expect(twoslashEnvHash(after)).not.toBe(twoslashEnvHash(before));
+		expect(twoslashEnvHash(after, TS)).not.toBe(twoslashEnvHash(before, TS));
 	});
 
 	it("changes when a file is added", () => {
@@ -42,7 +45,24 @@ describe("twoslashEnvHash", () => {
 			["b.d.ts", "y"],
 		]);
 
-		expect(twoslashEnvHash(two)).not.toBe(twoslashEnvHash(one));
+		expect(twoslashEnvHash(two, TS)).not.toBe(twoslashEnvHash(one, TS));
+	});
+
+	it("changes when the TypeScript version changes", () => {
+		// lib.d.ts ships with the compiler and inference changes between releases,
+		// so the same declarations checked by a different compiler are a different
+		// environment. Without this in the key, a warm cache would serve hovers
+		// computed by the previous TypeScript until the declarations happened to
+		// change on their own.
+		const vfs = new Map([["a.d.ts", "declare const a: 1;"]]);
+
+		expect(twoslashEnvHash(vfs, "typescript@5.9.0")).not.toBe(twoslashEnvHash(vfs, "typescript@6.0.3"));
+	});
+
+	it("is stable for the same VFS and toolchain", () => {
+		const vfs = new Map([["a.d.ts", "declare const a: 1;"]]);
+
+		expect(twoslashEnvHash(vfs, TS)).toBe(twoslashEnvHash(vfs, TS));
 	});
 
 	it("cannot be fooled by moving the boundary between path and content", () => {
@@ -50,7 +70,7 @@ describe("twoslashEnvHash", () => {
 		const a = new Map([["a b", "c"]]);
 		const b = new Map([["a", "b c"]]);
 
-		expect(twoslashEnvHash(a)).not.toBe(twoslashEnvHash(b));
+		expect(twoslashEnvHash(a, TS)).not.toBe(twoslashEnvHash(b, TS));
 	});
 });
 

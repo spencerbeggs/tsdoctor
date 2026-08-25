@@ -8,6 +8,7 @@ import type { Scope } from "effect";
 import { Effect, Layer, Metric } from "effect";
 import type { ShikiTransformer } from "shiki";
 import { createHighlighter } from "shiki";
+import ts from "typescript";
 import { ApiExtractedPackage } from "../api-extracted-package.js";
 import { CategoryResolver } from "../category-resolver.js";
 import {
@@ -819,7 +820,10 @@ export function ConfigServiceLive(
 						// --- 7. Twoslash init ---
 						// The result cache is keyed on the type environment, so it has to be
 						// loaded after the VFS is final and before any block is rendered.
-						const twoslashEnv = twoslashEnvHash(combinedVfs);
+						// The compiler version is part of the environment: lib.d.ts ships with
+						// TypeScript and inference changes between releases, so a cached
+						// result is only valid for the compiler that produced it.
+						const twoslashEnv = twoslashEnvHash(combinedVfs, `typescript@${ts.version}`);
 						const cacheSvc = yield* TwoslashCacheService;
 						const restored = yield* cacheSvc.load(twoslashEnv);
 						const twoslashCache = makeTwoslashCache(restored);

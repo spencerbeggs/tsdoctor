@@ -13,12 +13,22 @@ import type { TwoslashTypesCache } from "@shikijs/twoslash";
  *
  * ## Soundness
  *
- * A Twoslash result depends on three things: the code, the compiler options,
- * and the whole type environment the code is checked against. The key covers
- * all three — the per-entry key is the code, and the environment is folded into
- * the blob's identity via {@link twoslashEnvHash}. A cached result can
- * therefore never be served against a type environment that would produce a
- * different answer.
+ * A Twoslash result depends on the code, the compiler options, the declarations
+ * it is checked against, and the compiler doing the checking. The keys cover
+ * all four: the per-entry key carries the code, its language and the compiler
+ * options; {@link twoslashEnvHash} carries the declarations and the TypeScript
+ * version.
+ *
+ * The TypeScript version is load-bearing and easy to overlook — `lib.d.ts`
+ * ships with the compiler and inference changes between releases, so an upgrade
+ * against unchanged declarations yields different hovers. Omitting it would let
+ * a warm cache serve results from the previous compiler and stay wrong until
+ * the API's own declarations happened to change.
+ *
+ * NOT covered, and covered instead by {@link TWOSLASH_CACHE_FORMAT}: the
+ * `@shikijs/twoslash` / `twoslash` renderer version, which determines the shape
+ * of the stored `nodes`. Bump the format constant when upgrading those, since
+ * nothing derives it automatically.
  *
  * ## Invalidation granularity
  *
@@ -46,6 +56,10 @@ import type { TwoslashTypesCache } from "@shikijs/twoslash";
 /**
  * Bumped when the stored shape changes, so an older blob is treated as absent
  * rather than deserialized into the wrong shape.
+ *
+ * Also the manual lever for renderer changes: bump this when upgrading
+ * `@shikijs/twoslash` or `twoslash`, whose versions determine the shape of the
+ * stored `nodes` and are not derived into any key.
  */
 export const TWOSLASH_CACHE_FORMAT = 1;
 
@@ -77,15 +91,24 @@ function sha256(input: string): string {
 /**
  * Fingerprint the type environment a generation is checked against.
  *
- * Hashed over sorted `path\0content` pairs so the digest is stable against map
- * iteration order. Compiler options are deliberately NOT folded in here: since
- * scopes may be documented under different configurations, they belong on the
- * per-entry key instead, so one generation can hold results from several
- * configurations without them colliding.
+ * Covers the declarations (`vfs`) and the compiler that interprets them
+ * (`toolchain`). The VFS is hashed over sorted `path\0content` pairs so the
+ * digest is stable against map iteration order.
+ *
+ * `toolchain` must carry the TypeScript version. The declarations alone do not
+ * determine the answer: `lib.d.ts` ships with the compiler and inference
+ * behaviour changes between releases, so upgrading TypeScript against unchanged
+ * declarations produces different hovers. Without the version in the key the
+ * warm cache would serve results computed by the previous compiler, and stay
+ * wrong until the API's own declarations happened to change.
+ *
+ * Compiler OPTIONS are deliberately not folded in here — they belong on the
+ * per-entry key, so one generation can hold results from the several
+ * configurations a multi-API site may declare.
  */
-export function twoslashEnvHash(vfs: ReadonlyMap<string, string>): string {
+export function twoslashEnvHash(vfs: ReadonlyMap<string, string>, toolchain: string): string {
 	const hash = createHash("sha256");
-	hash.update(`format:${TWOSLASH_CACHE_FORMAT}\0`);
+	hash.update(`format:${TWOSLASH_CACHE_FORMAT}\0toolchain:${toolchain}\0`);
 	for (const key of [...vfs.keys()].sort()) {
 		// NUL-delimited: a path or its content containing a space must not be able
 		// to collide with a different path/content split at the same total length.

@@ -233,7 +233,7 @@ Each spec takes `name` and `version`, plus an optional `tsconfig` and `compilerO
 
 Type-checking code examples is by far the most expensive part of generating a page, so Twoslash results are cached between builds automatically — there is nothing to configure. The cache lives in your machine's XDG cache directory (`~/.cache/tsdoctor/twoslash.sqlite`), not in the repository or your `outDir`, so there is nothing to commit or gitignore.
 
-Each entry is keyed on the code, the compiler options and the whole type environment for the API it belongs to, so a cached result is never served under the wrong configuration. That safety comes with coarse invalidation: any change to a documented API's types starts a fresh generation for that API, but an unchanged API's cache stays warm across CI reruns, prose-only edits and config or theme changes. The build summary reports the hit rate:
+Each entry is keyed on the code, the compiler options, the declarations for the API it belongs to and the TypeScript version that checked them, so a cached result is never served under a compiler or configuration that would produce a different answer — upgrading TypeScript starts a fresh generation even when your declarations have not changed. That safety comes with coarse invalidation: any change to a documented API's types starts a fresh generation for that API, but an unchanged API's cache stays warm across CI reruns, prose-only edits and config or theme changes. The build summary reports the hit rate:
 
 ```text
 Twoslash cache: 14/14 hits (100%), 14 entries
