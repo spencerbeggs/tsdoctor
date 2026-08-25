@@ -18,6 +18,8 @@ const EXPECTED_DTS_PATH = path.join(FIXTURES_DIR, "index.d.ts");
  * generated TEXT only proves the current spelling, not that a compiler accepts
  * it — the distinction that let the `lib` defect survive elsewhere.
  */
+const libSourceFileCache = new Map<string, ts.SourceFile>();
+
 function compileDts(dts: string): readonly ts.Diagnostic[] {
 	// `skipLibCheck` must stay OFF: it suppresses checking of `.d.ts` files
 	// wholesale, including the grammar errors these issues are about, so a
@@ -27,10 +29,20 @@ function compileDts(dts: string): readonly ts.Diagnostic[] {
 	const options: ts.CompilerOptions = { noEmit: true, skipLibCheck: false, target: ts.ScriptTarget.ESNext };
 	const host = ts.createCompilerHost(options, true);
 	const originalGetSourceFile = host.getSourceFile.bind(host);
-	host.getSourceFile = (name, lang, onError, shouldCreate) =>
-		name === fileName
-			? ts.createSourceFile(name, dts, lang, true)
-			: originalGetSourceFile(name, lang, onError, shouldCreate);
+	// Cache the default lib source files across calls. With `skipLibCheck` off
+	// every call type-checks the whole `lib.esnext.d.ts` chain, and a fresh host
+	// re-reads and re-parses it from disk each time — roughly a second per call,
+	// which is what pushed these tests past Vitest's 5s default under CI's
+	// parallel forks. The lib files are identical between calls, so parsing them
+	// once is safe; only the fixture under test differs.
+	host.getSourceFile = (name, lang, onError, shouldCreate) => {
+		if (name === fileName) return ts.createSourceFile(name, dts, lang, true);
+		const cached = libSourceFileCache.get(name);
+		if (cached !== undefined) return cached;
+		const parsed = originalGetSourceFile(name, lang, onError, shouldCreate);
+		if (parsed !== undefined) libSourceFileCache.set(name, parsed);
+		return parsed;
+	};
 	host.fileExists = (name) => name === fileName || ts.sys.fileExists(name);
 	host.readFile = (name) => (name === fileName ? dts : ts.sys.readFile(name));
 	return ts.getPreEmitDiagnostics(ts.createProgram([fileName], options, host));
@@ -369,7 +381,7 @@ describe("ApiExtractedPackage", () => {
 			// `abstract` on the header is TS1244 (methods) / TS1253 (properties).
 			const codes = diagnosticCodes(generated);
 			expect(codes.filter((c) => c === 1244 || c === 1253)).toEqual([]);
-		});
+		}, 20_000);
 	});
 
 	describe("rollup alias collisions (issue #58)", () => {
@@ -394,6 +406,6 @@ describe("ApiExtractedPackage", () => {
 			// the specific name rather than on an empty diagnostic list.
 			const unresolved = diagnosticMessages(generated).filter((m) => /\$\d/.test(m));
 			expect(unresolved).toEqual([]);
-		});
+		}, 20_000);
 	});
 });
