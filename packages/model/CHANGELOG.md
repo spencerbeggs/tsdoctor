@@ -1,5 +1,21 @@
 # @tsdoctor/model
 
+## 0.2.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @microsoft/api-extractor-model | dependency | updated | ^7.33.10 | ^7.33.11 |
+
+[#171][#171]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#171]: https://github.com/spencerbeggs/tsdoctor/pull/171
+
 ## 0.2.1
 
 ### Bug Fixes
