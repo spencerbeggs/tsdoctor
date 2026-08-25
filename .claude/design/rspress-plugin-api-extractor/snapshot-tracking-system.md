@@ -94,15 +94,19 @@ The `SnapshotServiceShape` defines methods:
 **Live implementation** (`packages/snapshot/src/SnapshotServiceLive.ts`):
 
 `SnapshotServiceLive(dbPath)` is built on `@effected/store`'s
-`Store.layerSqlite({ filename: dbPath, migrations })`: layer construction
-opens the SQLite database (via the same `@effect/sql-sqlite-node`
-`SqliteClient` under the hood, WAL on by default) and applies the
-`StoreMigration` list before the service is available. Migration 1 is the
-former `001_create_snapshots` SQL, carried over verbatim. All queries and
-the transactional batch upsert run through `store.client` — the full
-`effect/unstable/sql` tagged-template `SqlClient` — and the WAL checkpoint
-(`PRAGMA wal_checkpoint(TRUNCATE)`) is registered as a scope finalizer via
-that same client for clean shutdown. The layer's error channel carries
+`Store.layerSqlite({ filename: dbPath, migrations, checkpointOnClose: true })`:
+layer construction opens the SQLite database (via the same
+`@effect/sql-sqlite-node` `SqliteClient` under the hood, WAL on by default)
+and applies the `StoreMigration` list before the service is available.
+Migration 1 is the former `001_create_snapshots` SQL, carried over verbatim.
+All queries and the transactional batch upsert run through `store.client` —
+the full `effect/unstable/sql` tagged-template `SqlClient`. The
+`checkpointOnClose: true` option registers the WAL checkpoint
+(`PRAGMA wal_checkpoint(TRUNCATE)`) as a scope finalizer **inside**
+`@effected/store` itself; the package's own hand-written
+`Effect.addFinalizer` for this was deleted once the option shipped (a
+dogfood expansion adopted from the effected round-1 kit wave — see
+`tsdoctor-package-architecture.md`). The layer's error channel carries
 Store's typed `StoreError | StoreMigrationError`. The hand-wired
 `@effect/sql-sqlite-node` + `Migrator` stack this replaces is gone; in
 exchange the package gains Store's `migrate`/`rollback(toId)`/`status`
@@ -116,7 +120,7 @@ Plugin initialization (plugin.ts)
     +-> SnapshotServiceLive(dbPath)   [from @tsdoctor/snapshot]
     |   +-> Store.layerSqlite({ filename: dbPath, migrations })
     |   +-> migration 1 (former 001_create_snapshots) applied at construction
-    |   +-> WAL checkpoint registered as scope finalizer (via store.client)
+    |   +-> WAL checkpoint registered as scope finalizer (checkpointOnClose: true)
     |
     +-> Layer composed into EffectAppLayer
     +-> ManagedRuntime.make(EffectAppLayer)
@@ -193,14 +197,15 @@ boundary, before any migration 2 exists, which is the safe window.
 ### WAL Lifecycle
 
 The SQLite connection uses WAL mode (Store's SQLite backing has WAL on by
-default). The `SnapshotServiceLive` registers a scope finalizer via
-`store.client` to checkpoint the WAL on close:
-
-```typescript
-yield* Effect.addFinalizer(() =>
-  sql`PRAGMA wal_checkpoint(TRUNCATE)`.pipe(Effect.ignore)
-);
-```
+default). `SnapshotServiceLive` passes `checkpointOnClose: true` to
+`Store.layerSqlite`, which registers the WAL-checkpoint scope finalizer
+(`PRAGMA wal_checkpoint(TRUNCATE)`) **inside `@effected/store`** on close —
+the package no longer hand-writes this finalizer itself. `(c)` (passing
+through `SqliteClient.layer` options) and `(d)` (a `checkpointOnClose`
+option) were dogfood-expansion candidates raised against `@effected/store`
+during phase 2 (see `tsdoctor-package-architecture.md`); both shipped
+upstream and this package adopted `checkpointOnClose: true` as soon as the
+released kit wave carried them.
 
 In production builds, the runtime is disposed in `afterBuild`, triggering
 the checkpoint. In dev mode, the runtime stays alive for HMR rebuilds.

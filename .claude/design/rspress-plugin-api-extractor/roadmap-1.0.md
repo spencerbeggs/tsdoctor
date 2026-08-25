@@ -115,7 +115,7 @@ Candidate fixes, recorded as **hypotheses pending evidence, not commitments**:
 **Settled decision: the doc IR is extracted here, not designed up front.** `@tsdoctor/pages` — the framework-neutral page-generation IR (typed doc blocks + mdast prose) — is carved out only in this phase, alongside the VitePress adapter, so the abstraction is shaped by two live consumers rather than speculation.
 
 - `@tsdoctor/pages` dogfoods `@effected/markdown`, which likely grows MDX serialization capability from this work.
-- **@effected surface:** `markdown` as the IR substrate, plus the MDX dogfood loop — MDX node support is not in the kit today and is the flagged `/silk:dogfood` expansion (see "Kit Expansion via Dogfood" in `tsdoctor-package-architecture.md`).
+- **@effected surface:** `markdown` as the IR substrate. The MDX dogfood loop already delivered construction and serialization of the MDX node vocabulary in the released 0.7.0 kit wave, ahead of this phase, proof-tested by `packages/model/__test__/mdx-vocabulary.test.ts`; MDX parsing is still absent, and wiring the vocabulary into an actual page-generation IR remains this phase's work (see "Kit Expansion via Dogfood" in `tsdoctor-package-architecture.md`).
 - The VitePress adapter leans on native `@shikijs/vitepress-twoslash` where sensible instead of porting the RSPress remark pipeline.
 - **Gate:** a working VitePress adapter **alpha** renders a real API doc site from the same bundles the RSPress plugin consumes. This gate is the 1.0 gate for the core.
 

@@ -1,4 +1,5 @@
 import { GlobPatternOptions } from "@effected/glob";
+import { LenientManifest } from "@effected/package-json";
 import { compileAndExpand } from "@effected/walker";
 import { Effect, FileSystem, Option, Path, Schema } from "effect";
 import type { Bundle, BundleDescriptor, BundleLayerError } from "./Bundle.js";
@@ -77,12 +78,6 @@ export interface DiscoverBundlesOptions {
 	readonly cwd?: string;
 }
 
-/** The lenient package.json subset discovery needs: name and version only. */
-const DiscoveryPackageJson = Schema.Struct({
-	name: Schema.optionalKey(Schema.String),
-	version: Schema.optionalKey(Schema.String),
-});
-
 /** The unscoped tail of an npm package name (`@scope/pkg` → `pkg`). */
 function unscopedName(packageName: string): string {
 	const slash = packageName.indexOf("/");
@@ -111,7 +106,19 @@ function listModelFiles(
 	);
 }
 
-/** Read the discovery-lenient name/version pair from a package.json, when present. */
+/**
+ * Read the discovery-lenient name/version pair from a package.json, when
+ * present.
+ *
+ * @remarks
+ * Uses `@effected/package-json`'s `LenientManifest` — the shape-on-presence
+ * degradable tier below `PackageManifest`. Malformed JSON text (or a
+ * non-object document) fails typed as `invalidPackageJson`, matching the
+ * previous two-field sniffer; a malformed individual field now degrades to
+ * absence instead of failing, which is the ladder's enrich-never-gate rule
+ * applied at field granularity (the model's own name covers a nameless
+ * discovery).
+ */
 function readDiscoveryPackageJson(
 	packageJsonPath: string,
 ): Effect.Effect<
@@ -127,14 +134,16 @@ function readDiscoveryPackageJson(
 		}
 		const parsed = yield* Effect.gen(function* () {
 			const text = yield* fs.readFileString(packageJsonPath);
-			const json = yield* Effect.try(() => JSON.parse(text) as unknown);
-			return yield* Schema.decodeUnknownEffect(DiscoveryPackageJson)(json);
+			return yield* LenientManifest.parse(text);
 		}).pipe(
 			Effect.mapError(
 				(cause) => new BundleDiscoveryError({ path: packageJsonPath, reason: "invalidPackageJson", cause }),
 			),
 		);
-		return Option.some(parsed);
+		return Option.some({
+			...(parsed.name !== undefined ? { name: parsed.name } : {}),
+			...(parsed.version !== undefined ? { version: parsed.version } : {}),
+		});
 	});
 }
 

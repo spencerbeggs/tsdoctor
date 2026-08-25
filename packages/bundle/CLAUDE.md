@@ -15,9 +15,18 @@ model.
   fields), `PlatformOverrides.ts` (the top-ranked override tier),
   `Bundle.ts` (descriptor + four layer readers + `readBundle`),
   `BundleDiscovery.ts` (`discoverBundle`/`discoverBundles`, generalizing the
-  plugin's `fromDir`/`fromParentDir` without the RSPress baseRoute logic),
+  plugin's `fromDir`/`fromParentDir` without the RSPress baseRoute logic;
+  its package.json read now goes through `@effected/package-json`'s
+  `LenientManifest.parse` — field-level degradation, malformed JSON still
+  fails typed as `invalidPackageJson`),
   `BundleResolver.ts` (pure `resolveBundle`, `Provenanced<A>` fields),
-  `BundleHash.ts` (pure canonical hashing + per-field fingerprints),
+  `BundleHash.ts` (rebuilt on `@effected/jsonc`'s `JsoncFingerprint` — RFC
+  8785/JCS canonicalization + SHA-256 through core's `Crypto` service;
+  `hashText`/`hashJsonValue`/`hashLayerText`/`fingerprintResolvedBundle` are
+  Effects requiring `Crypto.Crypto`, provided at the edge via
+  `@effect/platform-node`'s `NodeCrypto.layer`, same posture as
+  `FileSystem | Path`; canonicalization is strict — an `undefined` member or
+  non-plain object fails typed as `JsoncCanonicalizeError`),
   `BundleFetch.ts` (`fetchNpmBundle` / `fetchGitHubReleaseBundle` over
   `@effected/npm`'s `NpmRegistry`+`PackageTarball` and `@effected/github`'s
   `GitHubRelease`, cached under the XDG cache via `@effected/store` `Cache` +

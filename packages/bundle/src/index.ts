@@ -32,15 +32,7 @@ export {
 	fetchGitHubReleaseBundle,
 	fetchNpmBundle,
 } from "./BundleFetch.js";
-export {
-	canonicalJson,
-	fingerprintResolvedBundle,
-	hashJsonValue,
-	hashLayerText,
-	hashText,
-	normalizeText,
-	sha256Hex,
-} from "./BundleHash.js";
+export { fingerprintResolvedBundle, hashJsonValue, hashLayerText, hashText, normalizeText } from "./BundleHash.js";
 export {
 	BundleManifest,
 	BundleManifestError,

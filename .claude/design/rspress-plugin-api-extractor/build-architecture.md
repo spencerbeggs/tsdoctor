@@ -76,7 +76,7 @@ plugin.ts (RSPress adapter)
   |     +-> SnapshotServiceLive (from @tsdoctor/snapshot)
   |     |     SQLite via @effected/store Store.layerSqlite
   |     |     StoreMigration list applied at layer construction
-  |     |     WAL checkpoint finalizer via store.client
+  |     |     WAL checkpoint finalizer via checkpointOnClose: true
   |     |
   |     +-> TypeRegistryServiceLive
   |     |     External package type loading
@@ -125,7 +125,7 @@ The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned through the `cat
 The v3 peer-closure block (`@effect/cluster`, `@effect/experimental`, `@effect/rpc`, `@effect/workflow`) has been **removed**: the v4 peer graph is small enough that issue #69's escaping-peer problem no longer applies in that form. The closure principle still holds, though — because the per-file plugin build leaves `dependencies` external, any unclosed non-optional peer escapes to the consuming workspace where pnpm `autoInstallPeers` can bind it unpredictably. As of phase 2 the closure lives in the plugin's `dependencies` block (only `@rspress/core`/`react`/`react-dom` remain peers):
 
 - `ioredis` — non-optional peer of the `@effect/platform-node` v4 beta.
-- The full `@effected` surface the four `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling), alongside `@typescript/vfs`.
+- The full `@effected` surface the four `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling), alongside `@typescript/vfs`. The released effected round-1 kit wave added two more: `@effected/jsonc` (canonical JSON-value hashing behind `@tsdoctor/bundle`'s `BundleHash.ts`) and `@effected/markdown` (frontmatter block assembly in `frontmatter.ts` and, transitively, `@tsdoctor/model`'s prose/render internals).
 - The four core workspaces themselves: `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot`, each `workspace:*`.
 
 `@effect/sql-sqlite-node` and `gray-matter` are **gone** from the plugin manifest — SQLite moved behind `@tsdoctor/snapshot`'s `Store.layerSqlite`, and frontmatter parsing moved to `@effected/yaml` (see `frontmatter.ts` in [Key Source Files](#key-source-files)). Do not prune the closure entries as "unused"; the plugin imports some of them directly (see `layers/TypeRegistryServiceLive.ts`, `sync-node-fs.ts`, `frontmatter.ts`) and the rest exist to keep the dependency graph closed.

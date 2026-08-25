@@ -59,9 +59,8 @@ const migrations: ReadonlyArray<StoreMigration> = [
  * @remarks
  * Backed by `@effected/store`'s `Store.layerSqlite`: layer construction opens
  * the database (WAL mode), ensures the migration ledger and applies pending
- * migrations. A WAL checkpoint (`PRAGMA wal_checkpoint(TRUNCATE)`) is
- * registered as a scope finalizer so the sidecar files are folded back into
- * the main database on clean shutdown.
+ * migrations. `checkpointOnClose` folds the WAL sidecar files back into the
+ * main database on clean shutdown.
  *
  * This is a parameterized layer factory: call it once per database path and
  * bind the result to a `const` — layers memoize by reference, and a fresh
@@ -73,16 +72,13 @@ const migrations: ReadonlyArray<StoreMigration> = [
  * @public
  */
 export const SnapshotServiceLive = (dbPath: string): Layer.Layer<SnapshotService, StoreError | StoreMigrationError> => {
-	const StoreLive = Store.layerSqlite({ filename: dbPath, migrations });
+	const StoreLive = Store.layerSqlite({ filename: dbPath, migrations, checkpointOnClose: true });
 
 	const ServiceImpl = Layer.effect(
 		SnapshotService,
 		Effect.gen(function* () {
 			const store = yield* Store;
 			const sql = store.client;
-
-			// WAL checkpoint on scope close
-			yield* Effect.addFinalizer(() => sql`PRAGMA wal_checkpoint(TRUNCATE)`.pipe(Effect.ignore));
 
 			return {
 				hashContent,
