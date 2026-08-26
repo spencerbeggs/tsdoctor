@@ -15,7 +15,6 @@ export * as Model from "./Model.js";
 export * as Render from "./Render.js";
 export * as Routes from "./Routes.js";
 export * as Signature from "./Signature.js";
-export * as StructuredData from "./StructuredData.js";
 export * as SyntheticBases from "./SyntheticBases.js";
 export * as Tsdoc from "./Tsdoc.js";
 export type {

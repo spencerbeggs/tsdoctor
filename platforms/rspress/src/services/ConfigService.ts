@@ -1,12 +1,13 @@
 /* v8 ignore start -- service interface + Context.Tag, no testable logic */
+import type { PackageManifest } from "@effected/package-json";
 import type { ApiPackage } from "@microsoft/api-extractor-model";
+import type { OpenGraphImageConfig } from "@tsdoctor/seo";
 import { Context, Effect, Layer } from "effect";
 import type { ConfigValidationError } from "../errors.js";
 import type { PackageJson } from "../internal-types.js";
 import { makeConfigService } from "../layers/config-resolution.js";
 import type { ShikiThemeConfig } from "../markdown/shiki-utils.js";
 import type { CategoryConfig, LlmsPlugin, SourceConfig } from "../schemas/config.js";
-import type { OpenGraphImageConfig } from "../schemas/opengraph.js";
 import type { PluginConfig } from "./PluginConfig.js";
 import type { TwoslashCacheService } from "./TwoslashCacheService.js";
 import type { TwoslashEnvironments } from "./TwoslashEnvironments.js";
@@ -47,6 +48,23 @@ export interface ResolvedApiConfig {
 	readonly categories: Record<string, CategoryConfig>;
 	readonly source?: SourceConfig;
 	readonly packageJson?: PackageJson;
+	/**
+	 * The same manifest decoded through `@effected/package-json`'s
+	 * `PackageManifest` — typed `Person` / `Repository` / SPDX license, which is
+	 * the shape the SEO layer derives attribution from.
+	 *
+	 * @remarks
+	 * Deliberately NOT the discovery-tier `LenientManifest`, which leaves
+	 * `author` and `repository` as raw `string | Record` unions with no
+	 * decoding at all. `PackageManifest` is presence-lenient but shape-strict,
+	 * so one malformed field fails the whole decode — and that degrades to this
+	 * field being absent (with a `ConfigValidationWarning` emitted), never to a
+	 * failed build.
+	 *
+	 * The loose {@link ResolvedApiConfig.packageJson} above stays alongside it:
+	 * it feeds dependency extraction, and replacing it is a separate refactor.
+	 */
+	readonly manifest?: PackageManifest;
 	readonly llmsPlugin?: LlmsPlugin;
 	readonly siteUrl?: string;
 	readonly ogImage?: OpenGraphImageConfig;

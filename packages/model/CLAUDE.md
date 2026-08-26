@@ -25,8 +25,10 @@ framework-free: no RSPress, no React, no I/O beyond model loading.
   `SyntheticBases` (`detect`, `BASE_CLASS_ANCHOR`), `Signature`
   (`format`, de-classed), `Render` (string API + `@alpha` `Render.tree` on
   `@effected/markdown`), the `CrossLinker` class
-  (`fromRoutes`/`fromRefs`/`empty`/`link`/`linkHtml`) and the `@alpha`
-  `StructuredData` stub. Shared types in `types.ts`; helpers in `internal/`.
+  (`fromRoutes`/`fromRefs`/`empty`/`link`/`linkHtml`). Shared types in
+  `types.ts`; helpers in `internal/`. The `@alpha` `StructuredData` stub is
+  **deleted** (phase 4) — schema.org derivation lives in `@tsdoctor/seo`, not
+  here. Do not re-add an SEO seam to this package.
 - Primary consumer is `platforms/rspress/`, which imports these modules
   **directly** — the four phase-1 delegation shims are deleted (see "Core
   Package Consumption" in `build-architecture.md`). The plugin's

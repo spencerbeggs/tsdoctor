@@ -54,6 +54,7 @@ The plugin reads your `.api.json` model and writes one MDX page per public API i
 - Drives single-package sites, multi-package portals, RSPress multiVersion and i18n from one plugin.
 - Handles multi-entry-point packages: it deduplicates re-exports and notes which entry points each item is available from.
 - Writes per-package `llms*.txt` files and in-page actions for pointing an assistant at one package's docs.
+- Gives every generated page complete `<head>` metadata: a canonical link, Open Graph and Twitter card tags, and a schema.org JSON-LD graph describing the package, the page and the documented symbol.
 
 ## Documentation
 

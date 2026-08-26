@@ -46,6 +46,7 @@
 		"@tsdoctor/bundle": "workspace:*",
 		"@tsdoctor/model": "workspace:*",
 		"@tsdoctor/registry": "workspace:*",
+		"@tsdoctor/seo": "workspace:*",
 		"@tsdoctor/snapshot": "workspace:*",
 		"@typescript/vfs": "^1.6.4",
 		"clsx": "^2.1.1",

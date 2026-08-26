@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
 import { Model } from "@tsdoctor/model";
+import type { OpenGraphImageConfig } from "@tsdoctor/seo";
 import { Effect } from "effect";
 import { isLoadedModel, isVersionConfig } from "./config-utils.js";
 import type { LoadedModel, PackageJson } from "./internal-types.js";
@@ -14,7 +15,6 @@ import type {
 	SourceConfig,
 	VersionConfig,
 } from "./schemas/config.js";
-import type { OpenGraphImageConfig } from "./schemas/opengraph.js";
 
 /**
  * The typed failures a model load can produce. Path loads fail with

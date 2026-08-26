@@ -3,9 +3,9 @@ status: draft
 module: rspress-plugin-api-extractor
 category: meta
 created: 2026-08-24
-updated: 2026-08-25
-last-synced: 2026-08-25
-completeness: 75
+updated: 2026-08-26
+last-synced: 2026-08-26
+completeness: 80
 related:
   - rspress-plugin-api-extractor/tsdoctor-package-architecture.md
   - rspress-plugin-api-extractor/monorepo-consolidation.md
@@ -16,12 +16,13 @@ related:
   - rspress-plugin-api-extractor/type-loading-vfs.md
   - rspress-plugin-api-extractor/llms-integration.md
   - rspress-plugin-api-extractor/render-phase-instrumentation.md
+  - rspress-plugin-api-extractor/structured-data-and-og.md
 dependencies: []
 ---
 
 # Road to 1.0.0
 
-> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done — **phases 1 through 3 are complete** (phase 1 merged via PR #163 and shipped to npm on 2026-08-24; phase 2 code complete 2026-08-24; phase 3 complete 2026-08-25, landed on `feat/phase-3` — see `monorepo-consolidation.md` and `render-phase-instrumentation.md`). For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session (phase 3's instrument-first sequencing included) and should be treated as settled unless a section explicitly labels them open.
+> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done — **phases 1 through 4 are complete** (phase 1 merged via PR #163 and shipped to npm on 2026-08-24; phase 2 code complete 2026-08-24; phase 3 complete 2026-08-25, landed on `feat/phase-3`; phase 4 complete 2026-08-26, landed on `feat/phase-4` — see `monorepo-consolidation.md`, `render-phase-instrumentation.md` and `structured-data-and-og.md`). For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session (phase 3's instrument-first sequencing included) and should be treated as settled unless a section explicitly labels them open.
 
 ## Table of Contents
 
@@ -48,7 +49,7 @@ The target package architecture (what each `@tsdoctor/*` package contains and wh
 
 ## Current State
 
-As of 2026-08-25, **phases 1 through 3 are complete**:
+As of 2026-08-26, **phases 1 through 4 are complete**:
 
 - The `@tsdoctor` npm org is registered and the first releases under it have shipped from this repo to npm and GitHub Releases: `@tsdoctor/registry@0.1.0`, `@tsdoctor/model@0.1.0` and `rspress-plugin-api-extractor@0.8.9`, tagged in the `<package>@<version>` format.
 - The old npm packages `type-registry-effect` and `api-extractor-llms` are deprecated with pointers to their successors, and their GitHub repos are archived.
@@ -59,6 +60,7 @@ As of 2026-08-25, **phases 1 through 3 are complete**:
 - **Phase 2 is code complete** (landed on `feat/tsdoctor-phase-2`, 2026-08-24, releases pending): `@tsdoctor/bundle` and `@tsdoctor/snapshot` exist, the model was redesigned to Effect v4 modules with the shims collapsed, the identity renames executed, and `gray-matter` replaced — see the phase 2 section below.
 - **Phase 3 is complete** (landed on `feat/phase-3`, 2026-08-25): render-phase code-block time is now attributed per scope and per code block via dimensional Effect metrics, and the resulting data decided fix priority — a persisted Twoslash result cache (fix (a)) shipped as the performance work, and per-scope TypeScript environments (fix (b)) shipped as the `with-api` scoping correctness fix the data gave no performance case for. Full record in `render-phase-instrumentation.md`.
 - **The pre-phase-4 adapter refactor is landed** (`feat/phase-4`, 2026-08-25) — an unnumbered interlude between phases 3 and 4, described below.
+- **Phase 4 is complete** (same branch, 2026-08-26): a fifth core package `@tsdoctor/seo` owns every `<head>` concern behind one `headTags` seam, JSON-LD ships over `@effected/schema-org`, and a long-standing change-detection defect (head tags invisible to the frontmatter hash) is closed. Full record in `structured-data-and-og.md`.
 - The plugin itself is pre-1.0 and RSPress-specific; the bundle spec is now formalized in `bundle-spec.md` (the informal three-file folder convention is superseded).
 
 ## The 1.0 Definition
@@ -138,11 +140,16 @@ Also landed alongside Chunk 5: the `makeTest` / `layerTest` service doubles (5.0
 
 ### Phase 4 — SEO Layer
 
-- JSON-LD structured data: a schema.org `SoftwareSourceCode` / `TechArticle` / `APIReference` mapping derived from `package.json` + `api.json`, **computed in `@tsdoctor/model`**, injected by the adapter.
-- OG image pipeline (satori + resvg, or bundle-supplied assets), with results persisted in the snapshot DB (`@tsdoctor/snapshot`).
-- Author and license attribution surfaces.
-- **@effected surface:** `spdx` / `package-json` supply the JSON-LD inputs (license expressions, repository/maintainer metadata).
-- **Gate:** structured data validates against schema.org tooling on a real consumer site; details recorded in the deferred `structured-data-and-og.md`.
+**COMPLETE** (landed on `feat/phase-4`, 2026-08-26, following the pre-phase-4 adapter refactor on the same branch). Implemented against `.claude/plans/2026-08-25-seo-layer-plan.md`; the full record — package topology, the seam, the JSON-LD mapping, the change-detection defect — is in `structured-data-and-og.md`.
+
+- **A fifth core package, `@tsdoctor/seo`** (`packages/seo`): framework-neutral `<head>` metadata. `HeadTag` (the neutral tag vocabulary), `Canonical`, `OpenGraph` (+ Twitter cards), `Attribution`, `StructuredData`, and `Seo.headTags` — the single adapter seam. The adapter's `og-resolver.ts` and `schemas/opengraph.ts` are deleted into it.
+- **JSON-LD structured data: done**, but **NOT** "computed in `@tsdoctor/model`" as this roadmap originally sited it. The model's `@alpha`, zero-consumer, throwing `StructuredData` stub is **deleted**; derivation lives in `@tsdoctor/seo` over the newly released `@effected/schema-org@0.1.0`. `packageContext` is derived once per API; `derive`/`deriveScriptBody` assemble the per-page `@graph` (`SoftwareSourceCode` + `TechArticle` + `APIReference`, linked by `isPartOf`/`mainEntity`). Reasons for the move are recorded in `structured-data-and-og.md` and `tsdoctor-package-architecture.md`.
+- **Author and license attribution: done** — `attributionFacts(manifest)` over an `@effected/package-json` `PackageManifest`, carried on `ResolvedApiConfig.manifest`.
+- **Canonical `<link>` tags: done** — new; this plugin had never emitted them.
+- **The OG image *generation* pipeline (satori + resvg) is DEFERRED out of phase 4, deliberately.** It needs a native binary and its own persistence story, and it rides on the head-tag seam this phase built anyway, so building the seam first makes the image branch a leaf change rather than a second architecture. Configured images are still resolved by the adapter's `OgService`; persisting *generated* results in the snapshot DB is future work.
+- **A real defect closed:** head tags were invisible to incremental-build change detection. `hashFrontmatter` now hashes `head` with timestamps stripped recursively, and head-tag construction moved from the write stage into the generate stage so the hash covers it. Measured on `sites/basic`: a fixture version bump rewrote 0 of 46 pages before, 37 of 46 after; a no-change rebuild stays byte-identical. See `structured-data-and-og.md` and `snapshot-tracking-system.md`.
+- **@effected surface:** `spdx` / `package-json` supply the attribution inputs as planned, plus the new `@effected/schema-org` (produced by round 2 of the dogfood loop). `@effected/pnpm-plugin-effect` bumped to `0.6.11` to carry its catalog entry.
+- **Gate: HELD, offline.** `Conformance.check` from `@effected/schema-org/validate` runs over five manifest fixtures asserted to `[]`, plus a strict `unknownTerms: "fail"` run — in CI, rather than against a live Google endpoint. Validation is fixture-level; there is no per-page conformance check in a production build. The manual Google Rich Results confirmation remains a human step.
 
 ### Phase 5 — VitePress Adapter and Doc IR
 
@@ -169,7 +176,7 @@ Each of these docs is authored in the phase that produces the evidence or the se
 | --- | --- | --- |
 | `bundle-spec.md` | Phase 2 — **written** (2026-08-24, during phase-2 planning) | The versioned bundle manifest and fetcher contracts |
 | `render-phase-instrumentation.md` | Phase 3 — **written** (2026-08-25) | Per-scope/per-block attribution design, the measured data and both delivered fixes |
-| `structured-data-and-og.md` | Phase 4 | JSON-LD mapping and OG image pipeline |
+| `structured-data-and-og.md` | Phase 4 — **written** (2026-08-26) | The `@tsdoctor/seo` package, the `headTags` seam, the JSON-LD mapping and the change-detection defect. The OG image *generation* pipeline is deferred and is named as out of scope there. |
 | `doc-ir-and-pages.md` | Phase 5 | The `@tsdoctor/pages` IR, shaped by the RSPress + VitePress consumers |
 
 Also idea-stage and deliberately unscheduled (no phase, no gate): `@tsdoctor/cli`, a scaffolding `tsdoctor` binary — see "Future Packages (Idea-Stage Stubs)" in `tsdoctor-package-architecture.md`.
@@ -188,6 +195,7 @@ Also idea-stage and deliberately unscheduled (no phase, no gate): `@tsdoctor/cli
 - **Bundle spec (phase 2, written):** `bundle-spec.md`
 - **Phase 1 executed record:** `monorepo-consolidation.md`
 - **Current plugin architecture & shared-library delegation:** `build-architecture.md`
+- **Phase 4 record — the SEO layer, the `headTags` seam and the change-detection defect:** `structured-data-and-og.md`
 - **Render-phase performance evidence that motivated phase 3:** `build-progress-and-issues.md`
 - **Phase 3 record — per-scope/per-block attribution, measured data, both delivered fixes:** `render-phase-instrumentation.md`
 - **EventBus/dimensional metrics system phase 3 extended:** `performance-observability.md`

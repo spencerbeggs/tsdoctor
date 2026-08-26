@@ -1,0 +1,60 @@
+{
+	"name": "@tsdoctor/seo",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Framework-neutral head metadata for static TypeScript API documentation: schema.org JSON-LD, Open Graph and Twitter card vocabulary, canonical URLs, and package attribution derived from an api.json model plus its manifest.",
+	"keywords": ["seo", "schema.org", "json-ld", "open-graph", "documentation", "effect"],
+	"homepage": "https://github.com/spencerbeggs/tsdoctor#readme",
+	"bugs": {
+		"url": "https://github.com/spencerbeggs/tsdoctor/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/spencerbeggs/tsdoctor.git",
+		"directory": "packages/seo"
+	},
+	"license": "MIT",
+	"author": {
+		"name": "C. Spencer Beggs",
+		"email": "spencer@beggs.codes",
+		"url": "https://spencerbeg.gs"
+	},
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./package.json": "./package.json"
+	},
+	"scripts": {
+		"build:dev": "node savvy.build.ts --target dev",
+		"build:prod": "node savvy.build.ts --target prod",
+		"prepare": "node savvy.build.ts --target dev",
+		"types:check": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@effected/package-json": "catalog:effected",
+		"@effected/schema-org": "catalog:effected",
+		"@effected/spdx": "catalog:effected",
+		"@savvy-web/bundler": "^2.1.27",
+		"@types/node": "catalog:build",
+		"effect": "catalog:effect",
+		"typescript": "^6.0.3"
+	},
+	"peerDependencies": {
+		"@effected/package-json": "catalog:effected:peers",
+		"@effected/schema-org": "catalog:effected:peers",
+		"@effected/spdx": "catalog:effected:peers",
+		"effect": "catalog:effect:peers"
+	},
+	"engines": {
+		"node": ">=24.11.0"
+	},
+	"publishConfig": {
+		"access": "public",
+		"directory": "dist/dev/pkg",
+		"linkDirectory": true,
+		"targets": {
+			"npm": true
+		}
+	}
+}

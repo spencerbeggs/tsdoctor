@@ -59,14 +59,92 @@ export function hashContent(content: string): string {
 	return createHash("sha256").update(normalized).digest("hex");
 }
 
+const TIMESTAMP_KEYS = new Set(["publishedTime", "modifiedTime", "article:published_time", "article:modified_time"]);
+
+const JSON_LD_DATE_KEYS = new Set(["datePublished", "dateModified", "uploadDate"]);
+
+const JSON_LD_BODY_KEYS = new Set(["children", "innerHTML", "textContent"]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Strips a JSON-LD script body of its date fields.
+ *
+ * @remarks
+ * The body arrives as a string, so it must be parsed before its dates can be
+ * removed. A body that does not parse as JSON is returned unchanged rather
+ * than throwing — an unparseable body is still content worth hashing.
+ */
+function stripJsonLdBody(body: string): string {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(body);
+	} catch {
+		return body;
+	}
+	return JSON.stringify(stripTimestamps(parsed));
+}
+
+/**
+ * Recursively removes timestamp-valued entries from a frontmatter value.
+ *
+ * @remarks
+ * Timestamps appear in two shapes. In the meta-pair form the value lives in a
+ * `content` field whose sibling `property`/`name` names a timestamp
+ * (`article:published_time`, `article:modified_time`). In the JSON-LD form it
+ * is an object key (`datePublished`, `dateModified`) inside a script body.
+ * Both are stripped; everything else survives so that an `og:image`,
+ * `og:description`, canonical `href` or JSON-LD version change is visible to
+ * change detection.
+ *
+ * The walk must be recursive: `head` is an array of `[tagName, attrs]` pairs,
+ * so a shallow pass would see nothing.
+ */
+function stripTimestamps(value: unknown): unknown {
+	if (Array.isArray(value)) {
+		return value.map(stripTimestamps);
+	}
+	if (!isRecord(value)) {
+		return value;
+	}
+
+	const property = value["property"] ?? value["name"];
+	const isTimestampTag = typeof property === "string" && TIMESTAMP_KEYS.has(property);
+	const isJsonLd = value["type"] === "application/ld+json";
+
+	const result: Record<string, unknown> = {};
+	for (const key of Object.keys(value).sort()) {
+		if (JSON_LD_DATE_KEYS.has(key)) {
+			continue;
+		}
+		if (isTimestampTag && key === "content") {
+			continue;
+		}
+		const entry = value[key];
+		if (isJsonLd && JSON_LD_BODY_KEYS.has(key) && typeof entry === "string") {
+			result[key] = stripJsonLdBody(entry);
+			continue;
+		}
+		result[key] = stripTimestamps(entry);
+	}
+	return result;
+}
+
 /**
  * Generates a SHA-256 hash of frontmatter fields.
  *
  * @remarks
- * Excludes timestamp-related fields (`publishedTime`, `modifiedTime`, `head`,
+ * Excludes the top-level timestamp fields (`publishedTime`, `modifiedTime`,
  * `article:published_time`, `article:modified_time`) to prevent circular
- * dependencies in change detection. Keys are sorted alphabetically before
- * hashing to ensure consistent results regardless of object key order.
+ * dependencies in change detection, and strips timestamp-valued entries
+ * recursively from every remaining value — including the `head` array's meta
+ * pairs and the date fields inside a JSON-LD script body. Everything else in
+ * `head` participates in the hash, so an `og:image`, `og:description` or
+ * canonical URL change marks the page modified. Keys are sorted
+ * alphabetically before hashing to ensure consistent results regardless of
+ * object key order.
  *
  * @param frontmatter - The frontmatter object to hash
  * @returns Hexadecimal SHA-256 hash string
@@ -84,34 +162,17 @@ export function hashContent(content: string): string {
  * @public
  */
 export function hashFrontmatter(frontmatter: Record<string, unknown>): string {
-	// Create a copy without timestamp fields and head array
+	// Create a copy without the top-level timestamp fields, with every
+	// surviving value stripped of nested timestamps.
 	const filtered: Record<string, unknown> = {};
 
-	for (const [key, value] of Object.entries(frontmatter)) {
-		// Skip timestamp fields and head array (contains OG tags with timestamps)
-		if (
-			key === "publishedTime" ||
-			key === "modifiedTime" ||
-			key === "head" ||
-			key === "article:published_time" ||
-			key === "article:modified_time"
-		) {
+	for (const key of Object.keys(frontmatter).sort()) {
+		if (TIMESTAMP_KEYS.has(key)) {
 			continue;
 		}
-		filtered[key] = value;
+		filtered[key] = stripTimestamps(frontmatter[key]);
 	}
 
-	// Sort keys for consistent hashing
-	const sorted = Object.keys(filtered)
-		.sort()
-		.reduce(
-			(acc, key) => {
-				acc[key] = filtered[key];
-				return acc;
-			},
-			{} as Record<string, unknown>,
-		);
-
-	const json = JSON.stringify(sorted);
+	const json = JSON.stringify(filtered);
 	return createHash("sha256").update(json).digest("hex");
 }

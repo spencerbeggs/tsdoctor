@@ -1,3 +1,4 @@
+import { openGraphTags } from "@tsdoctor/seo";
 import { hashContent, hashFrontmatter } from "@tsdoctor/snapshot";
 import { describe, expect, it } from "vitest";
 import { parseFrontmatter, stringifyFrontmatter } from "../src/frontmatter.js";
@@ -42,9 +43,12 @@ describe("parseFrontmatter (gray-matter parity)", () => {
 		// Timestamp values must decode as strings, not Dates.
 		const head = data.head as [string, Record<string, unknown>][];
 		expect(typeof head[1]?.[1].content).toBe("string");
-		// head is excluded from the frontmatter hash, so this hashes identically
-		// to the head-less page above (pinned under gray-matter).
-		expect(hashFrontmatter(data)).toBe("04ed78a28e5ef04b39a2d2a8401bbfec95deb6fae6b7f58f2771ef5a102d7f8b");
+		// `head` participates in the frontmatter hash since the recursive
+		// timestamp strip, so this no longer collides with the head-less page
+		// above. The two article:*_time entries keep their `property` and lose
+		// only their `content`; `og:url` survives whole — which is what makes a
+		// canonical or og:* change detectable while a rebuild stays stable.
+		expect(hashFrontmatter(data)).toBe("01f802353920d6564dac66490da11ddadf4094a4dde102b48dc78654e99de18d");
 		expect(hashContent(content)).toBe("a7617d731e11694a00dfd49372284be7a0617840e8f527551408c36911cd0bd4");
 	});
 
@@ -254,24 +258,33 @@ describe("generateFrontmatter emission parity", () => {
 	}
 
 	it("parses the full OG head structure to the pinned gray-matter data and hash", () => {
-		const fm = generateFrontmatter("MyClass", "A utility class for parsing things.", "Class", "My Package", {
-			siteUrl: "https://example.com",
-			pageRoute: "/api/class/myclass",
-			ogType: "article",
-			description: 'A utility class:\nwith  newlines and "quotes".',
-			ogImage: {
-				url: "https://example.com/og.png",
-				secureUrl: "https://example.com/og.png",
-				type: "image/png",
-				width: 1200,
-				height: 630,
-				alt: "MyClass card",
-			},
-			publishedTime: "2024-01-15T12:00:00.000Z",
-			modifiedTime: "2024-01-17T10:30:00.000Z",
-			section: "Classes",
-			tags: ["typescript", "api"],
-		});
+		// The head array now arrives already rendered from @tsdoctor/seo. Feeding
+		// the same metadata through `openGraphTags` keeps the pinned hash below
+		// a real claim about the emitter, not a restatement of a literal.
+		const fm = generateFrontmatter(
+			"MyClass",
+			"A utility class for parsing things.",
+			"Class",
+			"My Package",
+			openGraphTags({
+				siteUrl: "https://example.com",
+				pageRoute: "/api/class/myclass",
+				ogType: "article",
+				description: 'A utility class:\nwith  newlines and "quotes".',
+				ogImage: {
+					url: "https://example.com/og.png",
+					secureUrl: "https://example.com/og.png",
+					type: "image/png",
+					width: 1200,
+					height: 630,
+					alt: "MyClass card",
+				},
+				publishedTime: "2024-01-15T12:00:00.000Z",
+				modifiedTime: "2024-01-17T10:30:00.000Z",
+				section: "Classes",
+				tags: ["typescript", "api"],
+			}),
+		);
 		const { data, content } = parseFrontmatter(`${fm}# Body\n`);
 		// Pinned under the old emitter + gray-matter:
 		expect(data).toEqual({
@@ -294,7 +307,7 @@ describe("generateFrontmatter emission parity", () => {
 				["meta", { property: "article:tag", content: "api" }],
 			],
 		});
-		expect(hashFrontmatter(data)).toBe("04ed78a28e5ef04b39a2d2a8401bbfec95deb6fae6b7f58f2771ef5a102d7f8b");
+		expect(hashFrontmatter(data)).toBe("7d5730c72526f42ccf509cfebc65082c7c78f6185f6d4e0549b2695cc68e535e");
 		expect(hashContent(content)).toBe("cd6eb7d1fa7bffee0d6c0881301abd0ba728a45edcfcf616ecc2a7030c83a4fa");
 	});
 

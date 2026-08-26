@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-25
-last-synced: 2026-08-25
+updated: 2026-08-26
+last-synced: 2026-08-26
 completeness: 90
 related:
   - rspress-plugin-api-extractor/component-development.md
@@ -14,6 +14,7 @@ related:
   - rspress-plugin-api-extractor/performance-observability.md
   - rspress-plugin-api-extractor/type-loading-vfs.md
   - rspress-plugin-api-extractor/build-progress-and-issues.md
+  - rspress-plugin-api-extractor/structured-data-and-og.md
 dependencies: []
 ---
 
@@ -180,8 +181,8 @@ The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned through the `cat
 The v3 peer-closure block (`@effect/cluster`, `@effect/experimental`, `@effect/rpc`, `@effect/workflow`) has been **removed**: the v4 peer graph is small enough that issue #69's escaping-peer problem no longer applies in that form. The closure principle still holds, though — because the per-file plugin build leaves `dependencies` external, any unclosed non-optional peer escapes to the consuming workspace where pnpm `autoInstallPeers` can bind it unpredictably. As of phase 2 the closure lives in the plugin's `dependencies` block (only `@rspress/core`/`react`/`react-dom` remain peers):
 
 - `ioredis` — non-optional peer of the `@effect/platform-node` v4 beta.
-- The full `@effected` surface the four `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling), alongside `@typescript/vfs`. The released effected round-1 kit wave added two more: `@effected/jsonc` (canonical JSON-value hashing behind `@tsdoctor/bundle`'s `BundleHash.ts`) and `@effected/markdown` (frontmatter block assembly in `frontmatter.ts` and, transitively, `@tsdoctor/model`'s prose/render internals).
-- The four core workspaces themselves: `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot`, each `workspace:*`.
+- The full `@effected` surface the five `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling), alongside `@typescript/vfs`. The released effected round-1 kit wave added two more: `@effected/jsonc` (canonical JSON-value hashing behind `@tsdoctor/bundle`'s `BundleHash.ts`) and `@effected/markdown` (frontmatter block assembly in `frontmatter.ts` and, transitively, `@tsdoctor/model`'s prose/render internals). Round 2 (phase 4) added `@effected/schema-org@0.1.0` behind `@tsdoctor/seo`, alongside `@effected/spdx@0.5.0` and `@effected/package-json@0.13.0`, and bumped the `@effected/pnpm-plugin-effect` config dependency in `pnpm-workspace.yaml` to `0.6.11` to carry the schema-org catalog entry. `@effected/package-json` is now a DIRECT plugin import as well as a closure entry — `layers/config-resolution.ts` decodes each API's `package.json` through `PackageManifest`.
+- The five core workspaces themselves: `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot` and `@tsdoctor/seo`, each `workspace:*`.
 
 `@effect/sql-sqlite-node` and `gray-matter` are **gone** from the plugin manifest — SQLite moved behind `@tsdoctor/snapshot`'s `Store.layerSqlite`, and frontmatter parsing moved to `@effected/yaml` (see `frontmatter.ts` in [Key Source Files](#key-source-files)). Do not prune the closure entries as "unused"; the plugin imports some of them directly (see `services/TypeRegistryService.ts`, `sync-node-fs.ts`, `frontmatter.ts`, `twoslash-transformer.ts`) and the rest exist to keep the dependency graph closed.
 
@@ -211,7 +212,9 @@ Plugin options are defined as Effect Schemas in `schemas/`:
 
 - `schemas/config.ts` -- `PluginOptions`, `SingleApiConfig`,
   `MultiApiConfig`, `CategoryConfig`, `ExternalPackageSpec`, etc.
-- `schemas/opengraph.ts` -- `OpenGraphImageConfig`
+- `schemas/opengraph.ts` is **deleted** — `OpenGraphImageConfig` and the rest
+  of the OG vocabulary now live in `@tsdoctor/seo` and are re-exported from
+  `src/index.ts` for consumers
 - `schemas/performance.ts` -- `PerformanceConfig`
 
 Options are decoded at plugin factory time. The exported
@@ -243,7 +246,7 @@ The helper types (`DirInfo`, `BaseRoute`, `FromDirOptions`) are re-exported from
 
 ## Core Package Consumption
 
-The plugin depends on all four `@tsdoctor/*` core workspaces via `workspace:*` and, since the phase-2 model redesign, consumes **`@tsdoctor/model`** directly — the four phase-1 delegation shims (`loader.ts`, the class-based `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) are **deleted**. The model's v4 surface is namespace modules: `Model` (Effect-typed loading with `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), `Tsdoc` (pure TSDoc accessors), `ApiItems` (categorization + namespace members), `EntryPoints`, `Routes`, `SyntheticBases`, `Signature` (de-classed formatting), `Render`, the `CrossLinker` class and the `@alpha` `StructuredData` stub.
+The plugin depends on all five `@tsdoctor/*` core workspaces via `workspace:*` and, since the phase-2 model redesign, consumes **`@tsdoctor/model`** directly — the four phase-1 delegation shims (`loader.ts`, the class-based `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) are **deleted**. The model's v4 surface is namespace modules: `Model` (Effect-typed loading with `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), `Tsdoc` (pure TSDoc accessors), `ApiItems` (categorization + namespace members), `EntryPoints`, `Routes`, `SyntheticBases`, `Signature` (de-classed formatting), `Render` and the `CrossLinker` class. (The model's `@alpha` `StructuredData` stub is **deleted** as of phase 4; schema.org derivation lives in `@tsdoctor/seo`.)
 
 How the former shim call sites consume it now:
 
@@ -258,6 +261,8 @@ How the former shim call sites consume it now:
 **Not delegated — looks similar, is not.** `ApiExtractedPackage` (`api-extracted-package.ts`) keeps its OWN private `extractPlainText`. Despite the shared name with the library helper, it is a different algorithm for declaration reconstruction: it PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks for `.d.ts`/JSDoc output, whereas the library's prose extraction flattens `{@link}` to display text and drops code fences. The two are not interchangeable.
 
 **`@tsdoctor/bundle`** supplies discovery for the config helpers (see [Config Helpers](#config-helpers)) plus the npm-tarball and GitHub-release fetchers (`bundle-spec.md`). **`@tsdoctor/snapshot`** supplies the snapshot service (`snapshot-tracking-system.md`). **`@tsdoctor/registry`** is unchanged in role (`type-loading-vfs.md`), with its tag ids renamed to `"@tsdoctor/registry/..."` in phase 2.
+
+**`@tsdoctor/seo`** (phase 4) supplies every `<head>` concern behind one seam. `deriveSiteUrl` is consumed in `layers/config-resolution.ts`; `attributionFacts` + `packageContext` in `build-program.ts`, once per API; `deriveScriptBody` + `headTags` in `generateSinglePage`; the `HeadTag` vocabulary in `markdown/helpers.ts`, which renders each tag into an RSPress frontmatter `head` pair. The adapter's `og-resolver.ts` and `schemas/opengraph.ts` were **deleted** into it. What the adapter kept is `OgService` — filesystem probing of a configured local image, genuinely I/O and genuinely RSPress-path-shaped — now importing `imageMimeType` / `ogAltText` / `resolveUrl` from the package. See `structured-data-and-og.md`.
 
 ### Stage 2 output convergence (deferred)
 
@@ -386,7 +391,9 @@ The classifier is covered by `__test__/config-utils.test.ts`; the empty-result r
 
 **Output:** `ReadonlyArray<ResolvedApiConfig>` — fully resolved config per API (model, paths, categories, source, theme, the derived site URL, `ogImage`, docs roots).
 
-**The canonical site URL is derived, not configured.** The plugin's `siteUrl` option is **gone**; `RspressConfigSubset` carries RSPress's own `siteOrigin` and `base` instead, and `deriveSiteUrl(siteOrigin, base)` (`og-resolver.ts`) joins them in RSPress's documented `siteOrigin + base + routePath` order. Asking for the deployment URL a second time invited the two answers to disagree, and the plugin's would have won silently — emitting `canonical` and `og:url` tags for a host the site is not served from. With no `siteOrigin` the prefix is `""`, so URLs fall back to **root-relative** (`/api/class/foo`) and the tags are still emitted, matching RSPress's own documented `base + routePath` fallback and keeping them inspectable under `rspress dev` on localhost where no configured origin could be right. An earlier iteration omitted the tags entirely in that case; that was wrong, and it is why `writeSingleFile` gates the OG block on `packageName` alone rather than on a non-empty site URL.
+**`ResolvedApiConfig` carries TWO views of the package's `package.json`** (phase 4). `packageJson` is the loose object that feeds dependency extraction, unchanged. `manifest?: PackageManifest` is the same file decoded through `@effected/package-json` — typed `Person` / `Repository` / SPDX license, which is the shape the SEO layer derives attribution from. Deliberately not the discovery-tier `LenientManifest`, which leaves `author` and `repository` as raw `string | Record` unions with no decoding at all. `PackageManifest` is presence-lenient but **shape-strict**, so one malformed field fails the whole decode — and that degrades to the field being absent with a `ConfigValidationWarning` emitted, never to a failed build. `decodeManifest` performs it at both resolution sites (single-API and multi-API). Replacing the loose field with the typed one is a separate refactor.
+
+**The canonical site URL is derived, not configured.** The plugin's `siteUrl` option is **gone**; `RspressConfigSubset` carries RSPress's own `siteOrigin` and `base` instead, and `deriveSiteUrl(siteOrigin, base)` (now `@tsdoctor/seo`'s `Canonical.ts`; formerly `og-resolver.ts`) joins them in RSPress's documented `siteOrigin + base + routePath` order. Asking for the deployment URL a second time invited the two answers to disagree, and the plugin's would have won silently — emitting `canonical` and `og:url` tags for a host the site is not served from. With no `siteOrigin` the prefix is `""`, so URLs fall back to **root-relative** (`/api/class/foo`) and the tags are still emitted, matching RSPress's own documented `base + routePath` fallback and keeping them inspectable under `rspress dev` on localhost where no configured origin could be right. An earlier iteration omitted the tags entirely in that case; that was wrong, and it is why the head-tag block is gated on `packageName` alone rather than on a non-empty site URL. (As of phase 4 that gate lives in `generateSinglePage`, not `writeSingleFile` — see `page-generation-system.md`.)
 
 **Error channel: `ConfigValidationError` only.** The declared signature used to be `Effect<…, ConfigValidationError | ApiModelLoadError | TypeRegistryError, Scope.Scope | TwoslashCacheService | TwoslashEnvironments>` and was over-wide in three separate ways: both extra error types were unreachable (model-load failures are `Effect.orDie`d after emitting `ModelLoadFailed`, and external type loading degrades rather than fails), and the `Scope.Scope` requirement was never needed. The implementation carried a trailing `as Effect<…>` cast to bridge the gap, which is exactly what a cast on a service method means — the declared contract had stopped matching the code. Both the extra members and the cast are gone; the requirement channel is `TwoslashCacheService | TwoslashEnvironments`.
 
@@ -529,7 +536,7 @@ The plugin exports a `serve(options?: ServeOptions): Promise<void>` runner (`src
 | `BuildEnv.ts` | The per-build `Context.Reference`s (`BuildId`, `Thresholds`, `PageConcurrency`, `SuppressExampleErrors`) |
 | `twoslash-access.ts` | Module-level holder bridging RSPress's render pass to `TwoslashEnvironments` |
 | `observability/sync-emitter.ts` | The one sync-island bridge (`installSyncEmitter` / `emitSync`) |
-| `og-resolver.ts` | Pure, filesystem-free OG URL/MIME/metadata helpers behind `OgService` |
+| `services/OgService.ts` | Filesystem probing of a configured OG image; the pure URL/MIME/metadata helpers it used to sit on moved to `@tsdoctor/seo` and `og-resolver.ts` is deleted |
 | `layers/xdg.ts` | `TSDOCTOR_NAMESPACE`, `PlatformLive`, `AppDirsLive` — one home for both cache-backed layers |
 | `layers/AppLayer.ts` | `makeAppLayers` — the tiered stack, returning both runtimes' layers |
 | `layers/config-resolution.ts` | `makeConfigService`: config resolution, model loading |
@@ -555,3 +562,5 @@ The plugin exports a `serve(options?: ServeOptions): Promise<void>` runner (`src
   `type-loading-vfs.md`
 - **Build Progress & Issues Artifact:**
   `build-progress-and-issues.md`
+- **Structured Data & Head Metadata:**
+  `structured-data-and-og.md`

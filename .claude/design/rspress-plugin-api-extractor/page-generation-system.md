@@ -3,15 +3,16 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-25
-last-synced: 2026-08-25
-completeness: 85
+updated: 2026-08-26
+last-synced: 2026-08-26
+completeness: 87
 related:
   - rspress-plugin-api-extractor/build-architecture.md
   - rspress-plugin-api-extractor/snapshot-tracking-system.md
   - rspress-plugin-api-extractor/cross-linking-architecture.md
   - rspress-plugin-api-extractor/component-development.md
   - rspress-plugin-api-extractor/multi-entry-resolution.md
+  - rspress-plugin-api-extractor/structured-data-and-og.md
 dependencies: []
 ---
 
@@ -169,11 +170,19 @@ For each WorkItem:
 2. For namespace members, rewrite the route by replacing ONLY the final segment with the lowercased qualified name (e.g. `.../type/type` → `.../type/compileroptions.type`). Only the last segment may be touched: a member whose lowercased simple name equals its category folder (a type alias named `Type` in the `type` folder — the Effect Schema companion-namespace pattern) would otherwise have the category segment corrupted by a first-occurrence replace, producing colliding `_meta.json` entries that break RSPress auto-nav-sidebar. The resulting file path is identical to the cross-link route built in `prepareWorkItems` by construction (asserted by a regression test against the `qualified-alias` fixture)
 3. Parse generated content with `parseFrontmatter` (`src/frontmatter.ts` — the gray-matter-parity split over `@effected/yaml` that replaced the `gray-matter` dependency; YAML 1.2 parse, hash-stable, characterization-tested against gray-matter's boundary semantics)
 4. Normalize markdown spacing
-5. Hash content and frontmatter via `content-hash.ts`
-6. Compare hashes against pre-loaded snapshot map
-7. If no snapshot exists, fall back to disk comparison
-8. Determine timestamps (new/modified/unchanged)
-9. Return `GeneratedPageResult`
+5. Hash the body via `hashContent`
+6. **Build the page's SEO head tags** — resolve the OG image through `OgService`, derive the JSON-LD via `@tsdoctor/seo`'s `deriveScriptBody`, and call `headTags` — then assemble the FINAL frontmatter from them
+7. Hash that final frontmatter via `hashFrontmatter`
+8. Compare hashes against pre-loaded snapshot map
+9. If no snapshot exists, fall back to disk comparison
+10. Determine timestamps (new/modified/unchanged)
+11. Return `GeneratedPageResult`, whose `content` is the assembled final text
+
+**Step 6 is here, not in the write stage, and that placement is load-bearing.** Head tags used to be built in `writeSingleFile`, one stage after the hash was taken — so the hash was computed over the page generator's own frontmatter, which carries no `head` at all, and every `og:image`, canonical URL and JSON-LD change was invisible to change detection. See the head-tag section of `snapshot-tracking-system.md` for the full defect and its measured fix.
+
+The stage builds a local `finalFrontmatter(published, modified)` and calls it **twice** — once with the build time to hash, once with the resolved timestamps to write. The two hash identically only because `hashFrontmatter` strips timestamps recursively; without that, the hash would depend on the timestamps the hash itself decides.
+
+`GenerateSinglePageContext` therefore carries `siteUrl`, `docsRoot`, `ogImage` and `structuredDataPkg` (the per-API `PackageContext` derived once in `build-program.ts`), and the stage's requirement channel gained `OgService`. Both SEO failure paths **degrade**: an `OgImageError` or a `StructuredDataError` is emitted as a `ConfigValidationWarning` (reaching `issues.json`) and the page renders without that tag.
 
 ### Stage 2: writeSingleFile (Effect)
 
@@ -182,16 +191,12 @@ For each WorkItem:
 For each GeneratedPageResult:
 
 1. If unchanged, increment metrics and return immediately (no disk write)
-2. Resolve Open Graph metadata via `OgService.resolveImage` — `Option.none`
-   when the API declares no image (not a failure, no diagnostic), and
-   `Effect.result` around the call so an `OgImageError` **degrades**: the
-   error is emitted as a `ConfigValidationWarning` (reaching `issues.json`)
-   and the page renders without an `og:image`
-3. Regenerate frontmatter with OG metadata
-4. Create directory if needed (`FileSystem.makeDirectory`)
-5. Write file (`FileSystem.writeFileString`)
-6. Increment file metrics (new/modified)
-7. Return `FileWriteResult` with snapshot data
+2. Create directory if needed (`FileSystem.makeDirectory`)
+3. Write `result.content` (`FileSystem.writeFileString`)
+4. Increment file metrics (new/modified)
+5. Return `FileWriteResult` with snapshot data
+
+**OG resolution and frontmatter regeneration used to happen here and no longer do.** The generate stage assembles the final text, head tags included — that is what makes the frontmatter hash cover them. This stage writes what it is handed.
 
 ### Stage 3: writeMetadata (Effect)
 
@@ -309,7 +314,7 @@ more than one entry point.
 
 - `generateAvailableFrom()` -- Renders "Available from" line for
   multi-entry items (returns empty string for single-entry)
-- `generateFrontmatter()` -- YAML frontmatter with OG tags, emitted via
+- `generateFrontmatter()` -- YAML frontmatter, taking a neutral `ReadonlyArray<HeadTag>` from `@tsdoctor/seo` and rendering each into an RSPress `[tagName, attrs]` head pair. A `script` tag's body becomes the `children` attribute — the name unhead maps onto `innerHTML`, and the only spelling that reaches the browser (any other emits an empty `<script>` and fails silently at runtime rather than in the build). The block itself is emitted via
   `emitFrontmatterBlock` (`src/frontmatter.ts`, `@effected/yaml`
   `Yaml.stringify` with `quoteCompat: "yaml-1.1"` + `quoteStyle: "double"` --
   double-quoting only the scalars a YAML 1.1 resolver would coerce
@@ -442,5 +447,7 @@ Both use the VfsRegistry to access the highlighter and transformers.
   `component-development.md` -- Runtime components used in generated pages
 - **SSG-Compatible Components:**
   `ssg-compatible-components.md` -- Dual-mode components
+- **Structured Data and Head Metadata:**
+  `structured-data-and-og.md` -- the `@tsdoctor/seo` seam Stage 1 consumes
 - **LLMs Integration:**
   `llms-integration.md` -- LLMs file generation and UI

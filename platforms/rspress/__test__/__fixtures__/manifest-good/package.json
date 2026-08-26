@@ -1,0 +1,7 @@
+{
+	"name": "example-module",
+	"version": "1.2.3",
+	"description": "A fixture manifest",
+	"author": "C. Spencer Beggs <spencer@beggs.codes>",
+	"license": "MIT"
+}

@@ -371,6 +371,58 @@ describe("ConfigService.layer.resolve — typed configuration failures", () => {
 		expect((error as ConfigValidationError).reason).toMatch(/not found/i);
 	});
 
+	it("carries a typed manifest decoded from the declared package.json", async () => {
+		const options: PluginOptions = {
+			api: {
+				packageName: "example-module",
+				model: fixtureModel,
+				baseRoute: "/example-module",
+				packageJson: path.join(import.meta.dirname, "__fixtures__/manifest-good/package.json"),
+			},
+		};
+
+		const program = Effect.gen(function* () {
+			const config = yield* ConfigService;
+			return yield* config.resolve({});
+		}).pipe(Effect.scoped);
+
+		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
+
+		expect(result).toHaveLength(1);
+		const manifest = result[0].manifest;
+		expect(manifest).toBeDefined();
+		expect(manifest?.name).toBe("example-module");
+		expect(String(manifest?.version)).toBe("1.2.3");
+		// The loose packageJson field stays — it feeds dependency extraction.
+		expect(result[0].packageJson?.name).toBe("example-module");
+	});
+
+	it("degrades to an absent manifest when the package.json is malformed", async () => {
+		// `PackageManifest` is presence-lenient but shape-STRICT, so one bad
+		// field fails the whole decode. That must not fail the docs build: the
+		// resolution succeeds with `manifest` absent.
+		const options: PluginOptions = {
+			api: {
+				packageName: "example-module",
+				model: fixtureModel,
+				baseRoute: "/example-module",
+				packageJson: path.join(import.meta.dirname, "__fixtures__/manifest-malformed/package.json"),
+			},
+		};
+
+		const program = Effect.gen(function* () {
+			const config = yield* ConfigService;
+			return yield* config.resolve({});
+		}).pipe(Effect.scoped);
+
+		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
+
+		expect(result).toHaveLength(1);
+		expect(result[0].manifest).toBeUndefined();
+		// The loose packageJson is unaffected by the manifest decode failure.
+		expect(result[0].packageJson?.name).toBe("example-module");
+	});
+
 	it("fails typed when externalPackages conflicts with peerDependencies", async () => {
 		const error = await runFailure({
 			api: {

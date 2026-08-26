@@ -1,17 +1,16 @@
 /**
- * Pure Open Graph metadata logic: URL resolution, alt text, MIME mapping and
- * page-metadata assembly.
+ * URL derivation for a documentation page: the site URL prefix, the canonical
+ * page URL, absolute image URLs and image MIME mapping.
  *
  * @remarks
- * The IO half — locating a local image and reading its dimensions — moved to
- * {@link OgService} in Chunk 4. What is left is total and synchronous, so it
- * needs no Effect, no filesystem and no event emitter; the sync-island seam
- * this module used to carry is gone.
+ * `imageMimeType`, `resolveUrl` and `deriveSiteUrl` moved here verbatim from
+ * the RSPress adapter's `og-resolver.ts`. `resolveUrl` was `resolveOgUrl`
+ * there; canonical links resolve through the same function, so the
+ * OG-specific name no longer fits. Everything here is total and synchronous —
+ * no Effect, no filesystem.
  *
  * @packageDocumentation
  */
-
-import type { OpenGraphImageMetadata, OpenGraphMetadata } from "./schemas/opengraph.js";
 
 /**
  * MIME type mappings for common image formats, used for `og:image:type`.
@@ -28,6 +27,8 @@ const IMAGE_MIME_TYPES: Record<string, string> = {
 /**
  * The `og:image:type` value for a detected image format, or `undefined` for a
  * format with no mapping.
+ *
+ * @public
  */
 export function imageMimeType(type: string | undefined): string | undefined {
 	if (type == null) return undefined;
@@ -35,25 +36,27 @@ export function imageMimeType(type: string | undefined): string | undefined {
 }
 
 /**
- * Turn a configured image URL into an absolute one.
+ * Turn a configured URL into an absolute one.
  *
  * @returns The absolute URL, or `undefined` when the input is neither an
  * absolute `http(s)` URL nor a site-root-relative path. A bare relative path
  * is deliberately rejected rather than guessed at — there is no base to
  * resolve it against that would not silently produce a broken link.
+ *
+ * @public
  */
-export function resolveOgUrl(siteUrl: string, url: string): string | undefined {
+export function resolveUrl(siteUrl: string, url: string): string | undefined {
 	if (url.startsWith("http://") || url.startsWith("https://")) return url;
 	if (url.startsWith("/")) return `${siteUrl}${url}`;
 	return undefined;
 }
 
 /**
- * Derive the site URL prefix from RSPress's own config.
+ * Derive the site URL prefix from the framework's own config.
  *
  * @remarks
- * Replaces the plugin's former `siteUrl` option. RSPress already knows where a
- * site is deployed — {@link https://rspress.rs/api/config/config-basic#siteorigin | `siteOrigin`}
+ * Replaces the RSPress plugin's former `siteUrl` option. RSPress already knows
+ * where a site is deployed — {@link https://rspress.rs/api/config/config-basic#siteorigin | `siteOrigin`}
  * plus `base` — so asking for it a second time invited the two to disagree, and
  * a plugin-level answer that contradicted the site's own would silently emit
  * canonical and `og:url` tags pointing at a host the site is not served from.
@@ -73,6 +76,8 @@ export function resolveOgUrl(siteUrl: string, url: string): string | undefined {
  * `""` when the site declares neither `siteOrigin` nor a non-root `base`, which
  * leaves every URL root-relative. Never has a trailing slash, since every
  * caller appends a route starting with `/`.
+ *
+ * @public
  */
 export function deriveSiteUrl(siteOrigin: string | undefined, base: string | undefined): string {
 	const origin = (siteOrigin ?? "").trim().replace(/\/+$/, "");
@@ -84,38 +89,18 @@ export function deriveSiteUrl(siteOrigin: string | undefined, base: string | und
 	return `${origin}${normalizedBase}`;
 }
 
-/** Descriptive alt text for a package's (or one API's) OG image. */
-export function ogAltText(packageName: string, apiName?: string): string {
-	return apiName ? `${apiName} - ${packageName} API Documentation` : `${packageName} API Documentation`;
-}
-
 /**
- * Assemble the complete Open Graph metadata for one documentation page.
+ * The canonical URL for a page.
  *
  * @remarks
- * Was `OpenGraphResolver.createPageMetadata`. It never touched the resolver's
- * instance state, so it is a free function now rather than a static on a class
- * that no longer exists.
+ * With no configured origin the prefix is `""`, so the result is
+ * root-relative (`/api/class/foo`) rather than absent. That matches RSPress's
+ * own documented `base + routePath` fallback and keeps the tag inspectable
+ * under a dev server, where no configured origin could be correct.
+ *
+ * @public
  */
-export function createPageMetadata(options: {
-	siteUrl: string;
-	pageRoute: string;
-	description: string;
-	publishedTime: string;
-	modifiedTime: string;
-	section: string;
-	packageName: string;
-	ogImage?: OpenGraphImageMetadata;
-}): OpenGraphMetadata {
-	return {
-		siteUrl: options.siteUrl,
-		pageRoute: options.pageRoute,
-		description: options.description,
-		publishedTime: options.publishedTime,
-		modifiedTime: options.modifiedTime,
-		section: options.section,
-		tags: ["TypeScript", "API", options.packageName],
-		...(options.ogImage != null ? { ogImage: options.ogImage } : {}),
-		ogType: "article",
-	};
+export function canonicalUrl(siteUrl: string, pageRoute: string): string {
+	const prefix = siteUrl.endsWith("/") ? siteUrl.slice(0, -1) : siteUrl;
+	return `${prefix}${pageRoute}`;
 }

@@ -8,6 +8,7 @@
  * @packageDocumentation
  */
 
+import type { HeadTag } from "@tsdoctor/seo";
 import { emitFrontmatterBlock } from "../frontmatter.js";
 import { formatCode } from "../prettier-formatter.js";
 import { classifyCutDirective, isTwoslashDirective } from "../twoslash-patterns.js";
@@ -151,7 +152,7 @@ function buildPageTitle(entityName: string, singularName: string, apiName?: stri
  * @param description - Page description for SEO
  * @param singularName - The category singular name (e.g., "Class")
  * @param apiName - Optional API/package display name
- * @param ogMetadata - Optional Open Graph metadata for social sharing
+ * @param tags - Optional neutral head tags to render into the `head` array
  * @returns YAML frontmatter string
  *
  * @example
@@ -174,68 +175,31 @@ export function generateFrontmatter(
 	description: string,
 	singularName: string,
 	apiName?: string,
-	ogMetadata?: import("../schemas/opengraph.js").OpenGraphMetadata,
+	tags?: ReadonlyArray<HeadTag>,
 ): string {
 	const title = buildPageTitle(entityName, singularName, apiName);
 
 	// Every value is whitespace-normalized exactly as the previous hand-rolled
 	// emitter did (via cleanYamlValue), so the PARSED data — and therefore
-	// the snapshot frontmatter hash — is unchanged by the move to a real YAML
-	// emitter. Quoting/escaping is now the emitter's job (@effected/yaml with
-	// all string values double-quoted; see frontmatter.ts).
-	const meta = (property: string, content: string): [string, Record<string, string>] => [
-		"meta",
-		{ property, content: cleanYamlValue(content) },
-	];
-
-	// Build head array for OG tags
-	const headEntries: [string, Record<string, string>][] = [];
-
-	if (ogMetadata) {
-		// Canonical URL
-		headEntries.push(meta("og:url", `${ogMetadata.siteUrl}${ogMetadata.pageRoute}`));
-
-		// OG Type
-		headEntries.push(meta("og:type", ogMetadata.ogType));
-
-		// OG Description
-		headEntries.push(meta("og:description", ogMetadata.description));
-
-		// OG Image metadata
-		if (ogMetadata.ogImage) {
-			headEntries.push(meta("og:image", ogMetadata.ogImage.url));
-
-			if (ogMetadata.ogImage.secureUrl) {
-				headEntries.push(meta("og:image:secure_url", ogMetadata.ogImage.secureUrl));
-			}
-
-			if (ogMetadata.ogImage.type) {
-				headEntries.push(meta("og:image:type", ogMetadata.ogImage.type));
-			}
-
-			if (ogMetadata.ogImage.width) {
-				headEntries.push(meta("og:image:width", String(ogMetadata.ogImage.width)));
-			}
-
-			if (ogMetadata.ogImage.height) {
-				headEntries.push(meta("og:image:height", String(ogMetadata.ogImage.height)));
-			}
-
-			if (ogMetadata.ogImage.alt) {
-				headEntries.push(meta("og:image:alt", ogMetadata.ogImage.alt));
-			}
+	// the snapshot frontmatter hash — is unchanged for tags that already
+	// existed. Quoting/escaping is the emitter's job (@effected/yaml with all
+	// string values double-quoted; see frontmatter.ts).
+	//
+	// `children` is the attribute name unhead maps onto innerHTML for a
+	// <script> element, which is how a JSON-LD body reaches the page. RSPress
+	// renders a head entry as React.createElement(tag, attrs); any other
+	// spelling emits an empty <script> and fails silently in the browser
+	// rather than in the build.
+	const headEntries: [string, Record<string, string>][] = (tags ?? []).map((tag) => {
+		const attrs: Record<string, string> = {};
+		for (const [key, value] of Object.entries(tag.attrs)) {
+			attrs[key] = cleanYamlValue(value);
 		}
-
-		// Article metadata
-		headEntries.push(meta("article:published_time", ogMetadata.publishedTime));
-		headEntries.push(meta("article:modified_time", ogMetadata.modifiedTime));
-		headEntries.push(meta("article:section", ogMetadata.section));
-
-		// Article tags
-		for (const tag of ogMetadata.tags) {
-			headEntries.push(meta("article:tag", tag));
+		if (tag.body != null) {
+			attrs.children = cleanYamlValue(tag.body);
 		}
-	}
+		return [tag.tag, attrs];
+	});
 
 	const data: Record<string, unknown> = {
 		title: cleanYamlValue(title),
