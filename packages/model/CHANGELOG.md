@@ -1,5 +1,17 @@
 # @tsdoctor/model
 
+## 0.4.0
+
+### Breaking Changes
+
+- The `@alpha` `StructuredData` namespace export is removed. It was a stub whose `derive` threw `"not implemented yet"` on every call and had no consumers. Schema.org derivation now lives in the new `@tsdoctor/seo` package's `packageContext` / `derive` / `deriveScriptBody`. [#186][#186]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#186]: https://github.com/spencerbeggs/tsdoctor/pull/186
+
 ## 0.3.0
 
 ### Features
