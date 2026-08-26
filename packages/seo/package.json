@@ -35,7 +35,7 @@
 		"@effected/package-json": "catalog:effected",
 		"@effected/schema-org": "catalog:effected",
 		"@effected/spdx": "catalog:effected",
-		"@savvy-web/bundler": "^2.1.27",
+		"@savvy-web/bundler": "^2.1.28",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
