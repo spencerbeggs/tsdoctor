@@ -691,7 +691,9 @@ describe("generateSinglePage", () => {
 		};
 
 		const result = await Effect.runPromise(
-			generateSinglePage(workItems[0], ctx).pipe(Effect.provide(NodeFileSystem.layer)),
+			generateSinglePage(workItems[0], ctx).pipe(
+				Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer)),
+			),
 		);
 		expect(result).not.toBeNull();
 		if (!result) return;
@@ -725,7 +727,9 @@ describe("generateSinglePage", () => {
 
 		const result = await Effect.runPromise(
 			generateSinglePage(workItem, ctx).pipe(
-				Effect.provide(Layer.mergeAll(NodeFileSystem.layer, Layer.succeed(References.MinimumLogLevel, "None"))),
+				Effect.provide(
+					Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer, Layer.succeed(References.MinimumLogLevel, "None")),
+				),
 			),
 		);
 		expect(result).toBeNull();
@@ -755,7 +759,9 @@ describe("generateSinglePage", () => {
 		};
 
 		const first = await Effect.runPromise(
-			generateSinglePage(workItems[0], ctx).pipe(Effect.provide(NodeFileSystem.layer)),
+			generateSinglePage(workItems[0], ctx).pipe(
+				Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer)),
+			),
 		);
 		if (!first) throw new Error("Expected result");
 
@@ -809,7 +815,7 @@ describe("generateSinglePage", () => {
 		};
 
 		const typeResult = await Effect.runPromise(
-			generateSinglePage(typeItem, ctx).pipe(Effect.provide(NodeFileSystem.layer)),
+			generateSinglePage(typeItem, ctx).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
 		);
 		if (!typeResult) throw new Error("Expected page result for CompilerOptions.Type");
 		expect(typeResult.routePath).toBe("/tsconfig-json/api/type/compileroptions.type");
@@ -818,7 +824,9 @@ describe("generateSinglePage", () => {
 		expect(crossLinkData.routes.get("CompilerOptions.Type")).toBe(typeResult.routePath);
 
 		const encodedResult = await Effect.runPromise(
-			generateSinglePage(encodedItem, ctx).pipe(Effect.provide(NodeFileSystem.layer)),
+			generateSinglePage(encodedItem, ctx).pipe(
+				Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer)),
+			),
 		);
 		if (!encodedResult) throw new Error("Expected page result for CompilerOptions.Encoded");
 		expect(encodedResult.routePath).toBe("/tsconfig-json/api/type/compileroptions.encoded");
@@ -828,49 +836,52 @@ describe("generateSinglePage", () => {
 
 describe("writeSingleFile", () => {
 	/** The page fixture the OG tests below reuse. */
-	const ogPage = (): GeneratedPageResult => ({
-		workItem: {
-			item: { displayName: "Foo" } as GeneratedPageResult["workItem"]["item"],
-			categoryKey: "classes",
-			categoryConfig: {
-				folderName: "class",
-				displayName: "Classes",
-				singularName: "Class",
-			} as GeneratedPageResult["workItem"]["categoryConfig"],
-		},
-		content: "---\ntitle: Foo\ndescription: Foo desc\n---\n# Foo\n",
-		bodyContent: "# Foo\n",
-		frontmatter: { title: "Foo", description: "Foo desc" },
-		contentHash: "abc123",
-		frontmatterHash: "def456",
-		routePath: "/example-module/class/foo",
-		relativePathWithExt: "class/foo.mdx",
-		publishedTime: "2025-01-01T00:00:00.000Z",
-		modifiedTime: "2025-01-01T00:00:00.000Z",
-		isUnchanged: false,
-	});
 
 	// FORBIDS: swallowing an OgImageError at the call site. The service names
 	// its failures precisely so the diagnostic can reach issues.json; a caller
 	// that catches and drops it restores the exact state this replaced — a
 	// misconfigured og:image that is silently indistinguishable from none.
-	it("degrades on a misconfigured OG image AND reports it", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "write-og-bad-"));
+	//
+	// These live against generateSinglePage rather than writeSingleFile because
+	// head-tag construction moved there: the tags have to exist before the
+	// frontmatter hash is taken, or no head tag is visible to change detection.
+	const seoCtx = async (
+		overrides: Partial<GenerateSinglePageContext>,
+	): Promise<{ ctx: GenerateSinglePageContext; workItem: WorkItem }> => {
+		const modelPath = path.join(import.meta.dirname, "__fixtures__/example-module/example-module.api.json");
+		const { apiPackage } = await Effect.runPromise(loadApiModel(modelPath));
+		const resolver = new CategoryResolver();
+		const categories = resolver.mergeCategories(DEFAULT_CATEGORIES, undefined);
+		const { workItems } = prepareWorkItems({
+			apiPackage,
+			categories,
+			baseRoute: "/example-module",
+			packageName: "example-module",
+		});
+		return {
+			workItem: workItems[0] as WorkItem,
+			ctx: {
+				buildId: TEST_BUILD_ID,
+				existingSnapshots: new Map(),
+				baseRoute: "/example-module",
+				packageName: "example-module",
+				apiScope: "example-module",
+				buildTime: new Date().toISOString(),
+				resolvedOutputDir: "/tmp/nonexistent-dir",
+				siteUrl: "https://example.com",
+				...overrides,
+			},
+		};
+	};
+
+	const runSeo = async (
+		overrides: Partial<GenerateSinglePageContext>,
+	): Promise<{ result: GeneratedPageResult | null; events: PluginEvent[] }> => {
 		const events: PluginEvent[] = [];
 		const bus = makeEventBusLayer([{ minLevel: "trace", handle: (e) => events.push(e) }]);
-
-		const ctx: WriteSingleFileContext = {
-			buildId: TEST_BUILD_ID,
-			resolvedOutputDir: tmpDir,
-			buildTime: new Date().toISOString(),
-			siteUrl: "https://example.com",
-			packageName: "example-module",
-			// Neither absolute nor root-relative: unusable.
-			ogImage: "not-a-usable-path",
-		};
-
+		const { ctx, workItem } = await seoCtx(overrides);
 		const result = await Effect.runPromise(
-			writeSingleFile(ogPage(), ctx).pipe(
+			generateSinglePage(workItem, ctx).pipe(
 				Effect.provide(
 					Layer.mergeAll(
 						NodeFileSystem.layer,
@@ -881,10 +892,17 @@ describe("writeSingleFile", () => {
 				),
 			),
 		);
+		return { result, events };
+	};
 
-		// Degraded, not failed: the page is still written.
-		expect(result.status).toBe("new");
-		expect(fs.existsSync(path.join(tmpDir, "class/foo.mdx"))).toBe(true);
+	it("degrades on a misconfigured OG image AND reports it", async () => {
+		// Neither absolute nor root-relative: unusable.
+		const { result, events } = await runSeo({ ogImage: "not-a-usable-path" });
+
+		// Degraded, not failed: the page still has content to write.
+		expect(result).not.toBeNull();
+		expect(result?.content).toContain("rel: canonical");
+		expect(result?.content).not.toContain("og:image");
 		// And reported, so it lands in issues.json.
 		expect(events).toContainEqual(
 			expect.objectContaining({
@@ -898,35 +916,32 @@ describe("writeSingleFile", () => {
 	// FORBIDS: emitting a warning when the image resolved fine — a false
 	// positive in issues.json is as bad as a missing one.
 	it("reports nothing when the OG image resolves", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "write-og-ok-"));
-		const events: PluginEvent[] = [];
-		const bus = makeEventBusLayer([{ minLevel: "trace", handle: (e) => events.push(e) }]);
-
-		const ctx: WriteSingleFileContext = {
-			buildId: TEST_BUILD_ID,
-			resolvedOutputDir: tmpDir,
-			buildTime: new Date().toISOString(),
-			siteUrl: "https://example.com",
-			packageName: "example-module",
-			ogImage: "/images/og.png",
-		};
-
-		await Effect.runPromise(
-			writeSingleFile(ogPage(), ctx).pipe(
-				Effect.provide(
-					Layer.mergeAll(
-						NodeFileSystem.layer,
-						TestOgServiceLayer,
-						bus as unknown as Layer.Layer<never>,
-						Layer.succeed(References.MinimumLogLevel, "None"),
-					),
-				),
-			),
-		);
+		const { result, events } = await runSeo({ ogImage: "/images/og.png" });
 
 		expect(events.filter((e) => e._tag === "ConfigValidationWarning")).toHaveLength(0);
-		const written = await fs.promises.readFile(path.join(tmpDir, "class/foo.mdx"), "utf8");
-		expect(written).toContain("https://example.com/images/og.png");
+		expect(result?.content).toContain("https://example.com/images/og.png");
+	});
+
+	// FORBIDS the defect this stage move exists to close: an og:image change
+	// that rewrites the file while change detection still calls it unchanged.
+	// The hash is taken over the FINAL frontmatter, head tags included, so two
+	// different images must give two different hashes.
+	it("makes a head-tag change visible to the frontmatter hash", async () => {
+		const a = await runSeo({ ogImage: "/images/og.png" });
+		const b = await runSeo({ ogImage: "/images/other.png" });
+
+		expect(a.result?.content).not.toBe(b.result?.content);
+		expect(a.result?.frontmatterHash).not.toBe(b.result?.frontmatterHash);
+	});
+
+	// FORBIDS the inverse: a hash that moves with the timestamps it is supposed
+	// to decide. Hashing the final frontmatter is only sound because
+	// hashFrontmatter strips every timestamp it can reach.
+	it("keeps the frontmatter hash independent of the build time", async () => {
+		const a = await runSeo({ ogImage: "/images/og.png", buildTime: "2020-01-01T00:00:00.000Z" });
+		const b = await runSeo({ ogImage: "/images/og.png", buildTime: "2030-06-15T12:34:56.000Z" });
+
+		expect(a.result?.frontmatterHash).toBe(b.result?.frontmatterHash);
 	});
 
 	it("writes a changed file to disk and returns correct result", async () => {

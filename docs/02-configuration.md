@@ -240,9 +240,17 @@ Twoslash cache: 14/14 hits (100%), 14 entries
 
 An unreadable or missing cache degrades to a full type-check rather than failing the build. See [Troubleshooting](./11-troubleshooting.md#twoslash-cache-shows-0-hits-even-though-nothing-changed) if the reported hit rate looks wrong when you are benchmarking build times.
 
-## Open Graph images
+## Head metadata
 
-Open Graph tags need an absolute URL, and that comes from RSPress rather than from this plugin. Set [`siteOrigin`](https://rspress.rs/api/config/config-basic#siteorigin) in `rspress.config.ts`; the plugin joins it with `base` exactly as RSPress does (`siteOrigin + base + routePath`):
+Every generated page carries a full `<head>` block, and none of it needs configuring. Each page gets a canonical `<link>`, the Open Graph tags (title, description, type, URL, article section and timestamps, plus the image when one is configured), the matching Twitter card tags, and a `<script type="application/ld+json">` carrying a schema.org graph: a `SoftwareSourceCode` node for the package, a `TechArticle` node for the page and an `APIReference` node for the documented symbol, linked to each other, plus a `Person` node per author and maintainer.
+
+The package-level facts — author, maintainers, repository, homepage, license and keywords — come from the documented package's own `package.json`. A field the plugin cannot derive is left out rather than guessed, since a crawler reads everything here as authoritative. If a page's metadata cannot be built at all (a misconfigured image, an unassemblable graph), the page renders without that tag and the problem is reported as a build warning — a metadata problem never fails a docs build.
+
+Only two things are yours to set: RSPress's `siteOrigin`, which supplies the absolute URL, and `ogImage`.
+
+### Site origin
+
+Open Graph and canonical tags need an absolute URL, and that comes from RSPress rather than from this plugin. Set [`siteOrigin`](https://rspress.rs/api/config/config-basic#siteorigin) in `rspress.config.ts`; the plugin joins it with `base` exactly as RSPress does (`siteOrigin + base + routePath`):
 
 ```ts title="rspress.config.ts"
 export default defineConfig({
@@ -254,6 +262,8 @@ export default defineConfig({
 Without `siteOrigin`, the tags are still emitted but their URLs stay **root-relative** (`/api/class/foo`), matching RSPress's own documented `base + routePath` fallback. That keeps them inspectable under `rspress dev` on localhost, where no configured origin could be correct. Set `siteOrigin` for production, where absolute URLs are what crawlers need.
 
 There is deliberately no plugin-level override for the origin: a second answer could disagree with the site's own and silently advertise a host the site is not served from.
+
+### Open Graph images
 
 `ogImage` accepts a string path/URL or a metadata object. Set it at the top level as a site-wide default, or per-API to override:
 

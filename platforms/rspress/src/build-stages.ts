@@ -12,6 +12,8 @@ import type {
 } from "@microsoft/api-extractor-model";
 import { ApiItemKind } from "@microsoft/api-extractor-model";
 import { ApiItems, EntryPoints, Routes, SyntheticBases } from "@tsdoctor/model";
+import type { OpenGraphImageConfig, OpenGraphImageMetadata, PackageContext } from "@tsdoctor/seo";
+import { deriveScriptBody, headTags } from "@tsdoctor/seo";
 import type { FileSnapshot } from "@tsdoctor/snapshot";
 import { SnapshotService, hashContent, hashFrontmatter } from "@tsdoctor/snapshot";
 import { Effect, FileSystem, Metric, Option, Stream } from "effect";
@@ -29,7 +31,6 @@ import { VariablePageGenerator } from "./markdown/page-generators/variable-page.
 import { emit } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
 import { emitSync, syncBuildId } from "./observability/sync-emitter.js";
-import { createPageMetadata } from "./og-resolver.js";
 import type { CategoryConfig, LlmsPlugin, SourceConfig } from "./schemas/config.js";
 import { OgService } from "./services/OgService.js";
 
@@ -406,6 +407,25 @@ export interface GenerateSinglePageContext {
 	readonly resolvedOutputDir: string;
 	readonly suppressExampleErrors?: boolean;
 	readonly llmsPlugin?: LlmsPlugin;
+	/**
+	 * SEO inputs, which live HERE rather than in the write stage because the
+	 * head tags they produce must participate in the frontmatter hash.
+	 *
+	 * @remarks
+	 * Building them in the write stage made every head tag invisible to change
+	 * detection: the hash was taken over the page generator's frontmatter,
+	 * which carries no `head` at all, so an `og:image`, a canonical URL or a
+	 * JSON-LD version bump could change the written file while the snapshot
+	 * still reported it unchanged — and the page was then never rewritten.
+	 * `hashFrontmatter` strips timestamps recursively (the meta-pair form and
+	 * the JSON-LD date keys alike), which is what makes hashing the FINAL
+	 * frontmatter possible despite the timestamps being decided by the hash
+	 * comparison itself.
+	 */
+	readonly siteUrl?: string;
+	readonly docsRoot?: string;
+	readonly ogImage?: OpenGraphImageConfig;
+	readonly structuredDataPkg?: PackageContext;
 }
 
 /**
@@ -414,7 +434,7 @@ export interface GenerateSinglePageContext {
 export function generateSinglePage(
 	workItem: WorkItem,
 	ctx: GenerateSinglePageContext,
-): Effect.Effect<GeneratedPageResult | null, never, FileSystem.FileSystem> {
+): Effect.Effect<GeneratedPageResult | null, never, FileSystem.FileSystem | OgService> {
 	return Effect.gen(function* () {
 		const fileSystem = yield* FileSystem.FileSystem;
 		const {
@@ -649,7 +669,114 @@ export function generateSinglePage(
 
 		// Hash the content and frontmatter
 		const contentHash = hashContent(bodyContent);
-		const frontmatterHash = hashFrontmatter(frontmatterData);
+
+		// SEO head tags are built HERE, not in the write stage, because they
+		// must participate in the frontmatter hash — see the remark on
+		// GenerateSinglePageContext for the change-detection hole this closes.
+		//
+		// Gated on packageName alone, NOT on a non-empty siteUrl. An unset
+		// `siteOrigin` yields a root-relative prefix ("") rather than nothing, so
+		// the tags are still emitted and still resolve — which is what makes them
+		// inspectable under `rspress dev` on localhost, where no configured origin
+		// could be right. See `deriveSiteUrl`.
+		const description = frontmatterData.description as string;
+		const seoEnabled = ctx.siteUrl != null && packageName !== "";
+		let ogImageMetadata: OpenGraphImageMetadata | undefined;
+		let structuredData: string | undefined;
+
+		if (seoEnabled) {
+			const siteUrl = ctx.siteUrl as string;
+			const ogSvc = yield* OgService;
+			// Degrade, never fail: a misconfigured OG image must not stop a docs
+			// build. The typed failure is surfaced as a ConfigValidationWarning —
+			// which reaches `issues.json` — and the page renders without an
+			// og:image. See the posture recorded on OgServiceShape.resolveImage.
+			const ogImageResult = yield* Effect.result(
+				ogSvc.resolveImage({
+					config: ctx.ogImage,
+					siteUrl,
+					docsRoot: ctx.docsRoot,
+					packageName,
+					...(apiName != null ? { apiName } : {}),
+				}),
+			);
+			if (ogImageResult._tag === "Failure") {
+				const failure = ogImageResult.failure;
+				yield* emit(
+					PluginEvent.ConfigValidationWarning({
+						ctx: { buildId, packageName },
+						field: failure.field,
+						value: failure.value,
+						reason: failure.message,
+						level: "warn",
+					}),
+				);
+			} else if (Option.isSome(ogImageResult.success)) {
+				ogImageMetadata = ogImageResult.success.value;
+			}
+
+			// Degrade the same way. Every failure here is an identity problem
+			// raised by `JsonLdDocument.buildResult` (a malformed, duplicated or
+			// colliding `@id`) — a defect in how ids are minted, not a reason to
+			// stop a docs build.
+			if (ctx.structuredDataPkg != null) {
+				const graphResult = deriveScriptBody(ctx.structuredDataPkg, {
+					pageRoute: page.routePath,
+					symbolName: item.displayName,
+					description,
+					section: categoryConfig.displayName,
+					publishedTime: buildTime,
+					modifiedTime: buildTime,
+				});
+				if (graphResult._tag === "Failure") {
+					yield* emit(
+						PluginEvent.ConfigValidationWarning({
+							ctx: { buildId, packageName, route: page.routePath },
+							field: "structuredData",
+							value: ctx.structuredDataPkg.id,
+							reason: `schema.org document assembly failed: ${graphResult.failure._tag}`,
+							level: "warn",
+						}),
+					);
+				} else {
+					structuredData = graphResult.success;
+				}
+			}
+		}
+
+		/**
+		 * The final frontmatter for a given pair of timestamps.
+		 *
+		 * @remarks
+		 * Called twice: once with the build time to compute the hash, and once
+		 * with the resolved timestamps to write. That is sound only because
+		 * `hashFrontmatter` strips every timestamp it can reach — the meta-pair
+		 * form and the JSON-LD `datePublished`/`dateModified` keys alike — so the
+		 * two calls hash identically. Without that stripping the hash would
+		 * depend on the timestamps the hash itself decides.
+		 */
+		const finalFrontmatter = (published: string, modified: string): string =>
+			seoEnabled
+				? generateFrontmatter(
+						item.displayName,
+						description,
+						categoryConfig.singularName,
+						apiName,
+						headTags({
+							siteUrl: ctx.siteUrl as string,
+							pageRoute: page.routePath,
+							description,
+							publishedTime: published,
+							modifiedTime: modified,
+							section: categoryConfig.displayName,
+							packageName,
+							...(ogImageMetadata != null ? { ogImage: ogImageMetadata } : {}),
+							...(structuredData != null ? { structuredData } : {}),
+						}),
+					)
+				: stringifyFrontmatter("", frontmatterData);
+
+		const frontmatterHash = hashFrontmatter(parseFrontmatter(finalFrontmatter(buildTime, buildTime)).data);
 
 		// Determine timestamps based on previous snapshot
 		let publishedTime: string;
@@ -709,7 +836,7 @@ export function generateSinglePage(
 
 		return {
 			workItem,
-			content: page.content,
+			content: seoEnabled ? finalFrontmatter(publishedTime, modifiedTime) + bodyContent : page.content,
 			bodyContent,
 			frontmatter: frontmatterData,
 			contentHash,
@@ -734,9 +861,18 @@ export interface WriteSingleFileContext {
 	readonly siteUrl?: string;
 	/** Docs root, for locating a local OG image under `public/`. */
 	readonly docsRoot?: string;
-	readonly ogImage?: import("./schemas/opengraph.js").OpenGraphImageConfig;
+	readonly ogImage?: OpenGraphImageConfig;
 	readonly packageName?: string;
 	readonly apiName?: string;
+	/**
+	 * Structured-data context for this API, built ONCE in `build-program.ts`.
+	 *
+	 * @remarks
+	 * Absent when the API has no decoded manifest to derive attribution from —
+	 * `PackageManifest` is shape-strict, so one malformed field degrades the
+	 * whole manifest to absent, and the page then renders without JSON-LD.
+	 */
+	readonly structuredDataPkg?: PackageContext;
 }
 
 /**
@@ -748,11 +884,9 @@ export function writeSingleFile(
 ): Effect.Effect<FileWriteResult, never, FileSystem.FileSystem | OgService> {
 	return Effect.gen(function* () {
 		const fileSystem = yield* FileSystem.FileSystem;
-		const { buildId, resolvedOutputDir, buildTime, siteUrl, docsRoot, ogImage, packageName, apiName } = ctx;
+		const { buildId, resolvedOutputDir, buildTime, packageName } = ctx;
 		const {
 			workItem,
-			bodyContent,
-			frontmatter,
 			contentHash,
 			frontmatterHash,
 			publishedTime,
@@ -761,7 +895,7 @@ export function writeSingleFile(
 			routePath,
 			relativePathWithExt,
 		} = result;
-		const { item, categoryKey, categoryConfig, namespaceMember } = workItem;
+		const { item, categoryKey, namespaceMember } = workItem;
 
 		const absolutePath = path.join(resolvedOutputDir, relativePathWithExt);
 
@@ -804,72 +938,9 @@ export function writeSingleFile(
 			};
 		}
 
-		// Build final file content
-		let finalContent = stringifyFrontmatter(bodyContent, frontmatter);
-
-		// Gated on packageName alone, NOT on a non-empty siteUrl. An unset
-		// `siteOrigin` yields a root-relative prefix ("") rather than nothing, so
-		// the tags are still emitted and still resolve — which is what makes them
-		// inspectable under `rspress dev` on localhost, where no configured origin
-		// could be right. See `deriveSiteUrl`.
-		if (siteUrl != null && packageName) {
-			const ogSvc = yield* OgService;
-			// Degrade, never fail: a misconfigured OG image must not stop a docs
-			// build. The typed failure is surfaced as a ConfigValidationWarning —
-			// which reaches `issues.json` — and the page renders without an
-			// og:image. See the posture recorded on OgServiceShape.resolveImage.
-			const ogImageResult = yield* Effect.result(
-				ogSvc.resolveImage({
-					config: ogImage,
-					siteUrl,
-					docsRoot,
-					packageName,
-					...(apiName != null ? { apiName } : {}),
-				}),
-			);
-			if (ogImageResult._tag === "Failure") {
-				const failure = ogImageResult.failure;
-				yield* emit(
-					PluginEvent.ConfigValidationWarning({
-						ctx: { buildId, packageName },
-						field: failure.field,
-						value: failure.value,
-						reason: failure.message,
-						level: "warn",
-					}),
-				);
-			}
-			const ogImageMetadata =
-				ogImageResult._tag === "Success" && Option.isSome(ogImageResult.success)
-					? ogImageResult.success.value
-					: undefined;
-
-			const ogMetadataOptions: Parameters<typeof createPageMetadata>[0] = {
-				siteUrl,
-				pageRoute: routePath,
-				description: frontmatter.description as string,
-				publishedTime,
-				modifiedTime,
-				section: categoryConfig.displayName,
-				packageName,
-			};
-			if (ogImageMetadata) {
-				ogMetadataOptions.ogImage = ogImageMetadata;
-			}
-			const ogMetadata = createPageMetadata(ogMetadataOptions);
-
-			// Regenerate frontmatter with OG metadata
-			const newFrontmatter = generateFrontmatter(
-				item.displayName,
-				frontmatter.description as string,
-				categoryConfig.singularName,
-				apiName,
-				ogMetadata,
-			);
-
-			// Combine new frontmatter with body content
-			finalContent = newFrontmatter + bodyContent;
-		}
+		// The generate stage assembled the final text, head tags included —
+		// that is what makes the frontmatter hash cover them.
+		const finalContent = result.content;
 
 		// Check if file exists before writing to determine status
 		const fileExisted = yield* fileSystem.exists(absolutePath).pipe(Effect.orElseSucceed(() => false));
@@ -1354,7 +1425,9 @@ export interface BuildPipelineInput {
 	readonly llmsPlugin?: LlmsPlugin;
 	readonly siteUrl?: string;
 	readonly docsRoot?: string;
-	readonly ogImage?: import("./schemas/opengraph.js").OpenGraphImageConfig;
+	readonly ogImage?: OpenGraphImageConfig;
+	/** Per-API structured-data context, derived once by the caller. */
+	readonly structuredDataPkg?: PackageContext;
 }
 
 /**
@@ -1385,6 +1458,10 @@ export function buildPipelineForApi(
 		resolvedOutputDir: input.resolvedOutputDir,
 		...(input.suppressExampleErrors != null ? { suppressExampleErrors: input.suppressExampleErrors } : {}),
 		...(input.llmsPlugin != null ? { llmsPlugin: input.llmsPlugin } : {}),
+		...(input.docsRoot !== undefined ? { docsRoot: input.docsRoot } : {}),
+		...(input.siteUrl != null ? { siteUrl: input.siteUrl } : {}),
+		...(input.ogImage != null ? { ogImage: input.ogImage } : {}),
+		...(input.structuredDataPkg != null ? { structuredDataPkg: input.structuredDataPkg } : {}),
 	};
 
 	const writeCtx: WriteSingleFileContext = {
@@ -1396,6 +1473,7 @@ export function buildPipelineForApi(
 		...(input.ogImage != null ? { ogImage: input.ogImage } : {}),
 		...(input.packageName != null ? { packageName: input.packageName } : {}),
 		...(input.apiName != null ? { apiName: input.apiName } : {}),
+		...(input.structuredDataPkg != null ? { structuredDataPkg: input.structuredDataPkg } : {}),
 	};
 
 	return Stream.fromIterable(input.workItems).pipe(

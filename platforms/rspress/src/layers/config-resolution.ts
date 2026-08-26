@@ -1,7 +1,9 @@
 import type { PathLike } from "node:fs";
 import path from "node:path";
+import { PackageManifest } from "@effected/package-json";
 import type { ApiEntryPoint, ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
 import type { VirtualFileSystem } from "@tsdoctor/registry";
+import { deriveSiteUrl } from "@tsdoctor/seo";
 import { hashContent } from "@tsdoctor/snapshot";
 import { Effect, Metric } from "effect";
 import { ApiExtractedPackage } from "../api-extracted-package.js";
@@ -23,7 +25,6 @@ import { emit, wantsLevel } from "../observability/EventBus.js";
 import type { ImportRef } from "../observability/events.js";
 import { PluginEvent } from "../observability/events.js";
 import { withPhase } from "../observability/spans.js";
-import { deriveSiteUrl } from "../og-resolver.js";
 import { apiScopeOf, deriveOutputPaths, normalizeBaseRoute, unscopedName } from "../path-derivation.js";
 import type {
 	ExternalPackageSpec,
@@ -98,6 +99,44 @@ function prependImportsToVfs(
 		});
 	}
 	return payloads;
+}
+
+/**
+ * Decode a loaded package.json into a typed {@link PackageManifest}, degrading
+ * to `undefined` when it does not satisfy the codec.
+ *
+ * @remarks
+ * `PackageManifest` is presence-lenient but shape-strict — the private
+ * workspace-root shape decodes fine, but one malformed field (a `version` of
+ * `"1.0"`, an `author` that is neither a string nor an object) fails the whole
+ * decode. That is the right strictness for the SEO layer, which needs real
+ * `Person` / `Repository` values rather than the discovery tier's raw unions,
+ * but it must never fail a docs build: the failure is surfaced as a
+ * `ConfigValidationWarning` (which reaches `issues.json`) and the manifest is
+ * simply absent. The same posture as the OG image path in `build-stages.ts`.
+ */
+function decodeManifest(
+	packageJson: PackageJson | undefined,
+	buildId: string,
+	packageName: string,
+): Effect.Effect<PackageManifest | undefined> {
+	return Effect.gen(function* () {
+		if (packageJson == null) return undefined;
+		const decoded = yield* Effect.result(PackageManifest.decode(packageJson));
+		if (decoded._tag === "Failure") {
+			yield* emit(
+				PluginEvent.ConfigValidationWarning({
+					ctx: { buildId, packageName },
+					field: "packageJson",
+					value: packageName,
+					reason: decoded.failure.message,
+					level: "warn",
+				}),
+			);
+			return undefined;
+		}
+		return decoded.success;
+	});
 }
 
 /**
@@ -319,6 +358,8 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 										})
 									: undefined;
 
+								const manifest = yield* decodeManifest(packageJson, buildId, api.packageName);
+
 								// Validate that explicit externalPackages don't conflict with
 								// peerDependencies. Typed for the same reason as above.
 								yield* Effect.try({
@@ -368,6 +409,7 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 										categories: resolvedCategories,
 										...(resolvedSource != null ? { source: resolvedSource } : {}),
 										...(packageJson != null ? { packageJson } : {}),
+										...(manifest != null ? { manifest } : {}),
 										...(resolvedLlms != null ? { llmsPlugin: resolvedLlms } : {}),
 										...(siteUrl != null ? { siteUrl } : {}),
 										...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),
@@ -472,6 +514,8 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 																})
 															: undefined);
 
+													const manifest = yield* decodeManifest(packageJson, buildId, api.packageName);
+
 													// Validate external packages
 													yield* Effect.try({
 														try: () =>
@@ -520,6 +564,7 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 															categories: resolvedCategories,
 															...(resolvedSource != null ? { source: resolvedSource } : {}),
 															...(packageJson != null ? { packageJson } : {}),
+															...(manifest != null ? { manifest } : {}),
 															...(resolvedLlms != null ? { llmsPlugin: resolvedLlms } : {}),
 															...(siteUrl != null ? { siteUrl } : {}),
 															...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),

@@ -14,12 +14,12 @@
  * @packageDocumentation
  */
 
+import type { OpenGraphImageConfig, OpenGraphImageMetadata } from "@tsdoctor/seo";
+import { imageMimeType, ogAltText, resolveUrl } from "@tsdoctor/seo";
 import { Context, Data, Effect, FileSystem, Layer, Option, Path } from "effect";
 import { imageSize } from "image-size";
 import { emit } from "../observability/EventBus.js";
 import { PluginEvent } from "../observability/events.js";
-import { imageMimeType, ogAltText, resolveOgUrl } from "../og-resolver.js";
-import type { OpenGraphImageConfig, OpenGraphImageMetadata } from "../schemas/opengraph.js";
 
 /**
  * What went wrong resolving a configured OG image.
@@ -229,7 +229,7 @@ const make = () =>
 			request: OgImageRequest,
 		): Effect.Effect<Option.Option<OpenGraphImageMetadata>, OgImageError> =>
 			Effect.gen(function* () {
-				const resolvedUrl = resolveOgUrl(request.siteUrl, imageUrl);
+				const resolvedUrl = resolveUrl(request.siteUrl, imageUrl);
 				if (resolvedUrl == null) {
 					return yield* Effect.fail(new OgImageError({ code: "invalid-url", field: "ogImage", value: imageUrl }));
 				}
@@ -253,7 +253,7 @@ const make = () =>
 			Effect.gen(function* () {
 				const { url, secureUrl, type, width, height, alt } = metadata;
 
-				const resolvedUrl = resolveOgUrl(request.siteUrl, url);
+				const resolvedUrl = resolveUrl(request.siteUrl, url);
 				if (resolvedUrl == null) {
 					return yield* Effect.fail(new OgImageError({ code: "invalid-url", field: "ogImage.url", value: url }));
 				}

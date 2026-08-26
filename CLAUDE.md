@@ -10,8 +10,9 @@ API Extractor models, organized into core `@tsdoctor/*` libraries
 (`packages/*`), framework adapters (`platforms/*`), test fixture modules, and
 documentation sites. Source repo: <https://github.com/spencerbeggs/tsdoctor>
 (renamed from `spencerbeggs/rspress-plugin-api-extractor`, old URL redirects).
-Roadmap phases 1–3 have landed, plus a pre-phase-4 adapter refactor. The npm
-package name `rspress-plugin-api-extractor` is unchanged.
+Roadmap phases 1–4 have landed (phase 4 = the `@tsdoctor/seo` layer), plus
+the pre-phase-4 adapter refactor. The npm package name
+`rspress-plugin-api-extractor` is unchanged.
 
 **Naming caution:** `packages/` = core `@tsdoctor/*` libraries; `platforms/` =
 framework adapters (`platforms/rspress/` is the publishable
@@ -39,6 +40,7 @@ Workspace globs (`pnpm-workspace.yaml`): `modules/*`, `packages/*`,
 | `packages/model/` | `@tsdoctor/model` | Publishable | api.json loading, TSDoc extraction, routes, signatures, markdown rendering |
 | `packages/bundle/` | `@tsdoctor/bundle` | Publishable | Bundle spec: `tsdoctor.json` manifest, provenance resolver, discovery, fetchers |
 | `packages/snapshot/` | `@tsdoctor/snapshot` | Publishable | Incremental-build snapshot store (SQLite via `@effected/store`) + content hashing |
+| `packages/seo/` | `@tsdoctor/seo` | Publishable | Framework-neutral `<head>` metadata: `HeadTag`, canonical, OG/Twitter, attribution, JSON-LD |
 | `modules/kitchensink/` | `@modules/kitchensink` | Yes | Full API Extractor feature coverage |
 | `modules/effect-kit/` | `@modules/effect-kit` | Yes | Effect-TS API patterns (Schema.Class, synthetic bases) |
 | `modules/versioned-v1/` | `@modules/versioned-v1` | Yes | Version testing — v1 baseline |
@@ -58,7 +60,7 @@ The publishable plugin (`rspress-plugin-api-extractor`). Builds via
 `build()` from `@savvy-web/rspress-builder`
 (`platforms/rspress/savvy.build.ts`); the runtime is emitted bundleless
 per-file under `dist/<mode>/pkg/runtime/` (see `platforms/rspress/CLAUDE.md`).
-Depends on all four `@tsdoctor/*` core workspaces via `workspace:*`.
+Depends on all five `@tsdoctor/*` core workspaces via `workspace:*`.
 Exports three entry points:
 
 - `.` — Main plugin (per-file output under `dist/<mode>/pkg/`)
@@ -77,24 +79,27 @@ read each package's own `CLAUDE.md` before working in it.
 `Routes.memberAnchors`/`memberRouteKeys` (and the `ApiItems` views of them)
 own member anchors and cross-link keys. Never add a second spelling.
 
+**seo** owns every `<head>` concern behind one seam, `Seo.headTags(input)`,
+returning a neutral `HeadTag[]` an adapter merely renders. The package decides
+WHICH tags a page gets; adapters never compose their own. Schema.org derivation
+lives here, not in **model** — the model's `StructuredData` stub is deleted.
+
 ### plugin/ (Claude Code plugin)
 
 The **api-docs Claude Code plugin** — not a pnpm workspace, not part of the
 build. Ships skills, the `rspress-docs` agent, commands, hooks and monitors;
-bats tests in `plugin/__test__/`. Load with `pnpm claude`
-(`claude --plugin-dir=plugin`). See `plugin/CLAUDE.md`.
+bats tests in `plugin/__test__/`. Load with `pnpm claude`. See
+`plugin/CLAUDE.md`.
 
 ### modules/
 
 Test fixture modules built with `defineBuild()` from `@savvy-web/bundler`
-(`savvy.build.ts`), each producing dual output:
-
-- `dist/dev/` — Development build with source maps
-- `dist/prod/` — Production build with API Extractor model (`.api.json` under `dist/<mode>/meta/`)
+(`savvy.build.ts`), each producing dual output: `dist/dev/` (source maps) and
+`dist/prod/` (API Extractor model, `.api.json` under `dist/<mode>/meta/`).
 
 **kitchensink** exercises every API Extractor item kind and exports a
 `./testing` entry point for multi-entry testing. **versioned-v1/v2** are the
-multiVersion pair: v1 baseline, v2 breaking changes.
+multiVersion pair.
 
 ### sites/
 
@@ -128,7 +133,8 @@ The plugin uses **Effect v4** (`effect@4.0.0-rc.109`, pinned through the
 See `platforms/rspress/CLAUDE.md` for detailed service layer documentation.
 External type loading flows through the `@tsdoctor/registry` workspace,
 model/TSDoc concerns through `@tsdoctor/model`, bundle discovery/fetching
-through `@tsdoctor/bundle`, snapshot tracking through `@tsdoctor/snapshot`.
+through `@tsdoctor/bundle`, snapshot tracking through `@tsdoctor/snapshot`,
+and every `<head>` tag through `@tsdoctor/seo`.
 
 ### @effected Distribution and Dogfooding
 
@@ -145,11 +151,12 @@ Effect-org packages (`effect`, `@effect/platform-node`, `@effect/sql-sqlite-node
   `pnpm-workspace.yaml` and handles the release train. A plugin release
   carries the whole `@effected` dependency/peer graph — never manage
   effected's internal dependency complexity by hand.
-- To dogfood unreleased `@effected` work: add `overrides:` entries in
+- To dogfood unreleased `@effected` work: add `overrides:` in
   `pnpm-workspace.yaml` pointing the tinkered packages — **and their peers** —
-  at the local sibling `effected` checkout's built artifacts (`file:` links);
-  build there, rebuild here. This flows through the `/silk:dogfood` protocol;
-  a repo hook blocks pushes while `file:` overrides are linked.
+  at the local sibling `effected` checkout's built artifacts (`file:` links).
+  This is the `/silk:dogfood` protocol; a repo hook blocks pushes while
+  `file:` overrides are linked. Round 2 (phase 4) shipped
+  `@effected/schema-org@0.1.0`; the loop is closed and the tree unlinked.
 
 ## Design Documentation
 
@@ -183,6 +190,11 @@ external package types, VFS generation, or multi-entry resolution:
 - @./.claude/design/rspress-plugin-api-extractor/multi-entry-resolution.md
 - @./.claude/design/rspress-plugin-api-extractor/multi-entry-vfs.md
 
+**SEO & head metadata** — load when modifying canonical URLs, Open Graph,
+Twitter cards, attribution, or schema.org JSON-LD:
+
+- @./.claude/design/rspress-plugin-api-extractor/structured-data-and-og.md
+
 **LLMs integration** — load when modifying llms.txt post-processing,
 per-package file generation, or scope-aware UI components:
 
@@ -197,8 +209,8 @@ tracking, the progress heartbeat, or the `issues.json` artifact:
 - @./.claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md
 
 **Roadmap & @tsdoctor consolidation** — load when working on the road to
-1.0.0 or the `@tsdoctor/*` package architecture (phases 1–3 and the
-pre-phase-4 adapter refactor are executed; later phases are planned):
+1.0.0 or the `@tsdoctor/*` package architecture (phases 1–4 and the
+pre-phase-4 adapter refactor are executed; phases 5–6 are planned):
 
 - @./.claude/design/rspress-plugin-api-extractor/roadmap-1.0.md
 - @./.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
@@ -209,15 +221,14 @@ pre-phase-4 adapter refactor are executed; later phases are planned):
 ### How `private: true` Works
 
 The source `package.json` in each publishable workspace (`platforms/rspress/`
-and the four `packages/*`) is marked `"private": true` — **this
-is intentional and correct**. `publishConfig` controls publishing; never
-manually set `"private": false` in the source `package.json`. The savvy-web
-builders transform `package.json` during build — set `"private": false` from
-`publishConfig`, rewrite `exports`, and strip dev-only fields.
+and the five `packages/*`) is marked `"private": true` — **this is intentional
+and correct**. `publishConfig` controls publishing; never set
+`"private": false` in the source manifest. The savvy-web builders transform
+`package.json` during build.
 
 ### Publish Targets
 
-All five publishable workspaces publish to the **npm registry** only
+All six publishable workspaces publish to the **npm registry** only
 (`publishConfig.targets` = `{ npm: true }`), with provenance attestation
 enabled.
 
@@ -235,7 +246,7 @@ enabled.
 ## Savvy-Web Tool References
 
 These `@savvy-web/*` packages are in active development — if behavior seems
-unexpected, explore both the GitHub docs and the installed source.
+unexpected, read the GitHub docs and the installed source.
 
 | Package | Purpose | GitHub | Local Source |
 | ------- | ------- | ------ | ------------ |
@@ -255,7 +266,7 @@ TypeScript configurations extend per workspace type:
 
 ## Reference Repositories
 
-Upstream source for the frameworks this plugin builds on is vendored under `.repos/` as shallow git submodules (sparse checkouts of source + official docs), each pinned to the installed version — treat them as the authority when framework behavior is unclear. Populate one with `git submodule update --init .repos/<name>`; `.repos/config.json` records each repo's `ref`, `purpose`, sparse paths, and an `orientation` map.
+Upstream framework source is vendored under `.repos/` as sparse, shallow git submodules pinned to the installed version — treat them as the authority when framework behavior is unclear. Populate one with `git submodule update --init .repos/<name>`; `.repos/config.json` records each repo's `ref`, `purpose`, sparse paths and an `orientation` map.
 
 | Submodule | Pinned ref | Authority for |
 | --------- | ---------- | ------------- |
@@ -274,15 +285,10 @@ folder names).
 ### Development
 
 ```bash
-pnpm run lint              # Check code with Biome
-pnpm run lint:fix          # Auto-fix lint issues
-pnpm run lint:fix:unsafe   # Auto-fix including unsafe transforms
-pnpm run lint:md           # Check markdown with markdownlint
-pnpm run lint:md:fix       # Auto-fix markdown issues
-pnpm run typecheck         # Type-check all workspaces via Turbo (runs tsgo)
-pnpm run test              # Run all tests
-pnpm run test:watch        # Run tests in watch mode
-pnpm run test:coverage     # Run tests with v8 coverage report
+pnpm run lint              # Biome (`:fix`, `:fix:unsafe` variants)
+pnpm run lint:md           # markdownlint (`:fix` variant)
+pnpm run typecheck         # All workspaces via Turbo (runs tsgo)
+pnpm run test              # All tests (`:watch`, `:coverage` variants)
 ```
 
 ### Building
@@ -303,14 +309,8 @@ pnpm preview:<site>        # basic | versioned | i18n | multi | effect
 ### Per-Workspace Examples
 
 ```bash
-pnpm --filter rspress-plugin-api-extractor run build:dev   # Build the plugin only
-pnpm --filter @modules/kitchensink run build:dev           # Build the kitchensink module only
-pnpm --filter @sites/basic run dev                         # Start basic site dev server
-```
-
-### Running a Specific Test
-
-```bash
+pnpm --filter rspress-plugin-api-extractor run build:dev  # plugin only
+pnpm --filter @sites/basic run dev                        # one site's dev server
 pnpm vitest run platforms/rspress/__test__/build-stages.test.ts
 ```
 
@@ -372,7 +372,7 @@ workflow. The GitHub Action is at
 ## Testing
 
 - **Framework**: [Vitest](https://vitest.dev/) with v8 coverage provider
-- **Pool**: Uses `forks` (not threads) for broader compatibility
-- **Config**: `vitest.config.ts` uses the `VitestConfig.create()` factory from
-  `@savvy-web/vitest`, which supports project-based filtering via `--project`
+- **Pool**: `forks` (not threads), for broader compatibility
+- **Config**: `vitest.config.ts` uses `VitestConfig.create()` from
+  `@savvy-web/vitest`; filter by workspace with `--project`
 - **CI**: `pnpm run ci:test` sets `CI=true` and enables coverage

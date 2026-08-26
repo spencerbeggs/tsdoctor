@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import { hashContent, hashFrontmatter } from "../src/content-hash.js";
 
 describe("hashContent", () => {
@@ -117,5 +117,45 @@ describe("hashFrontmatter", () => {
 
 		// Hashes should be identical because keys are sorted
 		expect(hash1).toBe(hash2);
+	});
+});
+
+const withHead = (head: unknown): Record<string, unknown> => ({ title: "T", description: "D", head });
+
+describe("hashFrontmatter head sensitivity", () => {
+	it("ignores a changed build timestamp", () => {
+		const a = withHead([["meta", { property: "article:modified_time", content: "2026-01-01T00:00:00.000Z" }]]);
+		const b = withHead([["meta", { property: "article:modified_time", content: "2026-06-06T00:00:00.000Z" }]]);
+		expect(hashFrontmatter(a)).toBe(hashFrontmatter(b));
+	});
+
+	it("notices a changed og:description", () => {
+		const a = withHead([["meta", { property: "og:description", content: "old" }]]);
+		const b = withHead([["meta", { property: "og:description", content: "new" }]]);
+		expect(hashFrontmatter(a)).not.toBe(hashFrontmatter(b));
+	});
+
+	it("notices a changed canonical href", () => {
+		const a = withHead([["link", { rel: "canonical", href: "https://a.test/x" }]]);
+		const b = withHead([["link", { rel: "canonical", href: "https://b.test/x" }]]);
+		expect(hashFrontmatter(a)).not.toBe(hashFrontmatter(b));
+	});
+
+	it("notices a changed package version inside a json-ld body", () => {
+		const a = withHead([["script", { type: "application/ld+json", children: '{"version":"1.0.0"}' }]]);
+		const b = withHead([["script", { type: "application/ld+json", children: '{"version":"2.0.0"}' }]]);
+		expect(hashFrontmatter(a)).not.toBe(hashFrontmatter(b));
+	});
+
+	it("ignores dateModified nested inside a json-ld body", () => {
+		const a = withHead([["script", { type: "application/ld+json", children: '{"dateModified":"2026-01-01"}' }]]);
+		const b = withHead([["script", { type: "application/ld+json", children: '{"dateModified":"2026-06-06"}' }]]);
+		expect(hashFrontmatter(a)).toBe(hashFrontmatter(b));
+	});
+
+	it("still ignores the top-level timestamp fields", () => {
+		expect(hashFrontmatter({ title: "T", publishedTime: "a" })).toBe(
+			hashFrontmatter({ title: "T", publishedTime: "b" }),
+		);
 	});
 });

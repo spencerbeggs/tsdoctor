@@ -3,15 +3,16 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-25
-last-synced: 2026-08-25
-completeness: 90
+updated: 2026-08-26
+last-synced: 2026-08-26
+completeness: 92
 related:
   - rspress-plugin-api-extractor/build-architecture.md
   - rspress-plugin-api-extractor/page-generation-system.md
   - rspress-plugin-api-extractor/performance-observability.md
   - rspress-plugin-api-extractor/bundle-spec.md
   - rspress-plugin-api-extractor/tsdoctor-package-architecture.md
+  - rspress-plugin-api-extractor/structured-data-and-og.md
 dependencies: []
 ---
 
@@ -25,6 +26,7 @@ dependencies: []
 - [Change Detection Algorithm](#change-detection-algorithm)
 - [Timestamp Management](#timestamp-management)
 - [Hash Calculation](#hash-calculation)
+  - [Head Tags and the Frontmatter Hash](#head-tags-and-the-frontmatter-hash)
 - [Disk Fallback Logic](#disk-fallback-logic)
 - [Stale and Orphan Cleanup](#stale-and-orphan-cleanup)
 - [Performance Considerations](#performance-considerations)
@@ -221,8 +223,15 @@ In `generateSinglePage` (build-stages.ts):
    `page-generation-system.md`) to separate frontmatter and body
 3. Normalize markdown spacing (`normalizeMarkdownSpacing`)
 4. Hash body: `hashContent(bodyContent)`
-5. Hash frontmatter: `hashFrontmatter(frontmatterData)`
-6. Look up snapshot: `existingSnapshots.get(relativePathWithExt)`
+5. **Build the page's SEO head tags** — resolve the OG image, derive the
+   JSON-LD, call `@tsdoctor/seo`'s `headTags` — and assemble the FINAL
+   frontmatter from them
+6. Hash frontmatter: `hashFrontmatter(finalFrontmatterData)`
+7. Look up snapshot: `existingSnapshots.get(relativePathWithExt)`
+
+Step 5 lives in the generate stage precisely so step 6 can see it; it used to
+live in `writeSingleFile`, which made every head tag invisible to change
+detection. See [Head Tags and the Frontmatter Hash](#head-tags-and-the-frontmatter-hash).
 
 **Decision tree:**
 
@@ -291,10 +300,26 @@ Pure standalone functions, exported from `@tsdoctor/snapshot`:
 
 **`hashContent(content)`** -- SHA-256 of normalized markdown body.
 
-**`hashFrontmatter(frontmatter)`** -- SHA-256 of frontmatter excluding
-timestamp-related fields (`publishedTime`, `modifiedTime`, `head`,
-`article:published_time`, `article:modified_time`). Keys are sorted
+**`hashFrontmatter(frontmatter)`** -- SHA-256 of frontmatter with every
+timestamp stripped and everything else retained. Keys are sorted
 alphabetically for deterministic output.
+
+Timestamps are stripped in two shapes, **recursively**:
+
+- Top-level fields: `publishedTime`, `modifiedTime`, `article:published_time`,
+  `article:modified_time`.
+- Nested in `head`, in the meta-pair form — a `content` value whose sibling
+  `property`/`name` names one of those timestamp keys.
+- Nested inside a JSON-LD `<script>` body — the body is parsed as JSON and its
+  `datePublished` / `dateModified` / `uploadDate` keys removed, then
+  re-serialized. A body that does not parse is hashed unchanged, since an
+  unparseable body is still content worth hashing.
+
+The walk MUST be recursive: `head` is an array of `[tagName, attrs]` pairs, so
+a shallow pass would see nothing.
+
+`head` itself is **no longer excluded wholesale**. It used to be, which is what
+made head tags invisible to change detection.
 
 ### Why Exclude Timestamps from Frontmatter Hash?
 
@@ -302,6 +327,51 @@ If timestamps were included in the hash, every build would produce a
 different hash (because `modifiedTime` would be the current build time),
 marking all files as modified on every build. Excluding timestamps breaks
 this circular dependency.
+
+### Head Tags and the Frontmatter Hash
+
+Head tags — `og:image`, the canonical URL, the JSON-LD graph — were invisible
+to change detection since the frontmatter hash was written. Two things caused
+it, and the first fix landed on a path nothing took.
+
+**Cause 1: `head` was excluded from the hash.** Fixed by hashing `head` with
+timestamps stripped recursively, as described above.
+
+**Cause 2: nothing ever passed `hashFrontmatter` a frontmatter containing
+`head`.** The hash was taken in `generateSinglePage` over the page generator's
+own frontmatter, which carries no `head` at all; head tags were built one
+stage later, in `writeSingleFile`. So the fix for cause 1 was correct and
+unreachable — and its unit test passed the whole time, because it called
+`hashFrontmatter` directly with a `head` array no caller ever produced.
+
+**The fix.** Head-tag construction moved from `writeSingleFile` into
+`generateSinglePage`, so the frontmatter hash covers the final frontmatter.
+`writeSingleFile` now writes `result.content` directly. See
+`page-generation-system.md` for the resulting stage responsibilities.
+
+This is only sound because the timestamp stripping is total. The adapter builds
+a local `finalFrontmatter(published, modified)` and calls it **twice**: once
+with the build time, to hash, and once with the resolved timestamps, to write.
+The two hash identically. Without the stripping, the hash would depend on the
+timestamps the hash itself decides.
+
+**Measured** on `sites/basic` (the one fixture site with `siteOrigin` set):
+
+| Check | Before | After |
+| --- | --- | --- |
+| Bump only the fixture package's `version`, rebuild | **0 of 46 rewritten** | **37 of 46 rewritten** |
+| Rebuild with no changes | all unchanged | all unchanged, `diff -r` byte-identical |
+
+The 9 that stay unchanged are `_meta.json` and index pages, which carry no
+JSON-LD. Both directions are pinned in
+`platforms/rspress/__test__/build-stages.test.ts`: a head-tag change must move
+the hash, and the build time must not.
+
+**The transferable rule:** a fix can be correct and land on a path nothing
+takes, with a passing unit test the whole time, because the test called the
+function with an input no caller produces. Strengthening the unit test would
+not have helped. The acceptance evidence for a change-detection fix is a
+rebuild count, not a unit assertion.
 
 ---
 
@@ -445,6 +515,9 @@ Read at build end by `logBuildSummary` in `layers/observability.ts`.
   `page-generation-system.md` -- Stream pipeline using snapshots
 - **Performance Observability:**
   `performance-observability.md` -- Effect Metrics system
+- **Structured Data and Head Metadata:**
+  `structured-data-and-og.md` -- the `@tsdoctor/seo` head tags this hash now
+  covers
 - **Bundle Spec:**
   `bundle-spec.md` -- the bundle-fingerprints table planned as migration 2
   in this store

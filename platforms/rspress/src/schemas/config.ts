@@ -1,7 +1,7 @@
 import { ApiItemKind } from "@microsoft/api-extractor-model";
+import { OpenGraphImageConfig } from "@tsdoctor/seo";
 import { Effect, Schema } from "effect";
 import { ObservabilityConfig } from "./observability.js";
-import { OpenGraphImageConfig } from "./opengraph.js";
 import { PerformanceConfig } from "./performance.js";
 
 /**

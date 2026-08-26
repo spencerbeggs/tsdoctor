@@ -1,13 +1,13 @@
 # platforms/rspress/CLAUDE.md
 
-The publishable `rspress-plugin-api-extractor` package. It is an RSPress plugin,
-but it lives in `platforms/rspress/` — the repo-root `plugin/` folder is the
-unrelated api-docs Claude Code plugin, and `packages/` holds the core
-`@tsdoctor/*` libraries this plugin consumes.
+The publishable `rspress-plugin-api-extractor` package. It lives in
+`platforms/rspress/` — the repo-root `plugin/` folder is the unrelated
+api-docs Claude Code plugin, and `packages/` holds the core `@tsdoctor/*`
+libraries it consumes.
 
 ## Architecture
 
-Built via `build()` from `@savvy-web/rspress-builder` (`savvy.build.ts`, a self-executing script) passing `runtime: true`, `bundledPackages` and `meta.tsdoc.suppressWarnings` (the `ae-forgotten-export` rules). Runtime emission lives in the builder, not here. Published via `publishConfig.directory` (`dist/dev/pkg`, npm-only) — there is no `files` field.
+Built via `build()` from `@savvy-web/rspress-builder` (`savvy.build.ts`, self-executing) passing `runtime: true`, `bundledPackages` and `meta.tsdoc.suppressWarnings` (the `ae-forgotten-export` rules). Runtime emission lives in the builder. Published via `publishConfig.directory` (`dist/dev/pkg`, npm-only) — no `files` field.
 
 | Artifact | Entry | Target | Output |
 | -------- | ----- | ------ | ------ |
@@ -17,9 +17,9 @@ Built via `build()` from `@savvy-web/rspress-builder` (`savvy.build.ts`, a self-
 
 ### Runtime ships bundleless
 
-The React runtime ships as per-file compiled JS, not raw `.tsx` and not one bundled chunk. The builder transpiles each component to its own `.js` under `runtime/`, mirroring `src/runtime/...`, with `react`/`@theme` external and `import.meta.env.SSG_MD` left unresolved — RSPress resolves it per site build, which is what produces the correct dual-mode (HTML vs markdown) rendering. A bundled `runtime/index.d.ts` is emitted alongside; the published `./runtime` export is `{ types: "./runtime/index.d.ts", import: "./runtime/index.js" }`. `ApiLlmsPackageActions` (`globalUIComponents`) and `ApiLlmsViewOptions` (`resolve.alias`) register against these transpiled files and use RSPress runtime hooks.
+The React runtime ships as per-file compiled JS, not raw `.tsx` and not one bundle. The builder transpiles each component to its own `.js` under `runtime/`, mirroring `src/runtime/...`, with `react`/`@theme` external and `import.meta.env.SSG_MD` left unresolved — RSPress resolves it per site build, which is what produces the correct dual-mode (HTML vs markdown) rendering. A bundled `runtime/index.d.ts` is emitted alongside; the published `./runtime` export is `{ types: "./runtime/index.d.ts", import: "./runtime/index.js" }`. `ApiLlmsPackageActions` (`globalUIComponents`) and `ApiLlmsViewOptions` (`resolve.alias`) register against these transpiled files.
 
-The component paths in `plugin.ts` are a **zero-level** resolve to the published `.js` — `path.resolve(pluginDir, "runtime/components/<Name>/index.js")`, e.g. `runtime/components/ApiLlmsViewOptions/index.js` — not `src/runtime/.../index.tsx`. It is layout-invariant because the runtime sits next to `index.js` in both the dev (`dist/dev`) and published (flat root) layouts. The old `../../src/runtime/` path only worked in the linked dev layout; in the published flat layout it overshot and broke `llms: true` builds for external consumers. Do not reintroduce the `../../` prefix.
+The component paths in `plugin.ts` are a **zero-level** resolve to the published `.js` — `path.resolve(pluginDir, "runtime/components/<Name>/index.js")` — not `src/runtime/.../index.tsx`. It is layout-invariant because the runtime sits next to `index.js` in both the dev (`dist/dev`) and published (flat root) layouts. The old `../../src/runtime/` path only worked in the linked dev layout; published, it overshot and broke `llms: true` builds. Do not reintroduce the `../../` prefix.
 
 ### Effect service layer
 
@@ -30,9 +30,9 @@ emitter:
 
 ### Inert configuration
 
-`api: null`, `apis: null` and `apis: []` are valid `PluginOptions` that make the plugin **inert**. `classifyApiConfig` (`config-utils.ts`) returns `"disabled"` and `plugin.ts` computes `isInert` once at factory time; `config()` / `afterBuild()` then skip doc generation, the LLMs alias + scope/`globalUIComponents` injection, the build summary, `issues.json` and LLMs post-processing. Remark registration and the runtime `source.include` entry still run so user-authored `with-api` blocks keep working. Omitting BOTH keys is still a configuration error, as is an explicit `undefined` — only a present, non-`undefined` empty value is an opt-in.
+`api: null`, `apis: null` and `apis: []` are valid `PluginOptions` that make the plugin **inert**. `classifyApiConfig` (`config-utils.ts`) returns `"disabled"` and `plugin.ts` computes `isInert` once at factory time; `config()`/`afterBuild()` then skip doc generation, the LLMs alias + scope/`globalUIComponents` injection, the build summary, `issues.json` and LLMs post-processing. Remark registration and the runtime `source.include` entry still run so `with-api` blocks keep working. Omitting BOTH keys is still an error, as is an explicit `undefined` — only a present, non-`undefined` empty value is an opt-in.
 
-Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no runtime is built there, but a stray sync emitter can still force one and SQLite opens its file eagerly. Details in `build-architecture.md`.
+Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no runtime is built there, but a stray sync emitter can force one and SQLite opens its file eagerly.
 
 ## Key Dependencies
 
@@ -44,14 +44,11 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
   `@tsdoctor/snapshot`; `gray-matter` is gone too (see `src/frontmatter.ts`)
 - `ioredis` + the `@effected/*` closure (`semver`/`store`/`tsconfig-json`/
   `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
-  `markdown`) + `@typescript/vfs` — peer-closure deps (some imported
-  directly, e.g. by `services/TypeRegistryService.ts`, `sync-node-fs.ts`,
-  `frontmatter.ts`).
+  `markdown`) + `@typescript/vfs` — peer-closure deps, some imported directly
+  (`services/TypeRegistryService.ts`, `sync-node-fs.ts`, `frontmatter.ts`).
   Do NOT prune as "unused" — see the peer dependency closure section in
-  `build-architecture.md`. `@effected/*` deps are declared as
-  `catalog:effected` (supplied by `@effected/pnpm-plugin-effect`; see
-  "@effected Distribution and Dogfooding" in the root CLAUDE.md) — never
-  hand-pin an `@effected` version range.
+  `build-architecture.md`. Declare `@effected/*` as `catalog:effected`; never
+  hand-pin a version range.
 - `@tsdoctor/registry` (`workspace:*`) — npm package type definition loading;
   tag ids read `"@tsdoctor/registry/..."` and the XDG cache namespace is
   `"tsdoctor"` since phase 2
@@ -63,25 +60,32 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
   `fromDir`/`fromParentDir` config helpers, plus npm/GitHub bundle fetchers
 - `@tsdoctor/snapshot` (`workspace:*`) — `SnapshotService.layer(dbPath)` plus
   the standalone `hashContent`/`hashFrontmatter` helpers
-- `@microsoft/api-extractor-model` — `.api.json` model parsing (direct dep;
-  model loading flows through `@tsdoctor/model`'s `Model.load`)
+- `@tsdoctor/seo` (`workspace:*`) — every `<head>` concern behind one seam:
+  `deriveSiteUrl` (`layers/config-resolution.ts`), `attributionFacts` +
+  `packageContext` once per API (`build-program.ts`), `deriveScriptBody` +
+  `headTags` (`generateSinglePage`), and the `HeadTag` vocabulary rendered
+  into RSPress frontmatter `head` pairs (`markdown/helpers.ts`).
+  `og-resolver.ts` and `schemas/opengraph.ts` are **deleted** into it; only
+  `OgService` (probing a configured image) stays here. Never compose head
+  tags in the adapter — `headTags` decides which a page gets
+- `@microsoft/api-extractor-model` — `.api.json` parsing (direct dep; loading
+  flows through `@tsdoctor/model`'s `Model.load`)
 - `@shikijs/twoslash` — syntax highlighting with type information
 - `mdast-util-to-hast` — a **runtime** dep and staying one: markdown→HTML is
-  permanently out of `@effected/markdown`'s scope, so `toHast` has no kit
-  equivalent. Its sibling `mdast-util-from-markdown` moved to devDeps when
-  `renderMarkdown` switched to `Markdown.parseResult` + `Mdast.toMdast`
-  (`dialect: "commonmark"` — the kit defaults to GFM, and adopting GFM would
-  be a product change).
-- `open` — best-effort browser launch for the `serve()` dev/preview runner
+  permanently out of `@effected/markdown`'s scope. Its sibling
+  `mdast-util-from-markdown` moved to devDeps when `renderMarkdown` switched
+  to `Markdown.parseResult` + `Mdast.toMdast` (`dialect: "commonmark"` — the
+  kit defaults to GFM, and adopting GFM would be a product change).
+- `open` — best-effort browser launch for `serve()`
 - Dev only: `@effect/vitest`, and `@effected/memfs` as the standard in-memory
   `FileSystem` for tests. `TypeCache.test.ts`'s hand-written `layerNoop` stays
   — that one is fault injection, which memfs cannot do.
 
 ## Biome Override
 
-`platforms/rspress/biome.jsonc` disables `useImportExtensions` for CSS and
-runtime component files — the runtime imports `.css`, which the global rule
-would rewrite to `.js`.
+`biome.jsonc` here disables `useImportExtensions` for CSS and runtime
+component files — the runtime imports `.css`, which the global rule would
+rewrite to `.js`.
 
 ## Source Structure
 
@@ -91,14 +95,13 @@ Load when locating a module or iterating on runtime component styling:
 
 ## Testing
 
-All tests live in `__test__/`, mirroring the `src/` subtree — there are no colocated `*.test.ts` files under `src/`.
+All tests live in `__test__/`, mirroring `src/` — no colocated `*.test.ts`.
 
 ```bash
-pnpm vitest run platforms/rspress/            # Run all plugin tests
-pnpm vitest run platforms/rspress/__test__/   # Run only the canonical test directory
+pnpm vitest run platforms/rspress/   # all plugin tests
 ```
 
-`__test__/**/*.ts` is in this workspace's `tsconfig.json` `include`, so `pnpm typecheck` covers tests. Fixtures in `__test__/__fixtures__/`, regeneration scripts in `__test__/scripts/` (`pnpm exec tsx`).
+`__test__/**/*.ts` is in this workspace's tsconfig `include`, so `pnpm typecheck` covers tests. Fixtures in `__test__/__fixtures__/`, regeneration scripts in `__test__/scripts/`.
 
 Prefer a service's own `makeTest`/`layerTest` double over a hand-written stub, and read "0 tests passed" with exit 0 as an import-time throw — see @./CLAUDE.services.md.
 
@@ -135,6 +138,11 @@ external package types, VFS generation, or multi-entry point resolution:
 per-package file generation, or scope-aware UI components:
 
 - @../../.claude/design/rspress-plugin-api-extractor/llms-integration.md
+
+**SEO & head metadata** — load when modifying canonical URLs, Open Graph,
+Twitter cards, attribution, or schema.org JSON-LD:
+
+- @../../.claude/design/rspress-plugin-api-extractor/structured-data-and-og.md
 
 **Observability** — load when modifying metrics, logging, error tracking, the
 progress heartbeat, or the `issues.json` artifact:

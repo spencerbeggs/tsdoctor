@@ -29,6 +29,14 @@ Extracted from the plugin in phase 2 of the consolidation and rebuilt on
 - `hashContent` is **not** on `SnapshotServiceShape`; it never had a consumer in
   method form. The standalone `hashContent` export from the package root is
   unchanged and is what callers already used.
+- `hashFrontmatter` hashes the frontmatter's `head` key (it used to exclude it
+  wholesale, which made every head tag invisible to change detection) and
+  strips timestamps **recursively** instead: the top-level fields, the
+  `[tagName, attrs]` meta-pair form nested in `head`, and
+  `datePublished`/`dateModified`/`uploadDate` inside a parsed JSON-LD script
+  body. The walk MUST stay recursive — `head` is an array of pairs, so a
+  shallow pass sees nothing — and the stripping MUST stay total, since the
+  caller hashes and writes the same frontmatter with different timestamps.
 - Peers only: `effect` (`catalog:effect:peers`) and `@effected/store`
   (`catalog:effected:peers`) — never hand-pin `@effected` ranges.
 - All queries and the transactional batch upsert run through `store.client`

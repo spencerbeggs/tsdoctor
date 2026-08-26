@@ -1,3 +1,4 @@
+import { OpenGraphImageConfig, OpenGraphImageMetadata, OpenGraphMetadata } from "@tsdoctor/seo";
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 import {
@@ -14,7 +15,6 @@ import {
 	SourceConfig,
 	VersionConfig,
 } from "../src/schemas/config.js";
-import { OpenGraphImageConfig, OpenGraphImageMetadata, OpenGraphMetadata } from "../src/schemas/opengraph.js";
 import { PerformanceConfig, PerformanceThresholds } from "../src/schemas/performance.js";
 
 describe("OpenGraph schemas", () => {

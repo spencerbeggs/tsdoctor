@@ -1,4 +1,5 @@
 import path from "node:path";
+import { attributionFacts, packageContext } from "@tsdoctor/seo";
 import { SnapshotService } from "@tsdoctor/snapshot";
 import { Effect, FileSystem } from "effect";
 import { BuildId, PageConcurrency, SuppressExampleErrors } from "./BuildEnv.js";
@@ -77,11 +78,29 @@ export function generateApiDocs(
 			llmsPlugin,
 			siteUrl,
 			ogImage,
+			manifest,
 		} = apiConfig;
 
 		const phaseCtx = {
 			packageName,
 		};
+
+		// Derived ONCE per API: the package node and its people are identical on
+		// every page, so deriving them per page would mint several hundred
+		// copies per build and re-run the attribution derivation behind each.
+		// Absent when the manifest failed to decode — the SEO layer then omits
+		// the JSON-LD block rather than guessing attribution.
+		const structuredDataPkg =
+			manifest != null && siteUrl != null
+				? packageContext({
+						siteUrl,
+						baseRoute,
+						packageName,
+						...(manifest.version != null ? { version: manifest.version.toString() } : {}),
+						...(manifest.description != null ? { description: manifest.description } : {}),
+						attribution: attributionFacts(manifest),
+					})
+				: undefined;
 
 		const resolvedOutputDir = path.resolve(process.cwd(), outputDir);
 		const buildTime = new Date().toISOString();
@@ -170,6 +189,7 @@ export function generateApiDocs(
 				...(apiConfig.docsRoot != null ? { docsRoot: apiConfig.docsRoot } : {}),
 				...(siteUrl != null ? { siteUrl } : {}),
 				...(ogImage != null ? { ogImage } : {}),
+				...(structuredDataPkg != null ? { structuredDataPkg } : {}),
 			}),
 		);
 
