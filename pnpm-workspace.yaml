@@ -5,7 +5,7 @@ packages:
   - sites/*
 autoInstallPeers: true
 configDependencies:
-  "@effected/pnpm-plugin-effect": 0.6.11+sha512-jKESl/K+pr7Gn4SLnXlmFfJTU+K6aP+HBPjl/Gu70Zv3yetFcqn0TCb26dmldM3Q4fWgt20z1VZ8pQvLGSrWzQ==
+  "@effected/pnpm-plugin-effect": 0.6.12+sha512-R7wlLFmjHZtXRU9F8avMU6vyC6VFTV4WRrcESBsEBFPp4s0hurU7H4MJe7UjyZXBVOawuAQPB8cY+UedBREPPQ==
   "@savvy-web/pnpm-plugin-silk": 0.30.0+sha512-B3vQOdaC7K2c4ylY31GBOeyxCuyLkBDI7eGwug5z8+1I5bEgsFfen4D47O4m/TRBE+OGXgcMyST3LnFYDwmrZA==
 minimumReleaseAgeExclude:
   - "@turbo/linux-arm64@2.10.12"
