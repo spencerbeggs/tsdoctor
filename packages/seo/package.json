@@ -41,10 +41,10 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/package-json": "catalog:effected:peers",
-		"@effected/schema-org": "catalog:effected:peers",
-		"@effected/spdx": "catalog:effected:peers",
-		"effect": "catalog:effect:peers"
+		"@effected/package-json": "catalog:effected",
+		"@effected/schema-org": "catalog:effected",
+		"@effected/spdx": "catalog:effected",
+		"effect": "catalog:effect"
 	},
 	"engines": {
 		"node": ">=24.11.0"

@@ -44,9 +44,9 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/markdown": "catalog:effected:peers",
-		"@effected/package-json": "catalog:effected:peers",
-		"effect": "catalog:effect:peers"
+		"@effected/markdown": "catalog:effected",
+		"@effected/package-json": "catalog:effected",
+		"effect": "catalog:effect"
 	},
 	"peerDependenciesMeta": {
 		"@effected/package-json": {

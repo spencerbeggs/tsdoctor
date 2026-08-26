@@ -46,13 +46,13 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effect/platform-node": "catalog:effect:peers",
-		"@effected/semver": "catalog:effected:peers",
-		"@effected/store": "catalog:effected:peers",
-		"@effected/tsconfig-json": "catalog:effected:peers",
-		"@effected/xdg": "catalog:effected:peers",
+		"@effect/platform-node": "catalog:effect",
+		"@effected/semver": "catalog:effected",
+		"@effected/store": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected",
+		"@effected/xdg": "catalog:effected",
 		"@typescript/vfs": "^1.6.4",
-		"effect": "catalog:effect:peers",
+		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
 	},
 	"peerDependenciesMeta": {
