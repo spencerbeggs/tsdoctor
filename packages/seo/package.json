@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/seo",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"private": true,
 	"description": "Framework-neutral head metadata for static TypeScript API documentation: schema.org JSON-LD, Open Graph and Twitter card vocabulary, canonical URLs, and package attribution derived from an api.json model plus its manifest.",
 	"keywords": ["seo", "schema.org", "json-ld", "open-graph", "documentation", "effect"],

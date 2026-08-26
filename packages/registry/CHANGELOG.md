@@ -1,5 +1,17 @@
 # @tsdoctor/registry
 
+## 0.2.2
+
+### Bug Fixes
+
+#### Use catalog:effected for Peer Dependencies
+
+- Switch to strict versioning of peer dependencies via `@effected/pnpm-plugin-effect` to keep disapline of release cycle.
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.2.1
 
 ### Dependencies
