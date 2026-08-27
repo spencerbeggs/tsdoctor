@@ -38,7 +38,7 @@
 	"devDependencies": {
 		"@effected/markdown": "catalog:effected",
 		"@effected/package-json": "catalog:effected",
-		"@savvy-web/bundler": "^2.1.28",
+		"@savvy-web/bundler": "^2.1.29",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
