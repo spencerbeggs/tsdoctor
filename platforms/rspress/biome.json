@@ -1,6 +1,6 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.5.10/schema.json",
-	"extends": ["@savvy-web/silk/biome"],
+	"extends": "//",
 	"overrides": [
 		{
 			"includes": ["**/*.css", "**/runtime/**/*.tsx", "**/components/**/*.tsx"],
