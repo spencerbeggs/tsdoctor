@@ -1,5 +1,21 @@
 # @tsdoctor/bundle
 
+## 0.2.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/jsonc | peerDependency | updated | ^0.8.0 | ^0.8.1 |
+
+[#197][#197]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#197]: https://github.com/spencerbeggs/tsdoctor/pull/197
+
 ## 0.2.1
 
 ### Bug Fixes
