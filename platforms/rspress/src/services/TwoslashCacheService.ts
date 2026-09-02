@@ -15,6 +15,19 @@ export interface TwoslashCacheServiceShape {
 	 */
 	readonly load: (envHash: string) => Effect.Effect<Map<string, TwoslashCacheValue>>;
 
+	/**
+	 * Whether the underlying cache degraded at construction — an unusable XDG
+	 * root, an unwritable directory, a driver that died opening the database.
+	 *
+	 * @remarks
+	 * A degraded cache and a genuinely cold one behave identically (every
+	 * lookup misses), which is exactly why this has to be reported: without it
+	 * a broken cache reads as "no cached results yet" on every build, forever,
+	 * and the build that should have been fast is merely slow with no
+	 * explanation.
+	 */
+	readonly degraded: boolean;
+
 	/** Persist a generation. Never fails, for the same reason as {@link load}. */
 	readonly save: (envHash: string, entries: ReadonlyMap<string, TwoslashCacheValue>) => Effect.Effect<void>;
 
@@ -62,25 +75,29 @@ export class TwoslashCacheService extends Context.Service<TwoslashCacheService, 
 	 * @remarks
 	 * Failure is absorbed at TWO levels, and both are load-bearing. Inside the
 	 * service, a failed read or write degrades that one operation. Around the
-	 * layer, a failed CONSTRUCTION — no HOME for XDG, an unwritable cache
-	 * directory, a corrupt database — degrades to {@link DegradedLive}.
+	 * cache layer, a failed CONSTRUCTION — no HOME for XDG, an unwritable cache
+	 * directory, a corrupt database — degrades to a cache that always misses,
+	 * via `Cache.degrading` (see {@link CacheLive}).
 	 *
-	 * The second is why `Layer.catchCause` wraps this at all. While the sqlite
-	 * layer was provided inside each method, a construction failure surfaced as
-	 * that method's failure and the in-method handler swallowed it. Hoisting
+	 * The second is why anything wraps this at all. While the sqlite layer was
+	 * provided inside each method, a construction failure surfaced as that
+	 * method's failure and the in-method handler swallowed it. Hoisting
 	 * acquisition to layer construction moved the failure to `ManagedRuntime`
 	 * build time, where it would abort the entire build — breaking the contract
 	 * this service documents, that an unreachable cache must never fail a build
-	 * that would otherwise succeed. `catchCause` rather than a failure-only catch
-	 * because a defect thrown by the sqlite driver must degrade too.
+	 * that would otherwise succeed.
+	 *
+	 * There is no separate degraded implementation of this service any more.
+	 * Degrading one level down, at the `Cache`, means the ordinary
+	 * implementation running over an always-missing cache IS the degraded
+	 * behaviour, so a second implementation would only be a way for the two to
+	 * disagree.
 	 *
 	 * `Layer.suspend` because the composition below is declared after this class:
 	 * a static initializer runs while the module body is still evaluating, so
 	 * naming those consts directly throws at import time with a clean typecheck.
 	 */
-	static readonly layer: Layer.Layer<TwoslashCacheService> = Layer.suspend(() =>
-		CacheBackedLive.pipe(Layer.catchCause(() => DegradedLive)),
-	);
+	static readonly layer: Layer.Layer<TwoslashCacheService> = Layer.suspend(() => CacheBackedLive);
 
 	/**
 	 * An always-cold in-memory double.
@@ -95,6 +112,10 @@ export class TwoslashCacheService extends Context.Service<TwoslashCacheService, 
 	 * the render path's SHAPE rather than merely dropping its persistence.
 	 */
 	static readonly makeTest = (overrides: Partial<TwoslashCacheServiceShape> = {}): TwoslashCacheServiceShape => ({
+		// Defaults to a healthy cache: a test that has not opted into degradation
+		// is exercising the normal path, and a double that claimed degradation
+		// would make every build summary in the suite report a broken cache.
+		degraded: overrides.degraded ?? false,
 		load: overrides.load ?? (() => Effect.succeed(new Map())),
 		save: overrides.save ?? (() => Effect.void),
 		open: overrides.open ?? (() => Effect.succeed(makeTwoslashCache())),
@@ -141,7 +162,9 @@ const CacheLive = Layer.unwrap(
  * transformers have nothing to read or write and the render pass changes
  * shape rather than merely losing persistence.
  */
-function withGeneration(base: Pick<TwoslashCacheServiceShape, "load" | "save">): TwoslashCacheServiceShape {
+function withGeneration(
+	base: Pick<TwoslashCacheServiceShape, "load" | "save" | "degraded">,
+): TwoslashCacheServiceShape {
 	let open: { readonly cache: TwoslashResultCache; readonly envHash: string } | null = null;
 	return {
 		...base,
@@ -174,6 +197,9 @@ const CacheBackedLive = Layer.effect(
 		// database — twice per build for load + save.
 		const cache = yield* Cache;
 		return withGeneration({
+			// Read once at construction: `Cache.degrading` decides this before any
+			// caller sees the service, and it cannot change afterwards.
+			degraded: cache.degraded,
 			load: (envHash) =>
 				cache.get(twoslashBlobKey(envHash)).pipe(
 					Effect.map((entry) =>
@@ -197,7 +223,7 @@ const CacheBackedLive = Layer.effect(
 					.pipe(Effect.catch(() => Effect.void)),
 		});
 	}),
-).pipe(Layer.provide(CacheLive));
+).pipe(Layer.provide(Cache.degrading(CacheLive)));
 
 /**
  * A cache that holds nothing, for when the real one cannot be opened.
@@ -206,10 +232,3 @@ const CacheBackedLive = Layer.effect(
  * `load` returns empty and `save` discards, which is precisely the behaviour
  * before this cache existed: type-check everything, persist nothing.
  */
-const DegradedLive = Layer.succeed(
-	TwoslashCacheService,
-	withGeneration({
-		load: () => Effect.succeed(new Map<string, TwoslashCacheValue>()),
-		save: () => Effect.void,
-	}),
-);

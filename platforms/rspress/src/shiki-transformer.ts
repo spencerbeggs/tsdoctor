@@ -34,7 +34,7 @@ import type { Element, ElementContent, Root } from "hast";
  * @example Basic usage
  * ```ts
  * const crossLinker = new ShikiCrossLinker();
- * crossLinker.reinitialize(routes, kinds, "my-api");
+ * const crossLinker = ShikiCrossLinker.fromRoutes(routes, "my-api");
  * crossLinker.setApiScope("my-api");
  *
  * // Cross-link the finalized HAST, after Shiki and Twoslash have run
@@ -48,9 +48,6 @@ export class ShikiCrossLinker {
 	/** API item name to route, for THIS scope. */
 	private readonly apiItemRoutes: ReadonlyMap<string, string>;
 
-	/** API item name to kind (Class, Interface, …), for THIS scope. */
-	private readonly apiItemKinds: ReadonlyMap<string, string>;
-
 	/** Parent name to its member names, longest first, for THIS scope. */
 	private readonly classMembersMap: ReadonlyMap<string, ReadonlyArray<string>>;
 
@@ -60,12 +57,10 @@ export class ShikiCrossLinker {
 	private constructor(
 		apiScope: string,
 		apiItemRoutes: ReadonlyMap<string, string>,
-		apiItemKinds: ReadonlyMap<string, string>,
 		classMembersMap: ReadonlyMap<string, ReadonlyArray<string>>,
 	) {
 		this.apiScope = apiScope;
 		this.apiItemRoutes = apiItemRoutes;
-		this.apiItemKinds = apiItemKinds;
 		this.classMembersMap = classMembersMap;
 	}
 
@@ -85,11 +80,7 @@ export class ShikiCrossLinker {
 	 * property of the instance, which cannot be pointed at another package's
 	 * routes at all.
 	 */
-	public static fromRoutes(
-		routes: ReadonlyMap<string, string>,
-		kinds: ReadonlyMap<string, string>,
-		apiScope: string,
-	): ShikiCrossLinker {
+	public static fromRoutes(routes: ReadonlyMap<string, string>, apiScope: string): ShikiCrossLinker {
 		const classMembersMap = new Map<string, string[]>();
 		for (const [name] of routes.entries()) {
 			// A dotted name is a member: "Logger.addTransport" → Logger owns addTransport.
@@ -110,11 +101,11 @@ export class ShikiCrossLinker {
 			members.sort((a, b) => b.length - a.length);
 		}
 
-		return new ShikiCrossLinker(apiScope, new Map(routes), new Map(kinds), classMembersMap);
+		return new ShikiCrossLinker(apiScope, new Map(routes), classMembersMap);
 	}
 
 	/** A linker that links nothing — for a scope with no documented routes. */
-	public static readonly empty: ShikiCrossLinker = new ShikiCrossLinker("", new Map(), new Map(), new Map());
+	public static readonly empty: ShikiCrossLinker = new ShikiCrossLinker("", new Map(), new Map());
 
 	/**
 	 * Transform a finalized HAST tree to add cross-links to type references.
@@ -145,7 +136,6 @@ export class ShikiCrossLinker {
 
 	private transformRoot(node: Root): Root {
 		const apiItemRoutes = this.apiItemRoutes;
-		const apiItemKinds = this.apiItemKinds;
 		const classMembersMap = this.classMembersMap;
 
 		// Scope stack for tracking nested class/interface/namespace declarations
@@ -198,17 +188,12 @@ export class ShikiCrossLinker {
 							const memberRoute = apiItemRoutes.get(fullMemberName);
 							if (memberRoute) {
 								// Get semantic class for the member
-								const memberKind = apiItemKinds.get(fullMemberName);
-								const memberSemanticClass = memberKind ? this.getSemanticClass(memberKind) : null;
 
 								const leadingSpace = rawContent.match(/^\s*/)?.[0] || "";
 								const trailingSpace = rawContent.match(/\s*$/)?.[0] || "";
 
 								// Build class names
 								const classNames = ["api-type-link"];
-								if (memberSemanticClass) {
-									classNames.push(memberSemanticClass);
-								}
 
 								const newChildren: ElementContent[] = [];
 								if (leadingSpace) {
@@ -305,14 +290,9 @@ export class ShikiCrossLinker {
 			}
 
 			// Get semantic classes
-			const memberKind = apiItemKinds.get(fullMemberName);
-			const memberSemanticClass = memberKind ? this.getSemanticClass(memberKind) : null;
 
 			// Build class names for the member link
 			const memberClassNames = ["api-type-link"];
-			if (memberSemanticClass) {
-				memberClassNames.push(memberSemanticClass);
-			}
 
 			// Extract the actual text to be linked
 			const textContent = this.extractTextFromTwoslash(twoslashSpan);
@@ -345,10 +325,7 @@ export class ShikiCrossLinker {
 				const content = text.trim();
 				const route = apiItemRoutes.get(content);
 				if (!route) continue;
-				const kind = apiItemKinds.get(content);
-				const semanticClass = kind ? this.getSemanticClass(kind) : null;
 				const classNames = ["api-type-link"];
-				if (semanticClass) classNames.push(semanticClass);
 				this.wrapTwoslashTextInAnchor(twoslashSpan, content, route, classNames);
 				twoslashSpan.properties = {
 					...twoslashSpan.properties,
@@ -362,7 +339,7 @@ export class ShikiCrossLinker {
 
 			for (const lineElement of codeElement.children) {
 				if (lineElement.type !== "element" || lineElement.tagName !== "span") continue;
-				this.linkTypeReferencesInLine(lineElement, typePattern, apiItemRoutes, apiItemKinds);
+				this.linkTypeReferencesInLine(lineElement, typePattern, apiItemRoutes);
 			}
 		}
 
@@ -376,7 +353,6 @@ export class ShikiCrossLinker {
 	public transformLine(node: Element): void {
 		// Get scoped maps for current API
 		const apiItemRoutes = this.apiItemRoutes;
-		const apiItemKinds = this.apiItemKinds;
 		const classMembersMap = this.classMembersMap;
 
 		// Track which spans we've processed to avoid double-processing
@@ -447,14 +423,9 @@ export class ShikiCrossLinker {
 			if (!memberRoute) continue;
 
 			// Get semantic classes
-			const memberKind = apiItemKinds.get(fullMemberName);
-			const memberSemanticClass = memberKind ? this.getSemanticClass(memberKind) : null;
 
 			// Build class names for the member link
 			const memberClassNames = ["api-type-link"];
-			if (memberSemanticClass) {
-				memberClassNames.push(memberSemanticClass);
-			}
 
 			// Check if the method text is inside a Twoslash hover span
 			const isTwoslashHover =
@@ -516,7 +487,6 @@ export class ShikiCrossLinker {
 	public transformSpan(node: Element, _line: number, _col: number): void {
 		// Get scoped maps for current API
 		const apiItemRoutes = this.apiItemRoutes;
-		const apiItemKinds = this.apiItemKinds;
 
 		// Skip if this span was already processed by the root hook or line handler
 		if (node.properties?.["data-api-processed"] === "true") {
@@ -548,14 +518,9 @@ export class ShikiCrossLinker {
 			const route = apiItemRoutes.get(content);
 			if (route) {
 				// Get semantic class for this API item kind
-				const kind = apiItemKinds.get(content);
-				const semanticClass = kind ? this.getSemanticClass(kind) : null;
 
 				// Build class names
 				const classNames = ["api-type-link", "rp-link"];
-				if (semanticClass) {
-					classNames.push(semanticClass);
-				}
 
 				// Wrap the text inside the Twoslash hover span with an anchor
 				this.wrapTwoslashTextInAnchor(firstChild as Element, content, route, classNames);
@@ -587,8 +552,6 @@ export class ShikiCrossLinker {
 		const route = apiItemRoutes.get(content);
 		if (route) {
 			// Get semantic class for this API item kind
-			const kind = apiItemKinds.get(content);
-			const semanticClass = kind ? this.getSemanticClass(kind) : null;
 
 			// Preserve leading/trailing whitespace from original content
 			const leadingSpace = rawContent.match(/^\s*/)?.[0] || "";
@@ -596,9 +559,6 @@ export class ShikiCrossLinker {
 
 			// Build class names
 			const classNames = ["api-type-link", "rp-link"];
-			if (semanticClass) {
-				classNames.push(semanticClass);
-			}
 
 			// Replace the text node with an anchor, preserving whitespace
 			const newChildren: ElementContent[] = [];
@@ -740,7 +700,6 @@ export class ShikiCrossLinker {
 		lineElement: Element,
 		typePattern: RegExp,
 		apiItemRoutes: ReadonlyMap<string, string>,
-		apiItemKinds: ReadonlyMap<string, string>,
 	): void {
 		for (const child of lineElement.children) {
 			if (child.type !== "element" || child.tagName !== "span") continue;
@@ -763,7 +722,7 @@ export class ShikiCrossLinker {
 					continue;
 				}
 
-				const fragments = this.splitTextAtTypeReferences(textChild.value, typePattern, apiItemRoutes, apiItemKinds);
+				const fragments = this.splitTextAtTypeReferences(textChild.value, typePattern, apiItemRoutes);
 				if (fragments.length === 1 && fragments[0].type === "text") {
 					// No matches found, keep original
 					newChildren.push(textChild);
@@ -791,7 +750,6 @@ export class ShikiCrossLinker {
 		text: string,
 		typePattern: RegExp,
 		apiItemRoutes: ReadonlyMap<string, string>,
-		apiItemKinds: ReadonlyMap<string, string>,
 	): ElementContent[] {
 		// Reset regex state since we're using the global flag
 		typePattern.lastIndex = 0;
@@ -810,10 +768,7 @@ export class ShikiCrossLinker {
 			}
 
 			// Add anchor for the match
-			const kind = apiItemKinds.get(matchedName);
-			const semanticClass = kind ? this.getSemanticClass(kind) : null;
 			const classNames = ["api-type-link"];
-			if (semanticClass) classNames.push(semanticClass);
 
 			result.push({
 				type: "element",
@@ -839,17 +794,5 @@ export class ShikiCrossLinker {
 		}
 
 		return result;
-	}
-
-	/**
-	 * Get the semantic CSS class name for an API item kind.
-	 *
-	 * @deprecated Semantic token colors are now handled by Shiki's theme CSS variables.
-	 * This method always returns null - only api-type-link is used for underline styling.
-	 */
-	private getSemanticClass(_kind: string): string | null {
-		// Semantic token colors are handled by Shiki's theme CSS variables.
-		// We only need api-type-link for the underline text decoration.
-		return null;
 	}
 }

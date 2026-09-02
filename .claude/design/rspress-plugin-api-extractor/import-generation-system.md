@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: import-generation
 created: 2026-01-17
-updated: 2026-08-25
-last-synced: 2026-08-25
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 85
 related:
   - rspress-plugin-api-extractor/type-loading-vfs.md
@@ -23,16 +23,16 @@ The generated `.d.ts` files in the virtual file system declare a package's own t
 
 The system has two halves that live in different files:
 
-- `TypeReferenceExtractor` (`src/type-reference-extractor.ts`) — analyzes an `ApiPackage`, classifies the type references it finds and produces `ImportStatement[]`.
+- `TypeReferenceExtractor` (`packages/model/src/TypeReferenceExtractor.ts`, moved there from the adapter in the Tier 1 core moves) — analyzes an `ApiPackage`, classifies the type references it finds and produces `ImportStatement[]`.
 - `prependImportsToVfs` (`src/layers/config-resolution.ts`) — for each entry point, calls the extractor and prepends the formatted imports to that entry's `.d.ts` content in the VFS.
 
-The VFS itself is produced by `ApiExtractedPackage.generateVfs()` (see `multi-entry-vfs.md`); import prepending runs immediately after, mutating the VFS map in place.
+The VFS itself is produced by `ApiExtractedPackage.toVfs()` (see `multi-entry-vfs.md`); import prepending runs immediately after, mutating the VFS map in place.
 
 ### Integration flow
 
 ```text
 ApiExtractedPackage.fromPackage(apiPackage, name)
-  → generateVfs()  →  node_modules/<name>/<entry>.d.ts (declarations only)
+  → toVfs()        →  node_modules/<name>/<entry>.d.ts (declarations only)
          |
 prependImportsToVfs(vfs, apiPackage, name)   [config-resolution.ts]
   → for each entry point:
@@ -53,7 +53,7 @@ API Extractor encodes type references as canonical references of the form `packa
 - **Internal** (filtered out) — package name matches the package being documented; these types are declared in the same VFS and need no import.
 - **External** (imported) — any other non-empty package name; emitted as an `import type` statement.
 
-Namespaced token text (e.g. `Schema.Struct` or `z.ZodType`) is reduced to its NAMESPACE ROOT — the first dotted segment (`Schema` / `z`), not the leaf member. The reconstructed declaration body preserves the qualified form verbatim, so the binding that must be in lexical scope is the namespace root (the package's importable export); importing the leaf (`Struct` / `ZodType`) would leave the namespace identifier undefined and collapse `typeof X.Type` companion types to an error type, producing a false `TS2353`. See the classification logic in `src/type-reference-extractor.ts` for the exact matching rules.
+Namespaced token text (e.g. `Schema.Struct` or `z.ZodType`) is reduced to its NAMESPACE ROOT — the first dotted segment (`Schema` / `z`), not the leaf member. The reconstructed declaration body preserves the qualified form verbatim, so the binding that must be in lexical scope is the namespace root (the package's importable export); importing the leaf (`Struct` / `ZodType`) would leave the namespace identifier undefined and collapse `typeof X.Type` companion types to an error type, producing a false `TS2353`. See the classification logic in `packages/model/src/TypeReferenceExtractor.ts` for the exact matching rules.
 
 ## Import statement rules
 
@@ -69,7 +69,7 @@ interface ImportStatement {
 }
 ```
 
-`TypeReferenceExtractor` exposes `extractImports()` (whole package), `extractImportsForEntryPoint(entryPoint)` (single entry, used by the pipeline) and `extractImportsForApiItem(apiItem)` (single item), plus the static `formatImports`. See `src/type-reference-extractor.ts` for the full surface.
+`TypeReferenceExtractor` exposes `extractImports()` (whole package), `extractImportsForEntryPoint(entryPoint)` (single entry, used by the pipeline) and `extractImportsForApiItem(apiItem)` (single item), plus the static `formatImports`. See `packages/model/src/TypeReferenceExtractor.ts` for the full surface.
 
 ## Known limitations
 

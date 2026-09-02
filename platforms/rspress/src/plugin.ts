@@ -66,16 +66,8 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 	// Resolve unified observability config (logLevel, trace, thresholds).
 	const envLogLevel = process.env.LOG_LEVEL?.toLowerCase();
 	const buildId = `${process.pid}-${performance.now().toString(36)}`;
-	const { resolved: obs, deprecations } = resolveObservability({
+	const { resolved: obs } = resolveObservability({
 		...(options.observability ? { observability: options.observability } : {}),
-		...(options.logLevel ? { logLevel: options.logLevel } : {}),
-		...(options.performance
-			? {
-					performance: {
-						...(options.performance.thresholds !== undefined ? { thresholds: options.performance.thresholds } : {}),
-					},
-				}
-			: {}),
 		...(envLogLevel ? { envLogLevel } : {}),
 		cwd: process.cwd(),
 		buildId,
@@ -320,17 +312,6 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 			// Reset the issues sink's buckets each build so a dev runtime kept alive
 			// across HMR rebuilds does not accumulate diagnostics without bound.
 			issuesSink.reset();
-
-			for (const dep of deprecations) {
-				emitSync(
-					PluginEvent.DeprecatedConfigUsed({
-						ctx: { buildId },
-						level: "warn",
-						key: dep.key,
-						replacement: dep.replacement,
-					}),
-				);
-			}
 
 			// An inert plugin (`api: null` / `apis: null` / `apis: []`) skips the whole
 			// program: no model loading, no Effect runtime, no snapshot database.

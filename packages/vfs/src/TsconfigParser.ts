@@ -22,16 +22,23 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { TsconfigLoaderSync } from "@effected/tsconfig-json";
-import type { TypeResolutionCompilerOptions } from "./internal-types.js";
+import { Result } from "effect";
+import type { TypeResolutionCompilerOptions } from "./TypeResolutionOptions.js";
+import { decodeCompilerOptions } from "./TypeResolutionOptions.js";
 
 /**
  * Error thrown when tsconfig.json parsing fails.
  *
  * @remarks
  * Retained as the plugin's own type rather than surfacing the kit's
- * `TsconfigParseError`/`TsconfigExtendsError` directly: `typescript-config.ts`
- * branches on `instanceof TsConfigParseError` to decide whether a failure is
- * already reported, and both kit errors mean the same thing to that caller.
+ * `TsconfigParseError`/`TsconfigExtendsError` directly: the adapter's
+ * `typescript-config.ts` branches on `instanceof TsConfigParseError` to decide
+ * whether a failure is already reported, and both kit errors mean the same
+ * thing to that caller. It now also carries a decode failure from
+ * {@link decodeCompilerOptions}, which is the same thing again: a tsconfig
+ * this tool cannot act on.
+ *
+ * @public
  */
 export class TsConfigParseError extends Error {
 	constructor(
@@ -73,6 +80,8 @@ const syncHost = {
  * const options = parseTsConfig("tsconfig.json", "/path/to/project");
  * // Returns: { target: "es2025", module: "nodenext", lib: ["esnext"], ... }
  * ```
+ *
+ * @public
  */
 export function parseTsConfig(configPath: string, projectRoot: string): TypeResolutionCompilerOptions {
 	const absolutePath = path.isAbsolute(configPath) ? configPath : path.resolve(projectRoot, configPath);
@@ -88,49 +97,9 @@ export function parseTsConfig(configPath: string, projectRoot: string): TypeReso
 		throw new TsConfigParseError(absolutePath, error instanceof Error ? error.message : String(error), error);
 	}
 
-	return extractTypeResolutionOptions(options);
-}
-
-/**
- * Narrow the full compiler options to the ones the plugin actually consumes.
- *
- * @remarks
- * Deliberately a whitelist. Everything here reaches Twoslash's TypeScript
- * environment, and passing through options the plugin does not understand
- * would let a consumer's unrelated build setting change how examples
- * type-check.
- */
-function extractTypeResolutionOptions(options: Record<string, unknown>): TypeResolutionCompilerOptions {
-	const result: TypeResolutionCompilerOptions = {};
-
-	// The loader reports these in the tsconfig spelling; the type accepts both,
-	// and the seam converts. A number would be a caller-supplied programmatic
-	// value, which is equally valid.
-	const scalar = (value: unknown): string | number | undefined =>
-		typeof value === "string" || typeof value === "number" ? value : undefined;
-
-	const target = scalar(options.target);
-	if (target !== undefined) result.target = target;
-	const module_ = scalar(options.module);
-	if (module_ !== undefined) result.module = module_;
-	const moduleResolution = scalar(options.moduleResolution);
-	if (moduleResolution !== undefined) result.moduleResolution = moduleResolution;
-	const jsx = scalar(options.jsx);
-	if (jsx !== undefined) result.jsx = jsx;
-
-	if (typeof options.strict === "boolean") result.strict = options.strict;
-	if (typeof options.skipLibCheck === "boolean") result.skipLibCheck = options.skipLibCheck;
-	if (typeof options.esModuleInterop === "boolean") result.esModuleInterop = options.esModuleInterop;
-	if (typeof options.allowSyntheticDefaultImports === "boolean") {
-		result.allowSyntheticDefaultImports = options.allowSyntheticDefaultImports;
+	const decoded = decodeCompilerOptions(options);
+	if (Result.isFailure(decoded)) {
+		throw new TsConfigParseError(absolutePath, decoded.failure.message, decoded.failure);
 	}
-
-	// Empty arrays are dropped rather than passed through: `lib: []` would
-	// REPLACE the default library set with nothing (see the note on
-	// TypeResolutionCompilerOptions.lib), type-checking every example against no
-	// globals at all.
-	if (Array.isArray(options.lib) && options.lib.length > 0) result.lib = options.lib.map(String);
-	if (Array.isArray(options.types) && options.types.length > 0) result.types = options.types.map(String);
-
-	return result;
+	return decoded.success;
 }

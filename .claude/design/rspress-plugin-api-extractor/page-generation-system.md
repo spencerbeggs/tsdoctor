@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-26
-last-synced: 2026-08-26
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 87
 related:
   - rspress-plugin-api-extractor/build-architecture.md
@@ -168,7 +168,7 @@ For each WorkItem:
 
 1. Dispatch to the appropriate page generator based on `item.kind`
 2. For namespace members, rewrite the route by replacing ONLY the final segment with the lowercased qualified name (e.g. `.../type/type` → `.../type/compileroptions.type`). Only the last segment may be touched: a member whose lowercased simple name equals its category folder (a type alias named `Type` in the `type` folder — the Effect Schema companion-namespace pattern) would otherwise have the category segment corrupted by a first-occurrence replace, producing colliding `_meta.json` entries that break RSPress auto-nav-sidebar. The resulting file path is identical to the cross-link route built in `prepareWorkItems` by construction (asserted by a regression test against the `qualified-alias` fixture)
-3. Parse generated content with `parseFrontmatter` (`src/frontmatter.ts` — the gray-matter-parity split over `@effected/yaml` that replaced the `gray-matter` dependency; YAML 1.2 parse, hash-stable, characterization-tested against gray-matter's boundary semantics)
+3. Parse generated content with `parseFrontmatter` (`@tsdoctor/model`'s `Frontmatter.ts`, moved out of the adapter in the Tier 1 core moves — `@effected/markdown`'s `FrontmatterSource.split` for the fence grammar plus `@effected/yaml` for the YAML; the hand-rolled gray-matter-parity split it replaced is gone, the digests it produced are unchanged, and the four boundary tests that pinned gray-matter's quirks are re-pinned to the strict grammar)
 4. Normalize markdown spacing
 5. Hash the body via `hashContent`
 6. **Build the page's SEO head tags** — resolve the OG image through `OgService`, derive the JSON-LD via `@tsdoctor/seo`'s `deriveScriptBody`, and call `headTags` — then assemble the FINAL frontmatter from them
@@ -315,7 +315,7 @@ more than one entry point.
 - `generateAvailableFrom()` -- Renders "Available from" line for
   multi-entry items (returns empty string for single-entry)
 - `generateFrontmatter()` -- YAML frontmatter, taking a neutral `ReadonlyArray<HeadTag>` from `@tsdoctor/seo` and rendering each into an RSPress `[tagName, attrs]` head pair. A `script` tag's body becomes the `children` attribute — the name unhead maps onto `innerHTML`, and the only spelling that reaches the browser (any other emits an empty `<script>` and fails silently at runtime rather than in the build). The block itself is emitted via
-  `emitFrontmatterBlock` (`src/frontmatter.ts`, `@effected/yaml`
+  `emitFrontmatterBlock` (`@tsdoctor/model`'s `Frontmatter.ts`, `@effected/yaml`
   `Yaml.stringify` with `quoteCompat: "yaml-1.1"` + `quoteStyle: "double"` --
   double-quoting only the scalars a YAML 1.1 resolver would coerce
   (timestamps, `yes`/`no`/`on`/`off`, legacy numbers) -- then assembled into

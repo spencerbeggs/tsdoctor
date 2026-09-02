@@ -3,11 +3,10 @@ import { resolveObservability } from "../../src/schemas/observability.js";
 
 describe("resolveObservability", () => {
 	it("defaults to info, no trace, no json", () => {
-		const { resolved, deprecations } = resolveObservability({ cwd: "/o", buildId: "b1" });
+		const { resolved } = resolveObservability({ cwd: "/o", buildId: "b1" });
 		expect(resolved.logLevel).toBe("info");
 		expect(resolved.json).toBe(false);
 		expect(resolved.tracePath).toBeNull();
-		expect(deprecations).toHaveLength(0);
 	});
 
 	it("maps verbose→debug and debug→json", () => {
@@ -30,19 +29,14 @@ describe("resolveObservability", () => {
 		expect(resolved.tracePath).toBe("/tmp/t.jsonl");
 	});
 
-	it("env > observability > legacy logLevel and flags legacy as deprecated", () => {
-		const r1 = resolveObservability({ logLevel: "warn", cwd: "/o", buildId: "b1" });
-		expect(r1.resolved.logLevel).toBe("warn");
-		expect(r1.deprecations.map((d) => d.key)).toContain("logLevel");
-
-		const r2 = resolveObservability({
+	it("env overrides observability", () => {
+		const r = resolveObservability({
 			observability: { logLevel: "error" },
-			logLevel: "warn",
 			envLogLevel: "debug",
 			cwd: "/o",
 			buildId: "b1",
 		});
-		expect(r2.resolved.logLevel).toBe("debug");
+		expect(r.resolved.logLevel).toBe("debug");
 	});
 });
 

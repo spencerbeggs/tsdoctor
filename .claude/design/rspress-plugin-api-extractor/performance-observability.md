@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: observability
 created: 2026-01-17
-updated: 2026-08-25
-last-synced: 2026-08-25
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 90
 related:
   - rspress-plugin-api-extractor/build-progress-and-issues.md
@@ -93,7 +93,7 @@ across seven subsystems:
 | Subsystem | Representative events |
 | --------- | --------------------- |
 | Lifecycle | `BuildStarted`, `BuildCompleted`, `BuildProgress`, `ApiDocsCompleted`, `PhaseStarted`, `PhaseCompleted`, `SlowOperation` |
-| Config parse / merge | `OptionsDecoded`, `DefaultApplied`, `DeprecatedConfigUsed`, `ConfigResolved` |
+| Config parse / merge | `OptionsDecoded`, `DefaultApplied`, `ConfigResolved` |
 | Model loading | `ModelLoaded`, `ModelLoadFailed` |
 | Type loading / VFS | `VfsGenerated`, `ImportsPrepended`, `TypeRegistryEvent` |
 | Multi-entry / routing | `EntryPointResolved`, `RouteCollisionDetected`, `ItemSkipped` (an item no category matched — surfaced per item from the `ApiItems.categorize` `uncategorized` result) |

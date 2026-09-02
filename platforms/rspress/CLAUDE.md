@@ -41,21 +41,32 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
   longer exist as separate packages; do not add them back.
 - `@effect/platform-node` — Node platform implementation (`NodeFileSystem`).
   `@effect/sql-sqlite-node` is **gone** — SQLite moved behind
-  `@tsdoctor/snapshot`; `gray-matter` is gone too (see `src/frontmatter.ts`)
+  `@tsdoctor/snapshot`; `gray-matter` is gone too, and frontmatter handling
+  left the adapter entirely for `@tsdoctor/model`'s `Frontmatter.ts`
 - `ioredis` + the `@effected/*` closure (`semver`/`store`/`tsconfig-json`/
   `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
   `markdown`) + `@typescript/vfs` — peer-closure deps, some imported directly
-  (`services/TypeRegistryService.ts`, `sync-node-fs.ts`, `frontmatter.ts`).
+  (`services/TypeRegistryService.ts`, `sync-node-fs.ts`).
   Do NOT prune as "unused" — see the peer dependency closure section in
   `build-architecture.md`. Declare `@effected/*` as `catalog:effected`; never
   hand-pin a version range.
-- `@tsdoctor/registry` (`workspace:*`) — npm package type definition loading;
-  tag ids read `"@tsdoctor/registry/..."` and the XDG cache namespace is
-  `"tsdoctor"` since phase 2
+- `@tsdoctor/vfs` (`workspace:*`) — the `Vfs` currency type and the
+  compiler-options seam: `resolveTypeScriptConfig` (`layers/type-environment.ts`)
+  and `toProgrammaticCompilerOptions` + `DEFAULT_COMPILER_OPTIONS`
+  (`twoslash-transformer.ts`). That conversion is the **single** seam between
+  the tsconfig spelling (`lib: ["esnext"]`) and the programmatic one; fingerprint
+  environments on the ENCODED value. `internal-types.ts` re-exports
+  `TypeResolutionCompilerOptions`/`TypeScriptConfig`/`CompilerOptionsInput`
+  from here rather than declaring them
+- `@tsdoctor/registry` (`workspace:*`) — npm package type definition loading
+  into a `Vfs`; tag ids read `"@tsdoctor/registry/..."` and the XDG cache
+  namespace is `"tsdoctor"` since phase 2
 - `@tsdoctor/model` (`workspace:*`) — consumed **directly** as Effect v4
   namespace modules (`Model`, `Tsdoc`, `ApiItems`, `EntryPoints`, `Routes`,
-  `SyntheticBases`, `Signature`, `CrossLinker`); the four phase-1 shims are
-  deleted (see "Core Package Consumption" in `build-architecture.md`)
+  `SyntheticBases`, `Signature`, `CrossLinker`) plus `ApiExtractedPackage`,
+  `TypeReferenceExtractor` and `parseFrontmatter`/`stringifyFrontmatter`/
+  `emitFrontmatterBlock`; the four phase-1 shims are deleted (see "Core
+  Package Consumption" in `build-architecture.md`)
 - `@tsdoctor/bundle` (`workspace:*`) — bundle discovery for the
   `fromDir`/`fromParentDir` config helpers, plus npm/GitHub bundle fetchers
 - `@tsdoctor/snapshot` (`workspace:*`) — `SnapshotService.layer(dbPath)` plus

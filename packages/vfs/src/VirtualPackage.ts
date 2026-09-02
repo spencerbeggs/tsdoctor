@@ -18,7 +18,7 @@ import type { Vfs } from "./Vfs.js";
  *
  * @example
  * ```ts
- * import { VirtualPackage } from "@tsdoctor/registry";
+ * import { VirtualPackage } from "@tsdoctor/vfs";
  *
  * const pkg = VirtualPackage.create("@my-org/api-types", "1.0.0", "export interface User { id: string }");
  * const vfs = pkg.toVfs();

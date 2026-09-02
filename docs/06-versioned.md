@@ -22,7 +22,7 @@ export default defineConfig({
   },
   plugins: [
     ApiExtractorPlugin({
-      logLevel: "info",
+      observability: { logLevel: "info" },
       api: {
         packageName: "my-library",
         versions: {
@@ -49,7 +49,7 @@ This mirrors the `versioned` example site. It documents one package across two v
 
 RSPress's `multiVersion` field controls the version switcher and the URL structure. `default` is the version served at the root, and `versions` lists every version — RSPress prefixes the non-default ones, so `v1` is served at `/v1/...`. The plugin's `versions` record maps each of those version keys to the model that documents it. The keys must match the names in `multiVersion.versions`.
 
-Each entry in `versions` is a version config carrying its own `model` and, optionally, its own `packageJson`, `categories`, `source`, `externalPackages`, `theme`, `ogImage` and `llmsPlugin`. A version can therefore override its presentation on its own, which helps when an older version's categories differ from the current one.
+Each entry in `versions` is a version config carrying its own `model` and, optionally, its own `packageJson`, `categories`, `source`, `externalPackages`, `autoDetectDependencies`, `ogImage` and `llmsPlugin`. A version can therefore override its presentation on its own, which helps when an older version's categories differ from the current one.
 
 ```ts
 api: {

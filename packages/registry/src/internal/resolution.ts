@@ -7,14 +7,21 @@
  * otherwise read or, worse, assign the prototype).
  */
 
+import { isTypeDefinition } from "@tsdoctor/vfs";
 import { MAX_NESTING_DEPTH, MAX_WILDCARDS_PER_PATTERN } from "./limits.js";
 
 /** Keys that are never data on a plain object. Skipped everywhere. */
 const DUNDER_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
-/** Whether a path names a TypeScript declaration file. */
-export const isTypeDefinition = (filePath: string): boolean =>
-	filePath.endsWith(".d.ts") || filePath.endsWith(".d.mts") || filePath.endsWith(".d.cts");
+/**
+ * Whether a path names a TypeScript declaration file.
+ *
+ * Re-exported from `@tsdoctor/vfs`, which owns the single spelling of this
+ * predicate — see its docs for why there must not be a second one. Imported
+ * rather than re-exported straight through because this module also uses it
+ * locally (see `findMainTypePath`).
+ */
+export { isTypeDefinition };
 
 /** Normalize backslashes to forward slashes. */
 export const normalizePath = (path: string): string => path.replace(/\\/g, "/");

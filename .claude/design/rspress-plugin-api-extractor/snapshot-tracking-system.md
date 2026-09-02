@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-26
-last-synced: 2026-08-26
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 92
 related:
   - rspress-plugin-api-extractor/build-architecture.md
@@ -218,8 +218,7 @@ This reduces database round-trips from N (one per file) to 1.
 In `generateSinglePage` (build-stages.ts):
 
 1. Generate page content via the appropriate page generator
-2. Parse with `parseFrontmatter` (`platforms/rspress/src/frontmatter.ts`, a
-   gray-matter-parity split over `@effected/yaml` — see
+2. Parse with `parseFrontmatter` (`@tsdoctor/model`'s `Frontmatter.ts` — see
    `page-generation-system.md`) to separate frontmatter and body
 3. Normalize markdown spacing (`normalizeMarkdownSpacing`)
 4. Hash body: `hashContent(bodyContent)`
@@ -301,8 +300,15 @@ Pure standalone functions, exported from `@tsdoctor/snapshot`:
 **`hashContent(content)`** -- SHA-256 of normalized markdown body.
 
 **`hashFrontmatter(frontmatter)`** -- SHA-256 of frontmatter with every
-timestamp stripped and everything else retained. Keys are sorted
-alphabetically for deterministic output.
+timestamp stripped and everything else retained, canonicalized through
+`@effected/jsonc`'s `JsoncFingerprint` (RFC 8785/JCS) — the same spelling
+`@tsdoctor/bundle` fingerprints through, rather than a second hand-rolled one.
+`JSON.stringify` is not a canonical form: it drops `undefined`, turns `NaN`
+into `null`, and its number and string escaping are not JCS's, so a value it
+silently altered would have been hashed as something the document did not say.
+A value that cannot be canonicalized now fails loudly instead. The digests are
+unchanged for real frontmatter — the characterization tests pinning literal
+digests from before the swap still pass.
 
 Timestamps are stripped in two shapes, **recursively**:
 

@@ -77,7 +77,6 @@ export type PluginEvent = Data.TaggedEnum<{
 	ConfigValidationWarning: Base & { readonly field: string; readonly value: string; readonly reason: string };
 	AutoDetectedDependencies: Base & { readonly source: "peer" | "auto"; readonly packages: readonly string[] };
 	ConfigResolved: Base & { readonly baseRoute: string; readonly categoryCount: number; readonly externalCount: number };
-	DeprecatedConfigUsed: Base & { readonly key: string; readonly replacement: string };
 
 	// Model loading
 	ModelLoadStarted: Base & { readonly modelPath: string };
@@ -99,7 +98,7 @@ export type PluginEvent = Data.TaggedEnum<{
 	VfsMerged: Base & { readonly totalFiles: number; readonly packages: readonly string[] };
 	TwoslashInitialized: Base & { readonly durationMs: number; readonly vfsFileCount: number };
 	/** A persisted Twoslash generation was restored (or found absent) at startup. */
-	TwoslashCacheLoaded: Base & { readonly envHash: string; readonly entries: number };
+	TwoslashCacheLoaded: Base & { readonly envHash: string; readonly entries: number; readonly degraded: boolean };
 	/** End-of-build outcome of the Twoslash result cache. */
 	TwoslashCacheSaved: Base & {
 		readonly envHash: string;

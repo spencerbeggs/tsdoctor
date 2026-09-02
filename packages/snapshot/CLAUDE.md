@@ -37,8 +37,19 @@ Extracted from the plugin in phase 2 of the consolidation and rebuilt on
   body. The walk MUST stay recursive — `head` is an array of pairs, so a
   shallow pass sees nothing — and the stripping MUST stay total, since the
   caller hashes and writes the same frontmatter with different timestamps.
-- Peers only: `effect` (`catalog:effect:peers`) and `@effected/store`
-  (`catalog:effected:peers`) — never hand-pin `@effected` ranges.
+- `hashFrontmatter` canonicalizes through `@effected/jsonc`'s
+  `JsoncFingerprint` (RFC 8785/JCS) — the same spelling `@tsdoctor/bundle`
+  fingerprints through — not `JSON.stringify` plus a hand-rolled key sort.
+  `JSON.stringify` is not a canonical form (it drops `undefined`, turns `NaN`
+  into `null`, escapes differently), so a value it silently altered would be
+  hashed as something the document did not say; a value that cannot be
+  canonicalized now **throws** rather than hashing a lie. Real frontmatter
+  digests are unchanged, and the characterization tests pinning literal digests
+  are what proves it — including `@tsdoctor/model`'s frontmatter suite, which
+  takes a test-only dependency on this package for exactly that reason.
+- Peers only: `effect` (`catalog:effect:peers`), `@effected/store` and
+  `@effected/jsonc` (both `catalog:effected:peers`) — never hand-pin
+  `@effected` ranges.
 - All queries and the transactional batch upsert run through `store.client`
   (the full `effect/unstable/sql` `SqlClient`). Layer errors carry Store's
   typed `StoreError | StoreMigrationError`.

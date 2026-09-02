@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-25
-last-synced: 2026-08-25
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 85
 related:
   - rspress-plugin-api-extractor/import-generation-system.md
@@ -17,7 +17,12 @@ dependencies: []
 
 ## Overview
 
-The RSPress API Extractor plugin integrates with `@tsdoctor/registry` (the in-repo workspace at `packages/registry`, consumed via `workspace:*`; formerly the external `type-registry-effect@2`, the Effect v4 port — moved in and renamed during the phase 1 consolidation, see `monorepo-consolidation.md`) to load external package type definitions and generate virtual file systems (VFS) for TypeScript's Twoslash compiler. This enables rich hover tooltips and type-checked code examples in generated API documentation.
+The RSPress API Extractor plugin loads external package type definitions and assembles a virtual file system (VFS) for TypeScript's Twoslash compiler, which is what makes hover tooltips and type-checked code examples possible in generated API documentation. Two workspaces divide that job:
+
+- **`@tsdoctor/vfs`** (`packages/vfs`) owns the VFS *primitives*: the `Vfs` currency type with `mergeVfs` / `prefixVfs` / `isTypeDefinition`, the `VirtualPackage` Schema class, `TsEnvironment`, and the compiler-options seam. It depends on `effect` alone, plus three optional peers (`typescript`, `@typescript/vfs`, `@effected/tsconfig-json`).
+- **`@tsdoctor/registry`** (`packages/registry`; formerly the external `type-registry-effect@2`, the Effect v4 port — moved in and renamed during the phase 1 consolidation, see `monorepo-consolidation.md`) fetches, caches and resolves published package types INTO a `Vfs`. It sits on `@tsdoctor/vfs` and shed the `typescript`, `@typescript/vfs` and `@effected/tsconfig-json` optional peers when `TsEnvironment` moved out.
+
+The split was measured, not assumed: `VirtualPackage` and `TsEnvironment` had zero consumers inside the registry while `@tsdoctor/model` needed them, and hosting them there would have forced an unwanted edge in one direction or the other. See "The D1 outcome" in `tsdoctor-package-architecture.md`.
 
 ### Effect Service Architecture
 
@@ -109,7 +114,7 @@ ConfigService.resolve()
     |
     +-> TypeRegistryService.loadPackages(resolvedPackages)
     |   -> registry.getVfs(specs, { autoFetch: true })
-    |   -> Returns VirtualFileSystem (Map<string, string>)
+    |   -> Returns a Vfs (@tsdoctor/vfs; a Map<string, string>)
     |
     +-> Prepend import statements to VFS declaration files
     |   (TypeReferenceExtractor)
@@ -141,13 +146,13 @@ This replaces `TwoslashManager`, a `private constructor` + `getInstance()` singl
 
 The holder is cleared at the start of each build alongside `VfsRegistry.clear()` and `clearTypeRoutes()`. That last one matters for dev HMR: the module-level Twoslash type-route map used to accumulate for the process lifetime, so routes for renamed or deleted items survived across a dev session and every scope's routes merged into one global map.
 
-Resolution merges rather than replaces: `resolveTypeScriptConfig` starts from `DEFAULT_COMPILER_OPTIONS` and layers global, API, version and package overrides on top, so declaring `{ strict: false }` on one API changes only that. Note the one exception: a discovered tsconfig that **declares `lib`** replaces the array wholesale rather than merging, which is why every `fromDir` site resolves to `lib: ["esnext"]` — `lib.esnext.d.ts` once normalized at the seam — with no DOM.
+Resolution merges rather than replaces: `resolveTypeScriptConfig` (`@tsdoctor/vfs`) starts from `DEFAULT_COMPILER_OPTIONS` and layers the global then the API config on top, so declaring `{ strict: false }` on one API changes only that. **The version and per-package levels are gone**: they were in the signature but nothing ever passed them, so a multiVersion site silently type-checked every version against the defaults while `VersionConfig` advertised a `tsconfig` field that could not take effect. Both the unwired parameters and the `VersionConfig` fields are deleted rather than wired — nothing asked for them, and a level that exists only in a signature is worse than no level at all. Note the one exception: a discovered tsconfig that **declares `lib`** replaces the array wholesale rather than merging, which is why every `fromDir` site resolves to `lib: ["esnext"]` — `lib.esnext.d.ts` once normalized at the seam — with no DOM.
 
 ### Reading a tsconfig
 
-`tsconfig-parser.ts` is a thin adapter over `@effected/tsconfig-json`'s `TsconfigLoaderSync`, which owns `extends` chain resolution, JSONC parsing and relative-path handling. The module no longer imports the TypeScript compiler at all, and shrank from 234 lines to 136. `parseTsConfig` narrows the loaded options to `TypeResolutionCompilerOptions` through a deliberate **whitelist** — everything that passes reaches Twoslash's TypeScript environment, and passing through options the plugin does not understand would let a consumer's unrelated build setting change how examples type-check.
+`TsconfigParser.ts` (`@tsdoctor/vfs`, moved out of the adapter in the Tier 1 core moves) is a thin adapter over `@effected/tsconfig-json`'s `TsconfigLoaderSync`, which owns `extends` chain resolution, JSONC parsing and relative-path handling. The module no longer imports the TypeScript compiler at all, and shrank from 234 lines to 136. `parseTsConfig` narrows the loaded options to `TypeResolutionCompilerOptions` through a deliberate **whitelist** — everything that passes reaches Twoslash's TypeScript environment, and passing through options the plugin does not understand would let a consumer's unrelated build setting change how examples type-check.
 
-**The loader reports the tsconfig spelling, not the programmatic one.** `target` comes back as `"es2025"` rather than `ts.ScriptTarget.ES2025`, and `lib` as `["esnext"]` rather than `["lib.esnext.d.ts"]`; TypeScript's `parseJsonConfigFileContent`, which this replaced, returned the programmatic form. `TypeResolutionCompilerOptions` now documents both spellings for `target`, `module`, `moduleResolution` and `jsx` exactly as it already did for `lib`, and `toProgrammaticCompilerOptions` remains the ONE conversion site. That is why the normalization seam below was a hard precondition for this change rather than a nicety: without it, swapping the loader would have moved a spelling across a boundary that had no converter.
+**The loader reports the tsconfig spelling, not the programmatic one.** `target` comes back as `"es2025"` rather than `ts.ScriptTarget.ES2025`, and `lib` as `["esnext"]` rather than `["lib.esnext.d.ts"]`; TypeScript's `parseJsonConfigFileContent`, which this replaced, returned the programmatic form. `decodeCompilerOptions` accepts both spellings and `toProgrammaticCompilerOptions` remains the ONE conversion site. That is why the normalization seam below was a hard precondition for this change rather than a nicety: without it, swapping the loader would have moved a spelling across a boundary that had no converter.
 
 `parseTsConfigWithMetadata` and its `extendedPaths` result are **deleted**. They had zero consumers, and the `resolveExtendedPath` behind them returned a bare package specifier verbatim as if it were a file path, so the extends chain it reported was wrong for exactly the case a chain report is for. The kit resolves package-specifier extends correctly.
 
@@ -155,18 +160,24 @@ Verification worth recording, because a green suite could not establish it: a pa
 
 ### Compiler-option normalization
 
-`lib` has two spellings. The tsconfig JSON form (`["ESNext", "DOM"]`) is what users write and what `DEFAULT_COMPILER_OPTIONS` (`typescript-config.ts`) holds; TypeScript's programmatic `ts.CompilerOptions.lib` wants file names (`["lib.esnext.d.ts", "lib.dom.d.ts"]`). The two used to meet at a raw `as ts.CompilerOptions` cast, so **three of four resolution paths loaded zero lib files** — `ts.parseJsonConfigFileContent` does not populate `options.lib` when the tsconfig omits the key, so having a tsconfig was not enough; it had to declare `lib`.
+`lib` has two spellings. The tsconfig JSON form (`["ESNext", "DOM"]`) is what users write and what `DEFAULT_COMPILER_OPTIONS` (`@tsdoctor/vfs`'s `TypeScriptConfig.ts`) holds; TypeScript's programmatic `ts.CompilerOptions.lib` wants file names (`["lib.esnext.d.ts", "lib.dom.d.ts"]`). The two used to meet at a raw `as ts.CompilerOptions` cast, so **three of four resolution paths loaded zero lib files** — `ts.parseJsonConfigFileContent` does not populate `options.lib` when the tsconfig omits the key, so having a tsconfig was not enough; it had to declare `lib`.
 
 The consequence was silent. `handbookOptions.noErrorValidation: true` swallows the diagnostics, so nothing appears in `issues.json`, the console summary or the render-phase artifact. The tell is **degraded hovers, not errors**: with no `Array<T>` in scope, `const filtered: number[]` renders as `const filtered: {}` and `Promise<number[]>` as `Promise<{}>`. Measured on a fixture, 27 hovers vanished while the build still reported zero warnings.
 
-Both spellings are now accepted and normalized at ONE seam, `toProgrammaticCompilerOptions` in `twoslash-transformer.ts`, whose body is `TsEnumCodec.encodeCompilerOptions` from `@effected/tsconfig-json`. The cast is gone, and the file no longer imports `typescript` at all. Two rules follow:
+Both spellings are now accepted at ONE seam, in **`@tsdoctor/vfs`** (`TypeResolutionOptions.ts`), beside the `TsEnvironment` they configure.
+
+`TypeResolutionCompilerOptions` is a `Schema.Struct` **picked from `@effected/tsconfig-json`'s `CompilerOptions`**, not a hand-written interface: the kit owns which values are legal and how they are spelled, and this package owns only which options are in scope. `decodeCompilerOptions` takes either spelling and returns the canonical one; `toProgrammaticCompilerOptions` encodes it for the compiler and **carries no cast**, because a subset of the kit's own type is assignable to the kit's own encoder by construction.
+
+The earlier form — a hand-rolled dual-spelling interface plus `TsEnumCodec.encodeCompilerOptions(options as never)` — is gone. That cast was standing in for missing validation, which is now the codec's job (raised upstream as dogfood candidate (g); see `tsdoctor-package-architecture.md`).
+
+**Decode fails rather than guessing.** A value the enum tables cannot map is rejected, surfacing as a `ConfigValidationError` that reaches `issues.json`. This closes a real hole: user-supplied `compilerOptions` arrive as `unknown` and were *cast* into the options type, so a value the compiler could not act on reached the environment unchecked. Two rules follow:
 
 - **The environment fingerprint is computed on the ENCODED value.** Otherwise `{lib:["ESNext"]}` and `{lib:["lib.esnext.d.ts"]}` build two identical TypeScript environments — a silent cache regression on multi-API sites.
-- **`DEFAULT_COMPILER_OPTIONS` deliberately keeps the tsconfig spelling** (decided 2026-08-25), including `DOM`. Normalization at the seam is what finally makes the declared default effective; do not renormalize the constant, so it reads in the same spelling users write in their own `tsconfig.json`.
+- **`DEFAULT_COMPILER_OPTIONS` is written in the canonical tsconfig spelling**, including `DOM`. It previously *claimed* that spelling while mixing numeric enums for `target`/`module`/`moduleResolution` with tsconfig strings for `lib` — exactly the confusion the decode step removes. The encoded values are unchanged. Keep it in the tsconfig spelling, which is what users write in their own `tsconfig.json` — it is now the same spelling `decodeCompilerOptions` returns, so the constant and a decoded config are directly comparable.
 
 Keeping `DOM` in the default carries a known, accepted risk: `Event`, `Request`, `Response`, `Headers`, `URL`, `Blob` and `File` are DOM globals *and* common library export names, so on a site with no tsconfig an example writing `const r: Response = …` for a library exporting its own `Response` resolves to DOM's and renders a confidently wrong hover rather than a `TS2304`. If that surfaces, the remedy is dropping `DOM` from the default.
 
-This repo could not reach the broken spelling — `@savvy-web/bundler` emits a `lib`-declaring `tsconfig.json` into every model folder — so the defect was consumer-facing only, for a bundle whose model folder carries no tsconfig. It is pinned by a synthetic four-path regression test (`__test__/compiler-options-seam.test.ts`) rather than by any fixture build.
+This repo could not reach the broken spelling — `@savvy-web/bundler` emits a `lib`-declaring `tsconfig.json` into every model folder — so the defect was consumer-facing only, for a bundle whose model folder carries no tsconfig. It is pinned by a synthetic four-path regression test (`platforms/rspress/__test__/compiler-options-seam.test.ts`, which compiles each resolution path with the real `ts`) plus the seam's own tests in `packages/vfs/__test__/compiler-options-seam.test.ts` — not by any fixture build.
 
 **The FILE set stays shared.** Every API's declarations live under `node_modules/<packageName>/` in one combined VFS, and the import prepender emits `import type { X } from "B"` whenever package A references a type owned by another documented package B — those references resolve only because B is in the same environment. Per-scope environments differ in their compiler *configuration*, not in what they can see. A consequence worth knowing: because the Twoslash result cache's generation key covers the whole VFS (`render-phase-instrumentation.md`), a change to any package still invalidates every package's cached blocks. Splitting the file set would sharpen that, but it would break cross-package references and is not planned.
 
@@ -174,7 +185,7 @@ This retires the former limitation, under which the first API in the `apis` arra
 
 ## Virtual File System (VFS)
 
-The VFS is a `Map<string, string>` mapping file paths to TypeScript source code:
+`Vfs` (`@tsdoctor/vfs`) is the currency type both halves speak: a `Map<string, string>` mapping file paths to TypeScript source code. `mergeVfs` combines two, `prefixVfs` mounts one under a directory, `isTypeDefinition` screens a path. The former `VirtualFileSystem` alias is deleted — one name for one type.
 
 ```text
 node_modules/

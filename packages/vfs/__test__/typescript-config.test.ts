@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import type { TypeResolutionCompilerOptions, TypeScriptConfig } from "../src/internal-types.js";
+import type { TypeResolutionCompilerOptions, TypeScriptConfig } from "../src/index.js";
 import {
 	DEFAULT_COMPILER_OPTIONS,
 	mergeCompilerOptions,
 	resolveTypeScriptConfig,
 	resolveTypeScriptConfigSingle,
 	resolveTypeScriptConfigSingleAsync,
-} from "../src/typescript-config.js";
+} from "../src/index.js";
 
 describe("DEFAULT_COMPILER_OPTIONS", () => {
 	it("has sensible defaults for documentation", () => {
-		expect(DEFAULT_COMPILER_OPTIONS.target).toBe(99); // ESNext
-		expect(DEFAULT_COMPILER_OPTIONS.module).toBe(99); // ESNext
-		expect(DEFAULT_COMPILER_OPTIONS.moduleResolution).toBe(100); // Bundler
-		expect(DEFAULT_COMPILER_OPTIONS.lib).toEqual(["ESNext", "DOM"]);
+		expect(DEFAULT_COMPILER_OPTIONS.target).toBe("esnext");
+		expect(DEFAULT_COMPILER_OPTIONS.module).toBe("esnext");
+		expect(DEFAULT_COMPILER_OPTIONS.moduleResolution).toBe("bundler");
+		expect(DEFAULT_COMPILER_OPTIONS.lib).toEqual(["esnext", "dom"]);
 		expect(DEFAULT_COMPILER_OPTIONS.strict).toBe(false);
 		expect(DEFAULT_COMPILER_OPTIONS.skipLibCheck).toBe(true);
 		expect(DEFAULT_COMPILER_OPTIONS.esModuleInterop).toBe(true);
@@ -23,7 +23,7 @@ describe("DEFAULT_COMPILER_OPTIONS", () => {
 
 describe("mergeCompilerOptions", () => {
 	it("returns a copy of base when override is undefined", () => {
-		const base: TypeResolutionCompilerOptions = { target: 99, lib: ["ESNext"] };
+		const base: TypeResolutionCompilerOptions = { target: "esnext", lib: ["esnext"] };
 		const result = mergeCompilerOptions(base, undefined);
 
 		expect(result).toEqual(base);
@@ -32,28 +32,28 @@ describe("mergeCompilerOptions", () => {
 
 	it("merges override properties on top of base", () => {
 		const base: TypeResolutionCompilerOptions = {
-			target: 99,
-			lib: ["ESNext"],
+			target: "esnext",
+			lib: ["esnext"],
 			strict: true,
 		};
 		const override: TypeResolutionCompilerOptions = {
-			lib: ["ESNext", "DOM"],
+			lib: ["esnext", "dom"],
 			strict: false,
 		};
 
 		const result = mergeCompilerOptions(base, override);
 
 		expect(result).toEqual({
-			target: 99, // From base
-			lib: ["ESNext", "DOM"], // From override
+			target: "esnext", // From base
+			lib: ["esnext", "dom"], // From override
 			strict: false, // From override
 		});
 	});
 
 	it("does not include undefined properties from override", () => {
 		const base: TypeResolutionCompilerOptions = {
-			target: 99,
-			module: 99,
+			target: "esnext",
+			module: "esnext",
 			strict: true,
 		};
 		const override: TypeResolutionCompilerOptions = {
@@ -63,23 +63,23 @@ describe("mergeCompilerOptions", () => {
 
 		const result = mergeCompilerOptions(base, override);
 
-		expect(result.target).toBe(99);
-		expect(result.module).toBe(99);
+		expect(result.target).toBe("esnext");
+		expect(result.module).toBe("esnext");
 		expect(result.strict).toBe(false);
 	});
 
 	it("handles all TypeResolutionCompilerOptions properties", () => {
 		const base: TypeResolutionCompilerOptions = {};
 		const override: TypeResolutionCompilerOptions = {
-			target: 99,
-			module: 99,
-			moduleResolution: 100,
-			lib: ["ESNext", "DOM"],
+			target: "esnext",
+			module: "esnext",
+			moduleResolution: "bundler",
+			lib: ["esnext", "dom"],
 			strict: false,
 			skipLibCheck: true,
 			esModuleInterop: true,
 			allowSyntheticDefaultImports: true,
-			jsx: 4,
+			jsx: "react-jsx",
 			types: ["node"],
 		};
 
@@ -90,15 +90,15 @@ describe("mergeCompilerOptions", () => {
 
 	it("replaces entire lib array rather than merging", () => {
 		const base: TypeResolutionCompilerOptions = {
-			lib: ["ES2020", "DOM"],
+			lib: ["es2020", "dom"],
 		};
 		const override: TypeResolutionCompilerOptions = {
-			lib: ["ESNext"],
+			lib: ["esnext"],
 		};
 
 		const result = mergeCompilerOptions(base, override);
 
-		expect(result.lib).toEqual(["ESNext"]);
+		expect(result.lib).toEqual(["esnext"]);
 	});
 
 	it("replaces entire types array rather than merging", () => {
@@ -130,16 +130,16 @@ describe("resolveTypeScriptConfigSingle", () => {
 	it("returns compilerOptions directly when no tsconfig", () => {
 		const config: TypeScriptConfig = {
 			compilerOptions: {
-				target: 99,
-				lib: ["ESNext"],
+				target: "esnext",
+				lib: ["esnext"],
 			},
 		};
 
 		const result = resolveTypeScriptConfigSingle(config, "/project");
 
 		expect(result).toEqual({
-			target: 99,
-			lib: ["ESNext"],
+			target: "esnext",
+			lib: ["esnext"],
 		});
 	});
 });
@@ -160,14 +160,14 @@ describe("resolveTypeScriptConfig", () => {
 		const result = await resolveTypeScriptConfig("/project", global);
 
 		expect(result.strict).toBe(true);
-		expect(result.target).toBe(99); // From defaults
-		expect(result.module).toBe(99); // From defaults
+		expect(result.target).toBe("esnext"); // From defaults
+		expect(result.module).toBe("esnext"); // From defaults
 	});
 
 	it("merges API config on top of global", async () => {
 		const global: TypeScriptConfig = {
 			compilerOptions: {
-				target: 99,
+				target: "esnext",
 				strict: true,
 			},
 		};
@@ -179,46 +179,8 @@ describe("resolveTypeScriptConfig", () => {
 
 		const result = await resolveTypeScriptConfig("/project", global, api);
 
-		expect(result.target).toBe(99); // From global
+		expect(result.target).toBe("esnext"); // From global
 		expect(result.strict).toBe(false); // Overridden by API
-	});
-
-	it("merges version config on top of API", async () => {
-		const global: TypeScriptConfig = {
-			compilerOptions: { target: 99 },
-		};
-		const api: TypeScriptConfig = {
-			compilerOptions: { module: 99 },
-		};
-		const version: TypeScriptConfig = {
-			compilerOptions: { target: 9 }, // ES2022
-		};
-
-		const result = await resolveTypeScriptConfig("/project", global, api, version);
-
-		expect(result.target).toBe(9); // Overridden by version
-		expect(result.module).toBe(99); // From API
-	});
-
-	it("merges package override on top of version", async () => {
-		const global: TypeScriptConfig = {
-			compilerOptions: { target: 99 },
-		};
-		const api: TypeScriptConfig = {
-			compilerOptions: { module: 99 },
-		};
-		const version: TypeScriptConfig = {
-			compilerOptions: { moduleResolution: 100 },
-		};
-		const packageOverride: TypeScriptConfig = {
-			compilerOptions: { module: 1 }, // CommonJS
-		};
-
-		const result = await resolveTypeScriptConfig("/project", global, api, version, packageOverride);
-
-		expect(result.target).toBe(99); // From global
-		expect(result.module).toBe(1); // Overridden by package
-		expect(result.moduleResolution).toBe(100); // From version
 	});
 
 	it("handles undefined configs in cascade", async () => {
@@ -227,30 +189,30 @@ describe("resolveTypeScriptConfig", () => {
 		};
 
 		// Skip global and API
-		const result = await resolveTypeScriptConfig("/project", undefined, undefined, version);
+		const result = await resolveTypeScriptConfig("/project", undefined, version);
 
 		expect(result.strict).toBe(true);
-		expect(result.target).toBe(99); // From defaults
+		expect(result.target).toBe("esnext"); // From defaults
 	});
 
 	it("handles async function for tsconfig", async () => {
 		const global: TypeScriptConfig = {
 			tsconfig: async () => ({
-				target: 99,
-				lib: ["ESNext", "DOM"],
+				target: "esnext",
+				lib: ["esnext", "dom"],
 			}),
 		};
 
 		const result = await resolveTypeScriptConfig("/project", global);
 
-		expect(result.target).toBe(99);
-		expect(result.lib).toEqual(["ESNext", "DOM"]);
+		expect(result.target).toBe("esnext");
+		expect(result.lib).toEqual(["esnext", "dom"]);
 	});
 
 	it("merges compilerOptions on top of async tsconfig function", async () => {
 		const global: TypeScriptConfig = {
 			tsconfig: async () => ({
-				target: 99,
+				target: "esnext",
 				strict: true,
 			}),
 			compilerOptions: {
@@ -260,7 +222,7 @@ describe("resolveTypeScriptConfig", () => {
 
 		const result = await resolveTypeScriptConfig("/project", global);
 
-		expect(result.target).toBe(99); // From async function
+		expect(result.target).toBe("esnext"); // From async function
 		expect(result.strict).toBe(false); // Overridden by compilerOptions
 	});
 });
@@ -274,35 +236,35 @@ describe("resolveTypeScriptConfigSingleAsync", () => {
 	it("calls async function and returns result", async () => {
 		const config: TypeScriptConfig = {
 			tsconfig: async () => ({
-				target: 99,
-				lib: ["ESNext"],
+				target: "esnext",
+				lib: ["esnext"],
 			}),
 		};
 
 		const result = await resolveTypeScriptConfigSingleAsync(config, "/project");
 
 		expect(result).toEqual({
-			target: 99,
-			lib: ["ESNext"],
+			target: "esnext",
+			lib: ["esnext"],
 		});
 	});
 
 	it("merges compilerOptions on top of async function result", async () => {
 		const config: TypeScriptConfig = {
 			tsconfig: async () => ({
-				target: 99,
+				target: "esnext",
 				strict: true,
 			}),
 			compilerOptions: {
 				strict: false,
-				module: 99,
+				module: "esnext",
 			},
 		};
 
 		const result = await resolveTypeScriptConfigSingleAsync(config, "/project");
 
-		expect(result.target).toBe(99); // From async function
+		expect(result.target).toBe("esnext"); // From async function
 		expect(result.strict).toBe(false); // Overridden by compilerOptions
-		expect(result.module).toBe(99); // From compilerOptions
+		expect(result.module).toBe("esnext"); // From compilerOptions
 	});
 });

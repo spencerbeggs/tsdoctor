@@ -120,12 +120,7 @@ describe("shiki-transformer", () => {
 			["ClaudeAccountInfo", "/api/classes/claudeaccountinfo"],
 			["ShellResult", "/api/interfaces/shellresult"],
 		]);
-		const kinds = new Map([
-			["GitInfoData", "Interface"],
-			["ClaudeAccountInfo", "Class"],
-			["ShellResult", "Interface"],
-		]);
-		linker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+		linker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 	});
 
 	describe("Phase 3: type reference cross-linking via transformHast", () => {
@@ -207,11 +202,7 @@ describe("shiki-transformer", () => {
 				["Logger", "/api/classes/logger"],
 				["Logger.log", "/api/classes/logger#log"],
 			]);
-			const kinds = new Map([
-				["Logger", "Class"],
-				["Logger.log", "Method"],
-			]);
-			const scopedLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const scopedLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			// "log" alone should NOT be linked (dotted names filtered out)
 			const hast = makeHast([textSpan("log")]);
@@ -303,16 +294,8 @@ describe("shiki-transformer", () => {
 		// map, a module-level cache). The tell in a real build is a cross-link in
 		// package A's code block pointing at package B's page.
 		it("links only its own routes, never another instance's", () => {
-			const alpha = ShikiCrossLinker.fromRoutes(
-				new Map([["GitInfoData", "/alpha/interfaces/gitinfodata"]]),
-				new Map([["GitInfoData", "Interface"]]),
-				"alpha",
-			);
-			const beta = ShikiCrossLinker.fromRoutes(
-				new Map([["NewType", "/beta/types/newtype"]]),
-				new Map([["NewType", "TypeAlias"]]),
-				"beta",
-			);
+			const alpha = ShikiCrossLinker.fromRoutes(new Map([["GitInfoData", "/alpha/interfaces/gitinfodata"]]), "alpha");
+			const beta = ShikiCrossLinker.fromRoutes(new Map([["NewType", "/beta/types/newtype"]]), "beta");
 
 			const inAlpha = makeHast([textSpan("GitInfoData")]);
 			alpha.transformHast(inAlpha);
@@ -336,9 +319,8 @@ describe("shiki-transformer", () => {
 		// document a `Config`. Each must link to its OWN page.
 		it("resolves an overlapping name to each scope's own route", () => {
 			const routesFor = (base: string) => new Map([["Config", `${base}/interfaces/config`]]);
-			const kinds = new Map([["Config", "Interface"]]);
-			const one = ShikiCrossLinker.fromRoutes(routesFor("/one"), kinds, "one");
-			const two = ShikiCrossLinker.fromRoutes(routesFor("/two"), kinds, "two");
+			const one = ShikiCrossLinker.fromRoutes(routesFor("/one"), "one");
+			const two = ShikiCrossLinker.fromRoutes(routesFor("/two"), "two");
 
 			const a = makeHast([textSpan("Config")]);
 			one.transformHast(a);
@@ -350,7 +332,7 @@ describe("shiki-transformer", () => {
 		});
 
 		it("reports the scope it was built for", () => {
-			expect(ShikiCrossLinker.fromRoutes(new Map(), new Map(), "alpha").apiScope).toBe("alpha");
+			expect(ShikiCrossLinker.fromRoutes(new Map(), "alpha").apiScope).toBe("alpha");
 			expect(ShikiCrossLinker.empty.apiScope).toBe("");
 		});
 	});
@@ -366,15 +348,7 @@ describe("shiki-transformer", () => {
 				["GitInfo", "/api/classes/gitinfo"],
 				["GitInfo.detect", "/api/classes/gitinfo#detect"],
 			]);
-			const kinds = new Map([
-				["ClaudeBinaryPlugin", "Class"],
-				["ClaudeBinaryPlugin.build", "Method"],
-				["ClaudeBinaryPlugin.create", "Method"],
-				["ClaudeBinaryPlugin.test", "Method"],
-				["GitInfo", "Class"],
-				["GitInfo.detect", "Method"],
-			]);
-			const methodLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const methodLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const code = `class ClaudeBinaryPlugin {
     static build(x: any): void;
@@ -410,13 +384,7 @@ describe("shiki-transformer", () => {
 				["ClaudeBinaryPlugin.create", "/api/classes/claudebinaryplugin#create"],
 				["ClaudeBinaryPlugin.test", "/api/classes/claudebinaryplugin#test"],
 			]);
-			const kinds = new Map([
-				["ClaudeBinaryPlugin", "Class"],
-				["ClaudeBinaryPlugin.build", "Method"],
-				["ClaudeBinaryPlugin.create", "Method"],
-				["ClaudeBinaryPlugin.test", "Method"],
-			]);
-			const methodLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const methodLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const code = `class ClaudeBinaryPlugin {
     static build(plugin: ClaudeBinaryPlugin): Promise<PluginBuildResult>;
@@ -451,11 +419,7 @@ describe("shiki-transformer", () => {
 				["ClaudeBinaryPlugin", "/api/classes/claudebinaryplugin"],
 				["ClaudeBinaryPlugin.build", "/api/classes/claudebinaryplugin#build"],
 			]);
-			const kinds = new Map([
-				["ClaudeBinaryPlugin", "Class"],
-				["ClaudeBinaryPlugin.build", "Method"],
-			]);
-			const methodLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const methodLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const code = `class ClaudeBinaryPlugin {
     static build(x: any): void;
@@ -495,13 +459,7 @@ const result = build();`;
 				["Formatters.FormatOptions", "/api/interface/formatters.formatoptions"],
 				["Formatters.Style", "/api/enum/formatters.style"],
 			]);
-			const kinds = new Map([
-				["Formatters", "Namespace"],
-				["Formatters.formatEntry", "Function"],
-				["Formatters.FormatOptions", "Interface"],
-				["Formatters.Style", "Enum"],
-			]);
-			const nsLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const nsLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const code = `namespace Formatters {
     function formatEntry(entry: any): string;
@@ -536,11 +494,7 @@ const result = build();`;
 				["Formatters", "/api/namespace/formatters"],
 				["Formatters.formatEntry", "/api/function/formatters.formatentry"],
 			]);
-			const kinds = new Map([
-				["Formatters", "Namespace"],
-				["Formatters.formatEntry", "Function"],
-			]);
-			const nsLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const nsLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const code = `namespace Formatters {
     function formatEntry(entry: any): string;
@@ -597,11 +551,7 @@ const x = formatEntry();`;
 				["Formatters", "/api/namespace/formatters"],
 				["Formatters.formatEntry", "/api/function/formatters.formatentry"],
 			]);
-			const kinds = new Map([
-				["Formatters", "Namespace"],
-				["Formatters.formatEntry", "Function"],
-			]);
-			const nsLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const nsLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const hast = makeHast([twoslashSpan]);
 			nsLinker.transformHast(hast);
@@ -639,11 +589,7 @@ const x = formatEntry();`;
 				["Formatters", "/api/namespace/formatters"],
 				["Formatters.FormatOptions", "/api/interface/formatters.formatoptions"],
 			]);
-			const kinds = new Map([
-				["Formatters", "Namespace"],
-				["Formatters.FormatOptions", "Interface"],
-			]);
-			const nsLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const nsLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const hast = makeHast([twoslashSpan]);
 			nsLinker.transformHast(hast);
@@ -681,11 +627,7 @@ const x = formatEntry();`;
 				["Formatters", "/api/namespace/formatters"],
 				["Formatters.Style", "/api/enum/formatters.style"],
 			]);
-			const kinds = new Map([
-				["Formatters", "Namespace"],
-				["Formatters.Style", "Enum"],
-			]);
-			const nsLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const nsLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const hast = makeHast([twoslashSpan]);
 			nsLinker.transformHast(hast);
@@ -723,11 +665,7 @@ const x = formatEntry();`;
 				["Logger", "/api/classes/logger"],
 				["Logger.addTransport", "/api/classes/logger#addtransport"],
 			]);
-			const kinds = new Map([
-				["Logger", "Class"],
-				["Logger.addTransport", "Method"],
-			]);
-			const existingLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const existingLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const hast = makeHast([twoslashSpan]);
 			existingLinker.transformHast(hast);
@@ -746,13 +684,7 @@ const x = formatEntry();`;
 				["FormatOptions", "/api/interface/formatters.formatoptions"], // unqualified PascalCase
 				["LogEntry", "/api/interface/logentry"],
 			]);
-			const kinds = new Map([
-				["Formatters", "Namespace"],
-				["Formatters.FormatOptions", "Interface"],
-				["FormatOptions", "Interface"],
-				["LogEntry", "Interface"],
-			]);
-			const nsLinker = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const nsLinker = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const hast = makeHast([textSpan("options?: FormatOptions")]);
 			nsLinker.transformHast(hast);
@@ -852,12 +784,7 @@ const x = formatEntry();`;
 				["Logger.addTransport", "/api/classes/logger#addtransport"],
 				["Logger.flush", "/api/classes/logger#flush"],
 			]);
-			const kinds = new Map([
-				["Logger", "Class"],
-				["Logger.addTransport", "Method"],
-				["Logger.flush", "Method"],
-			]);
-			return ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			return ShikiCrossLinker.fromRoutes(routes, "test-api");
 		}
 
 		it("should link a member inside a class body (scope push then match)", () => {
@@ -919,12 +846,7 @@ const x = formatEntry();`;
 				["Outer.outerFn", "/api/function/outer.outerfn"],
 				["Inner.innerMethod", "/api/classes/inner#innermethod"],
 			]);
-			const kinds = new Map([
-				["Outer", "Namespace"],
-				["Outer.outerFn", "Function"],
-				["Inner.innerMethod", "Method"],
-			]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const link = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const hast = makeHast(
 				[textSpan("namespace Outer {")],
@@ -996,16 +918,7 @@ const x = formatEntry();`;
 				["Box.Inner", "/api/namespace/box.inner"],
 				["Box.value", "/api/variable/box.value"],
 			]);
-			const kinds = new Map([
-				["Box", "Namespace"],
-				["Box.make", "Function"],
-				["Box.Options", "Interface"],
-				["Box.Color", "Enum"],
-				["Box.Alias", "TypeAlias"],
-				["Box.Inner", "Namespace"],
-				["Box.value", "Variable"],
-			]);
-			return ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			return ShikiCrossLinker.fromRoutes(routes, "test-api");
 		}
 
 		const cases: Array<{ name: string; tooltip: string; visible: string; href: string }> = [
@@ -1073,11 +986,7 @@ const x = formatEntry();`;
 				["Hook", "/api/interfaces/hook"],
 				["HookEvent", "/api/interfaces/hookevent"],
 			]);
-			const kinds = new Map([
-				["Hook", "Interface"],
-				["HookEvent", "Interface"],
-			]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const link = ShikiCrossLinker.fromRoutes(routes, "test-api");
 
 			const hast = makeHast([textSpan("handler: HookEvent")]);
 			link.transformHast(hast);
@@ -1149,11 +1058,7 @@ const x = formatEntry();`;
 				["Logger", "/api/classes/logger"],
 				["Logger.flush", "/api/classes/logger#flush"],
 			]);
-			const kinds = new Map([
-				["Logger", "Class"],
-				["Logger.flush", "Method"],
-			]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "scope-r");
+			const link = ShikiCrossLinker.fromRoutes(routes, "scope-r");
 			const hast = makeHast([textSpan("class Logger {")], [textSpan("flush")], [textSpan("}")]);
 			link.transformHast(hast);
 			const memberLink = findAnchors(hast).find((a) => a.properties?.href === "/api/classes/logger#flush");
@@ -1165,11 +1070,7 @@ const x = formatEntry();`;
 				["Logger", "/api/classes/logger"],
 				["Logger.addTransport", "/api/classes/logger#addtransport"],
 			]);
-			const kinds = new Map([
-				["Logger", "Class"],
-				["Logger.addTransport", "Method"],
-			]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "scope-r2");
+			const link = ShikiCrossLinker.fromRoutes(routes, "scope-r2");
 			const hast = makeHast([twoslashHover("Logger.addTransport(transport: T): void", "addTransport")]);
 			link.transformHast(hast);
 			const anchors = findAnchors(hast);
@@ -1309,12 +1210,7 @@ const x = formatEntry();`;
 				["GitInfo.detect", "/api/classes/gitinfo#detect"],
 				["GitInfo.detectAll", "/api/classes/gitinfo#detectall"],
 			]);
-			const kinds = new Map([
-				["GitInfo", "Class"],
-				["GitInfo.detect", "Method"],
-				["GitInfo.detectAll", "Method"],
-			]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "test-api");
+			const link = ShikiCrossLinker.fromRoutes(routes, "test-api");
 			return link;
 		}
 
@@ -1431,7 +1327,7 @@ const x = formatEntry();`;
 			// been registered. A linker cannot be in that state now; the reachable
 			// equivalent is a linker constructed with no routes.
 			const hast = makeHast([textSpan("GitInfoData")]);
-			ShikiCrossLinker.fromRoutes(new Map(), new Map(), "ghost-scope").transformHast(hast);
+			ShikiCrossLinker.fromRoutes(new Map(), "ghost-scope").transformHast(hast);
 			expect(findAnchors(hast)).toHaveLength(0);
 		});
 
@@ -1440,8 +1336,8 @@ const x = formatEntry();`;
 				["Logger", "/api/classes/logger"],
 				["Logger.flush", "/api/classes/logger#flush"],
 			]);
-			const kinds = new Map([["Logger", "Class"]]); // no kind for the member
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "k");
+			// no kind for the member
+			const link = ShikiCrossLinker.fromRoutes(routes, "k");
 			const hast = makeHast([textSpan("class Logger {")], [textSpan("flush")], [textSpan("}")]);
 			link.transformHast(hast);
 			expect(findAnchors(hast).find((a) => a.properties?.href === "/api/classes/logger#flush")).toBeDefined();
@@ -1452,8 +1348,7 @@ const x = formatEntry();`;
 				["Logger", "/api/classes/logger"],
 				["Logger.flush", "/api/classes/logger#flush"],
 			]);
-			const kinds = new Map([["Logger", "Class"]]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "k2");
+			const link = ShikiCrossLinker.fromRoutes(routes, "k2");
 			const hast = makeHast([textSpan("class Logger {")], [textSpan("flush")], [textSpan("}")]);
 			link.transformHast(hast);
 			expect(findAnchors(hast).find((a) => a.properties?.href === "/api/classes/logger#flush")).toBeDefined();
@@ -1464,11 +1359,7 @@ const x = formatEntry();`;
 				["Logger", "/api/classes/logger"],
 				["Logger.flush", "/api/classes/logger#flush"],
 			]);
-			const kinds = new Map([
-				["Logger", "Class"],
-				["Logger.flush", "Method"],
-			]);
-			return ShikiCrossLinker.fromRoutes(routes, kinds, "mf");
+			return ShikiCrossLinker.fromRoutes(routes, "mf");
 		}
 
 		// A line whose children include a raw text node alongside the member span
@@ -1533,11 +1424,7 @@ const x = formatEntry();`;
 				["Box", "/api/namespace/box"],
 				["Box.make", "/api/function/box.make"],
 			]);
-			const kinds = new Map([
-				["Box", "Namespace"],
-				["Box.make", "Function"],
-			]);
-			return ShikiCrossLinker.fromRoutes(routes, kinds, scope);
+			return ShikiCrossLinker.fromRoutes(routes, scope);
 		}
 
 		it("should skip a Phase 2 tooltip match when there is no visible text to link (transformHast)", () => {
@@ -1635,8 +1522,8 @@ const x = formatEntry();`;
 
 		it("should link a type reference even when its kind is unknown (Phase 3b)", () => {
 			const routes = new Map([["Solo", "/api/types/solo"]]);
-			const kinds = new Map<string, string>(); // no kind entry
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "solo");
+			// no kind entry
+			const link = ShikiCrossLinker.fromRoutes(routes, "solo");
 			const hast = makeHast([textSpan("x: Solo")]);
 			link.transformHast(hast);
 			const anchors = findAnchors(hast);
@@ -1646,8 +1533,7 @@ const x = formatEntry();`;
 
 		it("should link a Phase 3a twoslash type reference with unknown kind", () => {
 			const routes = new Map([["Solo", "/api/types/solo"]]);
-			const kinds = new Map<string, string>();
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "solo2");
+			const link = ShikiCrossLinker.fromRoutes(routes, "solo2");
 			const hast = makeHast([twoslashHover(null, "Solo")]);
 			link.transformHast(hast);
 			expect(findAnchors(hast)[0]?.properties?.href).toBe("/api/types/solo");
@@ -1693,8 +1579,7 @@ const x = formatEntry();`;
 
 		it("should link a twoslash-hover type with unknown kind via transformSpan", () => {
 			const routes = new Map([["Solo", "/api/types/solo"]]);
-			const kinds = new Map<string, string>();
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "solo3");
+			const link = ShikiCrossLinker.fromRoutes(routes, "solo3");
 			const span: Element = {
 				type: "element",
 				tagName: "span",
@@ -1707,8 +1592,7 @@ const x = formatEntry();`;
 
 		it("should link a plain text type with unknown kind via transformSpan", () => {
 			const routes = new Map([["Solo", "/api/types/solo"]]);
-			const kinds = new Map<string, string>();
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "solo4");
+			const link = ShikiCrossLinker.fromRoutes(routes, "solo4");
 			const span = textSpan("Solo");
 			link.transformSpan(span, 0, 0);
 			expect(findAnchors(span)[0]?.properties?.href).toBe("/api/types/solo");
@@ -1744,11 +1628,7 @@ const x = formatEntry();`;
 				["Logger", "/api/classes/logger"],
 				["Logger.flush", "/api/classes/logger#flush"],
 			]);
-			const kinds = new Map([
-				["Logger", "Class"],
-				["Logger.flush", "Method"],
-			]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "rdup");
+			const link = ShikiCrossLinker.fromRoutes(routes, "rdup");
 
 			const multiChild: Element = {
 				type: "element",
@@ -1783,11 +1663,7 @@ const x = formatEntry();`;
 				["Box", "/api/namespace/box"],
 				["Box.make", "/api/function/box.make"],
 			]);
-			const kinds = new Map([
-				["Box", "Namespace"],
-				["Box.make", "Function"],
-			]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "rp2");
+			const link = ShikiCrossLinker.fromRoutes(routes, "rp2");
 			const span = twoslashHover("function Box.make(", "make");
 			span.properties = { ...span.properties, "data-api-processed": "true" };
 			const hast = makeHast([span]);
@@ -1797,8 +1673,7 @@ const x = formatEntry();`;
 
 		it("should skip a transformRoot Phase 2 tooltip whose member has no route", () => {
 			const routes = new Map([["Box", "/api/namespace/box"]]);
-			const kinds = new Map([["Box", "Namespace"]]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "rp3");
+			const link = ShikiCrossLinker.fromRoutes(routes, "rp3");
 			const hast = makeHast([twoslashHover("function Box.gone(", "gone")]);
 			link.transformHast(hast);
 			expect(findAnchors(hast)).toHaveLength(0);
@@ -1816,13 +1691,13 @@ const x = formatEntry();`;
 				["Box", "/api/namespace/box"],
 				["Box.make", "/api/function/box.make"],
 			]);
-			const kinds = new Map([["Box", "Namespace"]]); // no kind for Box.make
-			const linkH = ShikiCrossLinker.fromRoutes(routes, kinds, "nk1");
+			// no kind for Box.make
+			const linkH = ShikiCrossLinker.fromRoutes(routes, "nk1");
 			const hastH = makeHast([twoslashHover("function Box.make(", "make")]);
 			linkH.transformHast(hastH);
 			expect(findAnchors(hastH)[0]?.properties?.href).toBe("/api/function/box.make");
 
-			const linkR = ShikiCrossLinker.fromRoutes(routes, kinds, "nk2");
+			const linkR = ShikiCrossLinker.fromRoutes(routes, "nk2");
 			const hastR = makeHast([twoslashHover("function Box.make(", "make")]);
 			linkR.transformHast(hastR);
 			expect(findAnchors(hastR)[0]?.properties?.href).toBe("/api/function/box.make");
@@ -1835,11 +1710,7 @@ const x = formatEntry();`;
 				["GitInfo", "/api/classes/gitinfo"],
 				["GitInfo.detect", "/api/classes/gitinfo#detect"],
 			]);
-			const kinds = new Map([
-				["GitInfo", "Class"],
-				["GitInfo.detect", "Method"],
-			]);
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, scope);
+			const link = ShikiCrossLinker.fromRoutes(routes, scope);
 			return link;
 		}
 
@@ -1894,8 +1765,8 @@ const x = formatEntry();`;
 				["GitInfo", "/api/classes/gitinfo"],
 				["GitInfo.detect", "/api/classes/gitinfo#detect"],
 			]);
-			const kinds = new Map([["GitInfo", "Class"]]); // no kind for the method
-			const link = ShikiCrossLinker.fromRoutes(routes, kinds, "tl4");
+			// no kind for the method
+			const link = ShikiCrossLinker.fromRoutes(routes, "tl4");
 			// dot in its own span; method span text has trailing whitespace
 			const line = lineSpan(textSpan("GitInfo"), textSpan("."), textSpan("detect  "));
 			link.transformLine(line);
@@ -1908,6 +1779,6 @@ const x = formatEntry();`;
 
 /** A linker with no routes, for transformLine no-op coverage. */
 function link0(): ShikiCrossLinker {
-	const l = ShikiCrossLinker.fromRoutes(new Map(), new Map(), "empty");
+	const l = ShikiCrossLinker.fromRoutes(new Map(), "empty");
 	return l;
 }

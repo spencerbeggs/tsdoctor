@@ -45,27 +45,13 @@ function normalizeLevel(value: string | undefined): EventLevel | "none" | undefi
 
 export interface ResolveObservabilityInput {
 	readonly observability?: ObservabilityConfig;
-	readonly logLevel?: string;
-	readonly performance?: { thresholds?: Partial<ResolvedObservability["thresholds"]> };
 	readonly envLogLevel?: string;
 	readonly cwd: string;
 	readonly buildId: string;
 }
 
-export function resolveObservability(input: ResolveObservabilityInput): {
-	resolved: ResolvedObservability;
-	deprecations: Array<{ key: string; replacement: string }>;
-} {
-	const deprecations: Array<{ key: string; replacement: string }> = [];
-	if (input.logLevel !== undefined) deprecations.push({ key: "logLevel", replacement: "observability.logLevel" });
-	if (input.performance !== undefined)
-		deprecations.push({ key: "performance", replacement: "observability.thresholds" });
-
-	const level =
-		normalizeLevel(input.envLogLevel) ??
-		normalizeLevel(input.observability?.logLevel) ??
-		normalizeLevel(input.logLevel) ??
-		"info";
+export function resolveObservability(input: ResolveObservabilityInput): { resolved: ResolvedObservability } {
+	const level = normalizeLevel(input.envLogLevel) ?? normalizeLevel(input.observability?.logLevel) ?? "info";
 
 	const traceOpt = input.observability?.trace;
 	const tracePath =
@@ -77,7 +63,6 @@ export function resolveObservability(input: ResolveObservabilityInput): {
 
 	const merged = {
 		...DEFAULT_THRESHOLDS,
-		...(input.performance?.thresholds ?? {}),
 		...(input.observability?.thresholds ?? {}),
 	};
 
@@ -100,6 +85,5 @@ export function resolveObservability(input: ResolveObservabilityInput): {
 
 	return {
 		resolved: { logLevel: level, json: level === "debug", tracePath, progressIntervalMs, thresholds },
-		deprecations,
 	};
 }

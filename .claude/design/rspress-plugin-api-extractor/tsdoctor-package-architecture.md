@@ -3,8 +3,8 @@ status: draft
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-08-24
-updated: 2026-08-26
-last-synced: 2026-08-26
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 75
 related:
   - rspress-plugin-api-extractor/roadmap-1.0.md
@@ -23,7 +23,7 @@ dependencies: []
 
 # @tsdoctor Package Architecture
 
-> **Target architecture, now largely realized.** This describes the package architecture for the `@tsdoctor` org. Phases 1, 2 AND 4 have landed: all five core packages (`@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot`, `@tsdoctor/seo`) exist as workspaces under `packages/`, and the adapter lives at `platforms/rspress/`; only `@tsdoctor/pages` (phase 5) remains future work. Note the root `CLAUDE.md` workspace table still lists four core packages — that is a context doc, reconciled separately. See `build-architecture.md` for the adapter's current shape. Phasing is governed by `roadmap-1.0.md`; the phase 1 executed record is in `monorepo-consolidation.md`.
+> **Target architecture, now largely realized.** This describes the package architecture for the `@tsdoctor` org. Phases 1, 2 and 4 have landed, plus the Tier 1 core moves: six core packages (`@tsdoctor/vfs`, `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot`, `@tsdoctor/seo`) exist as workspaces under `packages/`, and the adapter lives at `platforms/rspress/`; only `@tsdoctor/pages` (phase 5) remains future work. See `build-architecture.md` for the adapter's current shape. Phasing is governed by `roadmap-1.0.md`; the phase 1 executed record is in `monorepo-consolidation.md`.
 
 ## Table of Contents
 
@@ -47,14 +47,15 @@ The end state is a set of framework-neutral `@tsdoctor/*` core packages plus thi
 
 ## Current State
 
-As of 2026-08-26 phases 1, 2 AND 4 have been executed (phase 1 released via PR #163; phase 2 landed on `feat/tsdoctor-phase-2`, all gates green — suite 1,314/1,315, typecheck 23/23 — releases pending via changesets; phase 4 landed on `feat/phase-4`). Five of the six packages exist as in-repo workspaces:
+As of 2026-09-02 phases 1, 2 and 4 have been executed (phase 1 released via PR #163; phase 2 landed on `feat/tsdoctor-phase-2`, all gates green — suite 1,314/1,315, typecheck 23/23 — releases pending via changesets; phase 4 landed on `feat/phase-4`), and the Tier 1 core moves landed on `feat/tsdoctor-vfs`. Six of the seven packages exist as in-repo workspaces:
 
-- `packages/registry` — `@tsdoctor/registry`, the former sibling-repo `type-registry-effect@2.3.5` (Effect v4). Consumed by the adapter via `workspace:*`. Phase 2 executed the identity renames: the four `Context.Service` tag ids are now `"@tsdoctor/registry/..."` and the plugin's XDG cache namespace is `"tsdoctor"` (the accepted one-time cache invalidation).
+- `packages/vfs` — `@tsdoctor/vfs` (Tier 1 core moves): the VFS primitives, extracted from the registry — the `Vfs` currency type with `mergeVfs`/`prefixVfs`/`isTypeDefinition`, `VirtualPackage`, `TsEnvironment`, and the compiler-options seam that followed `TsEnvironment` out of the adapter. Depends on `effect` alone plus three optional peers. See [The D1 outcome](#the-d1-outcome).
+- `packages/registry` — `@tsdoctor/registry`, the former sibling-repo `type-registry-effect@2.3.5` (Effect v4). Consumed by the adapter via `workspace:*`. Phase 2 executed the identity renames: the four `Context.Service` tag ids are now `"@tsdoctor/registry/..."` and the plugin's XDG cache namespace is `"tsdoctor"` (the accepted one-time cache invalidation). It now sits on `@tsdoctor/vfs` and its remaining job — fetch, cache, resolve published types into a `Vfs` — matches its name.
 - `packages/model` — `@tsdoctor/model`, **redesigned in phase 2** as idiomatic Effect v4 namespace modules: `Model` (Effect-typed loading, `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), `Tsdoc`, `ApiItems` (categorize returns `{ items, uncategorized }`), `EntryPoints`, `Routes` (incl. `RouteCollisionError` and the single `sanitizeId`), `SyntheticBases`, `Signature` (de-classed), the `CrossLinker` class (`fromRoutes`/`fromRefs`/`empty`/`link`/`linkHtml`), and `Render` (string API plus `@alpha` `Render.tree`, internally `@effected/markdown`). The `@alpha` `StructuredData` stub it once carried is **deleted** (phase 4): schema.org derivation lives in `@tsdoctor/seo`, not here. It absorbed the plugin's `multi-entry-resolver.ts`, `route-collisions.ts` and `synthetic-bases.ts`; all four phase-1 plugin shims are deleted (see "Core Package Consumption" in `build-architecture.md`).
 - `packages/bundle` — `@tsdoctor/bundle` (phase 2): the bundle spec, six-tier resolver with provenance, discovery and the npm-tarball/GitHub-release fetchers. See `bundle-spec.md`.
 - `packages/snapshot` — `@tsdoctor/snapshot` (phase 2): the snapshot system extracted from the plugin, rebuilt on `@effected/store`'s `Store.layerSqlite`. See `snapshot-tracking-system.md`.
 - `packages/seo` — `@tsdoctor/seo` (phase 4): framework-neutral `<head>` metadata — the neutral `HeadTag` vocabulary, canonical URLs, Open Graph + Twitter cards, attribution, schema.org JSON-LD, and `headTags`, the single adapter seam. It absorbed the adapter's `og-resolver.ts` and `schemas/opengraph.ts` (both deleted). See `structured-data-and-og.md`.
-- `platforms/rspress/` — the adapter workspace: RSPress hooks, React runtime, remark plugins, page generators (the page-generation IR extraction is phase 5), llms.txt wiring, and the thin adapter seams over the five core packages.
+- `platforms/rspress/` — the adapter workspace: RSPress hooks, React runtime, remark plugins, page generators (the page-generation IR extraction is phase 5), llms.txt wiring, and the thin adapter seams over the six core packages.
 
 Only `@tsdoctor/pages` does not exist yet (deliberately deferred to phase 5).
 
@@ -63,7 +64,8 @@ Only `@tsdoctor/pages` does not exist yet (deliberately deferred to phase 5).
 | Package | Contents | Source today |
 | --- | --- | --- |
 | `@tsdoctor/model` | api.json loading, TSDoc extraction, categorization, multi-entry resolution, synthetic bases, route/cross-link model | **exists, v4-redesigned** (`packages/model`); absorbed the plugin's `multi-entry-resolver.ts`, `route-collisions.ts`, `synthetic-bases.ts` in phase 2. Schema.org derivation was originally sited here as an `@alpha` `StructuredData` stub; that stub is **deleted** and the concern lives in `@tsdoctor/seo` |
-| `@tsdoctor/registry` | external type loading, VFS, Twoslash environments | **exists** (`packages/registry`; tag ids `"@tsdoctor/registry/..."` since phase 2) |
+| `@tsdoctor/vfs` | VFS primitives: the `Vfs` currency type, `VirtualPackage`, `TsEnvironment`, `isTypeDefinition` | **exists** (`packages/vfs`), extracted from the registry in the Tier 1 core moves — see [The D1 outcome](#the-d1-outcome) |
+| `@tsdoctor/registry` | external type loading: fetch, cache and resolve package types into a `Vfs` | **exists** (`packages/registry`; tag ids `"@tsdoctor/registry/..."` since phase 2) |
 | `@tsdoctor/bundle` | bundle spec + fetchers (local dir, npm tarball, GitHub release) — spec in `bundle-spec.md` | **exists** (`packages/bundle`, phase 2); formalized `fromDir` discovery |
 | `@tsdoctor/pages` | framework-neutral doc IR rendered to markdown via mdast (**phase 5, deferred**) | page generators minus JSX emission |
 | `@tsdoctor/seo` | framework-neutral `<head>` metadata: `HeadTag` vocabulary, canonical URLs, Open Graph + Twitter cards, attribution, schema.org JSON-LD, and the `headTags` seam | **exists** (`packages/seo`, phase 4); absorbed the adapter's `og-resolver.ts` and `schemas/opengraph.ts` |
@@ -71,6 +73,20 @@ Only `@tsdoctor/pages` does not exist yet (deliberately deferred to phase 5).
 | `rspress-plugin-api-extractor` | thin adapter: RSPress hooks, React runtime, remark plugins, llms.txt wiring | `platforms/rspress/`, consuming all five core packages |
 
 `@tsdoctor/pages` is deliberately last: per the settled decision in `roadmap-1.0.md`, the IR is extracted in phase 5 alongside the VitePress adapter so two live consumers shape it.
+
+### The D1 outcome
+
+**Resolved 2026-09-02: `@tsdoctor/vfs`, superseding this document's earlier answer.** The Core-Move Candidates section below sent `api-extracted-package.ts` to `@tsdoctor/registry`, reasoning that it *"already `extends VirtualPackage` FROM the registry, so it is the registry's own concept living outside it."* Three measurements taken while planning the move contradict the premise:
+
+- **`VirtualPackage` had zero consumers inside the registry** — 143 lines, re-exported from `index.ts` and used by nothing else in the package. Its only dependency on the rest of the registry was the `Vfs` *type*.
+- **`TsEnvironment` was the same shape** — 141 lines, no internal consumers, and the only module reaching for the `typescript` / `@typescript/vfs` / `@effected/tsconfig-json` optional peers.
+- **The registry had no `@microsoft/api-extractor-model` dependency at all.**
+
+So `VirtualPackage` was not the registry's own concept; it was a leaf the registry hosted, and the concept that used it lived two packages away. Sending the api-model files to the registry would have made the neutral type-loading layer depend on the api.json vocabulary; sending them to `@tsdoctor/model` with a model→registry edge would have made anyone installing the model for TSDoc extraction drag the registry's fetch/cache/XDG stack, to reuse one Schema class.
+
+Extracting the substrate avoids both. `@tsdoctor/vfs` depends on `effect` alone (plus three optional peers), and the registry and the model sit on it independently — no edge between them in either direction. The registry sheds three optional peers in the process and its remaining job matches its name.
+
+`TsEnvironment` moved too, which makes `@tsdoctor/vfs` the right home for the compiler-options seam (`parseTsConfig`, the whitelist type, and the tsconfig↔programmatic conversion) rather than the registry — see the Tier 1 plan's Chunk 3.
 
 ### Future Packages (Idea-Stage Stubs)
 
@@ -86,8 +102,9 @@ Recorded as ideas only — **deliberately unscheduled, no phase, no gate**:
 
 Verified against the `@effected` package index (all kit packages published 0.x; the versions installed here as of 2026-08-25 include `store@0.5.0`, `markdown@0.7.0`, `tsconfig-json@0.6.1`, `memfs@0.5.0`, `jsonc@0.8.0`, `yaml@0.12.0`):
 
-- **`@tsdoctor/registry`** — already consumes `@effected/semver`, `@effected/store` (`Cache`), `@effected/tsconfig-json`, and `@effected/xdg`; these are its existing peers and the phase 1 move preserved them exactly (see `monorepo-consolidation.md`).
-- **`@tsdoctor/model`** — `@effected/markdown` for TSDoc prose → mdast and for building markdown programmatically (28 constructible node classes, `Markdown.stringify`, frontmatter codecs, section finders); `@effected/package-json` and `@effected/spdx` were mapped here on the assumption that phase 4's schema.org derivation would live in the model. **It does not** — attribution and JSON-LD moved to `@tsdoctor/seo`, and both kit packages are that package's peers instead. The model keeps `@effected/markdown`.
+- **`@tsdoctor/vfs`** — `@effected/tsconfig-json` (optional) for the compiler-options seam: `CompilerOptions` is the type `TypeResolutionCompilerOptions` is picked from, `TsEnumCodec` owns both spellings, and `TsconfigLoaderSync` reads a tsconfig. `typescript` and `@typescript/vfs` are its other two optional peers, carried in with `TsEnvironment`. Nothing else — the package depends on `effect` alone.
+- **`@tsdoctor/registry`** — `@effected/semver`, `@effected/store` (`Cache`) and `@effected/xdg`. It **shed** `@effected/tsconfig-json`, `@typescript/vfs` and `typescript` when `TsEnvironment` moved to `@tsdoctor/vfs`; the rest are its phase-1 peers, preserved exactly (see `monorepo-consolidation.md`).
+- **`@tsdoctor/model`** — `@effected/markdown` for TSDoc prose → mdast and for building markdown programmatically (28 constructible node classes, `Markdown.stringify`, frontmatter codecs, section finders); `@effected/package-json` and `@effected/spdx` were mapped here on the assumption that phase 4's schema.org derivation would live in the model. **It does not** — attribution and JSON-LD moved to `@tsdoctor/seo`, and both kit packages are that package's peers instead. The model keeps `@effected/markdown`, and the Tier 1 core moves added `@effected/yaml` behind `Frontmatter.ts` plus a workspace dependency on `@tsdoctor/vfs` (for `VirtualPackage`, which `ApiExtractedPackage` extends) and a **test-only** one on `@tsdoctor/snapshot`.
 - **`@tsdoctor/bundle`** — `@effected/package-json` + `@effected/tsconfig-json` (the bundle's two manifest files, `LenientManifest` for discovery-time field-granularity leniency); `@effected/github` (typed REST releases/assets for the GitHub-release fetcher); `@effected/npm` (`NpmRegistry` for the npm-tarball fetcher plus the dependency-specifier vocabulary); `@effected/semver` (version specs); `@effected/store` `Cache` + `@effected/xdg` (cached fetched artifacts, the same pattern the registry already uses); `@effected/glob` and/or `@effected/walker` for `fromDir`/`fromParentDir`-style discovery; `@effected/jsonc`'s `JsoncFingerprint` (RFC 8785/JCS canonicalization + SHA-256 through core's `Crypto` service) for `BundleHash.ts`'s coarse layer hashing and fine per-field fingerprints.
 - **`@tsdoctor/snapshot`** — **RESOLVED (2026-08-24, evaluated against `@effected/store@0.4.0`; `0.5.0` is installed as of 2026-08-25 and the adoption is unchanged): adopt Store for both tables.** The evaluation's original framing ("does Store's model fit the relational `file_snapshots` table, or does the kit want a tabular capability grown") presupposed Store is KV-shaped — it is not. `Store` is a schema-versioned, migrated SQLite `SqlClient`: its shape is `{ client: SqlClient, migrate, rollback(toId), status }`, where `client` is the full `effect/unstable/sql` tagged-template client (arbitrary DDL/DML, `withTransaction`, PRAGMAs), and `Store.layerSqlite({ filename, migrations })` bundles the SAME `SqliteClient.layer` from `@effect/sql-sqlite-node` the previous hand-wired stack used (WAL on by default); the KV half is the separate `Cache` service. Consequence: `@tsdoctor/snapshot` is built on `Store.layerSqlite` — the existing `001_create_snapshots` SQL ports verbatim as `StoreMigration { id: 1 }`, all queries/batch-upserts/conditional `ON CONFLICT` run unchanged through `store.client`, and the package sheds its direct `@effect/sql-sqlite-node` + Migrator hand-wiring while gaining rollback/status/typed migration errors. The WAL-checkpoint finalizer originally ported by hand via `store.client` (an `Effect.addFinalizer` wrapping `PRAGMA wal_checkpoint(TRUNCATE)`) is now gone from the package entirely: candidates (c) and (d) below shipped in the released effected round-1 kit wave, and `SnapshotServiceLive` was updated to pass `checkpointOnClose: true` to `Store.layerSqlite`, which registers the identical finalizer inside `@effected/store` itself. The forward bundle-fingerprints table (`bundle-spec.md`'s change-detection section) lands as migration 2 in the same store — chosen over `Cache` because a build-end commit can then upsert file snapshots AND fingerprints in ONE transaction (`Cache`'s `set` cannot enlist in a caller's transaction), and because durable state whose loss corrupts incremental correctness does not belong in a thing named Cache with eviction switched off. One migration-ledger caveat: Store's ledger (`_store_migrations`) differs from the effect Migrator's ledger table, so a pre-existing committed `api-docs.db` gets migration 1 re-applied on first Store run — harmless because `001_create_snapshots` is `CREATE TABLE IF NOT EXISTS`; the phase-2 boundary (before any migration 002 exists) is the safe switch window.
 - **`@tsdoctor/seo`** (phase 4) — `@effected/schema-org` (the schema.org node vocabulary plus the offline `Conformance` validator, first released at 0.1.0 by round 2 of the dogfood loop); `@effected/package-json`'s `PackageManifest` (typed `Person` / `Repository` / SPDX license — the shape `attributionFacts` derives from, and the source of `licenseExpressionOf`); `@effected/spdx` (`SpdxExpression.licensesOf` / `primaryLicense` and each catalog `License`'s own `referenceUrl`). Round 2 also shipped `@effected/spdx@0.5.0` and `@effected/package-json@0.13.0`, and bumped the `@effected/pnpm-plugin-effect` config dependency to `0.6.11` to carry the schema-org catalog entry.
@@ -104,7 +121,8 @@ Candidate expansions discovered so far:
 - (c) **DELIVERED and adopted.** `Store.layerSqlite` passes through the remaining `SqliteClient.layer` options (e.g. `disableWAL`).
 - (d) **DELIVERED and adopted.** A `checkpointOnClose: true` option registers the `wal_checkpoint(TRUNCATE)` scope finalizer that every durable-SQLite consumer used to hand-write; `@tsdoctor/snapshot`'s `SnapshotServiceLive` now passes it and its own hand-written finalizer is deleted (see the `@tsdoctor/snapshot` row above and `snapshot-tracking-system.md`).
 - (e) an adoption recipe/API for consumers migrating from the `effect/unstable/sql` Migrator ledger whose pre-Store migrations aren't idempotent — not yet delivered.
-- (f) a **degrade-to-miss posture for `@effected/store`'s `Cache`** (raised 2026-08-25 by the pre-phase-4 adapter refactor). Moving cache acquisition out of service method bodies and into layer construction moved the failure mode from "this method fails and its local catch absorbs it" to "the `ManagedRuntime` build aborts the whole site build", silently violating `TwoslashCacheService`'s documented contract — *an unreachable or corrupt cache is a cache miss, and must not be able to break a build that would otherwise succeed*. Only the type system noticed, when the layer's error channel went from `never` to `CacheError | AppDirsError | XdgEnvError`. Both cache-backed layers in the adapter now hand-write a `Layer.catchCause` degrade, so it is a two-site pattern sitting at layer level where it is easy to omit. A `Cache.layerDegrading` (or a documented recipe) would make the posture declarative. **It must be opt-in, not the default** — `BundleFetch.ts`'s narrower `orElseSucceed` is deliberate and a kit-level default would erase a real distinction.
+- (f) **DELIVERED and adopted** — a degrade-to-miss posture for `@effected/store`'s `Cache`, shipped upstream as `Cache.degrading` and adopted 2026-09-02 by both cache-backed layers. Adopting it also fixed a defect the hand-written version carried: `Layer.catchCause` absorbs EVERY cause, interruption included, so a fiber being interrupted during shutdown was handed a working degraded cache and carried on. It further collapsed `TwoslashCacheService`'s separate `DegradedLive` — degrading at the `Cache` makes the ordinary implementation over an always-missing cache the degraded behaviour, so there is no second implementation to drift. Original entry, raised 2026-08-25 by the pre-phase-4 adapter refactor: Moving cache acquisition out of service method bodies and into layer construction moved the failure mode from "this method fails and its local catch absorbs it" to "the `ManagedRuntime` build aborts the whole site build", silently violating `TwoslashCacheService`'s documented contract — *an unreachable or corrupt cache is a cache miss, and must not be able to break a build that would otherwise succeed*. Only the type system noticed, when the layer's error channel went from `never` to `CacheError | AppDirsError | XdgEnvError`. Both cache-backed layers in the adapter now hand-write a `Layer.catchCause` degrade, so it is a two-site pattern sitting at layer level where it is easy to omit. A `Cache.layerDegrading` (or a documented recipe) would make the posture declarative. **It must be opt-in, not the default** — `BundleFetch.ts`'s narrower `orElseSucceed` is deliberate and a kit-level default would erase a real distinction.
+- (g) **programmatic-spelling input tolerance for `@effected/tsconfig-json`'s `TsEnumCodec`** (raised 2026-09-02 by the Tier 1 core-move planning). The kit types `CompilerOptions.Type`'s `target` / `module` / `moduleResolution` / `jsx` / `lib` as string-literal unions — the canonical tsconfig spellings — and `encodeCompilerOptions` converts those to the programmatic form. There is no supported way IN for a caller already holding the programmatic spelling (`ts.ScriptTarget.ES2025`), which a consumer writing plugin config in TypeScript reasonably does. The adapter papers over this with a hand-rolled `TypeResolutionCompilerOptions` accepting both spellings and a laundering cast, `TsEnumCodec.encodeCompilerOptions(options as never)` — the cast IS the gap. A `TsEnumCodec.normalizeCompilerOptions` (accept either spelling, return canonical `CompilerOptions.Type`, idempotent) is generic, sits beside the `lib`-spelling normalization the codec already performs, and is testable upstream against the enum tables the kit owns. Downstream payoff is disproportionate: the whitelist collapses from a hand-rolled interface to a `Schema.pick` over the kit type — policy expressed in kit vocabulary — and both the cast and the adapter's `toProgrammaticCompilerOptions` wrapper disappear. What must NOT move upstream is the whitelist itself: which options may influence how a documentation example type-checks is a documentation-tool safety decision, not a tsconfig-grammar fact.
 
 The posture: gaps found while building `@tsdoctor` are signal that the kit wants the capability. They are raised through dogfood loops with `file:` overrides against the local `effected` checkout, per the `/silk:dogfood` protocol, and adopted on the next kit release wave.
 
@@ -127,7 +145,7 @@ A sketch of the boundary, to be hardened by the VitePress alpha (phase 5):
 - Resolved API models (loaded, categorized, multi-entry-resolved, synthetic bases applied)
 - Cross-link route maps
 - Generated markdown / doc IR (`@tsdoctor/pages`, once it exists)
-- VFS and Twoslash environments (`@tsdoctor/registry`)
+- The VFS primitives and the TypeScript environment (`@tsdoctor/vfs`), populated with resolved external types (`@tsdoctor/registry`)
 - Snapshot decisions (what changed, what to regenerate) and per-page metadata (`@tsdoctor/snapshot`)
 - Every `<head>` tag for a page, as a neutral `HeadTag[]` from `@tsdoctor/seo`'s `headTags` — canonical link, Open Graph, Twitter card and the schema.org JSON-LD script. An adapter renders them; it does not decide which a page gets (`structured-data-and-og.md`)
 
@@ -140,11 +158,34 @@ A sketch of the boundary, to be hardened by the VitePress alpha (phase 5):
 
 ## Core-Move Candidates
 
-Measured at the end of the pre-phase-4 adapter refactor (2026-08-25) from inside the code rather than from a survey: coupling was counted (references to `@rspress`, `shiki`, `hast`, `react`), not judged by file name. The moves themselves wait for phase 4 to finish; this section records the conclusions so the analysis is not re-derived. Full working is in `.claude/plans/2026-08-25-rspress-adapter-refactor.md` under "Core-move candidates".
+Measured at the end of the pre-phase-4 adapter refactor (2026-08-25) from inside the code rather than from a survey: coupling was counted (references to `@rspress`, `shiki`, `hast`, `react`), not judged by file name. Tier 1 has since been executed; this section records the conclusions so the analysis is not re-derived. Full working is in `.claude/plans/2026-08-25-rspress-adapter-refactor.md` under "Core-move candidates".
+
+**Tier 1 execution status (2026-09-02): COMPLETE.** Every move below landed except `category-resolver.ts`, which was deliberately dropped. Where each file went — and where it did NOT go, since this section's own proposal was wrong twice:
+
+| File | Proposed here | Actually landed |
+| --- | --- | --- |
+| `api-extracted-package.ts` | `@tsdoctor/registry` | `@tsdoctor/model` as `ApiExtractedPackage.ts` |
+| `type-reference-extractor.ts` | `@tsdoctor/registry` | `@tsdoctor/model` as `TypeReferenceExtractor.ts` |
+| `tsconfig-parser.ts` | `@tsdoctor/registry` | `@tsdoctor/vfs` as `TsconfigParser.ts` |
+| `typescript-config.ts` | `@tsdoctor/registry` | `@tsdoctor/vfs` as `TypeScriptConfig.ts` |
+| `frontmatter.ts` | `@tsdoctor/model` | `@tsdoctor/model` as `Frontmatter.ts` |
+| `category-resolver.ts` | `@tsdoctor/model` | **stays in the adapter** |
+
+The registry received none of them. The api-model pair went to the model, and the compiler-options pair followed `TsEnvironment` into the new `@tsdoctor/vfs` — see [The D1 outcome](#the-d1-outcome) for why the substrate was extracted rather than the api-model files hosted.
+
+**`category-resolver.ts` stays in the adapter.** It merges full category configs (`displayName`, `folderName`, `collapsible`) across a plugin/package/version precedence chain, which is sidebar presentation plus multiVersion product policy, not model vocabulary; the neutral half already exists as `ApiItems.CategorySpec`. Its `schemas/config.js` edge (below) is therefore moot rather than resolved.
+
+**Both "edges to resolve" below are closed, one of them by deletion.** The `typescript-config.ts` cascade question — whether its version and per-package levels are adapter product policy — dissolved when those levels turned out to be unwired: nothing ever passed them, so a multiVersion site silently type-checked every version against the defaults. They are deleted, along with `VersionConfig`'s advertised `tsconfig` / `compilerOptions` fields, and what moved is a two-level global→API cascade with no policy question left in it.
+
+`@tsdoctor/model` takes a **test-only** dependency on `@tsdoctor/snapshot` in the process: the frontmatter tests pin literal digests, and a digest is only meaningful next to the hasher it guards. One fixture assumption in the plan was wrong in a useful direction — `@tsdoctor/model` already carried byte-identical copies of the `kitchensink` and `example-module` fixtures from the phase-1 seeding, so the moved tests needed no duplication; only the single-consumer `abstract-class` and `alias-collision` fixtures actually moved.
+
+Plan: `.claude/plans/2026-09-02-tier-1-core-moves.md`.
+
+The original analysis follows, kept because its reasoning — not its destinations — is what a future tier should reuse.
 
 **Tier 1 — files in the wrong package today, zero framework references** (~1,880 lines): `api-extracted-package.ts` and `type-reference-extractor.ts` plus `typescript-config.ts` + `tsconfig-parser.ts` to `@tsdoctor/registry`, and `frontmatter.ts` + `category-resolver.ts` to `@tsdoctor/model`. `api-extracted-package.ts` is the strongest of them — it already `extends VirtualPackage` FROM the registry, so it is the registry's own concept living outside it. **The "wait for two consumers" rule does not apply to this tier**: that rule exists to stop abstractions being designed speculatively, and these are files whose boundary is already proven by an import crossing it. The tsconfig pair also got cheaper than when the move was first scoped — the parser rewrite took it to 136 lines and removed its `typescript` dependency outright.
 
-**Two edges to resolve before moving:**
+**Two edges to resolve before moving** (both since closed — see the execution status above):
 
 - `typescript-config.ts` carries the four-level cascade (global → API → version → package), and its "version" level is a multiVersion concept that may be adapter **product policy** rather than registry-neutral behaviour. The parser half carries no such question.
 - `category-resolver.ts` imports `schemas/config.js` for `CategoryConfig` / `SourceConfig`. Moving it to the model either drags those schema types along or needs them re-homed first.
@@ -177,7 +218,7 @@ Both decisions recorded here as open were **RESOLVED in the 2026-08-24 phase-2 p
 - **Bundle spec (sidecar manifest, tiers, provenance, fetchers):** `bundle-spec.md`
 - **Phase 1 executed record:** `monorepo-consolidation.md`
 - **Current architecture and the four delegation shims:** `build-architecture.md`
-- **Registry/VFS/Twoslash internals moving to `@tsdoctor/registry`:** `type-loading-vfs.md`
+- **The `@tsdoctor/vfs` / `@tsdoctor/registry` split and the Twoslash internals:** `type-loading-vfs.md`
 - **Snapshot system moving to `@tsdoctor/snapshot`:** `snapshot-tracking-system.md`
 - **Page generators that seed `@tsdoctor/pages`:** `page-generation-system.md`
 - **The phase-4 `@tsdoctor/seo` package and the `headTags` seam:** `structured-data-and-og.md`

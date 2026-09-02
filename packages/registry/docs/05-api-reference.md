@@ -148,32 +148,9 @@ Names and versions are validated just enough that neither can escape a cache dir
 
 ## Vfs
 
-`Vfs` is `Map<string, string>`, keyed by `node_modules/`-prefixed paths. `VirtualFileSystem` is an alias kept for consumers migrating from earlier versions.
+`Vfs` is `Map<string, string>`, keyed by `node_modules/`-prefixed paths. It is defined by [`@tsdoctor/vfs`](https://www.npmjs.com/package/@tsdoctor/vfs), along with `mergeVfs`, `prefixVfs` and `isTypeDefinition`; import them from there. Every loading method on this page returns one.
 
-`mergeVfs(...maps)` merges left to right into a new map; later entries win on collisions. `prefixVfs(name, entries)` prefixes every path with `node_modules/<name>/`, normalizing away leading slashes.
-
-## VirtualPackage
-
-A synthetic package built from local declaration content. Instances are transient and never persisted to the disk cache. The class is subclass-friendly.
-
-| Member | Signature |
-| --- | --- |
-| `VirtualPackage.create` | `(name, version, declarations) => VirtualPackage` |
-| `VirtualPackage.createMultiEntry` | `(name, version, entries) => VirtualPackage` |
-| `VirtualPackage.fromFile` | `(name, version, filePath) => Effect<VirtualPackage, PlatformError, FileSystem>` |
-| `toVfs` | `() => Vfs` |
-
-`toVfs` emits a synthetic `package.json` alongside the entry files, using `types` for a single entry and an `exports` map for several, so TypeScript module resolution works against the generated VFS. An empty entry set throws, as does a set whose names collide after extension normalization.
-
-## TsEnvironment
-
-`TsEnvironment.make(options)` returns `Effect<VirtualTypeScriptEnvironment, TsEnvironmentError>`. Options are `vfs`, `compilerOptions`, and an optional `projectRoot` defaulting to `process.cwd()`.
-
-`compilerOptions` is `CompilerOptions.Type` from `@effected/tsconfig-json` — tsconfig JSON form, where enum-valued fields are strings (`{ strict: true, target: "es2022" }`, not `ts.ScriptTarget.ES2022`). They are encoded to the compiler's numeric enums inside `make`, so the option type carries no dependency on the `typescript` package.
-
-The optional `typescript`, `@typescript/vfs` and `@effected/tsconfig-json` peers all load lazily inside `make`, so a missing peer is a typed `TsEnvironmentError` rather than an import-time crash. `VirtualTypeScriptEnvironment` is deliberately not re-exported — import the type from `@typescript/vfs`, which any consumer of this module already declares.
-
-There is no environment cache. A consumer wanting keyed reuse across compiler options holds its own map.
+That package also owns `VirtualPackage` (synthesizing a package from local declaration content) and `TsEnvironment` (building a `VirtualTypeScriptEnvironment` over a VFS). Both were exported from here in earlier versions.
 
 ## RegistryEvent and RegistryObserver
 
@@ -188,6 +165,5 @@ The opt-in progress channel, documented in full in [observability](03-observabil
 | `VersionNotFoundError` | `name`, `ref`, `available` |
 | `TypeCacheError` | `operation`, `path`, `cause` |
 | `BatchLoadError` | `failures` (one entry per package, with its typed error) |
-| `TsEnvironmentError` | `cause` |
 
 All are `Schema.TaggedError` classes, so `Effect.catchTag` narrows them and `cause` preserves the underlying failure structurally.

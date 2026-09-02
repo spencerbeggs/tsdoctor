@@ -63,7 +63,7 @@ ApiExtractorPlugin({
 });
 ```
 
-Raise `logLevel` to `verbose` to see which blocks are reporting errors.
+Raise `observability.logLevel` to `debug` to see which blocks are reporting errors.
 
 ## Stale build output after editing the plugin or a model
 
@@ -120,5 +120,5 @@ See [Twoslash result cache](./02-configuration.md#twoslash-result-cache) for how
 ## Related guides
 
 - [Multi-entry points](./08-multi-entry-points.md) — the full rules behind route collisions.
-- [Configuration](./02-configuration.md) — `externalPackages`, `errors` and `logLevel`.
+- [Configuration](./02-configuration.md) — `externalPackages`, `errors` and `observability`.
 - [LLMs](./09-llms.md) — the `llms: true` prerequisite.

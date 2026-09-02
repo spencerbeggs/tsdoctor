@@ -37,8 +37,6 @@ function render(event: PluginEvent): string {
 				: `${event.field}: using '${event.chosen}', ignoring ${event.ignored.join(", ")}`;
 		case "ConfigValidationWarning":
 			return `${event.field}: rejected '${event.value}'${event.reason ? ` — ${event.reason}` : ""}`;
-		case "DeprecatedConfigUsed":
-			return `option '${event.key}' is deprecated; use ${event.replacement}`;
 		case "ModelLoaded":
 			return `loaded model: ${event.itemCount} items, ${event.entryPoints} entry point(s) (${event.durationMs}ms)`;
 		case "ConfigResolved":
@@ -48,9 +46,11 @@ function render(event: PluginEvent): string {
 		case "TwoslashCheckFailed":
 			return `Twoslash check failed (TS${event.code}) in ${event.file}; ${event.fsMapKeys.length} VFS files`;
 		case "TwoslashCacheLoaded":
-			return event.entries > 0
-				? `Twoslash cache: restored ${event.entries} cached result(s)`
-				: "Twoslash cache: cold (no cached results for this type environment)";
+			return event.degraded
+				? "Twoslash cache: DEGRADED (unusable cache directory) — every block will be type-checked, every build"
+				: event.entries > 0
+					? `Twoslash cache: restored ${event.entries} cached result(s)`
+					: "Twoslash cache: cold (no cached results for this type environment)";
 		case "TwoslashCacheSaved": {
 			const total = event.hits + event.misses;
 			const pct = total > 0 ? Math.round((event.hits / total) * 100) : 0;

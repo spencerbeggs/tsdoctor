@@ -18,8 +18,7 @@ Loaded from `platforms/rspress/CLAUDE.md`.
 - `src/config-helpers.ts` — `fromDir`/`fromParentDir` config builders, delegating discovery to `@tsdoctor/bundle`
 - `src/sync-node-fs.ts` — sync `FileSystem` bridge so bundle discovery runs under the sync helper API
 - `src/model-loader.ts` — plain functions over `@tsdoctor/model`'s `Model.load` (typed `ModelLoadError`)
-- `src/frontmatter.ts` — gray-matter-parity frontmatter split/join over `@effected/yaml` (the `gray-matter` dep is gone). The parse side keeps a hand-rolled split (`@effected/markdown`'s `FrontmatterSource.split` was rejected — its strict fence grammar conflicts with the pinned gray-matter quirks); emission uses `FrontmatterSource.join` + `Yaml.stringify({ quoteCompat: "yaml-1.1", quoteStyle: "double" })`
-- `src/tsconfig-parser.ts` — reads a `tsconfig.json` through `@effected/tsconfig-json`'s `TsconfigLoaderSync`; does **not** import the TypeScript compiler. It reports the tsconfig spelling (`lib: ["esnext"]`), never the programmatic form — `toProgrammaticCompilerOptions` (`twoslash-transformer.ts`) is the single conversion seam
+- `src/twoslash-transformer.ts` — the Shiki/Twoslash transformer per environment. It calls `toProgrammaticCompilerOptions` from `@tsdoctor/vfs`, the **single** seam converting the tsconfig spelling (`lib: ["esnext"]`) to the programmatic one (`lib.esnext.d.ts`). Fingerprint environments on the ENCODED value, or the two spellings build two identical environments
 - `src/twoslash-cache.ts` — persisted Twoslash result cache: env fingerprint, sync cache object, gzip codec
 - `src/observability/` — EventBus, PluginEvent taxonomy, sinks, heartbeat, span helpers, metric reporting
   - `events.ts` — `PluginEvent` taggedEnum, `EventLevel`, `EventContext`, `levelOf`
@@ -40,12 +39,12 @@ Loaded from `platforms/rspress/CLAUDE.md`.
   - `build-metrics.ts` — `BuildMetrics`, `MetricStore`/`makeMetricStore`; the **only** import path for `BuildMetrics`
   - `observability.ts` — `buildEventBus`, `BuiltSinks`, `makeSummaryLoggerLayer`, `logBuildSummary` (renamed from `ObservabilityLive.ts`; it no longer re-exports `BuildMetrics`)
   - `xdg.ts` — `TSDOCTOR_NAMESPACE`, `PlatformLive`, `AppDirsLive` — one home for both cache-backed layers
-- `src/internal-types.ts` — internal types
+- `src/internal-types.ts` — the few genuinely adapter-local types (`LoadedModel`, `PackageJson`) plus a re-export of `TypeResolutionCompilerOptions`/`TypeScriptConfig`/`CompilerOptionsInput` from `@tsdoctor/vfs`, which owns the compiler-options whitelist
 - `src/errors.ts` — `ConfigValidationError` and `TypeRegistryError` only; the four never-constructed classes are deleted and the surviving `TaggedError` bases are no longer exported
 - `src/markdown/` — page generators (class, enum, function, interface, etc.) plus `prose-linker.ts`, the module-level holder over the `@tsdoctor/model` `CrossLinker` (`setProseLinker`/`linkProse`); no barrel here either
 - `src/runtime/`, `src/runtime/components/` — React components for SSG-compatible rendering (SignatureBlock, etc.)
 
-The former `@tsdoctor/model` shims (`loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`, the class-based `model-loader.ts`) are **deleted** — call sites use the model's namespace modules directly. `multi-entry-resolver.ts`, `route-collisions.ts` and `synthetic-bases.ts` moved into `@tsdoctor/model`; `content-hash.ts` and `migrations/` into `@tsdoctor/snapshot`; `og-resolver.ts` and `schemas/opengraph.ts` into `@tsdoctor/seo`. `services/PathDerivationService.ts` and the five `layers/*ServiceLive.ts` modules are **deleted** — every layer is a static on its service class. Page generators and `ApiExtractedPackage.extractPlainText` (a distinct `.d.ts` algorithm preserving `{@link}` and code fences) stay plugin-local.
+The former `@tsdoctor/model` shims (`loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`, the class-based `model-loader.ts`) are **deleted** — call sites use the model's namespace modules directly. `multi-entry-resolver.ts`, `route-collisions.ts`, `synthetic-bases.ts` and then `api-extracted-package.ts`, `type-reference-extractor.ts` and `frontmatter.ts` moved into `@tsdoctor/model`; `tsconfig-parser.ts` and `typescript-config.ts` into `@tsdoctor/vfs`; `content-hash.ts` and `migrations/` into `@tsdoctor/snapshot`; `og-resolver.ts` and `schemas/opengraph.ts` into `@tsdoctor/seo`. `services/PathDerivationService.ts` and the five `layers/*ServiceLive.ts` modules are **deleted** — every layer is a static on its service class. Page generators stay plugin-local, and so does `category-resolver.ts`: it merges sidebar presentation and multiVersion product policy, not model vocabulary.
 
 Barrel modules are avoided here. A barrel counts as a consumer of everything it re-exports, hiding unused exports from any reachability check — deleting `schemas/index.ts` and `markdown/index.ts` immediately surfaced an orphan a first scan had scored live. Do not add one back.
 

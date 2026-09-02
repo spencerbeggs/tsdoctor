@@ -1,3 +1,4 @@
+import { decodeCompilerOptions } from "@tsdoctor/vfs";
 import { describe, expect, it } from "vitest";
 import { PluginEvent } from "../src/observability/events.js";
 import { installSyncEmitterUnsafe } from "../src/observability/sync-emitter.js";
@@ -100,14 +101,22 @@ describe("environment deduplication across compiler-option spellings", () => {
 		const manager = new TwoslashEnvironmentRegistry();
 		const vfs = new Map<string, string>([["node_modules/x/index.d.ts", "export declare const x: number;"]]);
 
-		// The same configuration in the two spellings that reach this code: the
-		// tsconfig form a hand-authored `compilerOptions` uses, and the file-name
-		// form `ts.parseJsonConfigFileContent` produces from a discovered
-		// tsconfig. Fingerprinting before the conversion would build two
-		// identical TypeScript environments — a silent cache regression that
-		// costs a full extra type-check pass per multi-API site.
-		const tsconfigSpelling = { target: 99, lib: ["ESNext", "DOM"] };
-		const fileNameSpelling = { target: 99, lib: ["lib.esnext.d.ts", "lib.dom.d.ts"] };
+		// The same configuration in the two spellings a user may write it: the
+		// short tsconfig form, and the lib file-name form. They must end up in ONE
+		// environment — two would be a silent cache regression costing a full
+		// extra type-check pass per multi-API site.
+		//
+		// The convergence now happens at DECODE rather than at fingerprint time:
+		// `decodeCompilerOptions` normalizes both to the canonical spelling, so
+		// this asserts the property end to end, through the door a user's options
+		// actually come in by.
+		const decode = (input: Record<string, unknown>) => {
+			const result = decodeCompilerOptions(input);
+			if (result._tag === "Failure") throw new Error(String(result.failure));
+			return result.success;
+		};
+		const tsconfigSpelling = decode({ target: "ESNext", lib: ["ESNext", "DOM"] });
+		const fileNameSpelling = decode({ target: 99, lib: ["lib.esnext.d.ts", "lib.dom.d.ts"] });
 
 		manager.registerEnvironment({ vfs, compilerOptions: tsconfigSpelling });
 		manager.registerScope("alpha", tsconfigSpelling);
@@ -124,10 +133,10 @@ describe("environment deduplication across compiler-option spellings", () => {
 		const manager = new TwoslashEnvironmentRegistry();
 		const vfs = new Map<string, string>();
 
-		manager.registerEnvironment({ vfs, compilerOptions: { target: 99, strict: false } });
-		manager.registerScope("lenient", { target: 99, strict: false });
-		manager.registerEnvironment({ vfs, compilerOptions: { target: 99, strict: true } });
-		manager.registerScope("strict", { target: 99, strict: true });
+		manager.registerEnvironment({ vfs, compilerOptions: { target: "esnext" as const, strict: false } });
+		manager.registerScope("lenient", { target: "esnext" as const, strict: false });
+		manager.registerEnvironment({ vfs, compilerOptions: { target: "esnext" as const, strict: true } });
+		manager.registerScope("strict", { target: "esnext" as const, strict: true });
 
 		expect(manager.transformerFor("strict")).not.toBe(manager.transformerFor("lenient"));
 	});
@@ -145,8 +154,8 @@ describe("type route lifecycle", () => {
 		// would break. Route clearing is exercised end to end by the plugin
 		// calling it in `config()`.
 		const manager = new TwoslashEnvironmentRegistry();
-		manager.registerEnvironment({ vfs: new Map(), compilerOptions: { target: 99 } });
-		manager.registerScope("alpha", { target: 99 });
+		manager.registerEnvironment({ vfs: new Map(), compilerOptions: { target: "esnext" as const } });
+		manager.registerScope("alpha", { target: "esnext" as const });
 		addTypeRoutes(new Map([["StaleType", "/api/class/staletype"]]));
 
 		const before = manager.transformerFor("alpha");

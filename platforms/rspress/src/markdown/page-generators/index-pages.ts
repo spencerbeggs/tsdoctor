@@ -1,4 +1,4 @@
-import { emitFrontmatterBlock } from "../../frontmatter.js";
+import { emitFrontmatterBlock } from "@tsdoctor/model";
 
 /**
  * Generator for main API index page with only frontmatter (no content)

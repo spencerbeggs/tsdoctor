@@ -23,16 +23,18 @@ import type {
 	TypeParameter,
 } from "@microsoft/api-extractor-model";
 import { ApiItemKind, ApiModel, ExcerptTokenKind } from "@microsoft/api-extractor-model";
-import { VirtualPackage } from "@tsdoctor/registry";
+import { VirtualPackage } from "@tsdoctor/vfs";
 
 /**
  * Reconstructs TypeScript declaration files from an API Extractor model.
  *
- * Extends {@link VirtualPackage} with the ability to generate high-fidelity
+ * Extends `VirtualPackage` with the ability to generate high-fidelity
  * `.d.ts` output from API Extractor's `ApiPackage` — including enum values,
  * full JSDoc, namespace members, and all interface member kinds.
  *
- * Use the factory methods {@link fromApiModel} or {@link fromPackage} to create instances.
+ * Use the factory methods `fromApiModel` or `fromPackage` to create instances.
+ *
+ * @public
  */
 export class ApiExtractedPackage extends VirtualPackage {
 	readonly apiPackage: ApiPackage;
@@ -69,16 +71,6 @@ export class ApiExtractedPackage extends VirtualPackage {
 			entries.set(fileName, scratch.generateDeclarations(ep));
 		}
 		return new ApiExtractedPackage(apiPackage, packageName, entries);
-	}
-
-	/**
-	 * Generate the VFS map for this package (`node_modules/<name>/...`).
-	 *
-	 * Delegates to the v2 {@link VirtualPackage.toVfs}; kept under the v1 name
-	 * because the config layer and tests consume it as `generateVfs()`.
-	 */
-	generateVfs(): Map<string, string> {
-		return this.toVfs();
 	}
 
 	/**
@@ -718,6 +710,19 @@ export class ApiExtractedPackage extends VirtualPackage {
 
 	/**
 	 * Recursively extract plain text from a TSDoc DocNode tree.
+	 *
+	 * @remarks
+	 * NOT interchangeable with this package's `Tsdoc` prose extraction, despite
+	 * the overlapping name and shape. This one **preserves** `{@link X.Y}` TSDoc
+	 * syntax and reconstructs fenced code blocks, because its output is a
+	 * `.d.ts` file whose JSDoc must survive round-tripping into a virtual
+	 * TypeScript environment. `Tsdoc`'s flattens `{@link}` to its display text
+	 * and drops code fences, because its output is rendered prose.
+	 *
+	 * They looked like duplicates from two packages away and now sit in one, so
+	 * this is the note that should stop the merge: collapsing them would either
+	 * put display text where a declaration reference belongs, or leak link
+	 * syntax into rendered documentation.
 	 */
 	private extractPlainText(node: unknown): string {
 		// biome-ignore lint/suspicious/noExplicitAny: TSDoc node types require dynamic access

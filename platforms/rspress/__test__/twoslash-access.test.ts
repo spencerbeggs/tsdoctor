@@ -27,8 +27,8 @@ import {
 } from "../src/twoslash-access.js";
 
 const VFS = new Map([["node_modules/pkg/index.d.ts", "export declare const a: number;"]]);
-const STRICT = { target: 99, strict: true };
-const LOOSE = { target: 99, strict: false };
+const STRICT = { target: "esnext" as const, strict: true };
+const LOOSE = { target: "esnext" as const, strict: false };
 
 /** Build a registry through the real layer, populate it, and install it. */
 function installed(register: (svc: TwoslashEnvironmentsShape) => void): TwoslashEnvironmentsShape {

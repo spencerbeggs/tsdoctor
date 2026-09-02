@@ -2,8 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { TsConfigParseError, parseTsConfig } from "../src/tsconfig-parser.js";
-import { toProgrammaticCompilerOptions } from "../src/twoslash-transformer.js";
+import { TsConfigParseError, parseTsConfig, toProgrammaticCompilerOptions } from "../src/index.js";
 
 describe("parseTsConfig", () => {
 	let tempDir: string;

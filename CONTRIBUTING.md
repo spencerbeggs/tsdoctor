@@ -27,7 +27,7 @@ pnpm run test    # run the full test suite
 
 ## Repository layout
 
-- `packages/` — the publishable framework-neutral `@tsdoctor/*` libraries (`model`, `registry`, `bundle`, `snapshot`).
+- `packages/` — the publishable framework-neutral `@tsdoctor/*` libraries (`model`, `registry`, `vfs`, `bundle`, `snapshot`, `seo`).
 - `platforms/` — framework adapters; `platforms/rspress/` is the publishable `rspress-plugin-api-extractor`.
 - `modules/` — private fixture libraries that build the `.api.json` models the sites consume.
 - `sites/` — private RSPress fixture sites, one per supported plugin configuration.

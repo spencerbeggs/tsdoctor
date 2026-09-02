@@ -2,17 +2,16 @@
 
 import { Markdown, Mdast } from "@effected/markdown";
 import type { ProgrammaticCompilerOptions } from "@effected/tsconfig-json";
-import { TsEnumCodec } from "@effected/tsconfig-json";
 import { rendererRich, transformerTwoslash } from "@shikijs/twoslash";
+import type { TypeResolutionCompilerOptions } from "@tsdoctor/vfs";
+import { DEFAULT_COMPILER_OPTIONS, toProgrammaticCompilerOptions } from "@tsdoctor/vfs";
 import { Result } from "effect";
 import type { ElementContent } from "hast";
 import { toHast } from "mdast-util-to-hast";
 import type { ShikiTransformer } from "shiki";
-import type { TypeResolutionCompilerOptions } from "./internal-types.js";
 import { PluginEvent } from "./observability/events.js";
 import { emitSync, syncBuildId } from "./observability/sync-emitter.js";
 import type { RegisterEnvironmentOptions } from "./services/TwoslashEnvironments.js";
-import { DEFAULT_COMPILER_OPTIONS } from "./typescript-config.js";
 
 /**
  * Module-level type routes map for resolving link references.
@@ -275,47 +274,6 @@ function renderMarkdownInline(markdown: string, context: string): ElementContent
 	];
 }
 /**
- * Singleton manager for the Twoslash transformer, enabling type-aware documentation.
- *
- * The TwoslashManager initializes and manages a Shiki transformer that provides
- * TypeScript IntelliSense features (hover types, error highlighting, completions)
- * in documentation code blocks. It uses a virtual file system (VFS) to provide
- * type definitions without requiring actual file system access.
- *
- * **How it works:**
- * 1. Plugin initializes the manager with a VFS containing all package type definitions
- * 2. Code blocks marked with `twoslash` are processed by the transformer
- * 3. TypeScript language services provide hover information and error checking
- * 4. Results are rendered as HTML with interactive hover popups
- *
- * **VFS Integration:**
- * The VFS is populated by {@link TypeRegistryService} with:
- * - The documented package's own type definitions (from API Extractor)
- * - External package types (fetched via @tsdoctor/registry)
- *
- * **Error Handling:**
- * TypeScript errors in code blocks are captured (not thrown) and:
- * - Counted via Effect Metric (BuildMetrics.twoslashErrors)
- * - Logged inline via console.error
- * - Displayed in the rendered output as error annotations
- *
- * **Relationships:**
- * - Initialized by {@link ApiExtractorPlugin} in the beforeBuild hook
- * - Receives VFS from {@link TypeRegistryService}
- * - The transformer is used by page generators for rendering code blocks
- *
- * @example
- * ```ts
- * const manager = TwoslashManager.getInstance();
- * manager.initialize(vfs, undefined, logger);
- *
- * const transformer = manager.getTransformer();
- * // Use transformer with Shiki highlighter
- * ```
- *
- * @see {@link TypeRegistryService} for VFS generation
- */
-/**
  * Fingerprint a compiler configuration so environments can be deduped and code
  * blocks routed to the right one. Keys are sorted, so two configurations that
  * differ only in property order share an environment.
@@ -338,9 +296,6 @@ function renderMarkdownInline(markdown: string, context: string): ElementContent
  * environment, not the raw default), so a synthetic test compiling each
  * resolution path through the real compiler is the only verification there is.
  */
-export function toProgrammaticCompilerOptions(options: TypeResolutionCompilerOptions): ProgrammaticCompilerOptions {
-	return TsEnumCodec.encodeCompilerOptions(options as never);
-}
 
 /**
  * Fingerprint a compiler configuration, for keying the environment map.

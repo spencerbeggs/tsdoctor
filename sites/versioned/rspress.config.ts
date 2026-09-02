@@ -18,7 +18,7 @@ export default defineConfig({
 	},
 	plugins: [
 		ApiExtractorPlugin({
-			logLevel: "info",
+			observability: { logLevel: "info" },
 			api: {
 				packageName: "versioned-module",
 				versions: {

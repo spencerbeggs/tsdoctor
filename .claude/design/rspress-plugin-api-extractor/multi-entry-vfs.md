@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: source-mapping
 created: 2026-05-26
-updated: 2026-08-25
-last-synced: 2026-08-25
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 85
 related:
   - rspress-plugin-api-extractor/multi-entry-point-support.md
@@ -25,9 +25,9 @@ For deduplication and route-collision handling in the documentation pipeline, se
 
 ## ApiExtractedPackage
 
-`ApiExtractedPackage` (`src/api-extracted-package.ts`) extends `VirtualPackage` from `@tsdoctor/registry` (formerly `type-registry-effect`; "v2" below refers to that library line, whose semantics carry into `@tsdoctor/registry` unchanged). It overrides declaration generation to emit high-fidelity `.d.ts` output from an `ApiPackage` — enum values, full JSDoc, namespace members and all interface member kinds — while delegating the VFS map and `package.json` synthesis to the base class.
+`ApiExtractedPackage` (`packages/model/src/ApiExtractedPackage.ts`, moved there from the adapter in the Tier 1 core moves) extends `VirtualPackage` from `@tsdoctor/vfs` ("v2" below refers to the `type-registry-effect@2` line this class came from, whose semantics carry into `@tsdoctor/vfs` unchanged). It overrides declaration generation to emit high-fidelity `.d.ts` output from an `ApiPackage` — enum values, full JSDoc, namespace members and all interface member kinds — while delegating the VFS map and `package.json` synthesis to the base class.
 
-In v2, `VirtualPackage` is a **Schema class exported directly** (there is no enclosing namespace, so it is imported as `import { VirtualPackage } from "@tsdoctor/registry"`). Its constructor takes a single props object — `super({ name, version, entries })` — and validates at construction time, which means the entries map must be complete before `super` runs.
+`VirtualPackage` moved from `@tsdoctor/registry` to `@tsdoctor/vfs` in the Tier 1 core moves; it had no consumers inside the registry, and both the registry and `@tsdoctor/model` need it. In v2, `VirtualPackage` is a **Schema class exported directly** (there is no enclosing namespace, so it is imported as `import { VirtualPackage } from "@tsdoctor/vfs"`). Its constructor takes a single props object — `super({ name, version, entries })` — and validates at construction time, which means the entries map must be complete before `super` runs.
 
 Factory methods:
 
@@ -36,7 +36,7 @@ Factory methods:
 
 `fromPackage` walks the package's entry points, derives each entry's file name (`index.d.ts` for the main entry, `<name>.d.ts` for named entries) and calls `generateDeclarations(entryPoint)` for each. Because declaration generation is an instance method but the instance cannot be constructed without its entries, `fromPackage` uses a **scratch-instance pattern**: it constructs a throwaway `ApiExtractedPackage` with a placeholder entries map (`[["index.d.ts", ""]]`), uses that scratch instance's `getEntryPointName` / `generateDeclarations` to build the real entries map, then constructs the returned instance from it. This replaces the v1 trick of constructing with an empty map and mutating it afterwards, which the v2 Schema validation forbids.
 
-`generateVfs()` is retained as a thin wrapper over v2's `toVfs()`, because the config layer and tests consume it under the v1 name.
+The `generateVfs()` wrapper that used to shadow `toVfs()` under the v1 name is **deleted**; callers use `toVfs()` directly.
 
 ### Excerpt rendering and reference fidelity
 
@@ -49,7 +49,7 @@ Declaration excerpts are rendered through a private `renderExcerpt` (token-by-to
 
 ## VFS layout
 
-`generateVfs()` (the plugin's wrapper over `VirtualPackage.toVfs()`) returns a `Map<string, string>` prefixed with `node_modules/<package>/`:
+`VirtualPackage.toVfs()` returns a `Vfs` (a `Map<string, string>`) prefixed with `node_modules/<package>/`:
 
 ```text
 Single entry point:
@@ -66,11 +66,11 @@ node_modules/my-package/
        "./testing": { "types": "./testing.d.ts" } } }
 ```
 
-The `types`-vs-`exports` decision lives in `VirtualPackage.toPackageJson()` in `@tsdoctor/registry` (since v2; v1 called it `generatePackageJson()`), driven by how many entries the package has, and is invoked from `toVfs()`. `ApiExtractedPackage` only supplies the entries map; it does not build `package.json` itself. v2 also throws on two structural errors the plugin must avoid: declaring `package.json` as an entry, and two entry file names that normalize to the same export key.
+The `types`-vs-`exports` decision lives in `VirtualPackage.toPackageJson()` in `@tsdoctor/vfs` (since v2; v1 called it `generatePackageJson()`), driven by how many entries the package has, and is invoked from `toVfs()`. `ApiExtractedPackage` only supplies the entries map; it does not build `package.json` itself. v2 also throws on two structural errors the plugin must avoid: declaring `package.json` as an entry, and two entry file names that normalize to the same export key.
 
 ## Import prepending
 
-`generateVfs()` emits declarations only. External type references (e.g. `ZodType` from `zod`) still need `import type` statements, which are prepended afterward by `prependImportsToVfs` in `layers/config-resolution.ts`. See `import-generation-system.md`.
+`toVfs()` emits declarations only. External type references (e.g. `ZodType` from `zod`) still need `import type` statements, which are prepended afterward by `prependImportsToVfs` in `layers/config-resolution.ts`. See `import-generation-system.md`.
 
 ## Backward compatibility
 

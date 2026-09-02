@@ -138,7 +138,7 @@ export function generateApiDocs(
 		// It replaces a single instance mutated per API by `reinitialize()`: with
 		// two APIs in one build, whichever resolved last owned `currentApiScope`,
 		// so a code block could be linked against another package's routes.
-		const shikiCrossLinker = ShikiCrossLinker.fromRoutes(crossLinkData.routes, crossLinkData.kinds, apiScope);
+		const shikiCrossLinker = ShikiCrossLinker.fromRoutes(crossLinkData.routes, apiScope);
 		addTypeRoutes(crossLinkData.routes);
 
 		// Register VFS config for the remark plugin. The highlighter comes from

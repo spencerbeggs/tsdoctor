@@ -36,8 +36,9 @@ Workspace globs (`pnpm-workspace.yaml`): `modules/*`, `packages/*`,
 | Workspace | Package Name | Private | Purpose |
 | --------- | ------------ | ------- | ------- |
 | `platforms/rspress/` | `rspress-plugin-api-extractor` | Publishable | The RSPress adapter (main plugin) |
-| `packages/registry/` | `@tsdoctor/registry` | Publishable | External type loading, VFS, Twoslash environments |
-| `packages/model/` | `@tsdoctor/model` | Publishable | api.json loading, TSDoc extraction, routes, signatures, markdown rendering |
+| `packages/vfs/` | `@tsdoctor/vfs` | Publishable | VFS primitives: `Vfs`, `VirtualPackage`, `TsEnvironment`, the compiler-options seam |
+| `packages/registry/` | `@tsdoctor/registry` | Publishable | External type loading: fetch, cache and resolve package types into a `Vfs` |
+| `packages/model/` | `@tsdoctor/model` | Publishable | api.json loading, TSDoc extraction, routes, signatures, `.d.ts` reconstruction, frontmatter, markdown rendering |
 | `packages/bundle/` | `@tsdoctor/bundle` | Publishable | Bundle spec: `tsdoctor.json` manifest, provenance resolver, discovery, fetchers |
 | `packages/snapshot/` | `@tsdoctor/snapshot` | Publishable | Incremental-build snapshot store (SQLite via `@effected/store`) + content hashing |
 | `packages/seo/` | `@tsdoctor/seo` | Publishable | Framework-neutral `<head>` metadata: `HeadTag`, canonical, OG/Twitter, attribution, JSON-LD |
@@ -60,7 +61,7 @@ The publishable plugin (`rspress-plugin-api-extractor`). Builds via
 `build()` from `@savvy-web/rspress-builder`
 (`platforms/rspress/savvy.build.ts`); the runtime is emitted bundleless
 per-file under `dist/<mode>/pkg/runtime/` (see `platforms/rspress/CLAUDE.md`).
-Depends on all five `@tsdoctor/*` core workspaces via `workspace:*`.
+Depends on all six `@tsdoctor/*` core workspaces via `workspace:*`.
 Exports three entry points:
 
 - `.` — Main plugin (per-file output under `dist/<mode>/pkg/`)
@@ -75,9 +76,18 @@ read each package's own `CLAUDE.md` before working in it.
 
 **model** is the one to know: Effect v4 namespace modules (`Model`, `Tsdoc`,
 `ApiItems`, `EntryPoints`, `Routes`, `SyntheticBases`, `Signature`, `Render`,
-`CrossLinker`). `Routes.sanitizeId` is the **single** anchor algorithm —
+`CrossLinker`) plus `ApiExtractedPackage`, `TypeReferenceExtractor` and the
+`Frontmatter` contract, all three lifted out of the adapter.
+`Routes.sanitizeId` is the **single** anchor algorithm —
 `Routes.memberAnchors`/`memberRouteKeys` (and the `ApiItems` views of them)
 own member anchors and cross-link keys. Never add a second spelling.
+
+**vfs** is the substrate **registry** and **model** share so neither depends on
+the other: the `Vfs` currency type, `VirtualPackage`, `TsEnvironment`, and the
+compiler-options seam (`parseTsConfig`, `resolveTypeScriptConfig`,
+`toProgrammaticCompilerOptions`, `DEFAULT_COMPILER_OPTIONS`). `typescript`,
+`@typescript/vfs` and `@effected/tsconfig-json` are optional peers there and
+nowhere else in the core.
 
 **seo** owns every `<head>` concern behind one seam, `Seo.headTags(input)`,
 returning a neutral `HeadTag[]` an adapter merely renders. The package decides
@@ -131,10 +141,10 @@ The plugin uses **Effect v4** (`effect@4.0.0-rc.109`, pinned through the
   `@effect/sql-sqlite-node` directly
 
 See `platforms/rspress/CLAUDE.md` for detailed service layer documentation.
-External type loading flows through the `@tsdoctor/registry` workspace,
-model/TSDoc concerns through `@tsdoctor/model`, bundle discovery/fetching
-through `@tsdoctor/bundle`, snapshot tracking through `@tsdoctor/snapshot`,
-and every `<head>` tag through `@tsdoctor/seo`.
+External type loading flows through the `@tsdoctor/registry` workspace over
+`@tsdoctor/vfs` primitives, model/TSDoc concerns through `@tsdoctor/model`,
+bundle discovery/fetching through `@tsdoctor/bundle`, snapshot tracking through
+`@tsdoctor/snapshot`, and every `<head>` tag through `@tsdoctor/seo`.
 
 ### @effected Distribution and Dogfooding
 
@@ -221,14 +231,14 @@ pre-phase-4 adapter refactor are executed; phases 5–6 are planned):
 ### How `private: true` Works
 
 The source `package.json` in each publishable workspace (`platforms/rspress/`
-and the five `packages/*`) is marked `"private": true` — **this is intentional
+and the six `packages/*`) is marked `"private": true` — **this is intentional
 and correct**. `publishConfig` controls publishing; never set
 `"private": false` in the source manifest. The savvy-web builders transform
 `package.json` during build.
 
 ### Publish Targets
 
-All six publishable workspaces publish to the **npm registry** only
+All seven publishable workspaces publish to the **npm registry** only
 (`publishConfig.targets` = `{ npm: true }`), with provenance attestation
 enabled.
 

@@ -2,11 +2,11 @@ import type { PathLike } from "node:fs";
 import path from "node:path";
 import { PackageManifest } from "@effected/package-json";
 import type { ApiEntryPoint, ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
-import type { VirtualFileSystem } from "@tsdoctor/registry";
+import { ApiExtractedPackage, TypeReferenceExtractor } from "@tsdoctor/model";
 import { deriveSiteUrl } from "@tsdoctor/seo";
 import { hashContent } from "@tsdoctor/snapshot";
+import type { Vfs } from "@tsdoctor/vfs";
 import { Effect, Metric } from "effect";
-import { ApiExtractedPackage } from "../api-extracted-package.js";
 import { BuildId } from "../BuildEnv.js";
 import { CategoryResolver } from "../category-resolver.js";
 import {
@@ -37,7 +37,6 @@ import { DEFAULT_CATEGORIES } from "../schemas/config.js";
 import type { ConfigServiceShape, ResolvedApiConfig, RspressConfigSubset } from "../services/ConfigService.js";
 import { PluginConfig } from "../services/PluginConfig.js";
 import { TypeRegistryService } from "../services/TypeRegistryService.js";
-import { TypeReferenceExtractor } from "../type-reference-extractor.js";
 import type { ApiResultAccumulator, VfsEntryPayload } from "./api-results.js";
 import { emitVfsPayloadEvents, mergeApiResult } from "./api-results.js";
 import { BuildMetrics } from "./build-metrics.js";
@@ -58,7 +57,7 @@ interface RspressMultiVersion {
  * Returns per-entry payloads for event emission (heavy content/importRefs gated on wantTrace).
  */
 function prependImportsToVfs(
-	vfs: VirtualFileSystem,
+	vfs: Vfs,
 	apiPackage: ApiPackage,
 	packageName: string,
 	wantTrace: boolean,
@@ -387,7 +386,7 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 
 								// Generate virtual file system from API model for Twoslash
 								const pkg = ApiExtractedPackage.fromPackage(apiPackage, api.packageName);
-								const vfs = pkg.generateVfs();
+								const vfs = pkg.toVfs();
 								const vfsPayloads = prependImportsToVfs(vfs, apiPackage, api.packageName, wantTrace);
 
 								// Resolve ogImage with cascading: API > global
@@ -541,7 +540,7 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 
 													// Generate VFS
 													const pkg = ApiExtractedPackage.fromPackage(apiPackage, api.packageName);
-													const vfs = pkg.generateVfs();
+													const vfs = pkg.toVfs();
 													const vfsPayloads = prependImportsToVfs(vfs, apiPackage, api.packageName, wantTrace);
 
 													// Resolve ogImage with cascading: version > API > global

@@ -16,7 +16,7 @@ TypeRegistry                    the facade you call
     └── HttpClient              effect platform
 ```
 
-`TypeResolver` and `TsEnvironment` sit outside the graph. Both are static — `TypeResolver` is pure resolution logic over a manifest, and `TsEnvironment.make` returns an effect with no service requirement — so neither needs a layer.
+`TypeResolver` sits outside the graph. It is static — pure resolution logic over a manifest — so it needs no layer.
 
 ## Composition at the edge
 
@@ -53,11 +53,10 @@ Errors are `Schema.TaggedError` classes with structured fields, and each method'
 | `VersionNotFoundError` | `resolveVersion` | `name`, `ref`, `available` |
 | `TypeCacheError` | `TypeCache` | `operation`, `path`, `cause` |
 | `BatchLoadError` | `getVfs` | one `failures` entry per package |
-| `TsEnvironmentError` | `TsEnvironment.make` | `cause` |
 
 Underlying failures are preserved structurally in `cause` rather than flattened to a string, so a handler can inspect the original `PlatformError` or schema failure.
 
-The division between failures and defects is deliberate. Anything the outside world controls — a 404, an unmatched range, a permissions error, an absent optional peer — is a typed failure. Anything the developer controls — a relative `cacheDir`, a namespace containing a slash, a `VirtualPackage` with no entries — is a defect that dies at construction, because there is no runtime recovery from wiring that is simply wrong.
+The division between failures and defects is deliberate. Anything the outside world controls — a 404, an unmatched range, a permissions error, an absent optional peer — is a typed failure. Anything the developer controls — a relative `cacheDir`, a namespace containing a slash — is a defect that dies at construction, because there is no runtime recovery from wiring that is simply wrong.
 
 ## Load path
 
@@ -67,9 +66,7 @@ The division between failures and defects is deliberate. Anything the outside wo
 
 ## The TypeScript seam
 
-`TsEnvironment` is the only module that touches `typescript` and `@typescript/vfs`, and it imports them lazily inside `make`. A consumer that never builds an environment never loads the compiler, and a consumer that has not installed the optional peers gets a typed `TsEnvironmentError` rather than an import-time crash.
-
-That module is also the one place where IO escapes the `FileSystem` service: `createDefaultMapFromNodeModules` and `createFSBackedSystem` read the real filesystem through TypeScript's own `sys`. This is accepted and contained to that seam.
+There isn't one here. This package never loads the TypeScript compiler: it produces a `Vfs` and stops. Building a `VirtualTypeScriptEnvironment` over that map — and the escape from the `FileSystem` service that comes with it, since TypeScript reads real files through its own `sys` — lives in [`@tsdoctor/vfs`](https://www.npmjs.com/package/@tsdoctor/vfs) behind `TsEnvironment.make`. That is why `typescript` and `@typescript/vfs` are not peers of this package.
 
 ## Entry points
 

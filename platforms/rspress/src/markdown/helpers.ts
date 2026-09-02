@@ -8,12 +8,11 @@
  * @packageDocumentation
  */
 
+import type { ImportStatement } from "@tsdoctor/model";
+import { TypeReferenceExtractor, emitFrontmatterBlock } from "@tsdoctor/model";
 import type { HeadTag } from "@tsdoctor/seo";
-import { emitFrontmatterBlock } from "../frontmatter.js";
 import { formatCode } from "../prettier-formatter.js";
 import { classifyCutDirective, isTwoslashDirective } from "../twoslash-patterns.js";
-import type { ImportStatement } from "../type-reference-extractor.js";
-import { TypeReferenceExtractor } from "../type-reference-extractor.js";
 
 /**
  * Generate an "Available from" line for items exported from multiple entry points.

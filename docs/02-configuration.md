@@ -25,8 +25,6 @@ ApiExtractorPlugin({
 | `errors` | object | `{ example: "show" \| "suppress" }` controls whether code-example type errors surface. |
 | `llmsPlugin` | boolean or object | Enable and configure per-package `llms*.txt` generation. |
 | `observability` | object | Log level, opt-in JSONL trace, and slow-operation thresholds. |
-| `logLevel` | string | Deprecated alias for `observability.logLevel`. |
-| `performance` | object | Deprecated alias for `observability.thresholds`. |
 
 Provide at most one non-empty option between `api` and `apis`. Use `api` for a single package — it also supports RSPress multiVersion through `versions` — and `apis` for a portal that hosts more than one package. To keep the plugin wired up without documenting anything yet, pass an empty value for either key; see [inert configuration](#inert-configuration).
 
@@ -85,6 +83,8 @@ ApiExtractorPlugin({
 `model` (and `packageJson`, `tsconfig`) take a string path, a `URL` or an async loader function that returns the content, so you can fetch a model over the network or generate one on the fly.
 
 With neither `tsconfig` nor `compilerOptions` set, the examples are still type-checked, under the plugin's defaults: ESNext target and module, bundler resolution, non-strict, `lib: ["ESNext", "DOM"]`. `compilerOptions` and a discovered `tsconfig.json` merge over those defaults one option at a time, but an option holding an array replaces the default array outright rather than adding to it — a config declaring `lib: ["esnext"]` drops the DOM globals, so list every lib your examples need.
+
+Compiler options are validated before they reach the type-checker, in either spelling: write `target: "es2022"` as you would in a `tsconfig.json`, or the numeric `ts.ScriptTarget.ES2022` if you are building the object in TypeScript. A value that maps to neither fails the build with a configuration error naming the field, rather than being passed through and quietly changing nothing.
 
 ## Multi-API config (`apis`)
 
@@ -347,11 +347,6 @@ Durations (in milliseconds) for slow-operation warnings:
 | `slowFileOperation` | `50` | A file write exceeding this. |
 | `slowDbOperation` | `100` | A snapshot-store operation exceeding this. |
 
-## Performance (deprecated)
-
-`performance` is a deprecated alias for `observability.thresholds`. Use
-`observability.thresholds` instead. When both are set, `observability` wins.
-
 ## LLMs
 
 `llmsPlugin` turns on per-package `llms.txt`, `llms-full.txt`, `llms-docs.txt` and `llms-api.txt` files, plus the in-page actions that copy or open them. Pass `true` for defaults or an object to configure. The [LLMs guide](./09-llms.md) has the full picture, including the RSPress `llms: true` prerequisite.
@@ -377,16 +372,3 @@ ApiExtractorPlugin({
 | `showViewOptions` | boolean | `true` | Show the view-options dropdown. |
 | `copyButtonText` | string | `"Copy Markdown"` | Copy button label. |
 | `viewOptions` | string array | `["markdownLink", "chatgpt", "claude"]` | Dropdown actions. |
-
-## Logging (deprecated)
-
-`logLevel` is a deprecated top-level alias for `observability.logLevel`. Use
-`observability.logLevel` instead. When both are set, `observability` wins.
-
-```ts
-// Old form — still works, but prefer observability.logLevel
-ApiExtractorPlugin({
-  logLevel: "info",
-  api: { packageName: "my-library", model: "./api/my-library.api.json" },
-});
-```

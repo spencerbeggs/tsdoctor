@@ -4,6 +4,8 @@ import { ApiItemKind } from "@microsoft/api-extractor-model";
 /**
  * Represents a type reference extracted from an API item.
  * Contains information about where the type comes from and how to import it.
+ *
+ * @public
  */
 export interface TypeReference {
 	/**
@@ -36,6 +38,8 @@ export interface TypeReference {
 
 /**
  * Import statement to be generated for a package
+ *
+ * @public
  */
 export interface ImportStatement {
 	/**
@@ -91,6 +95,8 @@ export interface ImportStatement {
  * // import type { ZodType } from "zod";
  * // import type { Effect } from "@effect/schema";
  * ```
+ *
+ * @public
  */
 export class TypeReferenceExtractor {
 	/**

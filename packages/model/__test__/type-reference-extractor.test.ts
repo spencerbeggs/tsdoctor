@@ -2,8 +2,8 @@ import path from "node:path";
 import type { ApiItem, ApiPackage } from "@microsoft/api-extractor-model";
 import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
 import { describe, expect, it } from "vitest";
-import type { ImportStatement } from "../src/type-reference-extractor.js";
-import { TypeReferenceExtractor } from "../src/type-reference-extractor.js";
+import type { ImportStatement } from "../src/index.js";
+import { TypeReferenceExtractor } from "../src/index.js";
 
 const fixtureModel = path.join(import.meta.dirname, "__fixtures__/kitchensink/kitchensink.api.json");
 

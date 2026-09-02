@@ -9,10 +9,11 @@
  * transitive graph loads the whole compiler at config-evaluation time, for a
  * helper whose job is reading three files off disk.
  *
- * This became true when `tsconfig-parser.ts` moved onto
+ * This became true when the tsconfig parser moved onto
  * `@effected/tsconfig-json`, which resolves `extends` chains itself. Before
  * that the parser used `ts.parseJsonConfigFileContent` and the compiler was
- * unavoidable here.
+ * unavoidable here. The parser now lives in `@tsdoctor/vfs`, which guards the
+ * same property on its own side.
  *
  * A `import type` is fine and deliberately allowed: it is erased at compile
  * time and adds nothing at runtime.
@@ -58,21 +59,13 @@ function typescriptValueImports(files: Iterable<string>): string[] {
 }
 
 describe("typescript is not loaded at config-evaluation time", () => {
-	it("tsconfig-parser.ts does not import the compiler at all", () => {
-		// This is what the @effected/tsconfig-json swap bought: the parser used to
-		// call ts.parseJsonConfigFileContent to resolve `extends` chains, so
-		// reading a tsconfig meant loading the whole compiler. The kit resolves
-		// chains itself.
-		expect(typescriptValueImports([path.join(srcDir, "tsconfig-parser.ts")])).toEqual([]);
-	});
-
 	it("config-helpers.ts reaches no value import of typescript", () => {
 		const reachable = transitiveLocalImports(path.join(srcDir, "config-helpers.ts"));
 
 		// Positive control: the walker must actually reach modules, or a clean
-		// result would mean nothing. NOTE this graph is deliberately small and
-		// does NOT include tsconfig-parser, so this assertion does not on its own
-		// cover the parser — the test above does that directly.
+		// result would mean nothing. The parser's own half of this guarantee
+		// moved with it to @tsdoctor/vfs (see that package's
+		// compiler-options-seam test); this graph never included it anyway.
 		expect(reachable.size).toBeGreaterThan(3);
 
 		expect(typescriptValueImports(reachable)).toEqual([]);

@@ -5,7 +5,7 @@
 [![Node.js %3E%3D24.11.0](https://img.shields.io/badge/Node.js-%3E%3D24.11.0-5fa04e.svg)](https://nodejs.org/)
 [![TypeScript 6.0](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg)](https://www.typescriptlang.org/)
 
-Framework-neutral analysis and rendering for Microsoft API Extractor `.api.json` models: Effect-typed loading, pure TSDoc extraction, categorization, multi-entry-point resolution, route/collision computation, synthetic-base detection, type-signature formatting, prose cross-linking and markdown rendering.
+Framework-neutral analysis and rendering for Microsoft API Extractor `.api.json` models: Effect-typed loading, pure TSDoc extraction, categorization, multi-entry-point resolution, route/collision computation, synthetic-base detection, type-signature formatting, prose cross-linking, declaration reconstruction and markdown rendering.
 
 ## Why @tsdoctor/model
 
@@ -23,7 +23,7 @@ pnpm add @tsdoctor/model
 
 Requires Node.js >=24.11.0. This is an ESM-only package.
 
-`@effected/markdown` and `effect` are required peers (`Render` builds its output as `@effected/markdown` node trees). `@effected/package-json` is an optional peer, needed only by the `StructuredData` seam.
+`@effected/markdown`, `@effected/yaml` and `effect` are required peers — `Render` builds its output as `@effected/markdown` node trees, and the frontmatter helpers parse and emit through `@effected/yaml`. [`@tsdoctor/vfs`](https://www.npmjs.com/package/@tsdoctor/vfs) is an ordinary dependency, resolved for you: `ApiExtractedPackage` extends its `VirtualPackage`.
 
 ## Quick start
 
@@ -100,7 +100,9 @@ Supplying `filter` fully replaces the default, so compose it with `Render.isEmit
 - **`Signature`** — `format(excerpt)` turns an API Extractor `Excerpt` into a clean, line-wrapped type signature string; `stripExportDeclare` strips `export`/`declare` modifiers from declaration text.
 - **`CrossLinker`** — an immutable class that wraps known item names in prose with links, skipping code spans and existing links. Build one per build from a precomputed route map (`CrossLinker.fromRoutes`) or from item refs plus an injected URL scheme (`CrossLinker.fromRefs`); `link` returns markdown links, `linkHtml` returns `<a>` anchors.
 - **`Render`** — the markdown output system. `Render.docs(pkg, opts)` renders a whole package; `Render.item(apiItem, opts)` renders one item; `Render.isEmittable` is the default emit rule. `Render.tree` (`@alpha`) exposes the pre-serialization `@effected/markdown` node tree for a future page-IR consumer.
-- **`StructuredData`** (`@alpha`) — a reserved seam for schema.org JSON-LD derivation. `StructuredData.derive` is not implemented yet and throws if called.
+- **`ApiExtractedPackage`** — reconstructs `.d.ts` text from a model and renders it to a `Vfs`, one declaration file per entry point behind a synthetic `package.json`, so a type-checker can resolve the documented package the way a consumer would. Built on `VirtualPackage` from `@tsdoctor/vfs`; `fromApiModel(path)` loads a model file, `fromPackage(apiPackage, name)` takes one already in memory.
+- **`TypeReferenceExtractor`** — finds the types a package's declarations reference but do not own, and emits the `import type` statements those declarations need. `extractImports` covers a package, `extractImportsForEntryPoint` one entry point, and the static `formatImports` renders an `ImportStatement[]` to source lines. Built-in and self-referencing types are filtered out, and a namespaced reference imports its namespace root rather than the leaf member.
+- **Frontmatter** — `parseFrontmatter(text)` splits a document into `{ data, content }`, `stringifyFrontmatter(data)` emits the YAML block, and `emitFrontmatterBlock(data, body)` assembles a whole document. Quoting is chosen so a YAML 1.1 consumer decodes the same values a YAML 1.2 one does — an unquoted ISO timestamp would otherwise arrive as a `Date` in one and a string in the other.
 
 ## License
 

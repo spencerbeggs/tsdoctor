@@ -39,21 +39,8 @@ Some inputs are treated as developer wiring rather than input, and die rather th
 
 - A relative `cacheDir` passed to `TypeCache.layer`, which must be absolute.
 - A `namespace` for `TypeCache.layerXdg` that is empty, `.`, `..`, or contains a path separator.
-- A `VirtualPackage` with no entry files, or with names that collide after extension normalization.
 
 These are not recoverable at runtime, so they surface immediately instead of becoming a typed error you would have to handle at every call site.
-
-## TsEnvironmentError on the first environment build
-
-`typescript`, `@typescript/vfs` and `@effected/tsconfig-json` are optional peers, loaded lazily inside `TsEnvironment.make`. If any of them is missing, the dynamic import fails and surfaces as `TsEnvironmentError` with the import failure in `cause`.
-
-```bash
-npm install --save-optional @effected/tsconfig-json typescript @typescript/vfs
-```
-
-`TsEnvironment` needs the classic compiler and its JavaScript API, so install the `typescript` 6 line. TypeScript 7's native `tsc` ships no JS API and will not work here; if you keep it installed for builds, alias the classic compiler alongside it.
-
-Compiler options are unaffected by which compiler is installed: `compilerOptions` takes tsconfig JSON form from `@effected/tsconfig-json`, so nothing in your own code imports `typescript` to build them.
 
 ## layerXdg fails with a missing @effected/xdg
 
