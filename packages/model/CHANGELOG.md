@@ -1,5 +1,70 @@
 # @tsdoctor/model
 
+## 0.5.0
+
+### Breaking Changes
+
+- Compatibility shims and dead configuration are removed. Nothing here had a consumer outside this repository.
+
+| Removed | Use instead |
+| --- | --- |
+| `VirtualFileSystem` (`@tsdoctor/vfs`) | `Vfs` — it was an alias kept for a finished migration |
+| `ApiExtractedPackage.generateVfs()` (`@tsdoctor/model`) | `toVfs()` — the alias delegated to it |
+| `logLevel` plugin option | `observability.logLevel` |
+| `performance` plugin option | `observability.thresholds` |
+| `VersionConfig.tsconfig` / `VersionConfig.compilerOptions` | nothing — see below |
+
+- `VersionConfig`'s two TypeScript fields are removed rather than deprecated because **nothing ever read them**. `resolveTypeScriptConfig` accepted version-level and package-level configuration, but its single production caller passed neither, and `rawTsConfig` only ever collected those fields from an API config. A version's discovered `tsconfig.json` was silently dropped, so a multi-version site type-checked every version's examples against the default compiler options. The unused cascade levels are gone with them; the cascade is now defaults, global, API.
+
+### Features
+
+- `ApiExtractedPackage` and `TypeReferenceExtractor` move here from the RSPress adapter, where they were framework-neutral code sitting behind a framework-specific package name. Both speak API Extractor's vocabulary, which is this package's domain, and a second adapter would otherwise have to import them from a package named after the first one.
+
+#### `ApiExtractedPackage`
+
+- Reconstructs `.d.ts` files from an `ApiPackage`, extending `VirtualPackage` from `@tsdoctor/vfs`. Emits one declaration file per entry point with enum values, full JSDoc, namespace members and every interface member kind, then renders the set to a `Vfs` with a synthetic `package.json`.
+
+- Two fidelity repairs it carries: `abstract` is propagated onto reconstructed class headers, and dts-rollup's `$N` disambiguation suffixes are stripped from reference tokens when they match the token's canonical symbol. Without either, the generated declarations produce false errors in a virtual TypeScript environment.
+
+- Its private `extractPlainText` is deliberately **not** `Tsdoc`'s prose extraction: it preserves `{@link X.Y}` syntax and reconstructs fenced code blocks, where `Tsdoc`'s flattens links to display text and drops fences. Now that the two live in one package, the declaration site says so.
+
+#### `TypeReferenceExtractor`
+
+- Extracts external type references from an API model and formats them as `import type` statements, so a reconstructed declaration file resolves the types it names. Classifies each canonical reference as built-in, internal or external, and reduces a namespaced reference to its namespace root — the binding that must be in lexical scope.
+
+* `@tsdoctor/model` gains the frontmatter contract: `parseFrontmatter`, `stringifyFrontmatter`, `emitFrontmatterBlock` and `ParsedFrontmatter`, moved from the RSPress adapter. Splitting a markdown document at its fence boundaries and re-joining it is not framework-specific, and a second adapter would need it byte-identical — the frontmatter a page carries feeds the snapshot hash that decides whether the page is rewritten.
+
+* `@tsdoctor/vfs` gains the TypeScript configuration resolution that feeds its environments: `DEFAULT_COMPILER_OPTIONS`, `mergeCompilerOptions`, `resolveTypeScriptConfig` and its two single-config resolvers, plus the `TypeScriptConfig` and `CompilerOptionsInput` types. These sit beside the `TsEnvironment` and the compiler-options seam they configure.
+
+* The Tier 1 plan had deliberately left the cascade in the adapter, on the grounds that an unwired cascade should not be exported into a core package. That objection is gone: the version and package-override levels nothing read were deleted, and what remains is defaults, global, API.
+
+### Refactoring
+
+- The adapter's `internal-types.ts` is down to 40 lines and re-exports the moved types, so its import sites are unchanged.
+
+- `category-resolver.ts` was a Tier 1 candidate and **stays in the adapter**. It merges full category configs — `displayName`, `folderName`, `collapsible` — across a plugin, package and version precedence chain, which is sidebar presentation plus multiVersion product policy rather than model vocabulary. The framework-neutral half already exists as `@tsdoctor/model`'s `CategorySpec`, which is what categorization consumes.
+
+- Verified output-neutral: a cold-cache build of the `multi` fixture site produced the same 230 Twoslash hovers across the same 129 code blocks. [#206][#206]
+
+* Delete `ShikiCrossLinker`'s API-item-kind map. Its only consumer was `getSemanticClass`, a deprecated method whose body was `return null`, so seven call sites computed a class name that could only be null. Removing it took the kinds map, its constructor parameter and the third argument of `fromRoutes` with it.
+* Delete the `DeprecatedConfigUsed` event and the `deprecations` channel that carried it, now that no option is deprecated. An event variant with no emitter is a second vocabulary beside the real one.
+* Delete `PerformanceConfig`, whose only remaining reference was its own test. [#206][#206]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/package-json | peerDependency | removed | catalog:effected | — |
+| @tsdoctor/vfs | dependency | added | — | 0.1.0 |
+
+- `@effected/package-json` is dropped as a peer: it had zero imports in this package, and its only consumer was the `@alpha` `StructuredData` stub that phase 4 deleted. [#206][#206]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#206]: https://github.com/spencerbeggs/tsdoctor/pull/206
+
 ## 0.4.1
 
 ### Bug Fixes

@@ -1,5 +1,86 @@
 # rspress-plugin-api-extractor
 
+## 0.14.0
+
+### Breaking Changes
+
+- Compatibility shims and dead configuration are removed. Nothing here had a consumer outside this repository.
+
+| Removed | Use instead |
+| --- | --- |
+| `VirtualFileSystem` (`@tsdoctor/vfs`) | `Vfs` — it was an alias kept for a finished migration |
+| `ApiExtractedPackage.generateVfs()` (`@tsdoctor/model`) | `toVfs()` — the alias delegated to it |
+| `logLevel` plugin option | `observability.logLevel` |
+| `performance` plugin option | `observability.thresholds` |
+| `VersionConfig.tsconfig` / `VersionConfig.compilerOptions` | nothing — see below |
+
+- `VersionConfig`'s two TypeScript fields are removed rather than deprecated because **nothing ever read them**. `resolveTypeScriptConfig` accepted version-level and package-level configuration, but its single production caller passed neither, and `rawTsConfig` only ever collected those fields from an API config. A version's discovered `tsconfig.json` was silently dropped, so a multi-version site type-checked every version's examples against the default compiler options. The unused cascade levels are gone with them; the cascade is now defaults, global, API.
+
+### Features
+
+- `@tsdoctor/model` gains the frontmatter contract: `parseFrontmatter`, `stringifyFrontmatter`, `emitFrontmatterBlock` and `ParsedFrontmatter`, moved from the RSPress adapter. Splitting a markdown document at its fence boundaries and re-joining it is not framework-specific, and a second adapter would need it byte-identical — the frontmatter a page carries feeds the snapshot hash that decides whether the page is rewritten.
+
+- `@tsdoctor/vfs` gains the TypeScript configuration resolution that feeds its environments: `DEFAULT_COMPILER_OPTIONS`, `mergeCompilerOptions`, `resolveTypeScriptConfig` and its two single-config resolvers, plus the `TypeScriptConfig` and `CompilerOptionsInput` types. These sit beside the `TsEnvironment` and the compiler-options seam they configure.
+
+- The Tier 1 plan had deliberately left the cascade in the adapter, on the grounds that an unwired cascade should not be exported into a core package. That objection is gone: the version and package-override levels nothing read were deleted, and what remains is defaults, global, API.
+
+### Bug Fixes
+
+- User-supplied `compilerOptions` are now **decoded rather than cast**. They arrive from plugin config as `unknown` and were asserted into the internal options type at the boundary, so a value the compiler could not act on reached the TypeScript environment unchecked. They now decode through `@tsdoctor/vfs`'s `decodeCompilerOptions`, and a value that cannot be mapped fails as a `ConfigValidationError` — reaching the `issues.json` artifact — instead of silently type-checking every example against something else. The same decode applies to the options returned by a `tsconfig` loader function.
+
+- Both cache-backed layers swallowed **interruption**. They degraded a failed cache construction with `Layer.catchCause`, which catches every cause — so a fiber being shut down was handed a working degraded cache instead of the interrupt propagating. The hand-written form got the hard half right (a sqlite driver reports construction failure as a *defect*, so a failure-only catch would miss the case the posture exists for) and this half wrong. Both now use `@effected/store`'s `Cache.degrading`, which catches failures and defects and propagates interruption.
+
+- A degraded cache and a genuinely cold one used to behave identically — every lookup misses — so a broken Twoslash cache directory read as "no cached results yet" on every build, forever, with the slowdown never explained. The service now surfaces whether the cache degraded at construction, and the console build summary reports which one happened.
+
+### Refactoring
+
+- Delete `ShikiCrossLinker`'s API-item-kind map. Its only consumer was `getSemanticClass`, a deprecated method whose body was `return null`, so seven call sites computed a class name that could only be null. Removing it took the kinds map, its constructor parameter and the third argument of `fromRoutes` with it.
+- Delete the `DeprecatedConfigUsed` event and the `deprecations` channel that carried it, now that no option is deprecated. An event variant with no emitter is a second vocabulary beside the real one.
+- Delete `PerformanceConfig`, whose only remaining reference was its own test. [#206][#206]
+
+#### The compiler-options seam moves to `@tsdoctor/vfs`
+
+- `tsconfig-parser.ts`, the whitelist type and `toProgrammaticCompilerOptions` now sit beside the `TsEnvironment` they configure. `DEFAULT_COMPILER_OPTIONS` is written entirely in the canonical tsconfig spelling; it previously mixed numeric enums for `target`/`module`/`moduleResolution` with tsconfig strings for `lib`, which is the confusion the decode step removes. The encoded values are unchanged, and a cold-cache build of the `multi` fixture site produced the same 230 Twoslash hovers across the same 129 code blocks as before. `TypeScriptConfig.compilerOptions` is typed as untrusted input rather than as the decoded options, so the two shapes can no longer be confused at a call site.
+
+#### Model handling moves to `@tsdoctor/model`
+
+- `ApiExtractedPackage` and `TypeReferenceExtractor` are imported from `@tsdoctor/model` rather than carried here. Both were framework-neutral — no RSPress, React, Shiki or HAST references between them — and belong with the rest of the API Extractor model handling. No behaviour change; the page generators, the VFS build and the import prepender call the same code from a new home.
+
+#### Virtual file system primitives move to `@tsdoctor/vfs`
+
+- `VirtualPackage` and the `Vfs` type are imported from `@tsdoctor/vfs` rather than `@tsdoctor/registry`, which no longer carries them — the same values from the same source, under a new package name.
+
+- `TwoslashCacheService` degrades one level down, at the `Cache` rather than around the service, so its separate degraded implementation is gone: the ordinary implementation running over an always-missing cache *is* the degraded behaviour, and a second implementation was only a way for the two to disagree. `TypeRegistryService` keeps a layer-level catch, because its construction can fail outside the cache — the XDG root and the type cache are independent failure sources — but that catch now re-raises an interrupting cause instead of degrading it, rebuilding the interrupt from the original cause's interruptors rather than raising it fresh. `Effect.interrupt` reports the *current* fiber as the interruptor, discarding the one that actually cancelled the build: measured against rc.109 it yields `[1]` where the original was `[4242]`. It misattributes rather than erases, which is the harder failure to notice — an empty interruptor set reads as "no attribution available", a wrong one reads as fact. Both directions are pinned, along with a regression test asserting that a hand-written `catchCause` over an interrupted layer *succeeds*, which is exactly the bug. [#206][#206]
+
+* Two capabilities this repository hand-rolled turn out to already exist in the kit, so both are adopted and the local implementations deleted.
+
+* `parseFrontmatter` now splits fences with `@effected/markdown`'s `FrontmatterSource.split` instead of a hand-rolled scanner emulating gray-matter's `indexOf` quirks. That emulation existed only to keep digests captured under gray-matter stable, which stopped mattering once this repository became the only consumer of those digests. The kit's grammar is strict — a fence line is exactly `---`, an unterminated block is not frontmatter — and every input where the two differ is malformed, which the emitters cannot produce because they go through `FrontmatterSource.join`. The four boundary tests are re-pinned to the strict grammar rather than deleted.
+
+* `hashFrontmatter` now canonicalizes through `@effected/jsonc`'s `JsoncFingerprint` (RFC 8785/JCS), the same spelling `@tsdoctor/bundle` already fingerprints through, rather than `JSON.stringify` plus a hand-rolled recursive key sort. `JSON.stringify` is not a canonical form: it drops `undefined`, turns `NaN` into `null`, and its number and string escaping are not JCS's, so a value it silently altered would have been hashed as something the document did not say. Such a value now fails loudly.
+
+* **Digests are unchanged.** The characterization tests pinning literal digests from before the swap still pass, and a no-change rebuild of the `basic` fixture site reports all 46 files unchanged. [#206][#206]
+
+- The adapter's `internal-types.ts` is down to 40 lines and re-exports the moved types, so its import sites are unchanged.
+
+- `category-resolver.ts` was a Tier 1 candidate and **stays in the adapter**. It merges full category configs — `displayName`, `folderName`, `collapsible` — across a plugin, package and version precedence chain, which is sidebar presentation plus multiVersion product policy rather than model vocabulary. The framework-neutral half already exists as `@tsdoctor/model`'s `CategorySpec`, which is what categorization consumes.
+
+- Verified output-neutral: a cold-cache build of the `multi` fixture site produced the same 230 Twoslash hovers across the same 129 code blocks. [#206][#206]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/model | dependency | updated | 0.4.1 | 0.5.0 |
+| @tsdoctor/registry | dependency | updated | 0.2.2 | 0.3.0 |
+| @tsdoctor/snapshot | dependency | updated | 0.2.2 | 0.2.3 |
+| @tsdoctor/vfs | dependency | added | — | 0.1.0 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#206]: https://github.com/spencerbeggs/tsdoctor/pull/206
+
 ## 0.13.3
 
 ### Dependencies
