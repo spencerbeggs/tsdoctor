@@ -33,7 +33,7 @@ import type {
 	ApiVariable,
 } from "@microsoft/api-extractor-model";
 import { ApiModel } from "@microsoft/api-extractor-model";
-import { parseFrontmatter } from "../../../src/frontmatter.js";
+import { parseFrontmatter } from "@tsdoctor/model";
 import { ClassPageGenerator } from "../../../src/markdown/page-generators/class-page.js";
 import { EnumPageGenerator } from "../../../src/markdown/page-generators/enum-page.js";
 import { FunctionPageGenerator } from "../../../src/markdown/page-generators/function-page.js";

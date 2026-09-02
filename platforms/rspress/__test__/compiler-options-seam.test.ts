@@ -24,10 +24,9 @@
 import path from "node:path";
 import { describe, expect, it } from "@effect/vitest";
 import type { ProgrammaticCompilerOptions } from "@effected/tsconfig-json";
+import { resolveTypeScriptConfig, toProgrammaticCompilerOptions } from "@tsdoctor/vfs";
 import ts from "typescript";
 import type { TypeResolutionCompilerOptions } from "../src/internal-types.js";
-import { toProgrammaticCompilerOptions } from "../src/twoslash-transformer.js";
-import { DEFAULT_COMPILER_OPTIONS, resolveTypeScriptConfig } from "../src/typescript-config.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -62,22 +61,6 @@ const CORE_SOURCE = "const xs: Array<string> = []; const p = Promise.resolve(1);
 const DOM_SOURCE = "const el: HTMLElement | null = null; void el;";
 
 const fixtureTsconfig = path.join(import.meta.dirname, "__fixtures__", "seam-tsconfig", "tsconfig.json");
-
-describe("toProgrammaticCompilerOptions", () => {
-	it("is idempotent — a value already in file-name form survives unchanged", () => {
-		const once = toProgrammaticCompilerOptions({ lib: ["lib.esnext.d.ts"] } as TypeResolutionCompilerOptions);
-		const twice = toProgrammaticCompilerOptions(once as TypeResolutionCompilerOptions);
-		expect(twice.lib).toEqual(once.lib);
-	});
-
-	it("converts the tsconfig spelling to lib file names", () => {
-		const encoded = toProgrammaticCompilerOptions(DEFAULT_COMPILER_OPTIONS);
-		// Not an exact-array assertion — only that every entry names a lib file.
-		for (const entry of encoded.lib ?? []) {
-			expect(entry).toMatch(/^lib\..*\.d\.ts$/);
-		}
-	});
-});
 
 describe("every resolution path produces options a compiler can use", () => {
 	const paths: ReadonlyArray<{ name: string; resolve: () => Promise<TypeResolutionCompilerOptions> }> = [

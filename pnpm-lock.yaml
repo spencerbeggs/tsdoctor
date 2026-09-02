@@ -6,23 +6,23 @@ importers:
   .:
     configDependencies:
       '@effected/pnpm-plugin-effect':
-        specifier: 0.6.15
-        version: 0.6.15
+        specifier: 0.6.16
+        version: 0.6.16
       '@savvy-web/pnpm-plugin-silk':
         specifier: 0.31.2
         version: 0.31.2
 
 packages:
 
-  '@effected/pnpm-plugin-effect@0.6.15':
-    resolution: {integrity: sha512-t2bTXOpewCmV9Wfh41CCiYuS1+SeECm4EZFtsr+QN76QW08nVpIkfH9YyHLlCZjb3kCFqVaK5apprDbAPFfvvg==}
+  '@effected/pnpm-plugin-effect@0.6.16':
+    resolution: {integrity: sha512-AwrRZVU/OEWo3CqiabkCzk4juNOpyl19zw4peTH3rs4d/2jelp7jajrS0oAsBCju+0JUTHAQeZ8oyIO5K8odSw==}
 
   '@savvy-web/pnpm-plugin-silk@0.31.2':
     resolution: {integrity: sha512-/rvfiPgmIetajN84lJuWVGLPDIW3uRq4xl37fjTw/JIZIV/7EXVg1L6O3KyZZgSbGXqIevhDpipJLrA4e6hhFg==}
 
 snapshots:
 
-  '@effected/pnpm-plugin-effect@0.6.15': {}
+  '@effected/pnpm-plugin-effect@0.6.16': {}
 
   '@savvy-web/pnpm-plugin-silk@0.31.2': {}
 
@@ -114,11 +114,11 @@ catalogs:
       specifier: ^0.5.0
       version: 0.5.0
     '@effected/store':
-      specifier: ^0.5.0
-      version: 0.5.0
+      specifier: ^0.6.0
+      version: 0.6.0
     '@effected/tsconfig-json':
-      specifier: ^0.6.1
-      version: 0.6.1
+      specifier: ^0.7.0
+      version: 0.7.0
     '@effected/walker':
       specifier: ^0.5.0
       version: 0.5.0
@@ -132,7 +132,7 @@ catalogs:
 overrides:
   '@microsoft/api-extractor>typescript': ^6.0.3
 
-pnpmfileChecksum: sha256-TNRWLOdMuVHH5Vua1h2+MeiqMvcjvgG7AQu+SXiXZnA=
+pnpmfileChecksum: sha256-oedJQan9Gzsg0ZwqP3EpNmX1iCqA6wBNsTnj7KzmLqw=
 
 importers:
 
@@ -229,10 +229,10 @@ importers:
         version: 0.13.0(effect@4.0.0-rc.109)
       '@effected/store':
         specifier: catalog:effected
-        version: 0.5.0(effect@4.0.0-rc.109)
+        version: 0.6.0(effect@4.0.0-rc.109)
       '@effected/tsconfig-json':
         specifier: catalog:effected
-        version: 0.6.1(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
+        version: 0.7.0(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
       '@effected/walker':
         specifier: catalog:effected
         version: 0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
@@ -261,16 +261,22 @@ importers:
       '@microsoft/tsdoc':
         specifier: ^0.16.0
         version: 0.16.0
+      '@tsdoctor/vfs':
+        specifier: workspace:*
+        version: link:../vfs/dist/dev/pkg
     devDependencies:
       '@effected/markdown':
         specifier: catalog:effected
         version: 0.7.0(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/toml@0.5.0(effect@4.0.0-rc.109))(@effected/yaml@0.12.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
-      '@effected/package-json':
+      '@effected/yaml':
         specifier: catalog:effected
-        version: 0.13.0(effect@4.0.0-rc.109)
+        version: 0.12.0(effect@4.0.0-rc.109)
       '@savvy-web/bundler':
         specifier: ^2.1.29
         version: 2.1.29(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/semver@0.5.0(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(@tsdown/css@0.22.14)(@types/node@26.4.0)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(redis@6.2.1)(tsx@4.23.13)(typescript@6.0.3)
+      '@tsdoctor/snapshot':
+        specifier: workspace:*
+        version: link:../snapshot/dist/dev/pkg
       '@types/node':
         specifier: catalog:build
         version: 26.4.0
@@ -283,6 +289,10 @@ importers:
     publishDirectory: dist/dev/pkg
 
   packages/registry:
+    dependencies:
+      '@tsdoctor/vfs':
+        specifier: workspace:*
+        version: link:../vfs/dist/dev/pkg
     devDependencies:
       '@effect/platform-node':
         specifier: catalog:effect
@@ -298,10 +308,7 @@ importers:
         version: 0.5.0(effect@4.0.0-rc.109)
       '@effected/store':
         specifier: catalog:effected
-        version: 0.5.0(effect@4.0.0-rc.109)
-      '@effected/tsconfig-json':
-        specifier: catalog:effected
-        version: 0.6.1(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
+        version: 0.6.0(effect@4.0.0-rc.109)
       '@effected/xdg':
         specifier: catalog:effected
         version: 0.3.0(@effected/config-file@0.5.2(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/toml@0.5.0(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(@effected/yaml@0.12.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
@@ -311,9 +318,6 @@ importers:
       '@types/node':
         specifier: catalog:build
         version: 26.4.0
-      '@typescript/vfs':
-        specifier: ^1.6.4
-        version: 1.6.4(supports-color@8.1.1)(typescript@6.0.3)
       effect:
         specifier: catalog:effect
         version: 4.0.0-rc.109
@@ -349,15 +353,46 @@ importers:
 
   packages/snapshot:
     devDependencies:
+      '@effected/jsonc':
+        specifier: catalog:effected
+        version: 0.8.1(effect@4.0.0-rc.109)
       '@effected/store':
         specifier: catalog:effected
-        version: 0.5.0(effect@4.0.0-rc.109)
+        version: 0.6.0(effect@4.0.0-rc.109)
       '@savvy-web/bundler':
         specifier: ^2.1.29
         version: 2.1.29(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/semver@0.5.0(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(@tsdown/css@0.22.14)(@types/node@26.4.0)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(redis@6.2.1)(tsx@4.23.13)(typescript@6.0.3)
       '@types/node':
         specifier: catalog:build
         version: 26.4.0
+      effect:
+        specifier: catalog:effect
+        version: 4.0.0-rc.109
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+    publishDirectory: dist/dev/pkg
+
+  packages/vfs:
+    devDependencies:
+      '@effect/vitest':
+        specifier: catalog:effect
+        version: 4.0.0-rc.109(effect@4.0.0-rc.109)(vitest@4.1.11)
+      '@effected/memfs':
+        specifier: catalog:effected
+        version: 0.5.0(effect@4.0.0-rc.109)
+      '@effected/tsconfig-json':
+        specifier: catalog:effected
+        version: 0.7.0(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
+      '@savvy-web/bundler':
+        specifier: ^2.1.29
+        version: 2.1.29(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/semver@0.5.0(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(@tsdown/css@0.22.14)(@types/node@26.4.0)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(redis@6.2.1)(tsx@4.23.13)(typescript@6.0.3)
+      '@types/node':
+        specifier: catalog:build
+        version: 26.4.0
+      '@typescript/vfs':
+        specifier: ^1.6.4
+        version: 1.6.4(supports-color@8.1.1)(typescript@6.0.3)
       effect:
         specifier: catalog:effect
         version: 4.0.0-rc.109
@@ -394,10 +429,10 @@ importers:
         version: 0.5.0(effect@4.0.0-rc.109)
       '@effected/store':
         specifier: catalog:effected
-        version: 0.5.0(effect@4.0.0-rc.109)
+        version: 0.6.0(effect@4.0.0-rc.109)
       '@effected/tsconfig-json':
         specifier: catalog:effected
-        version: 0.6.1(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
+        version: 0.7.0(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
       '@effected/walker':
         specifier: catalog:effected
         version: 0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
@@ -428,6 +463,9 @@ importers:
       '@tsdoctor/snapshot':
         specifier: workspace:*
         version: link:../../packages/snapshot/dist/dev/pkg
+      '@tsdoctor/vfs':
+        specifier: workspace:*
+        version: link:../../packages/vfs/dist/dev/pkg
       '@typescript/vfs':
         specifier: ^1.6.4
         version: 1.6.4(supports-color@8.1.1)(typescript@6.0.3)
@@ -1036,8 +1074,8 @@ packages:
     peerDependencies:
       effect: 4.0.0-rc.109
 
-  '@effected/store@0.5.0':
-    resolution: {integrity: sha512-K5V2lkDbOGZxJgd1521niJEIGs7fJYte+X66432Ez+SnzK0k10iz5Y1i9K21PZYHtZge0PNJey37Qvj+fJBTWQ==}
+  '@effected/store@0.6.0':
+    resolution: {integrity: sha512-fLEsF/xYJ17J1cFk+C6q2oYIrc8AmErL8T6zOgj8rVo4wO4YTccExpfl4NO7CfPbQRTf2F7Bs2qlLzWfVWh4Iw==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       effect: 4.0.0-rc.109
@@ -1059,6 +1097,14 @@ packages:
     engines: {node: '>=24.11.0'}
     peerDependencies:
       '@effected/jsonc': ^0.8.0
+      '@effected/walker': ^0.5.0
+      effect: 4.0.0-rc.109
+
+  '@effected/tsconfig-json@0.7.0':
+    resolution: {integrity: sha512-bONNzAMUKuNPD9b/1YF/Vk4PyXa6xGNa4+ds20EuGvbys921eQXPNbunD/GuVRV//Jxvv1SAn5gmycA4XH816A==}
+    engines: {node: '>=24.11.0'}
+    peerDependencies:
+      '@effected/jsonc': ^0.8.1
       '@effected/walker': ^0.5.0
       effect: 4.0.0-rc.109
 
@@ -5069,7 +5115,7 @@ snapshots:
     dependencies:
       effect: 4.0.0-rc.109
 
-  '@effected/store@0.5.0(effect@4.0.0-rc.109)':
+  '@effected/store@0.6.0(effect@4.0.0-rc.109)':
     dependencies:
       '@effect/sql-sqlite-node': 4.0.0-rc.109(effect@4.0.0-rc.109)
       effect: 4.0.0-rc.109
@@ -5083,6 +5129,12 @@ snapshots:
       effect: 4.0.0-rc.109
 
   '@effected/tsconfig-json@0.6.1(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)':
+    dependencies:
+      '@effected/jsonc': 0.8.1(effect@4.0.0-rc.109)
+      '@effected/walker': 0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
+      effect: 4.0.0-rc.109
+
+  '@effected/tsconfig-json@0.7.0(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)':
     dependencies:
       '@effected/jsonc': 0.8.1(effect@4.0.0-rc.109)
       '@effected/walker': 0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)

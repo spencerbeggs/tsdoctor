@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-08-26
-updated: 2026-08-26
-last-synced: 2026-08-26
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 90
 related:
   - rspress-plugin-api-extractor/roadmap-1.0.md
@@ -314,7 +314,7 @@ The adapter renders a `HeadTag` into an RSPress frontmatter `head` pair in
 value whitespace-normalized exactly as the previous hand-rolled emitter did, so
 the PARSED data — and therefore the snapshot frontmatter hash — is unchanged
 for tags that already existed. Quoting and escaping are the emitter's job
-(`@effected/yaml`, via `frontmatter.ts`).
+(`@effected/yaml`, via `@tsdoctor/model`'s `Frontmatter.ts`).
 
 **A `script` body becomes the `children` attribute.** That is the attribute
 name unhead maps onto `innerHTML` for a `<script>` element, which is how a

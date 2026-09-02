@@ -17,7 +17,7 @@
  */
 
 import type { TwoslashTypesCache } from "@shikijs/twoslash";
-import type { VirtualFileSystem } from "@tsdoctor/registry";
+import type { Vfs } from "@tsdoctor/vfs";
 import { Context, Layer } from "effect";
 import type { ShikiTransformer } from "shiki";
 import type { TypeResolutionCompilerOptions } from "../internal-types.js";
@@ -26,7 +26,7 @@ import { TwoslashEnvironmentRegistry } from "../twoslash-transformer.js";
 /** Everything one Twoslash environment needs to be built. */
 export interface RegisterEnvironmentOptions {
 	/** Declaration files every code block in this environment is checked against. */
-	readonly vfs: VirtualFileSystem;
+	readonly vfs: Vfs;
 	/** The configuration to check under; defaults apply when omitted. */
 	readonly compilerOptions?: TypeResolutionCompilerOptions | undefined;
 	/**

@@ -15,9 +15,7 @@ export default defineConfig({
 	plugins: [
 		ApiExtractorPlugin({
 			apis: ApiExtractorPlugin.apis.fromDir("./lib/models"),
-			observability: {
-				logLevel: "info",
-			},
+			observability: { logLevel: "info" },
 		}),
 	],
 	route: {

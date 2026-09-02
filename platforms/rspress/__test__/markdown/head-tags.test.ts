@@ -13,9 +13,9 @@
  * between a correct graph and a frontmatter block that will not parse.
  */
 
+import { parseFrontmatter } from "@tsdoctor/model";
 import type { HeadTag } from "@tsdoctor/seo";
 import { describe, expect, it } from "vitest";
-import { parseFrontmatter } from "../../src/frontmatter.js";
 import { generateFrontmatter } from "../../src/markdown/helpers.js";
 
 type HeadEntry = [string, Record<string, string>];

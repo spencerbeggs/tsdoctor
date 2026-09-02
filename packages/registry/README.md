@@ -5,11 +5,11 @@
 [![Node.js %3E%3D24.11.0](https://img.shields.io/badge/Node.js-%3E%3D24.11.0-5fa04e.svg)](https://nodejs.org/)
 [![TypeScript 6.0](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg)](https://www.typescriptlang.org/)
 
-TypeScript virtual file systems for Effect: fetch, cache and resolve type definitions from npm via the jsDelivr CDN, and build `@typescript/vfs` environments for Twoslash-style documentation tooling.
+External TypeScript type loading for Effect: fetch, cache and resolve type definitions from npm via the jsDelivr CDN into a `Vfs`, the virtual file system Twoslash-style documentation tooling type-checks against.
 
 ## Why @tsdoctor/registry
 
-Documentation tooling that typechecks code samples needs the declaration files for whatever packages those samples import, and needs them without a real `node_modules`. Fetching them by hand means writing a CDN client, a disk cache with expiry, and a module resolver that understands `exports`, `typesVersions` and the legacy `types` field. This package is those three things behind one service, with typed errors and no hidden IO — every filesystem, HTTP and database dependency is provided by you at the edge.
+Documentation tooling that typechecks code samples needs the declaration files for whatever packages those samples import, and needs them without a real `node_modules`. Fetching them by hand means writing a CDN client, a disk cache with expiry, and a module resolver that understands `exports`, `typesVersions` and the legacy `types` field. This package is those three things behind one service, with typed errors and no hidden IO — every filesystem, HTTP and database dependency is provided by you at the edge. What it produces is a `Vfs` from [`@tsdoctor/vfs`](../vfs), which also owns the virtual-package and `@typescript/vfs` environment primitives — this package fills a VFS, it does not define one.
 
 ## Install
 
@@ -21,13 +21,11 @@ npm install @tsdoctor/registry effect @effect/platform-node @effected/store @eff
 pnpm add @tsdoctor/registry effect @effect/platform-node @effected/store @effected/semver
 ```
 
-Requires Node.js >=24.11.0. Those four peers are required. The rest are optional and pull in only with the feature that uses them:
+Requires Node.js >=24.11.0. Those four peers are required. `@effected/xdg` is optional and pulls in only with the feature that uses it:
 
 ```bash
 # for TypeCache.layerXdg
 npm install @effected/xdg
-# for TsEnvironment.make
-npm install @effected/tsconfig-json typescript @typescript/vfs
 ```
 
 Every dependency here is a peer rather than a bundled dependency, including `@effected/semver`, whose types appear in no exported signature. That is deliberate: each `@effected/*` package pins an exact `effect` version as its own peer, so bundling one would create a second resolution site that can land on a different `effect` build than yours and fail at import. As peers they all resolve in your closure, against your `effect`.
@@ -75,10 +73,8 @@ await Effect.runPromise(program.pipe(Effect.provide(RegistryLayer)));
 - `TypeCache` — a two-plane cache: declaration files on disk, per-package metadata in an `@effected/store` `Cache` with native TTL expiry and pruning.
 - `PackageFetcher` — the jsDelivr-backed CDN client, requiring only an `HttpClient`.
 - `TypeResolver` — static resolution of import specifiers and type entry points against a package manifest, covering `exports`, `typesVersions` and legacy fields.
-- `TsEnvironment` — builds a `VirtualTypeScriptEnvironment` over a VFS from tsconfig-JSON compiler options, loading the optional `typescript` peers lazily so a consumer that never calls it never loads the compiler.
-- `VirtualPackage` — synthesizes a package from locally supplied declaration content, for API Extractor output and hand-written ambient types.
 - `RegistryEvent` and `RegistryObserver` — an opt-in, zero-cost progress channel; the library logs nothing on its own.
-- Typed errors throughout: `FetchError`, `PackageNotFoundError`, `VersionNotFoundError`, `TypeCacheError`, `BatchLoadError`, `TsEnvironmentError`.
+- Typed errors throughout: `FetchError`, `PackageNotFoundError`, `VersionNotFoundError`, `TypeCacheError`, `BatchLoadError`.
 
 ## Documentation
 

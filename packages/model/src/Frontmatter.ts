@@ -35,9 +35,6 @@ const STRINGIFY_OPTIONS = YamlStringifyOptions.make({
 	quoteStyle: "double",
 });
 
-const OPEN_DELIMITER = "---";
-const CLOSE_SEARCH = "\n---";
-
 /**
  * Split markdown source into frontmatter data and body content, preserving
  * gray-matter's exact boundary semantics.
@@ -89,57 +86,25 @@ const CLOSE_SEARCH = "\n---";
  * @public
  */
 export function parseFrontmatter(source: string): ParsedFrontmatter {
-	// gray-matter strips a leading BOM before delimiter detection.
+	// The kit's grammar treats offset 0 as the fence position, so a leading BOM
+	// would hide the block. Strip it first, as gray-matter did.
 	const text = source.charCodeAt(0) === 0xfeff ? source.slice(1) : source;
 
-	if (!text.startsWith(OPEN_DELIMITER)) {
-		return { data: {}, content: text };
+	const split = FrontmatterSource.split(text);
+	if (split.frontmatter === undefined || split.frontmatter.format !== "yaml") {
+		return { data: {}, content: split.body };
+	}
+	if (split.frontmatter.value.trim() === "") {
+		return { data: {}, content: split.body };
 	}
 
-	// The opening line must be exactly `---` (LF, CRLF or EOF after it).
-	const afterOpen = text.charAt(OPEN_DELIMITER.length);
-	if (text === OPEN_DELIMITER) {
-		return { data: {}, content: "" };
-	}
-	if (afterOpen !== "\n" && !(afterOpen === "\r" && text.charAt(OPEN_DELIMITER.length + 1) === "\n")) {
-		// `----`, `---abc` etc. — not a frontmatter block we recognize.
-		return { data: {}, content: text };
-	}
-
-	const fmStart = afterOpen === "\r" ? OPEN_DELIMITER.length + 2 : OPEN_DELIMITER.length + 1;
-	// Search from the opening line's own newline so an immediately-following
-	// closing delimiter (`---\n---`) is found (empty frontmatter block).
-	const closeIndex = text.indexOf(CLOSE_SEARCH, fmStart - 1);
-
-	let frontmatterText: string;
-	let content: string;
-	if (closeIndex === -1) {
-		// No closing delimiter: everything after the opening line is
-		// frontmatter and the body is empty (gray-matter parity).
-		frontmatterText = text.slice(fmStart);
-		content = "";
-	} else {
-		frontmatterText = closeIndex < fmStart ? "" : text.slice(fmStart, closeIndex);
-		let bodyStart = closeIndex + CLOSE_SEARCH.length;
-		// Consume exactly one newline after the closing delimiter.
-		if (text.charAt(bodyStart) === "\r" && text.charAt(bodyStart + 1) === "\n") {
-			bodyStart += 2;
-		} else if (text.charAt(bodyStart) === "\n") {
-			bodyStart += 1;
-		}
-		content = text.slice(bodyStart);
-	}
-
-	if (frontmatterText.trim() === "") {
-		return { data: {}, content };
-	}
-
-	// Invalid YAML dies as a defect, matching gray-matter's synchronous throw.
-	const value = Effect.runSync(Yaml.parse(frontmatterText));
-	// gray-matter maps a null/empty document to {} and passes any other value
-	// (including a scalar document) through unchanged.
+	// Invalid YAML dies as a defect, as the previous gray-matter-parity split
+	// did and as js-yaml's synchronous throw did before that.
+	const value = Effect.runSync(Yaml.parse(split.frontmatter.value));
+	// A null/empty document maps to {}; any other value (including a scalar
+	// document) passes through unchanged.
 	const data = value == null ? {} : (value as Record<string, unknown>);
-	return { data, content };
+	return { data, content: split.body };
 }
 
 /**

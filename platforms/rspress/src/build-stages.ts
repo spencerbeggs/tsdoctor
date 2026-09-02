@@ -11,13 +11,12 @@ import type {
 	ApiVariable,
 } from "@microsoft/api-extractor-model";
 import { ApiItemKind } from "@microsoft/api-extractor-model";
-import { ApiItems, EntryPoints, Routes, SyntheticBases } from "@tsdoctor/model";
+import { ApiItems, EntryPoints, Routes, SyntheticBases, parseFrontmatter, stringifyFrontmatter } from "@tsdoctor/model";
 import type { OpenGraphImageConfig, OpenGraphImageMetadata, PackageContext } from "@tsdoctor/seo";
 import { deriveScriptBody, headTags } from "@tsdoctor/seo";
 import type { FileSnapshot } from "@tsdoctor/snapshot";
 import { SnapshotService, hashContent, hashFrontmatter } from "@tsdoctor/snapshot";
 import { Effect, FileSystem, Metric, Option, Stream } from "effect";
-import { parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
 import { BuildMetrics } from "./layers/build-metrics.js";
 import { generateFrontmatter } from "./markdown/helpers.js";
 import { ClassPageGenerator } from "./markdown/page-generators/class-page.js";

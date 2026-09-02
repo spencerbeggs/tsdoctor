@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: performance
 created: 2026-08-25
-updated: 2026-08-25
-last-synced: 2026-08-25
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 95
 related:
   - rspress-plugin-api-extractor/roadmap-1.0.md
@@ -449,7 +449,7 @@ improvement there measures Rspack's cache, not this one.
 | `src/observability/events.ts` | `CodeBlockProcessed` shape, `CodeBlockComponent`, `TwoslashCacheLoaded`/`TwoslashCacheSaved` |
 | `src/twoslash-cache.ts` | `twoslashEnvHash`, `makeTwoslashCache`, encode/decode |
 | `src/services/TwoslashCacheService.ts` | Load/save contract for a stored generation |
-| `src/services/TwoslashCacheService.ts` | Contract plus `TwoslashCacheService.layer`: XDG sqlite-backed persistence via `@effected/store` `Cache`, acquired at layer construction over `layers/xdg.ts` and degrading via `Layer.catchCause` |
+| `src/services/TwoslashCacheService.ts` | Contract plus `TwoslashCacheService.layer`: XDG sqlite-backed persistence via `@effected/store` `Cache`, acquired at layer construction over `layers/xdg.ts` and degrading via `Cache.degrading` — which, unlike the `Layer.catchCause` it replaced, propagates interruption rather than absorbing it. `CacheShape.degraded` is surfaced on the service shape so the build summary can tell a degraded cache from a cold one |
 | `src/services/TwoslashEnvironments.ts` | The environments that own the `typesCache`-carrying transformers, plus `TwoslashEnvironments.layer` |
 
 ## Related Documentation

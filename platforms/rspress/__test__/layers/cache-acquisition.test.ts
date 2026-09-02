@@ -21,12 +21,22 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "@effect/vitest";
-import type { Layer } from "effect";
-import { Effect, ManagedRuntime } from "effect";
+import { Cache } from "@effected/store";
+import { Cause, Effect, Exit, Layer, ManagedRuntime, Option } from "effect";
 import { TSDOCTOR_NAMESPACE } from "../../src/layers/xdg.js";
 import { TwoslashCacheService } from "../../src/services/TwoslashCacheService.js";
 
-/** Run `body` with XDG pointed at a scratch directory, then clean up. */
+/**
+ * Run `body` with XDG pointed at a scratch directory, then clean up.
+ *
+ * @remarks
+ * **One XDG-resolving test per file.** The resolution is cached for the life of
+ * the module instance, so a second test in the same file gets the FIRST test's
+ * cache home rather than its own — silently, and only when the order puts it
+ * second. That is how the degradation test came to pass in isolation and fail
+ * in place. Vitest isolates by file, so a new file is the unit of isolation
+ * here; adding a second caller below would reintroduce the trap.
+ */
 async function withIsolatedXdg<A>(body: (cacheHome: string) => Promise<A>): Promise<A> {
 	const root = fs.mkdtempSync(path.join(os.tmpdir(), "tsdoctor-xdg-"));
 	const previous = process.env.XDG_CACHE_HOME;
@@ -79,32 +89,116 @@ describe("TwoslashCacheService.layer acquisition", () => {
 			await runtime.dispose();
 		});
 	});
+});
 
-	it("degrades to a cache miss rather than failing when the cache dir is unusable", async () => {
-		await withIsolatedXdg(async (cacheHome) => {
-			// A FILE where the cache directory should be: opening the database
-			// cannot succeed. The contract is that a cache which cannot be read
-			// never fails a build that would otherwise succeed.
-			fs.writeFileSync(path.join(cacheHome, TSDOCTOR_NAMESPACE), "not a directory");
-
-			const runtime = ManagedRuntime.make(TwoslashCacheService.layer);
-			const restored = await runtime
-				.runPromise(
-					Effect.gen(function* () {
-						const svc = yield* TwoslashCacheService;
-						return yield* svc.load("env-a");
-					}),
-				)
-				.catch(() => "layer-construction-failed" as const);
-
-			// Either the layer degrades to an empty map, or it fails at
-			// construction — the second is acceptable and is what the plugin's
-			// try/catch around the build program already handles. What must NOT
-			// happen is a partially-usable service.
-			expect(restored === "layer-construction-failed" || (restored as Map<string, unknown>).size === 0).toBe(true);
-
-			await runtime.dispose().catch(() => undefined);
+describe("Cache.degrading, the posture both cache layers now rely on", () => {
+	// `@effected/store`'s combinator replaced a hand-written `Layer.catchCause`
+	// at both sites. That version was right about defects — `SqliteClient.layer`
+	// reports a driver construction failure as a DEFECT, so a failure-only catch
+	// would miss the case the posture exists for — and wrong about interruption,
+	// which it also swallowed. Handing a working cache back to a fiber that was
+	// being shut down is not a degraded build; it is an ignored interrupt.
+	//
+	// These drive the kit directly rather than our services, because neither
+	// service exposes an injectable inner layer to break — the same shape as the
+	// upstream fixture. What they add is that they run against the build we have
+	// actually linked here.
+	it("substitutes an always-missing cache when construction FAILS", async () => {
+		const Broken = Layer.effect(Cache, Effect.fail(new Error("no cache for you")));
+		const probe = Effect.gen(function* () {
+			const cache = yield* Cache;
+			return yield* cache.get("any-key");
 		});
+		const result = await Effect.runPromise(Effect.provide(probe, Cache.degrading(Broken)));
+		expect(Option.isNone(result)).toBe(true);
+	});
+
+	it("substitutes an always-missing cache when construction DIES", async () => {
+		const Broken = Layer.effect(Cache, Effect.die(new Error("driver blew up")));
+		const probe = Effect.gen(function* () {
+			const cache = yield* Cache;
+			return yield* cache.get("any-key");
+		});
+		const result = await Effect.runPromise(Effect.provide(probe, Cache.degrading(Broken)));
+		expect(Option.isNone(result)).toBe(true);
+	});
+
+	it("propagates INTERRUPTION rather than substituting a cache", async () => {
+		const Interrupted = Layer.effect(Cache, Effect.interrupt);
+		const exit = await Effect.runPromiseExit(Effect.provide(Effect.void, Cache.degrading(Interrupted)));
+		expect(Exit.isFailure(exit)).toBe(true);
+		if (Exit.isFailure(exit)) {
+			expect(Cause.hasInterrupts(exit.cause)).toBe(true);
+		}
+	});
+
+	it("pins the defect: a hand-written catchCause swallows the interrupt", async () => {
+		// This is what both services did before adopting the combinator, and it
+		// is why the fix belonged upstream rather than in a docs recipe: the
+		// version that gets defects right gets this wrong, and nothing in the
+		// build's output distinguishes "cache degraded" from "shutdown ignored".
+		// If this ever starts failing, `Layer.catchCause` grew interruption
+		// awareness and the combinator's interruption half stopped being load-
+		// bearing — worth knowing either way.
+		const Interrupted = Layer.effect(Cache, Effect.interrupt);
+		const swallowing = Interrupted.pipe(
+			Layer.catchCause(() =>
+				Layer.effect(
+					Cache,
+					Effect.sync(() => ({}) as unknown as typeof Cache.Service),
+				),
+			),
+		);
+		const exit = await Effect.runPromiseExit(Effect.provide(Effect.void, swallowing));
+		expect(Exit.isSuccess(exit)).toBe(true);
+	});
+});
+
+describe("re-raising an interrupt preserves who did the interrupting", () => {
+	// `TypeRegistryService` keeps a hand-written interruption-aware catch,
+	// because its construction can fail outside the cache — the XDG root and the
+	// type cache are independent failure sources that `Cache.degrading` does not
+	// reach. That makes it the one place in this tree still carrying the pattern
+	// by hand, so the trap gets pinned here.
+	//
+	// `Effect.interrupt` mints a FRESH interrupt reporting the current fiber as
+	// the interruptor, discarding the fiber that actually cancelled the build.
+	// Rebuilding from the original cause's interruptors keeps it.
+	const reRaise = (cause: Cause.Cause<unknown>) =>
+		Layer.effectContext(Effect.failCause(Cause.interrupt([...Cause.interruptors(cause)][0])));
+
+	it("carries the original interruptor through, not this fiber", async () => {
+		const original = Cause.interrupt(4242);
+		const layer = Layer.effectContext(Effect.failCause(original)).pipe(Layer.catchCause(reRaise));
+		const exit = await Effect.runPromiseExit(Effect.provide(Effect.void, layer));
+		expect(Exit.isFailure(exit)).toBe(true);
+		if (Exit.isFailure(exit)) {
+			expect([...Cause.interruptors(exit.cause)]).toEqual([4242]);
+		}
+	});
+
+	it("pins what the discarded form did: it MISATTRIBUTES, it does not erase", async () => {
+		// `Effect.interrupt` — the form this site used before — reports the
+		// CURRENT fiber as the interruptor. Measured against rc.109 it yields
+		// `[1]`, not `[]`. The distinction matters: an empty interruptor set
+		// looks like "no attribution available", while a populated one that
+		// names the wrong fiber is a confident lie, and confident lies are the
+		// harder failure to notice in a shutdown trace.
+		//
+		// (`Cause.interrupt()` with no argument IS the erasing form, and it is a
+		// different construct — worth keeping straight, because mutating to it
+		// makes the test above fail for the wrong reason.)
+		const original = Cause.interrupt(4242);
+		const layer = Layer.effectContext(Effect.failCause(original)).pipe(
+			Layer.catchCause(() => Layer.effectContext(Effect.interrupt)),
+		);
+		const exit = await Effect.runPromiseExit(Effect.provide(Effect.void, layer));
+		expect(Exit.isFailure(exit)).toBe(true);
+		if (Exit.isFailure(exit)) {
+			const ids = [...Cause.interruptors(exit.cause)];
+			expect(ids).not.toEqual([4242]);
+			expect(ids.length).toBeGreaterThan(0);
+		}
 	});
 });
 

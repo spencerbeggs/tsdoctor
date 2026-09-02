@@ -2,7 +2,7 @@
 	"name": "@tsdoctor/registry",
 	"version": "0.2.2",
 	"private": true,
-	"description": "TypeScript virtual file systems for Effect: fetch, cache and resolve type definitions from npm via the jsDelivr CDN, and build @typescript/vfs environments for Twoslash-style documentation tooling.",
+	"description": "External TypeScript type loading for Effect: fetch, cache and resolve type definitions from npm via the jsDelivr CDN into a virtual file system.",
 	"keywords": ["typescript", "vfs", "twoslash", "types", "jsdelivr", "cache", "effect"],
 	"homepage": "https://github.com/spencerbeggs/tsdoctor#readme",
 	"bugs": {
@@ -31,17 +31,18 @@
 		"prepare": "node savvy.build.ts --target dev",
 		"types:check": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@tsdoctor/vfs": "workspace:*"
+	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:effect",
 		"@effect/vitest": "catalog:effect",
 		"@effected/memfs": "catalog:effected",
 		"@effected/semver": "catalog:effected",
 		"@effected/store": "catalog:effected",
-		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@savvy-web/bundler": "^2.1.29",
 		"@types/node": "catalog:build",
-		"@typescript/vfs": "^1.6.4",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
 	},
@@ -49,23 +50,11 @@
 		"@effect/platform-node": "catalog:effect",
 		"@effected/semver": "catalog:effected",
 		"@effected/store": "catalog:effected",
-		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
-		"@typescript/vfs": "^1.6.4",
-		"effect": "catalog:effect",
-		"typescript": "^6.0.3"
+		"effect": "catalog:effect"
 	},
 	"peerDependenciesMeta": {
-		"@effected/tsconfig-json": {
-			"optional": true
-		},
 		"@effected/xdg": {
-			"optional": true
-		},
-		"@typescript/vfs": {
-			"optional": true
-		},
-		"typescript": {
 			"optional": true
 		}
 	},

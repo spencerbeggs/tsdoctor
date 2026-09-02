@@ -22,8 +22,9 @@ Framework-neutral `@tsdoctor/*` libraries under `packages/`, consumed by the ada
 
 | Package | npm | Description |
 | ------- | --- | ----------- |
-| [@tsdoctor/model](packages/model) | [published](https://www.npmjs.com/package/@tsdoctor/model) | Pure `api.json` loading, TSDoc extraction, type-signature formatting and per-item markdown rendering |
-| [@tsdoctor/registry](packages/registry) | [published](https://www.npmjs.com/package/@tsdoctor/registry) | External package type loading: fetch, cache and resolve type definitions from npm and build `@typescript/vfs` environments for Twoslash tooling |
+| [@tsdoctor/model](packages/model) | [published](https://www.npmjs.com/package/@tsdoctor/model) | Pure `api.json` loading, TSDoc extraction, type-signature formatting, declaration reconstruction and per-item markdown rendering |
+| [@tsdoctor/registry](packages/registry) | [published](https://www.npmjs.com/package/@tsdoctor/registry) | External package type loading: fetch, cache and resolve type definitions from npm into a virtual file system for Twoslash tooling |
+| [@tsdoctor/vfs](packages/vfs) | unreleased | The virtual TypeScript project: the `Vfs` type, declaration-backed virtual packages, `@typescript/vfs` environments and compiler-option resolution |
 | [@tsdoctor/bundle](packages/bundle) | unreleased | The tsdoctor bundle spec: layered bundle discovery, the versioned `tsdoctor.json` sidecar manifest, provenance-carrying resolution and canonical input hashing |
 | [@tsdoctor/snapshot](packages/snapshot) | unreleased | Incremental-build snapshot tracking: a schema-versioned SQLite store of per-file content hashes and timestamps, built on `@effected/store` |
 | [@tsdoctor/seo](packages/seo) | unreleased | Framework-neutral `<head>` metadata: canonical URLs, Open Graph and Twitter cards, package attribution and schema.org JSON-LD, behind one `headTags` seam |

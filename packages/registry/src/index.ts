@@ -9,7 +9,6 @@ export {
 } from "./PackageFetcher.js";
 export { PackageSpec } from "./PackageSpec.js";
 export { RegistryEvent, RegistryObserver, type RegistryObserverShape } from "./RegistryEvent.js";
-export { TsEnvironment, TsEnvironmentError, type TsEnvironmentOptions } from "./TsEnvironment.js";
 export {
 	type CachePruneResult,
 	TypeCache,
@@ -24,5 +23,3 @@ export {
 	type TypeRegistryShape,
 } from "./TypeRegistry.js";
 export { ResolvedModule, TypeResolver } from "./TypeResolver.js";
-export { type Vfs, type VirtualFileSystem, mergeVfs, prefixVfs } from "./Vfs.js";
-export { VirtualPackage } from "./VirtualPackage.js";

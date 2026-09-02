@@ -33,25 +33,22 @@
 	},
 	"dependencies": {
 		"@microsoft/api-extractor-model": "^7.33.11",
-		"@microsoft/tsdoc": "^0.16.0"
+		"@microsoft/tsdoc": "^0.16.0",
+		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {
 		"@effected/markdown": "catalog:effected",
-		"@effected/package-json": "catalog:effected",
+		"@effected/yaml": "catalog:effected",
 		"@savvy-web/bundler": "^2.1.29",
+		"@tsdoctor/snapshot": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
 		"@effected/markdown": "catalog:effected",
-		"@effected/package-json": "catalog:effected",
+		"@effected/yaml": "catalog:effected:peers",
 		"effect": "catalog:effect"
-	},
-	"peerDependenciesMeta": {
-		"@effected/package-json": {
-			"optional": true
-		}
 	},
 	"engines": {
 		"node": ">=24.11.0"

@@ -14,7 +14,7 @@ export default defineConfig({
 	},
 	plugins: [
 		ApiExtractorPlugin({
-			logLevel: "info",
+			observability: { logLevel: "info" },
 			api: ApiExtractorPlugin.api.fromDir("./lib/models/effect-kit"),
 		}),
 	],

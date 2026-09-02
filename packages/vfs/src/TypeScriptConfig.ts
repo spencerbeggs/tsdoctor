@@ -1,5 +1,50 @@
-import type { TypeResolutionCompilerOptions, TypeScriptConfig } from "./internal-types.js";
-import { TsConfigParseError, parseTsConfig } from "./tsconfig-parser.js";
+import type { PathLike } from "node:fs";
+import { TsConfigParseError, parseTsConfig } from "./TsconfigParser.js";
+import type { TypeResolutionCompilerOptions } from "./TypeResolutionOptions.js";
+import { decodeCompilerOptions } from "./TypeResolutionOptions.js";
+
+/**
+ * How a caller points at TypeScript configuration: a `tsconfig.json`, inline
+ * compiler options, or both.
+ *
+ * @remarks
+ * When both are given the tsconfig is loaded first and the inline options merge
+ * on top, so a caller can adopt a project's configuration and override one
+ * field without restating it.
+ *
+ * @public
+ */
+export interface TypeScriptConfig {
+	/**
+	 * A `tsconfig.json` path, or a function returning compiler options.
+	 *
+	 * @remarks
+	 * The function's options are **user input**, so they are typed loosely and
+	 * decoded rather than trusted: a caller writing configuration in TypeScript
+	 * may reasonably return either the tsconfig spelling (`target: "es2025"`) or
+	 * the programmatic one (`target: ts.ScriptTarget.ES2025`).
+	 */
+	tsconfig?: PathLike | (() => Promise<CompilerOptionsInput>);
+	/** User-supplied compiler options, in either spelling. Decoded, not trusted. */
+	compilerOptions?: CompilerOptionsInput;
+}
+
+/**
+ * Compiler options as a user may write them, before decoding.
+ *
+ * @remarks
+ * Deliberately loose. `@tsdoctor/vfs`'s `decodeCompilerOptions` is what turns
+ * this into a `TypeResolutionCompilerOptions`, accepting either spelling
+ * and REJECTING a value it cannot map rather than passing it through. This type
+ * exists so the untrusted shape and the decoded one cannot be confused at a
+ * call site — the previous single type was both, and user input reached the
+ * compiler through a cast.
+ *
+ * @public
+ */
+export type CompilerOptionsInput = Readonly<Record<string, unknown>>;
+
+import { Result } from "effect";
 
 /**
  * Default TypeScript compiler options for Twoslash and type resolution.
@@ -15,12 +60,14 @@ import { TsConfigParseError, parseTsConfig } from "./tsconfig-parser.js";
  * - target: 99 = ESNext
  * - module: 99 = ESNext
  * - moduleResolution: 100 = Bundler
+ *
+ * @public
  */
 export const DEFAULT_COMPILER_OPTIONS: TypeResolutionCompilerOptions = {
-	target: 99, // ESNext
-	module: 99, // ESNext
-	moduleResolution: 100, // Bundler
-	lib: ["ESNext", "DOM"],
+	target: "esnext",
+	module: "esnext",
+	moduleResolution: "bundler",
+	lib: ["esnext", "dom"],
 	strict: false, // Lenient for documentation examples
 	skipLibCheck: true, // Faster processing
 	esModuleInterop: true,
@@ -43,6 +90,39 @@ export const DEFAULT_COMPILER_OPTIONS: TypeResolutionCompilerOptions = {
  * // Result: { target: 99, lib: ["ESNext", "DOM"], strict: true }
  * ```
  */
+/**
+ * Decode user-supplied compiler options, failing loudly.
+ *
+ * @remarks
+ * The values reaching here are whatever a consumer wrote in their config, in
+ * either spelling. A value the enum tables cannot map is REJECTED rather than
+ * passed through: degrading to a default would type-check every example
+ * against a configuration the user did not ask for, and say nothing about it.
+ * `layers/type-environment.ts` turns this throw into a `ConfigValidationError`,
+ * which reaches the `issues.json` artifact.
+ */
+function decodeInput(input: CompilerOptionsInput, source: string): TypeResolutionCompilerOptions {
+	const decoded = decodeCompilerOptions(input);
+	if (Result.isFailure(decoded)) {
+		throw new TsConfigParseError(source, decoded.failure.message, decoded.failure);
+	}
+	return decoded.success;
+}
+
+/**
+ * Merge one set of compiler options over another, later winning per key.
+ *
+ * @remarks
+ * Arrays (`lib`, `types`) are REPLACED wholesale rather than concatenated,
+ * matching TypeScript's own `extends` semantics: declaring `lib` means "these
+ * libraries", not "these as well as the defaults".
+ *
+ * @param base - the options to start from
+ * @param override - the options to layer on top, or `undefined` for a copy of `base`
+ * @returns a new object; neither argument is mutated
+ *
+ * @public
+ */
 export function mergeCompilerOptions(
 	base: TypeResolutionCompilerOptions,
 	override: TypeResolutionCompilerOptions | undefined,
@@ -51,41 +131,15 @@ export function mergeCompilerOptions(
 		return { ...base };
 	}
 
-	const merged: TypeResolutionCompilerOptions = { ...base };
-
-	// Only merge defined properties from override
-	if (override.target !== undefined) {
-		merged.target = override.target;
-	}
-	if (override.module !== undefined) {
-		merged.module = override.module;
-	}
-	if (override.moduleResolution !== undefined) {
-		merged.moduleResolution = override.moduleResolution;
-	}
-	if (override.lib !== undefined) {
-		merged.lib = override.lib; // Replace entire lib array
-	}
-	if (override.strict !== undefined) {
-		merged.strict = override.strict;
-	}
-	if (override.skipLibCheck !== undefined) {
-		merged.skipLibCheck = override.skipLibCheck;
-	}
-	if (override.esModuleInterop !== undefined) {
-		merged.esModuleInterop = override.esModuleInterop;
-	}
-	if (override.allowSyntheticDefaultImports !== undefined) {
-		merged.allowSyntheticDefaultImports = override.allowSyntheticDefaultImports;
-	}
-	if (override.jsx !== undefined) {
-		merged.jsx = override.jsx;
-	}
-	if (override.types !== undefined) {
-		merged.types = override.types; // Replace entire types array
+	// Arrays (`lib`, `types`) are REPLACED, never concatenated — see the note on
+	// TypeResolutionCompilerOptions. Both sides are already decoded, so every key
+	// present here is whitelisted by construction.
+	const merged: Record<string, unknown> = { ...base };
+	for (const [key, value] of Object.entries(override)) {
+		if (value !== undefined) merged[key] = value;
 	}
 
-	return merged;
+	return merged as TypeResolutionCompilerOptions;
 }
 
 /**
@@ -106,7 +160,7 @@ export function mergeCompilerOptions(
  * resolveTypeScriptConfigSingle({ tsconfig: "tsconfig.json" }, "/project");
  *
  * // Just compilerOptions
- * resolveTypeScriptConfigSingle({ compilerOptions: { target: 99 } }, "/project");
+ * resolveTypeScriptConfigSingle({ compilerOptions: { target: "esnext" } }, "/project");
  *
  * // Both (compilerOptions override tsconfig)
  * resolveTypeScriptConfigSingle({
@@ -114,6 +168,8 @@ export function mergeCompilerOptions(
  *   compilerOptions: { strict: false }
  * }, "/project");
  * ```
+ *
+ * @public
  */
 export function resolveTypeScriptConfigSingle(
 	config: TypeScriptConfig | undefined,
@@ -139,9 +195,9 @@ export function resolveTypeScriptConfigSingle(
 		}
 	}
 
-	// 2. Merge compilerOptions on top
+	// 2. Merge compilerOptions on top, decoding the user's spelling first
 	if (config.compilerOptions) {
-		options = mergeCompilerOptions(options, config.compilerOptions);
+		options = mergeCompilerOptions(options, decodeInput(config.compilerOptions, "compilerOptions"));
 	}
 
 	return options;
@@ -175,6 +231,8 @@ export function resolveTypeScriptConfigSingle(
  *   compilerOptions: { strict: false }
  * }, "/project");
  * ```
+ *
+ * @public
  */
 export async function resolveTypeScriptConfigSingleAsync(
 	config: TypeScriptConfig | undefined,
@@ -189,8 +247,8 @@ export async function resolveTypeScriptConfigSingleAsync(
 	// 1. Load tsconfig (from path or function)
 	if (config.tsconfig) {
 		if (typeof config.tsconfig === "function") {
-			// Async function - call it to get options
-			options = await config.tsconfig();
+			// Async function - call it, then decode what it returned
+			options = decodeInput(await config.tsconfig(), "tsconfig()");
 		} else {
 			// Path - parse the tsconfig file
 			const tsconfigPath = String(config.tsconfig);
@@ -205,9 +263,9 @@ export async function resolveTypeScriptConfigSingleAsync(
 		}
 	}
 
-	// 2. Merge compilerOptions on top
+	// 2. Merge compilerOptions on top, decoding the user's spelling first
 	if (config.compilerOptions) {
-		options = mergeCompilerOptions(options, config.compilerOptions);
+		options = mergeCompilerOptions(options, decodeInput(config.compilerOptions, "compilerOptions"));
 	}
 
 	return options;
@@ -218,10 +276,8 @@ export async function resolveTypeScriptConfigSingleAsync(
  *
  * Resolution order (later levels override earlier):
  * 1. DEFAULT_COMPILER_OPTIONS (sensible defaults)
- * 2. Global plugin config
+ * 2. Global config
  * 3. API-level config
- * 4. Version-level config
- * 5. Per-package override (for external packages)
  *
  * At each level, if a TypeScriptConfig has both `tsconfig` and `compilerOptions`,
  * the tsconfig is loaded first, then compilerOptions are merged on top.
@@ -229,8 +285,6 @@ export async function resolveTypeScriptConfigSingleAsync(
  * @param projectRoot - Project root directory for resolving relative paths
  * @param global - Global plugin TypeScript configuration
  * @param api - API-level TypeScript configuration
- * @param version - Version-level TypeScript configuration
- * @param packageOverride - Per-package TypeScript configuration override
  * @returns Promise resolving to fully resolved compiler options
  *
  * @example
@@ -251,23 +305,14 @@ export async function resolveTypeScriptConfigSingleAsync(
  *   { tsconfig: "tsconfig.json" },
  *   { compilerOptions: { strict: false } }
  * );
- *
- * // Full cascade
- * const options = await resolveTypeScriptConfig(
- *   "/project",
- *   { tsconfig: "tsconfig.json" },           // global
- *   { compilerOptions: { strict: false } },  // API
- *   { compilerOptions: { target: 9 } },      // version
- *   { compilerOptions: { module: 1 } }       // package override
- * );
  * ```
+ *
+ * @public
  */
 export async function resolveTypeScriptConfig(
 	projectRoot: string,
 	global?: TypeScriptConfig,
 	api?: TypeScriptConfig,
-	version?: TypeScriptConfig,
-	packageOverride?: TypeScriptConfig,
 ): Promise<TypeResolutionCompilerOptions> {
 	// 1. Start with defaults
 	let options = { ...DEFAULT_COMPILER_OPTIONS };
@@ -279,14 +324,6 @@ export async function resolveTypeScriptConfig(
 	// 3. Apply API-level config
 	const apiOptions = await resolveTypeScriptConfigSingleAsync(api, projectRoot);
 	options = mergeCompilerOptions(options, apiOptions);
-
-	// 4. Apply version-level config
-	const versionOptions = await resolveTypeScriptConfigSingleAsync(version, projectRoot);
-	options = mergeCompilerOptions(options, versionOptions);
-
-	// 5. Apply per-package override
-	const packageOptions = await resolveTypeScriptConfigSingleAsync(packageOverride, projectRoot);
-	options = mergeCompilerOptions(options, packageOptions);
 
 	return options;
 }

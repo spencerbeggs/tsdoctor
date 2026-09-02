@@ -15,7 +15,7 @@ import {
 	SourceConfig,
 	VersionConfig,
 } from "../src/schemas/config.js";
-import { PerformanceConfig, PerformanceThresholds } from "../src/schemas/performance.js";
+import { PerformanceThresholds } from "../src/schemas/performance.js";
 
 describe("OpenGraph schemas", () => {
 	it("decodes OpenGraphImageMetadata", () => {
@@ -83,13 +83,6 @@ describe("Performance schemas", () => {
 		const result = decode({ slowCodeBlock: 200 });
 		expect(result.slowCodeBlock).toBe(200);
 		expect(result.slowPageGeneration).toBe(500);
-	});
-
-	it("decodes PerformanceConfig with defaults", () => {
-		const decode = Schema.decodeUnknownSync(PerformanceConfig);
-		const result = decode({});
-		expect(result.showInsights).toBe(true);
-		expect(result.trackDetailedMetrics).toBe(false);
 	});
 });
 

@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { JsoncFingerprint } from "@effected/jsonc";
+import { Result } from "effect";
 
 /**
  * Normalizes content string for consistent hashing.
@@ -173,6 +175,15 @@ export function hashFrontmatter(frontmatter: Record<string, unknown>): string {
 		filtered[key] = stripTimestamps(frontmatter[key]);
 	}
 
-	const json = JSON.stringify(filtered);
-	return createHash("sha256").update(json).digest("hex");
+	// RFC 8785 (JCS) canonicalization, the same spelling `@tsdoctor/bundle`
+	// fingerprints through. `JSON.stringify` is not a canonical form: it drops
+	// `undefined` and turns `NaN` into `null` silently, and its number and
+	// string escaping are not JCS's. A fingerprint of a silently altered
+	// document is a lie, so a value that cannot be canonicalized fails loudly
+	// here rather than hashing something the document did not say.
+	const canonical = JsoncFingerprint.canonicalizeResult(filtered);
+	if (Result.isFailure(canonical)) {
+		throw new Error(`Frontmatter cannot be canonicalized for hashing: ${canonical.failure.message}`);
+	}
+	return createHash("sha256").update(canonical.success).digest("hex");
 }

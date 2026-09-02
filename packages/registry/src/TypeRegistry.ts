@@ -1,4 +1,6 @@
 import { Range, SemVer } from "@effected/semver";
+import type { Vfs } from "@tsdoctor/vfs";
+import { mergeVfs } from "@tsdoctor/vfs";
 import type { Duration } from "effect";
 import { Context, DateTime, Effect, Layer, Option, Schema, Semaphore } from "effect";
 import { packageJsonUrl } from "./internal/jsdelivr.js";
@@ -16,8 +18,6 @@ import type { CachePruneResult, TypeCacheError } from "./TypeCache.js";
 import { TypeCache, TypeCacheMetadata } from "./TypeCache.js";
 import type { ResolvedModule } from "./TypeResolver.js";
 import { TypeResolver } from "./TypeResolver.js";
-import type { Vfs } from "./Vfs.js";
-import { mergeVfs } from "./Vfs.js";
 
 /**
  * Raised by {@link TypeRegistryShape.getVfs} when **every** requested package
@@ -76,7 +76,7 @@ export interface TypeRegistryShape {
 		options?: { readonly ttl?: Duration.Duration },
 	) => Effect.Effect<void, FetchError | PackageNotFoundError | TypeCacheError>;
 	/**
-	 * Build the {@link Vfs} for one package, fetching it first when missing or
+	 * Build the `Vfs` for one package, fetching it first when missing or
 	 * stale (the stale-vs-miss ladder: live metadata → hit; files on disk with
 	 * no live metadata → stale, refetched when `autoFetch`, served as-is
 	 * otherwise; nothing → miss, fetched or failed typed on
@@ -87,7 +87,7 @@ export interface TypeRegistryShape {
 		options?: PackageVfsOptions,
 	) => Effect.Effect<Vfs, FetchError | PackageNotFoundError | TypeCacheError>;
 	/**
-	 * Build a merged {@link Vfs} for several packages, best-effort.
+	 * Build a merged `Vfs` for several packages, best-effort.
 	 *
 	 * @remarks
 	 * Loads concurrently (limit 5), accumulates per-package failures, merges

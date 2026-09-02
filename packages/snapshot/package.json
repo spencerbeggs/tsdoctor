@@ -32,6 +32,7 @@
 		"types:check": "tsc --noEmit"
 	},
 	"devDependencies": {
+		"@effected/jsonc": "catalog:effected",
 		"@effected/store": "catalog:effected",
 		"@savvy-web/bundler": "^2.1.29",
 		"@types/node": "catalog:build",
@@ -39,6 +40,7 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
+		"@effected/jsonc": "catalog:effected:peers",
 		"@effected/store": "catalog:effected",
 		"effect": "catalog:effect"
 	},

@@ -17,19 +17,12 @@
 export type Vfs = Map<string, string>;
 
 /**
- * The v3 name for {@link Vfs}, kept as an alias for the consumer migration.
- *
- * @public
- */
-export type VirtualFileSystem = Vfs;
-
-/**
  * Merge VFS maps left to right into a new map; later entries win on path
  * collisions.
  *
  * @example
  * ```ts
- * import { mergeVfs } from "@tsdoctor/registry";
+ * import { mergeVfs } from "@tsdoctor/vfs";
  *
  * const combined = mergeVfs(vfsA, vfsB);
  * ```
@@ -59,3 +52,19 @@ export const prefixVfs = (name: string, entries: ReadonlyMap<string, string>): V
 	}
 	return out;
 };
+
+/**
+ * Whether a path names a TypeScript declaration file.
+ *
+ * @remarks
+ * The single spelling of this predicate. `TsEnvironment` uses it to pick a
+ * VFS map's root files, and `@tsdoctor/registry`'s module resolution uses it
+ * to decide whether a resolved path is a declaration. Two spellings of "is
+ * this a `.d.ts`" would be free to drift, and the drift would be silent — a
+ * root file quietly missing from a TypeScript environment degrades hovers
+ * without producing an error.
+ *
+ * @public
+ */
+export const isTypeDefinition = (filePath: string): boolean =>
+	filePath.endsWith(".d.ts") || filePath.endsWith(".d.mts") || filePath.endsWith(".d.cts");

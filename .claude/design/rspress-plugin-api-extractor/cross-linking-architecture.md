@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: cross-linking
 created: 2026-01-17
-updated: 2026-08-25
-last-synced: 2026-08-25
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 90
 related:
   - rspress-plugin-api-extractor/page-generation-system.md
@@ -75,7 +75,7 @@ prepareWorkItems (build-stages.ts)
   ├─> EntryPoints.resolve() for multi-entry deduplication
   ├─> Build routes Map: typeName → routePath (bare names owned by
   │     highest-priority kind via crossLinkKindPriority)
-  ├─> Build kinds Map: typeName → apiItemKind
+  ├─> Build kinds Map: typeName → apiItemKind (priority arbitration only)
   └─> Return crossLinkData: { routes, kinds }
          │
          ├─> setProseLinker(crossLinkData.routes)
@@ -83,7 +83,7 @@ prepareWorkItems (build-stages.ts)
          │     prose-linker holder; both cross-linkers share the
          │     single route map
          │
-         ├─> ShikiCrossLinker.fromRoutes(routes, kinds, apiScope)
+         ├─> ShikiCrossLinker.fromRoutes(routes, apiScope)
          │     A NEW immutable linker per API; builds classMembersMap
          │
          └─> VfsRegistry.register(apiScope, { crossLinker, ... })
@@ -107,7 +107,7 @@ Both cross-linkers consume the same `crossLinkData.routes` map built once in `pr
 let current: CrossLinker = CrossLinker.empty;
 
 // src/build-program.ts — one immutable linker per API, per build
-const shikiCrossLinker = ShikiCrossLinker.fromRoutes(routes, kinds, apiScope);
+const shikiCrossLinker = ShikiCrossLinker.fromRoutes(routes, apiScope);
 ```
 
 Both sides are now immutable and built the same way. The prose side is a
@@ -199,14 +199,15 @@ including inside Twoslash hover tooltips.
 
 ### State
 
-Three read-only maps, all for the one scope this instance links:
+Two read-only maps, both for the one scope this instance links:
 
 ```typescript
 private readonly apiItemRoutes: ReadonlyMap<string, string>;
-private readonly apiItemKinds: ReadonlyMap<string, string>;
 private readonly classMembersMap: ReadonlyMap<string, ReadonlyArray<string>>;
 public readonly apiScope: string;
 ```
+
+An `apiItemKinds` map used to sit beside them. Its only consumer was `getSemanticClass`, a deprecated method that returned `null`, so seven call sites computed a class name that could only ever be null; the map, the method and the third `fromRoutes` parameter are all deleted. The `kinds` map that `prepareWorkItems` still builds is used where it is genuinely needed — arbitrating which kind owns a bare name via `crossLinkKindPriority`, before the routes map is finalized — and never reaches a linker.
 
 `classMembersMap` groups member names by their parent class/namespace.
 For example, if routes contain `"Logger.addTransport"`, the map stores
@@ -218,7 +219,6 @@ For example, if routes contain `"Logger.addTransport"`, the map stores
 class ShikiCrossLinker {
   static fromRoutes(
     routes: ReadonlyMap<string, string>,
-    kinds: ReadonlyMap<string, string>,
     apiScope: string,
   ): ShikiCrossLinker;
 
@@ -291,9 +291,7 @@ Skips spans already processed by Phase 1 or 2 (detected via
 
 ### Why Post-Processing?
 
-The `createTransformer()` method (which would run during Shiki
-rendering) is deprecated and returns a no-op. Cross-linking was moved
-to post-processing via `transformHast()` because:
+A `createTransformer()` method that would have run DURING Shiki rendering existed, deprecated and returning a no-op; it is deleted. Cross-linking happens in post-processing via `transformHast()` because:
 
 - Twoslash popup positioning depends on the original HAST structure.
 - Modifying spans during rendering caused popup containers to shift or
@@ -557,7 +555,6 @@ const { workItems, crossLinkData } = prepareWorkItems({ ... });
 setProseLinker(crossLinkData.routes);
 const shikiCrossLinker = ShikiCrossLinker.fromRoutes(
   crossLinkData.routes,
-  crossLinkData.kinds,
   apiScope,
 );
 
@@ -648,7 +645,7 @@ interface VfsConfig {
 ```
 
 The `vfs` field is **gone**. It had one production write (`new Map()`) and zero
-reads, and its declared type had rotted into a map of maps — `VirtualFileSystem`
+reads, and its declared type had rotted into a map of maps — a `Vfs`
 is itself a `Map<string, string>`.
 
 **Key methods:**

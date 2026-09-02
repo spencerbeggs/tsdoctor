@@ -181,12 +181,6 @@ describe("makeConsoleSink", () => {
 			expect(line).not.toContain("—");
 		});
 
-		it("DeprecatedConfigUsed", () => {
-			expect(
-				renderLine(PluginEvent.DeprecatedConfigUsed({ ctx, level: "warn", key: "old", replacement: "new" })),
-			).toContain("option 'old' is deprecated; use new");
-		});
-
 		it("ModelLoaded", () => {
 			expect(
 				renderLine(PluginEvent.ModelLoaded({ ctx, level: "info", entryPoints: 2, itemCount: 17, durationMs: 30 })),

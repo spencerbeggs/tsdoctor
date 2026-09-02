@@ -2,7 +2,6 @@ import { ApiItemKind } from "@microsoft/api-extractor-model";
 import { OpenGraphImageConfig } from "@tsdoctor/seo";
 import { Effect, Schema } from "effect";
 import { ObservabilityConfig } from "./observability.js";
-import { PerformanceConfig } from "./performance.js";
 
 /**
  * Opaque input type for config fields that accept a file path string,
@@ -223,10 +222,6 @@ export const VersionConfig = Schema.Struct({
 	ogImage: Schema.optional(OpenGraphImageConfig),
 	/** LLMs integration options for this version. */
 	llmsPlugin: Schema.optional(LlmsPlugin),
-	/** Path to a `tsconfig.json` for this version. */
-	tsconfig: Schema.optional(ModelInput),
-	/** TypeScript compiler options for Twoslash. */
-	compilerOptions: Schema.optional(Schema.Unknown),
 });
 /** @public */
 export type VersionConfig = typeof VersionConfig.Encoded;
@@ -354,10 +349,6 @@ export const PluginOptions = Schema.Struct({
 	errors: Schema.optional(ErrorConfig),
 	/** LLMs integration options, or `false` to disable. */
 	llmsPlugin: Schema.optional(Schema.Union([Schema.Boolean, LlmsPlugin])),
-	/** Verbosity level for plugin build output. @deprecated Use `observability.logLevel`. */
-	logLevel: Schema.optional(LogLevel),
-	/** Performance tuning options. @deprecated Use `observability.thresholds`. */
-	performance: Schema.optional(PerformanceConfig),
 	/** Unified observability configuration (logLevel, trace artifact, thresholds). */
 	observability: Schema.optional(ObservabilityConfig),
 });

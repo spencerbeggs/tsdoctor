@@ -1,10 +1,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { VirtualPackage as VirtualPackageClass } from "@tsdoctor/registry";
+import { VirtualPackage as VirtualPackageClass } from "@tsdoctor/vfs";
 import ts from "typescript";
 
 import { describe, expect, it } from "vitest";
-import { ApiExtractedPackage } from "../src/api-extracted-package.js";
+import { ApiExtractedPackage } from "../src/index.js";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "__fixtures__", "example-module");
 const API_MODEL_PATH = path.join(FIXTURES_DIR, "example-module.api.json");
@@ -66,15 +66,15 @@ describe("ApiExtractedPackage", () => {
 		});
 	});
 
-	describe("generateVfs", () => {
+	describe("toVfs", () => {
 		it("should generate both package.json and index.d.ts", () => {
-			const vfs = apiExtractedPackage.generateVfs();
+			const vfs = apiExtractedPackage.toVfs();
 			expect(vfs.has("node_modules/example-module/package.json")).toBe(true);
 			expect(vfs.has("node_modules/example-module/index.d.ts")).toBe(true);
 		});
 
 		it("should generate valid package.json", () => {
-			const vfs = apiExtractedPackage.generateVfs();
+			const vfs = apiExtractedPackage.toVfs();
 			const raw = vfs.get("node_modules/example-module/package.json") ?? "";
 			const pkgJson = JSON.parse(raw);
 			expect(pkgJson.name).toBe("example-module");
@@ -361,7 +361,7 @@ describe("ApiExtractedPackage", () => {
 	describe("abstract classes (issue #57)", () => {
 		const ABSTRACT_MODEL_PATH = path.join(import.meta.dirname, "__fixtures__", "abstract-class", "abstract.api.json");
 		const generated = ApiExtractedPackage.fromApiModel(ABSTRACT_MODEL_PATH)
-			.generateVfs()
+			.toVfs()
 			.get("node_modules/abstract-fixture/index.d.ts") as string;
 
 		it("emits the `abstract` modifier on an abstract class header", () => {
@@ -387,7 +387,7 @@ describe("ApiExtractedPackage", () => {
 	describe("rollup alias collisions (issue #58)", () => {
 		const ALIAS_MODEL_PATH = path.join(import.meta.dirname, "__fixtures__", "alias-collision", "alias.api.json");
 		const generated = ApiExtractedPackage.fromApiModel(ALIAS_MODEL_PATH)
-			.generateVfs()
+			.toVfs()
 			.get("node_modules/alias-fixture/index.d.ts") as string;
 
 		it("strips the rollup `$N` disambiguation suffix from reference tokens", () => {

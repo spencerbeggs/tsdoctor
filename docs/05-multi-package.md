@@ -18,7 +18,7 @@ export default defineConfig({
   outDir: "dist",
   plugins: [
     ApiExtractorPlugin({
-      logLevel: "info",
+      observability: { logLevel: "info" },
       apis: [
         {
           packageName: "kitchensink",

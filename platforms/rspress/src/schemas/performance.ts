@@ -13,14 +13,3 @@ export const PerformanceThresholds = Schema.Struct({
  * Schema.decode fills in defaults at runtime.
  */
 export type PerformanceThresholds = typeof PerformanceThresholds.Encoded;
-
-export const PerformanceConfig = Schema.Struct({
-	thresholds: Schema.optional(PerformanceThresholds),
-	showInsights: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
-	trackDetailedMetrics: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
-});
-/**
- * Consumer-facing type uses Encoded (input shape with optional fields).
- * Schema.decode fills in defaults at runtime.
- */
-export type PerformanceConfig = typeof PerformanceConfig.Encoded;

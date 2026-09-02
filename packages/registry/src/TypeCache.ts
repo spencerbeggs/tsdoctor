@@ -1,10 +1,10 @@
 import { Cache } from "@effected/store";
 import type { AppDirs, AppDirsError } from "@effected/xdg";
+import type { Vfs } from "@tsdoctor/vfs";
 import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from "effect";
 import { MAX_NESTING_DEPTH } from "./internal/limits.js";
 import { isSafeRelativePath } from "./internal/resolution.js";
 import { PackageSpec } from "./PackageSpec.js";
-import type { Vfs } from "./Vfs.js";
 
 /**
  * Per-package cache metadata: the pinned version, when it was cached and how
@@ -159,7 +159,7 @@ export interface TypeCacheShape {
 	readonly readMetadata: (pkg: PackageSpec) => Effect.Effect<Option.Option<TypeCacheMetadata>, TypeCacheError>;
 	/** Write the package's metadata entry, forwarding its `ttl` to the store. */
 	readonly writeMetadata: (pkg: PackageSpec, metadata: TypeCacheMetadata) => Effect.Effect<void, TypeCacheError>;
-	/** Build the package's {@link Vfs}: every cached file keyed `node_modules/<name>/<path>`. */
+	/** Build the package's `Vfs`: every cached file keyed `node_modules/<name>/<path>`. */
 	readonly getVfs: (pkg: PackageSpec) => Effect.Effect<Vfs, TypeCacheError>;
 	/**
 	 * Remove the package: metadata first, then files.

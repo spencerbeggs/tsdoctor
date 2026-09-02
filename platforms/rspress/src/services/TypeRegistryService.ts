@@ -1,9 +1,9 @@
 import { NodeHttpClient } from "@effect/platform-node";
 import { Cache } from "@effected/store";
 import { AppDirs } from "@effected/xdg";
-import type { VirtualFileSystem } from "@tsdoctor/registry";
 import { PackageFetcher, PackageSpec, RegistryObserver, TypeCache, TypeRegistry } from "@tsdoctor/registry";
-import { Context, Duration, Effect, Layer, Path } from "effect";
+import type { Vfs } from "@tsdoctor/vfs";
+import { Cause, Context, Duration, Effect, Layer, Path } from "effect";
 import { resolveExternalPackageVersions } from "../config-utils.js";
 import type { TypeRegistryError } from "../errors.js";
 import { TypeRegistryError as PluginTypeRegistryError } from "../errors.js";
@@ -17,7 +17,7 @@ export interface ExternalPackageSpec {
 }
 
 export interface TypeRegistryResult {
-	readonly vfs: VirtualFileSystem;
+	readonly vfs: Vfs;
 }
 
 export interface TypeRegistryServiceShape {
@@ -56,7 +56,24 @@ export class TypeRegistryService extends Context.Service<TypeRegistryService, Ty
 	 * those consts directly throws at import time with a clean typecheck.
 	 */
 	static readonly layer: Layer.Layer<TypeRegistryService> = Layer.suspend(() =>
-		RegistryBackedLive.pipe(Layer.catchCause(() => DegradedLive)),
+		RegistryBackedLive.pipe(
+			Layer.catchCause((cause) =>
+				// Interruption is not a broken environment: it is the caller
+				// shutting down. Handing back a working degraded registry to a
+				// fiber that was meant to stop would swallow the interrupt, so it
+				// is re-raised. Everything else — a failure, or a defect thrown by
+				// a driver during construction — degrades.
+				//
+				// The interrupt is rebuilt from the ORIGINAL cause's interruptors
+				// rather than raised fresh with `Effect.interrupt`, which would
+				// report this fiber as the interruptor and discard the one that
+				// actually cancelled the build. `Cause.interrupt` stays
+				// `Cause<never>`, so the layer's `never` error channel survives.
+				Cause.hasInterrupts(cause)
+					? Layer.effectContext(Effect.failCause(Cause.interrupt([...Cause.interruptors(cause)][0])))
+					: DegradedLive,
+			),
+		),
 	);
 
 	/**
@@ -192,7 +209,7 @@ const MetadataCacheLive = Layer.unwrap(
 		const cacheDir = yield* appDirs.ensureCache;
 		return Cache.layerSqlite({ filename: path.join(cacheDir, "metadata.sqlite") });
 	}),
-).pipe(Layer.provide(Layer.mergeAll(AppDirsLive, PlatformLive)));
+).pipe(Layer.provide(Layer.mergeAll(AppDirsLive, PlatformLive)), Cache.degrading);
 
 /**
  * The full registry runtime: TypeRegistry over an XDG-rooted TypeCache and the

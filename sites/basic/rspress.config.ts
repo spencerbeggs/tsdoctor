@@ -18,7 +18,7 @@ export default defineConfig({
 	},
 	plugins: [
 		ApiExtractorPlugin({
-			logLevel: "info",
+			observability: { logLevel: "info" },
 			ogImage: "/images/og.png",
 			api: ApiExtractorPlugin.api.fromDir("./lib/models/kitchensink"),
 		}),

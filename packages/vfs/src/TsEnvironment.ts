@@ -1,8 +1,8 @@
 import type { CompilerOptions } from "@effected/tsconfig-json";
 import type { VirtualTypeScriptEnvironment } from "@typescript/vfs";
 import { Effect, Schema } from "effect";
-import { isTypeDefinition } from "./internal/resolution.js";
 import type { Vfs } from "./Vfs.js";
+import { isTypeDefinition } from "./Vfs.js";
 
 /**
  * Raised when building a virtual TypeScript environment fails — including
@@ -71,7 +71,7 @@ export interface TsEnvironmentOptions {
  *
  * @example
  * ```ts
- * import { TsEnvironment } from "@tsdoctor/registry";
+ * import { TsEnvironment } from "@tsdoctor/vfs";
  *
  * const environment = TsEnvironment.make({
  *   vfs,

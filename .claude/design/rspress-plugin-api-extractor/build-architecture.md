@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-26
-last-synced: 2026-08-26
+updated: 2026-09-02
+last-synced: 2026-09-02
 completeness: 90
 related:
   - rspress-plugin-api-extractor/component-development.md
@@ -170,7 +170,11 @@ A `Context.Reference` carries a default, so a wiring mistake **succeeds quietly 
 
 `TypeRegistryService.layer` and `TwoslashCacheService.layer` used to call `Effect.provide(SomeLayerConst)` *inside each method body*. In Effect v4 `provideLayer` is a `scopedWith` over `buildWithScope` that forks a **child** `MemoMap` whose parent never built the layer, so the registry stack (XDG + `metadata.sqlite` + undici + `TypeCache`) and the Twoslash cache were each built and torn down twice per build. Both now acquire once at `ManagedRuntime` construction.
 
-Both cache-backed layers must **degrade to a cache miss** rather than fail. Moving acquisition to layer-construction time moved the failure mode from "this method fails and its local catch absorbs it" to "the `ManagedRuntime` build aborts the whole site build" — a purely structural-looking change that silently violated `TwoslashCacheService`'s documented contract. Both layers therefore wrap in `Layer.catchCause` and degrade to a no-op implementation; the type system was the only thing that noticed, when the layer's error channel went from `never` to `CacheError | AppDirsError | XdgEnvError`. `SnapshotService.layer` is the deliberate counter-example: its failure stays in the channel and stops the build.
+Both cache-backed layers must **degrade to a cache miss** rather than fail. Moving acquisition to layer-construction time moved the failure mode from "this method fails and its local catch absorbs it" to "the `ManagedRuntime` build aborts the whole site build" — a purely structural-looking change that silently violated `TwoslashCacheService`'s documented contract. The type system was the only thing that noticed, when the layer's error channel went from `never` to `CacheError | AppDirsError | XdgEnvError`. `SnapshotService.layer` is the deliberate counter-example: its failure stays in the channel and stops the build.
+
+**Degrading is `@effected/store`'s `Cache.degrading`, not `Layer.catchCause`.** The hand-written `Layer.catchCause` this replaced caught EVERY cause, interruption included, so a fiber being interrupted during shutdown was handed a working degraded cache and carried on instead of dying — the one cause a degrade must never absorb. Degrading at the `Cache` rather than at the service layer also collapsed `TwoslashCacheService`'s separate `DegradedLive`: the ordinary implementation running over an always-missing cache IS the degraded behaviour, so there is no second implementation to keep in step. `TypeRegistryService` keeps a hand-written catch, because its construction can fail outside the cache (no HOME for XDG, an unwritable metadata DB), and that catch **re-raises interruption** — rebuilding the cause from `Cause.interruptors` so the fiber recorded as the interruptor is the original one, not whichever fiber happened to be running the layer.
+
+`CacheShape.degraded` is surfaced on `TwoslashCacheServiceShape`. A degraded cache and a genuinely cold one behave identically at every lookup, so without the flag the build summary reported an unusable cache as merely cold — the two are indistinguishable from the outside, which is exactly why the distinction has to be carried rather than inferred.
 
 Both cache layers also share one platform and XDG root, `src/layers/xdg.ts`, exporting `TSDOCTOR_NAMESPACE`, `PlatformLive` and `AppDirsLive`. Each file previously declared its own — including a copy-pasted `"tsdoctor"` namespace literal. Two distinct layer references build twice, and a drifted namespace literal is permanent and silent: the caches move directory, every lookup misses, and a build that should hit a warm Twoslash cache goes cold forever with nothing in the output to notice.
 
@@ -181,10 +185,10 @@ The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned through the `cat
 The v3 peer-closure block (`@effect/cluster`, `@effect/experimental`, `@effect/rpc`, `@effect/workflow`) has been **removed**: the v4 peer graph is small enough that issue #69's escaping-peer problem no longer applies in that form. The closure principle still holds, though — because the per-file plugin build leaves `dependencies` external, any unclosed non-optional peer escapes to the consuming workspace where pnpm `autoInstallPeers` can bind it unpredictably. As of phase 2 the closure lives in the plugin's `dependencies` block (only `@rspress/core`/`react`/`react-dom` remain peers):
 
 - `ioredis` — non-optional peer of the `@effect/platform-node` v4 beta.
-- The full `@effected` surface the five `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling), alongside `@typescript/vfs`. The released effected round-1 kit wave added two more: `@effected/jsonc` (canonical JSON-value hashing behind `@tsdoctor/bundle`'s `BundleHash.ts`) and `@effected/markdown` (frontmatter block assembly in `frontmatter.ts` and, transitively, `@tsdoctor/model`'s prose/render internals). Round 2 (phase 4) added `@effected/schema-org@0.1.0` behind `@tsdoctor/seo`, alongside `@effected/spdx@0.5.0` and `@effected/package-json@0.13.0`, and bumped the `@effected/pnpm-plugin-effect` config dependency in `pnpm-workspace.yaml` to `0.6.11` to carry the schema-org catalog entry. `@effected/package-json` is now a DIRECT plugin import as well as a closure entry — `layers/config-resolution.ts` decodes each API's `package.json` through `PackageManifest`.
-- The five core workspaces themselves: `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot` and `@tsdoctor/seo`, each `workspace:*`.
+- The full `@effected` surface the six `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling, now behind `@tsdoctor/model`), alongside `@typescript/vfs`. The released effected round-1 kit wave added two more: `@effected/jsonc` (canonical JSON-value hashing behind `@tsdoctor/bundle`'s `BundleHash.ts`) and `@effected/markdown` (frontmatter fence grammar and block assembly behind `@tsdoctor/model`'s `Frontmatter.ts` and, transitively, its prose/render internals). Round 2 (phase 4) added `@effected/schema-org@0.1.0` behind `@tsdoctor/seo`, alongside `@effected/spdx@0.5.0` and `@effected/package-json@0.13.0`, and bumped the `@effected/pnpm-plugin-effect` config dependency in `pnpm-workspace.yaml` to `0.6.11` to carry the schema-org catalog entry. `@effected/package-json` is now a DIRECT plugin import as well as a closure entry — `layers/config-resolution.ts` decodes each API's `package.json` through `PackageManifest`.
+- The six core workspaces themselves: `@tsdoctor/vfs`, `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot` and `@tsdoctor/seo`, each `workspace:*`.
 
-`@effect/sql-sqlite-node` and `gray-matter` are **gone** from the plugin manifest — SQLite moved behind `@tsdoctor/snapshot`'s `Store.layerSqlite`, and frontmatter parsing moved to `@effected/yaml` (see `frontmatter.ts` in [Key Source Files](#key-source-files)). Do not prune the closure entries as "unused"; the plugin imports some of them directly (see `services/TypeRegistryService.ts`, `sync-node-fs.ts`, `frontmatter.ts`, `twoslash-transformer.ts`) and the rest exist to keep the dependency graph closed.
+`@effect/sql-sqlite-node` and `gray-matter` are **gone** from the plugin manifest — SQLite moved behind `@tsdoctor/snapshot`'s `Store.layerSqlite`, and frontmatter parsing moved to `@effected/yaml` — and then out of the adapter entirely, into `@tsdoctor/model`'s `Frontmatter.ts` (Tier 1 core moves; the adapter now imports `parseFrontmatter` / `emitFrontmatterBlock` from the model). Do not prune the closure entries as "unused"; the plugin imports some of them directly (see `services/TypeRegistryService.ts`, `sync-node-fs.ts`, `twoslash-transformer.ts`) and the rest exist to keep the dependency graph closed.
 
 `mdast-util-from-markdown` has moved to `devDependencies`: `twoslash-transformer.ts`'s `renderMarkdown` now parses through `@effected/markdown`'s `Markdown.parseResult` + `Mdast.toMdast`, passing `dialect: "commonmark"` explicitly (the kit defaults to GFM, and adopting GFM would be a product change, not a dependency swap). `mdast-util-to-hast` **stays a runtime dependency** — `@effected/markdown` puts markdown→HTML permanently out of scope, so `toHast` has no kit equivalent. On the dev side, `@effect/vitest` and `@effected/memfs` were added: the latter replaces a hand-stubbed `layerNoop` in one registry test. `TypeCache.test.ts`'s `layerNoop` is deliberately left alone — that one is fault injection, which memfs cannot do.
 
@@ -215,7 +219,7 @@ Plugin options are defined as Effect Schemas in `schemas/`:
 - `schemas/opengraph.ts` is **deleted** — `OpenGraphImageConfig` and the rest
   of the OG vocabulary now live in `@tsdoctor/seo` and are re-exported from
   `src/index.ts` for consumers
-- `schemas/performance.ts` -- `PerformanceConfig`
+- `schemas/performance.ts` -- `PerformanceThresholds` (the top-level `performance` plugin option is **deleted**; thresholds reach the build through `observability.thresholds` and the `Thresholds` Reference)
 
 Options are decoded at plugin factory time. The exported
 `ApiExtractorPlugin` is the factory function with config helpers attached as
@@ -246,7 +250,7 @@ The helper types (`DirInfo`, `BaseRoute`, `FromDirOptions`) are re-exported from
 
 ## Core Package Consumption
 
-The plugin depends on all five `@tsdoctor/*` core workspaces via `workspace:*` and, since the phase-2 model redesign, consumes **`@tsdoctor/model`** directly — the four phase-1 delegation shims (`loader.ts`, the class-based `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) are **deleted**. The model's v4 surface is namespace modules: `Model` (Effect-typed loading with `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), `Tsdoc` (pure TSDoc accessors), `ApiItems` (categorization + namespace members), `EntryPoints`, `Routes`, `SyntheticBases`, `Signature` (de-classed formatting), `Render` and the `CrossLinker` class. (The model's `@alpha` `StructuredData` stub is **deleted** as of phase 4; schema.org derivation lives in `@tsdoctor/seo`.)
+The plugin depends on all six `@tsdoctor/*` core workspaces via `workspace:*` and, since the phase-2 model redesign, consumes **`@tsdoctor/model`** directly — the four phase-1 delegation shims (`loader.ts`, the class-based `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) are **deleted**. The model's v4 surface is namespace modules: `Model` (Effect-typed loading with `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), `Tsdoc` (pure TSDoc accessors), `ApiItems` (categorization + namespace members), `EntryPoints`, `Routes`, `SyntheticBases`, `Signature` (de-classed formatting), `Render` and the `CrossLinker` class. (The model's `@alpha` `StructuredData` stub is **deleted** as of phase 4; schema.org derivation lives in `@tsdoctor/seo`.)
 
 How the former shim call sites consume it now:
 
@@ -258,9 +262,11 @@ How the former shim call sites consume it now:
 | Categorization | `ApiItems.categorize(items, categories)` returning `{ items, uncategorized }`; the adapter emits an `ItemSkipped` event per uncategorized item |
 | Prose cross-linking | `markdown/prose-linker.ts`, a 15-line module-level holder (`setProseLinker(routes)` / `linkProse(text)` / `clearProseLinker()`) over the model `CrossLinker` (see `cross-linking-architecture.md`) |
 
-**Not delegated — looks similar, is not.** `ApiExtractedPackage` (`api-extracted-package.ts`) keeps its OWN private `extractPlainText`. Despite the shared name with the library helper, it is a different algorithm for declaration reconstruction: it PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks for `.d.ts`/JSDoc output, whereas the library's prose extraction flattens `{@link}` to display text and drops code fences. The two are not interchangeable.
+**Moved into the model, still not merged.** `ApiExtractedPackage` (now `packages/model/src/ApiExtractedPackage.ts`) keeps its OWN private `extractPlainText`. Despite the shared name with the library helper, it is a different algorithm for declaration reconstruction: it PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks for `.d.ts`/JSDoc output, whereas the library's prose extraction flattens `{@link}` to display text and drops code fences. The two are not interchangeable.
 
-**`@tsdoctor/bundle`** supplies discovery for the config helpers (see [Config Helpers](#config-helpers)) plus the npm-tarball and GitHub-release fetchers (`bundle-spec.md`). **`@tsdoctor/snapshot`** supplies the snapshot service (`snapshot-tracking-system.md`). **`@tsdoctor/registry`** is unchanged in role (`type-loading-vfs.md`), with its tag ids renamed to `"@tsdoctor/registry/..."` in phase 2.
+**`@tsdoctor/bundle`** supplies discovery for the config helpers (see [Config Helpers](#config-helpers)) plus the npm-tarball and GitHub-release fetchers (`bundle-spec.md`). **`@tsdoctor/snapshot`** supplies the snapshot service (`snapshot-tracking-system.md`). **`@tsdoctor/registry`** fetches, caches and resolves external package types into a `Vfs` (`type-loading-vfs.md`), with its tag ids renamed to `"@tsdoctor/registry/..."` in phase 2.
+
+**`@tsdoctor/vfs`** is the sixth core workspace, extracted from the registry in the Tier 1 core moves: the `Vfs` currency type and its `mergeVfs`/`prefixVfs`/`isTypeDefinition` helpers, `VirtualPackage`, `TsEnvironment`, and the compiler-options seam (`parseTsConfig`, `TypeResolutionCompilerOptions`, `decodeCompilerOptions`, `toProgrammaticCompilerOptions`, `DEFAULT_COMPILER_OPTIONS`, `resolveTypeScriptConfig`). The adapter consumes the seam from `layers/type-environment.ts` and `twoslash-transformer.ts`; the model sits on `VirtualPackage` independently, with no edge between the model and the registry in either direction. See [The D1 outcome](tsdoctor-package-architecture.md) for why the substrate was extracted rather than hosted, and `type-loading-vfs.md` for the seam itself.
 
 **`@tsdoctor/seo`** (phase 4) supplies every `<head>` concern behind one seam. `deriveSiteUrl` is consumed in `layers/config-resolution.ts`; `attributionFacts` + `packageContext` in `build-program.ts`, once per API; `deriveScriptBody` + `headTags` in `generateSinglePage`; the `HeadTag` vocabulary in `markdown/helpers.ts`, which renders each tag into an RSPress frontmatter `head` pair. The adapter's `og-resolver.ts` and `schemas/opengraph.ts` were **deleted** into it. What the adapter kept is `OgService` — filesystem probing of a configured local image, genuinely I/O and genuinely RSPress-path-shaped — now importing `imageMimeType` / `ogAltText` / `resolveUrl` from the package. See `structured-data-and-og.md`.
 
@@ -449,7 +455,7 @@ Key config types defined via Effect Schema:
 - `MultiApiConfig` -- Config for multi-API mode (`apis:[]`)
 - `CategoryConfig` -- API category definition (display name, folder, kinds)
 - `ExternalPackageSpec` -- External package for type loading
-- `VersionConfig` -- Multi-version configuration
+- `VersionConfig` -- Multi-version configuration. It carries **no** `tsconfig` or `compilerOptions`: those levels of the resolution cascade were never read, so a multi-version site silently type-checked every version against the defaults. The unwired levels are deleted rather than wired, since nothing asked for them (see `type-loading-vfs.md`)
 
 ## Build Tooling
 
@@ -530,8 +536,6 @@ The plugin exports a `serve(options?: ServeOptions): Promise<void>` runner (`src
 | `config-helpers.ts` | `fromDir` / `fromParentDir` config builders (delegating to `@tsdoctor/bundle` discovery) |
 | `config-utils.ts` | `classifyApiConfig`, `mergeLlmsPluginConfig`, dependency extraction |
 | `sync-node-fs.ts` | Sync `FileSystem` bridge for running bundle discovery under the sync helper API |
-| `frontmatter.ts` | gray-matter-parity frontmatter split/join over `@effected/yaml` |
-| `tsconfig-parser.ts` | `parseTsConfig` over `@effected/tsconfig-json`'s `TsconfigLoaderSync` — reports the tsconfig spelling (see `type-loading-vfs.md`) |
 | `markdown/prose-linker.ts` | Per-build prose cross-linker holder over the model `CrossLinker` |
 | `BuildEnv.ts` | The per-build `Context.Reference`s (`BuildId`, `Thresholds`, `PageConcurrency`, `SuppressExampleErrors`) |
 | `twoslash-access.ts` | Module-level holder bridging RSPress's render pass to `TwoslashEnvironments` |

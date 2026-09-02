@@ -6,12 +6,12 @@
  * Run ad hoc after changing declaration generation:
  *
  * ```bash
- * pnpm exec tsx platforms/rspress/__test__/scripts/regenerate-declarations.ts
+ * pnpm exec tsx packages/model/__test__/scripts/regenerate-declarations.ts
  * ```
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { ApiExtractedPackage } from "../../src/api-extracted-package.js";
+import { ApiExtractedPackage } from "../../src/index.js";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "..", "__fixtures__", "example-module");
 const API_MODEL_PATH = path.join(FIXTURES_DIR, "example-module.api.json");

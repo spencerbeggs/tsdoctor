@@ -1,6 +1,6 @@
 # @tsdoctor/registry documentation
 
-TypeScript virtual file systems for Effect: fetch, cache and resolve type definitions from npm via the jsDelivr CDN, and build `@typescript/vfs` environments for Twoslash-style documentation tooling.
+External TypeScript type loading for Effect: fetch, cache and resolve type definitions from npm via the jsDelivr CDN into a `Vfs`, the virtual file system Twoslash-style documentation tooling type-checks against.
 
 ## Install
 
@@ -8,7 +8,7 @@ TypeScript virtual file systems for Effect: fetch, cache and resolve type defini
 npm install @tsdoctor/registry effect @effect/platform-node @effected/store @effected/semver
 ```
 
-Requires Node.js >=24.11.0. Those four peers are the required set. `@effected/xdg`, `@effected/tsconfig-json`, `typescript` and `@typescript/vfs` are optional, needed only for `TypeCache.layerXdg` and `TsEnvironment`.
+Requires Node.js >=24.11.0. Those four peers are the required set. `@effected/xdg` is optional, needed only for `TypeCache.layerXdg`.
 
 ## Pages
 

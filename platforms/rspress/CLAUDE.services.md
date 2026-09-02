@@ -50,9 +50,23 @@ use are `Layer.suspend(() => ...)` and `Layer.effect(this, Effect.suspend(() => 
 `PathDerivationService` is **deleted** — import the pure functions from
 `path-derivation.ts` directly. Both cache-backed layers acquire their stack
 at layer construction (never `Effect.provide` inside a method body — v4 forks
-a child `MemoMap` and rebuilds) and both `Layer.catchCause` down to a cache
-miss: an unreachable cache must never fail a build. They share one platform
-and XDG root, `layers/xdg.ts` — do not re-declare the namespace literal.
+a child `MemoMap` and rebuilds) and both degrade to a cache miss: an
+unreachable cache must never fail a build. They share one platform and XDG
+root, `layers/xdg.ts` — do not re-declare the namespace literal.
+
+**Degrade with `@effected/store`'s `Cache.degrading`, never `Layer.catchCause`.**
+`catchCause` catches EVERY cause, interruption included, so a fiber being shut
+down was handed a working degraded cache instead of the interrupt propagating.
+`TwoslashCacheService` degrades at the `Cache` rather than around the service,
+which is why its separate degraded implementation is gone — the ordinary
+implementation over an always-missing cache IS the degraded behaviour, and a
+second one only gave the two a way to disagree. `TypeRegistryService` keeps a
+layer-level catch, because its construction can fail outside the cache, and
+that catch **re-raises interruption** rebuilt from the original cause's
+interruptors — `Effect.interrupt` would name the current fiber and misattribute
+the cancellation. `CacheShape.degraded` is surfaced on the service shape: a
+degraded cache and a cold one behave identically at every lookup, so the
+distinction has to be carried rather than inferred.
 
 `ConfigService`, `OgService`, `TwoslashCacheService`, `TypeRegistryService` and
 `SnapshotService` ship `makeTest(overrides)` / `layerTest(overrides)` in-memory
@@ -97,8 +111,12 @@ directly to the console or incrementing metrics inline.
 
 `buildEventBus(obs)` (`layers/observability.ts`) composes five sinks:
 
-- **Console sink** — human-readable one-liners (or JSON at `logLevel: "debug"`),
-  filtered by the configured level
+- **Console sink** — human-readable one-liners (or JSON at
+  `observability.logLevel: "debug"`), filtered by the configured level. The
+  top-level `logLevel` and `performance` plugin options are **deleted** —
+  `observability.logLevel` / `observability.thresholds` are the only spellings,
+  and the `DeprecatedConfigUsed` event that announced the old ones is gone with
+  them
 - **Metrics sink** — translates events to `BuildMetrics` counters/histograms
   against the build's own `MetricStore`; tags scope/component/phase/TS-code
   where a breakdown is worth querying, so `metric-report.ts` can read it back

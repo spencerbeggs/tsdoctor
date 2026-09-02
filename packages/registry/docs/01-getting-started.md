@@ -27,18 +27,14 @@ Nothing is a bundled dependency. Each `@effected/*` package pins an exact `effec
 | `@effected/store` | Yes | The `Cache` service backing the metadata plane, in the requirements of both `TypeCache` layers. |
 | `@effected/semver` | Yes | Range parsing and `maxSatisfying` behind `TypeRegistry.resolveVersion`. Used internally rather than in a signature, but a peer so it resolves against your `effect`. |
 | `@effected/xdg` | Optional | `AppDirs`, only for `TypeCache.layerXdg`. Wiring `TypeCache.layer({ cacheDir })` instead does not need it. |
-| `@effected/tsconfig-json` | Optional | `CompilerOptions` and the enum codec, only for `TsEnvironment`. Loaded lazily at runtime. |
-| `typescript` | Optional | Only for `TsEnvironment`, loaded lazily at runtime. |
-| `@typescript/vfs` | Optional | Only for `TsEnvironment`, loaded lazily at runtime. |
 
-Add the optional packages per feature — `@effected/xdg` for an XDG-rooted cache, and the TypeScript trio for building compiler environments rather than raw VFS maps:
+Add `@effected/xdg` if you want an XDG-rooted cache:
 
 ```bash
 npm install @effected/xdg
-npm install @effected/tsconfig-json typescript @typescript/vfs
 ```
 
-All three of the `TsEnvironment` peers load behind a dynamic `import()` inside `make`, so omitting them costs you nothing until you call it, and calling it without them yields a typed `TsEnvironmentError` rather than a crash.
+Building a TypeScript environment over the resulting VFS is a separate package: install [`@tsdoctor/vfs`](https://www.npmjs.com/package/@tsdoctor/vfs) and its own optional `typescript` peers for that.
 
 Semver range resolution is no longer a peer. `@effected/semver` is an ordinary dependency, resolved for you, because it is used only inside the body of `resolveVersion` and appears in no exported signature.
 
@@ -149,53 +145,20 @@ A specifier with no version part defaults to `latest`. Ranges and tags are pinne
 
 A `Vfs` is a plain `Map<string, string>` whose keys are `node_modules/`-prefixed paths and whose values are file contents. That shape is what `@typescript/vfs` and Twoslash consume directly.
 
+The type and the helpers over it live in [`@tsdoctor/vfs`](https://www.npmjs.com/package/@tsdoctor/vfs), which this package depends on and re-fills rather than redefines:
+
 ```ts
-import { mergeVfs, prefixVfs } from "@tsdoctor/registry";
+import { mergeVfs, prefixVfs } from "@tsdoctor/vfs";
 
 const local = prefixVfs("my-lib", new Map([["index.d.ts", "export declare const x: number;"]]));
 console.log([...local.keys()]);
 // [ 'node_modules/my-lib/index.d.ts' ]
 
-const combined = mergeVfs(local, other);
+const combined = mergeVfs(local, fetched);
 // merged left to right; later maps win on path collisions
 ```
 
-`VirtualFileSystem` remains exported as an alias of `Vfs` for consumers migrating from earlier versions.
-
-### VirtualPackage
-
-When the declarations already exist locally — API Extractor output, hand-written ambient types — synthesize a package instead of fetching one. Virtual packages are transient and never written to the disk cache.
-
-```ts
-import { VirtualPackage } from "@tsdoctor/registry";
-
-const pkg = VirtualPackage.create("@my-org/api-types", "1.0.0", "export interface User { id: string }");
-console.log([...pkg.toVfs().keys()]);
-// [ 'node_modules/@my-org/api-types/package.json', 'node_modules/@my-org/api-types/index.d.ts' ]
-```
-
-Use `createMultiEntry` for several entry points, which generates a synthetic `exports` map, or `fromFile` to read a single `.d.ts` through the `FileSystem` service.
-
-### TsEnvironment
-
-`TsEnvironment.make` turns a VFS into a `VirtualTypeScriptEnvironment`, loading the optional peers lazily. A missing peer surfaces as a typed `TsEnvironmentError` rather than crashing at import time.
-
-```ts
-import { TsEnvironment } from "@tsdoctor/registry";
-import { Effect } from "effect";
-
-const program = Effect.gen(function* () {
-  const environment = yield* TsEnvironment.make({
-    vfs,
-    compilerOptions: { strict: true, target: "es2022" },
-  });
-  return environment.languageService.getProgram();
-});
-```
-
-`compilerOptions` is tsconfig JSON form — `CompilerOptions.Type` from `@effected/tsconfig-json`, the same shape you would write in a `tsconfig.json`. Enum-valued fields are strings (`"es2022"`, not `ts.ScriptTarget.ES2022`) and are converted to the compiler's numeric enums internally, so building options needs no `typescript` import.
-
-VFS paths are re-rooted under `projectRoot`, which defaults to `process.cwd()`. Declaration files in the map become the environment's root files.
+That package also owns `VirtualPackage`, for synthesizing a package from declarations you already have locally, and `TsEnvironment.make`, for turning any VFS into a `VirtualTypeScriptEnvironment`. Both used to be exported from here.
 
 ## Next steps
 
