@@ -120,9 +120,12 @@ function inlineText(children: ReadonlyArray<PhrasingContent>): Emit {
 // The extends clause excludes `,` as well as `>`: with `[^>]+` the clause and
 // the parameter-separator group both accept a comma, so an unclosed list like
 // `<A,A extends X,A extends X,…` backtracks exponentially (CodeQL, ReDoS).
-// Excluding the comma removes the ambiguity; a comma inside a constraint that
-// carries no `>` (`<T extends [A, B]>`) is the one shape no longer matched.
-const GENERICS = /<([A-Z][A-Za-z0-9_]*(?:\s+extends\s+[^,>]+)?(?:,\s*[A-Z][A-Za-z0-9_]*(?:\s+extends\s+[^,>]+)?)*)>/g;
+// Excluding the comma removes that ambiguity, and the constraint must start
+// with a non-space so the `\s+` after `extends` cannot share characters with
+// it; a comma inside a constraint that carries no `>` (`<T extends [A, B]>`)
+// is the one shape no longer matched.
+const GENERICS =
+	/<([A-Z][A-Za-z0-9_]*(?:\s+extends\s+[^,>\s][^,>]*)?(?:,\s*[A-Z][A-Za-z0-9_]*(?:\s+extends\s+[^,>\s][^,>]*)?)*)>/g;
 
 /**
  * {@link escapeMdxGenerics} as an mdast transform: a generic parameter list
