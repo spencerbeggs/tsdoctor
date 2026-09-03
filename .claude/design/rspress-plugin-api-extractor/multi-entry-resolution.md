@@ -3,18 +3,31 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-05-26
-updated: 2026-08-25
-last-synced: 2026-08-25
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 90
 related:
   - rspress-plugin-api-extractor/multi-entry-point-support.md
   - rspress-plugin-api-extractor/multi-entry-vfs.md
   - rspress-plugin-api-extractor/page-generation-system.md
   - rspress-plugin-api-extractor/cross-linking-architecture.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 
 # Multi-Entry Resolution and Route Collisions
+
+## Table of Contents
+
+- [Overview](#overview)
+- [EntryPoints resolution](#entrypoints-resolution)
+- [Route collisions](#route-collisions)
+- [Integration with prepareWorkItems](#integration-with-prepareworkitems)
+- ["Available from" rendering](#available-from-rendering)
+- [Data flow](#data-flow)
+- [Test fixture](#test-fixture)
+- [Known limitations](#known-limitations)
+- [Related documentation](#related-documentation)
 
 ## Overview
 
@@ -49,7 +62,7 @@ A route is `${categoryFolder}/${sanitized-lowercased-name}`. Two distinct items 
 
 - `Routes.RouteCandidate` — a `Schema.Class` record for each candidate route (identity, display name, folder, lowercased base name, kind, canonical reference).
 - `Routes.detectCollisions(candidates)` — groups `RouteCandidate[]` by route key and returns the groups with more than one distinct item, ordered deterministically.
-- `Routes.RouteCollisionError` — a `Schema.TaggedError` carrying `{ baseRoute, collisions }`; its message names each colliding item, its kind and canonical reference, plus guidance to rename the item or remap categories. `prepareWorkItems` throws it when `detectCollisions` returns anything.
+- `Routes.RouteCollisionError` — a `Schema.TaggedError` carrying `{ baseRoute, collisions }`; its message names each colliding item, its kind and canonical reference, plus guidance to rename the item or remap categories. The RSPress adapter's `prepareWorkItems` wrapper throws it when the `@tsdoctor/pages` step returns any collision (see below).
 - `Routes.sanitizeId(displayName, prefix?)` — the single route-side sanitizer (member anchors, route segments).
 
 Detection runs on the **lowercased** path so it catches what a case-insensitive filesystem (macOS, Windows) would silently merge. There is no synthetic `-kind` suffix, no `routeSuffix` field and no entry-point segment — the only outcomes are "distinct routes" or "build fails".
@@ -58,21 +71,28 @@ The companion `const`+`type` pattern routes to `/variable/<name>` and `/type/<na
 
 ## Integration with prepareWorkItems
 
-`prepareWorkItems` (`src/build-stages.ts`) drives the pipeline:
+Since phase 5 the per-API step from a loaded model to work items is `prepareWorkItems` in **`@tsdoctor/pages`** (`packages/pages/src/WorkItems.ts`), lifted out of the RSPress adapter once the VitePress adapter needed the same computation (`doc-ir-and-pages.md`). It is pure and reports nothing: `uncategorized` items and route `collisions` come back as DATA in its result, and each adapter decides what to do with them. The steps:
 
 1. Call `EntryPoints.resolve` and build a lookup from `displayName::kind` to `ResolvedEntryItem`.
 2. Filter out synthetic base declarations detected by `SyntheticBases.detect` (`@tsdoctor/model`) — unexported `Foo_base` items referenced by an exported class's extends clause get no page, no sidebar entry and no route candidate; see `page-generation-system.md`.
-3. Categorize items and extract namespace members via `ApiItems.categorize` / `ApiItems.namespaceMembers` (`@tsdoctor/model`); `categorize` returns `{ items, uncategorized }` and the adapter emits an `ItemSkipped` event per uncategorized item.
-4. Build `Routes.RouteCandidate[]` for all top-level items and namespace members, run `Routes.detectCollisions`, and throw `Routes.RouteCollisionError` on any collision.
+3. Categorize items and extract namespace members via `ApiItems.categorize` / `ApiItems.namespaceMembers` (`@tsdoctor/model`); `categorize` returns `{ items, uncategorized }` and the uncategorized items are passed through to the result.
+4. Build `Routes.RouteCandidate[]` for all top-level items and namespace members and run `Routes.detectCollisions`; the collisions are returned on the result, not thrown.
 5. Build the cross-link routes/kinds maps (lowercased paths, no suffix), with bare names owned by the highest-priority kind.
 6. Compute `ApiItems.memberAnchors(item)` for each class and interface, so the cross-link route map's `#fragment` and the page's `id=` come from one computation (see `cross-linking-architecture.md`).
 7. Construct `WorkItem[]`, attaching `availableFrom` from the resolved data (plus `syntheticBase` on classes whose extends clause references a detected base, and `memberAnchors` on classes and interfaces).
 
 ```typescript
-interface WorkItem {
+interface PrepareWorkItemsResult<C extends WorkItemCategory = WorkItemCategory> {
+  readonly workItems: WorkItem<C>[];
+  readonly crossLinkData: CrossLinkData;          // { routes, kinds }
+  readonly uncategorized: ReadonlyArray<ApiItem>;
+  readonly collisions: ReadonlyArray<Routes.RouteCollision>;
+}
+
+interface WorkItem<C extends WorkItemCategory = WorkItemCategory> {
   readonly item: ApiItem;
   readonly categoryKey: string;
-  readonly categoryConfig: CategoryConfig;
+  readonly categoryConfig: C;
   readonly namespaceMember?: ApiItems.NamespaceMember;
   /** Entry points this item is available from */
   readonly availableFrom?: string[];
@@ -83,17 +103,24 @@ interface WorkItem {
 }
 ```
 
-There is no `entryPointSegment` and no per-item collision flag on `WorkItem`. The route and file path are always the plain lowercased `category/name`, and the `_meta.json` navigation label is the plain display name.
+`WorkItem` is generic in its category type: `WorkItemCategory` is the neutral `ApiItems.CategorySpec` plus `displayName` / `singularName` / `folderName`, and each adapter instantiates it with its own config shape (the RSPress adapter's `WorkItem` is `WorkItem<CategoryConfig>`).
+
+There is no `entryPointSegment` and no per-item collision flag on `WorkItem`. The route and file path are always the plain lowercased `category/name`, and the navigation label is the plain display name.
+
+### What each adapter does with the data
+
+- **RSPress** (`platforms/rspress/src/build-stages.ts`) keeps a reporting wrapper of the same name, `prepareWorkItems`, over the package function. It emits an `ItemSkipped` event per uncategorized item and a `RouteCollisionDetected` event per collision through the sync-island bridge, then throws `Routes.RouteCollisionError` when any collision exists — so the fatal path still reaches `issues.json` (`build-progress-and-issues.md`).
+- **VitePress** (`platforms/vitepress/src/Generate.ts`) calls the package function directly, dies (`Effect.die`) with a message naming each colliding route and its items, and reports the uncategorized items' display names on its `GenerateResult.uncategorized`.
 
 ## "Available from" rendering
 
-Every page generator accepts an optional `availableFrom?: string[]` as a trailing argument of `generate()` (`ClassPageGenerator` takes two further trailing parameters, `syntheticBase?: ApiItem` and `memberAnchors?: ReadonlyMap<string, string>`; `InterfacePageGenerator` takes `memberAnchors` — see `page-generation-system.md`). When it lists more than one entry point, `generateAvailableFrom()` (`src/markdown/helpers.ts`) renders a line:
+The line is a block in the page IR, not a helper. `buildPage` (`packages/pages/src/Build.ts`) pushes an `AvailableFrom` block (`Blocks.ts`; `kind: "available-from"`, carrying `packageName` and `entryPoints`) when the work item's `availableFrom` lists more than one entry point; a single-entry item gets no block. Each emitter spells it — the RSPress MDX emitter (`src/emit/mdx.ts`) and the VitePress markdown emitter (`src/emit/markdown.ts`) both render the same paragraph:
 
 ```text
 Available from: `package-name`, `package-name/testing`
 ```
 
-The `"default"` entry maps to the bare package name; named entries become subpath imports. A single-entry item renders no line.
+The `"default"` entry maps to the bare package name; named entries become subpath imports. The former `generateAvailableFrom()` helper and the page generators' trailing `availableFrom` parameter are gone with the generators (phase 5).
 
 ## Data flow
 
@@ -104,20 +131,27 @@ EntryPoints.resolve()   [@tsdoctor/model]
   → deduplicate re-exports by displayName::kind
   → ResolvedEntryItem[] (availableFrom per item)
          |
-prepareWorkItems()
+prepareWorkItems()   [@tsdoctor/pages, WorkItems.ts]
   → filter out synthetic base declarations (SyntheticBases.detect)
-  → categorize items + namespace members (ApiItems; ItemSkipped per
-    uncategorized item)
+  → categorize items + namespace members (ApiItems)
   → build Routes.RouteCandidate[] → Routes.detectCollisions()
-    (throws Routes.RouteCollisionError on collision)
   → build cross-link routes/kinds maps (lowercased, no suffix), with member
     anchors and keys from ApiItems.memberAnchors / memberRouteKeys
   → construct WorkItem[] with availableFrom + memberAnchors
+  → return { workItems, crossLinkData, uncategorized, collisions }
          |
-Stream pipeline (buildPipelineForApi)
-  → generateSinglePage dispatches to the page generator with availableFrom
-  → route/file path = lowercased category/name
-  → writeSingleFile: _meta.json label = plain display name
+adapter reporting
+  → RSPress: ItemSkipped per uncategorized item, RouteCollisionDetected
+    per collision, then throw Routes.RouteCollisionError
+  → VitePress: die on any collision; report uncategorized names
+         |
+buildPage()   [@tsdoctor/pages, Build.ts]
+  → AvailableFrom block when availableFrom lists > 1 entry point
+  → route = lowercased category/name
+         |
+emitter   [adapter: rspress src/emit/mdx.ts | vitepress src/emit/markdown.ts]
+  → "Available from: `pkg`, `pkg/entry`" paragraph
+  → nav label = plain display name
 ```
 
 ## Test fixture
@@ -135,3 +169,4 @@ The `modules/kitchensink/` module declares a `./testing` entry point (`src/testi
 - **Multi-Entry VFS:** `multi-entry-vfs.md` — per-entry `.d.ts` generation
 - **Page Generation System:** `page-generation-system.md` — Stream pipeline consuming work items
 - **Cross-Linking Architecture:** `cross-linking-architecture.md` — `crossLinkKindPriority` and companion routing
+- **Doc IR and `@tsdoctor/pages`:** `doc-ir-and-pages.md` — the `prepareWorkItems` lift, the `AvailableFrom` block and the emitters

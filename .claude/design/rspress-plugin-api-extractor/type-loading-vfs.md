@@ -10,10 +10,29 @@ related:
   - rspress-plugin-api-extractor/import-generation-system.md
   - rspress-plugin-api-extractor/multi-entry-vfs.md
   - rspress-plugin-api-extractor/build-architecture.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 
 # Type Loading & Virtual File System (VFS)
+
+## Table of Contents
+
+- [Overview](#overview)
+  - [Effect Service Architecture](#effect-service-architecture)
+- [Architecture](#architecture)
+  - [TypeRegistryService Interface](#typeregistryservice-interface)
+  - [Edge-composed registry stack](#edge-composed-registry-stack)
+  - [Registry event observer](#registry-event-observer)
+  - [Integration Flow](#integration-flow)
+  - [VFS in the Build Pipeline](#vfs-in-the-build-pipeline)
+  - [Per-scope TypeScript environments](#per-scope-typescript-environments)
+  - [Reading a tsconfig](#reading-a-tsconfig)
+  - [Compiler-option normalization](#compiler-option-normalization)
+- [Virtual File System (VFS)](#virtual-file-system-vfs)
+- [Package Configuration](#package-configuration)
+- [Error Handling](#error-handling)
+- [Related Documentation](#related-documentation)
 
 ## Overview
 

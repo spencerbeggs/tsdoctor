@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: cross-linking
 created: 2026-01-17
-updated: 2026-09-02
-last-synced: 2026-09-02
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 90
 related:
   - rspress-plugin-api-extractor/page-generation-system.md
@@ -31,6 +31,7 @@ dependencies: []
 - [VfsRegistry](#vfsregistry)
 - [Testing](#testing)
 - [File Locations](#file-locations)
+- [Future Enhancements](#future-enhancements)
 
 ---
 

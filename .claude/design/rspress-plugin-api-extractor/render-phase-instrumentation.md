@@ -12,6 +12,7 @@ related:
   - rspress-plugin-api-extractor/build-progress-and-issues.md
   - rspress-plugin-api-extractor/type-loading-vfs.md
   - rspress-plugin-api-extractor/page-generation-system.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 

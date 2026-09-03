@@ -1,5 +1,5 @@
 ---
-status: draft
+status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-08-24
@@ -18,6 +18,7 @@ related:
   - rspress-plugin-api-extractor/ssg-compatible-components.md
   - rspress-plugin-api-extractor/llms-integration.md
   - rspress-plugin-api-extractor/structured-data-and-og.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 
@@ -146,7 +147,7 @@ A sketch of the boundary, to be hardened by the VitePress alpha (phase 5):
 
 - Resolved API models (loaded, categorized, multi-entry-resolved, synthetic bases applied)
 - Cross-link route maps
-- Generated markdown / doc IR (`@tsdoctor/pages`, once it exists)
+- The page IR — work items, the `ApiItem` → `Page` builders and the nav tree (`@tsdoctor/pages`)
 - The VFS primitives and the TypeScript environment (`@tsdoctor/vfs`), populated with resolved external types (`@tsdoctor/registry`)
 - Snapshot decisions (what changed, what to regenerate) and per-page metadata (`@tsdoctor/snapshot`)
 - Every `<head>` tag for a page, as a neutral `HeadTag[]` from `@tsdoctor/seo`'s `headTags` — canonical link, Open Graph, Twitter card and the schema.org JSON-LD script. An adapter renders them; it does not decide which a page gets (`structured-data-and-og.md`)
@@ -160,7 +161,7 @@ A sketch of the boundary, to be hardened by the VitePress alpha (phase 5):
 
 ## Core-Move Candidates
 
-Measured at the end of the pre-phase-4 adapter refactor (2026-08-25) from inside the code rather than from a survey: coupling was counted (references to `@rspress`, `shiki`, `hast`, `react`), not judged by file name. Tier 1 has since been executed; this section records the conclusions so the analysis is not re-derived. Full working is in `.claude/plans/2026-08-25-rspress-adapter-refactor.md` under "Core-move candidates".
+Measured at the end of the pre-phase-4 adapter refactor (2026-08-25) from inside the code rather than from a survey: coupling was counted (references to `@rspress`, `shiki`, `hast`, `react`), not judged by file name. Tier 1 has since been executed; this section records the conclusions so the analysis is not re-derived. The full working — per-file counts of `@rspress` / `shiki` / `hast` / `react` references across the adapter's `src/` — lived in the 2026-08-25 adapter-refactor plan's "Core-move candidates" section, an untracked working document since archived (`.claude/plans/` is gitignored); the tiers and conclusions below are the durable record.
 
 **Tier 1 execution status (2026-09-02): COMPLETE.** Every move below landed except `category-resolver.ts`, which was deliberately dropped. Where each file went — and where it did NOT go, since this section's own proposal was wrong twice:
 
@@ -224,7 +225,8 @@ Both decisions recorded here as open were **RESOLVED in the 2026-08-24 phase-2 p
 - **Current architecture and the four delegation shims:** `build-architecture.md`
 - **The `@tsdoctor/vfs` / `@tsdoctor/registry` split and the Twoslash internals:** `type-loading-vfs.md`
 - **Snapshot system moving to `@tsdoctor/snapshot`:** `snapshot-tracking-system.md`
-- **Page generators that seed `@tsdoctor/pages`:** `page-generation-system.md`
+- **The pipeline stages that run the `@tsdoctor/pages` builders:** `page-generation-system.md`
+- **The `@tsdoctor/pages` IR, the emitters and the golden gate:** `doc-ir-and-pages.md`
 - **The phase-4 `@tsdoctor/seo` package and the `headTags` seam:** `structured-data-and-og.md`
 - **Route/cross-link model moving to `@tsdoctor/model`:** `cross-linking-architecture.md`
 - **RSPress-owned component layer:** `ssg-compatible-components.md`

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: current
 module: rspress-plugin-api-extractor
 category: meta
 created: 2026-08-24
@@ -17,12 +17,13 @@ related:
   - rspress-plugin-api-extractor/llms-integration.md
   - rspress-plugin-api-extractor/render-phase-instrumentation.md
   - rspress-plugin-api-extractor/structured-data-and-og.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 
 # Road to 1.0.0
 
-> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done — **phases 1 through 4 are complete** (phase 1 merged via PR #163 and shipped to npm on 2026-08-24; phase 2 code complete 2026-08-24; phase 3 complete 2026-08-25, landed on `feat/phase-3`; phase 4 complete 2026-08-26, landed on `feat/phase-4` — see `monorepo-consolidation.md`, `render-phase-instrumentation.md` and `structured-data-and-og.md`), and **the phase 5 alpha has landed** on `feat/phase-5` with its gate held, close-out in progress (see `doc-ir-and-pages.md`). For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session (phase 3's instrument-first sequencing included) and should be treated as settled unless a section explicitly labels them open.
+> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done — **phases 1 through 4 are complete and the phase 5 alpha has landed** (phase 1 merged via PR #163 and shipped to npm on 2026-08-24; phase 2 code complete 2026-08-24; phase 3 complete 2026-08-25, landed on `feat/phase-3`; phase 4 complete 2026-08-26, landed on `feat/phase-4` — see `monorepo-consolidation.md`, `render-phase-instrumentation.md` and `structured-data-and-og.md`; phase 5 alpha landed 2026-09-03 on `feat/phase-5` with its gate held, close-out in progress — see `doc-ir-and-pages.md`). For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session (phase 3's instrument-first sequencing included) and should be treated as settled unless a section explicitly labels them open.
 
 ## Table of Contents
 
@@ -142,7 +143,7 @@ Also landed alongside Chunk 5: the `makeTest` / `layerTest` service doubles (5.0
 
 ### Phase 4 — SEO Layer
 
-**COMPLETE** (landed on `feat/phase-4`, 2026-08-26, following the pre-phase-4 adapter refactor on the same branch). Implemented against `.claude/plans/2026-08-25-seo-layer-plan.md`; the full record — package topology, the seam, the JSON-LD mapping, the change-detection defect — is in `structured-data-and-og.md`.
+**COMPLETE** (landed on `feat/phase-4`, 2026-08-26, following the pre-phase-4 adapter refactor on the same branch). Implemented against a working plan (the 2026-08-25 SEO layer plan, untracked and since archived — `.claude/plans/` is gitignored); the full record — package topology, the seam, the JSON-LD mapping, the change-detection defect — is in `structured-data-and-og.md`.
 
 - **A fifth core package, `@tsdoctor/seo`** (`packages/seo`): framework-neutral `<head>` metadata. `HeadTag` (the neutral tag vocabulary), `Canonical`, `OpenGraph` (+ Twitter cards), `Attribution`, `StructuredData`, and `Seo.headTags` — the single adapter seam. The adapter's `og-resolver.ts` and `schemas/opengraph.ts` are deleted into it.
 - **JSON-LD structured data: done**, but **NOT** "computed in `@tsdoctor/model`" as this roadmap originally sited it. The model's `@alpha`, zero-consumer, throwing `StructuredData` stub is **deleted**; derivation lives in `@tsdoctor/seo` over the newly released `@effected/schema-org@0.1.0`. `packageContext` is derived once per API; `derive`/`deriveScriptBody` assemble the per-page `@graph` (`SoftwareSourceCode` + `TechArticle` + `APIReference`, linked by `isPartOf`/`mainEntity`). Reasons for the move are recorded in `structured-data-and-og.md` and `tsdoctor-package-architecture.md`.

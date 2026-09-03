@@ -16,6 +16,7 @@ related:
   - rspress-plugin-api-extractor/snapshot-tracking-system.md
   - rspress-plugin-api-extractor/llms-integration.md
   - rspress-plugin-api-extractor/render-phase-instrumentation.md
+  - rspress-plugin-api-extractor/build-architecture.md
 ---
 
 # Doc IR and `@tsdoctor/pages`
