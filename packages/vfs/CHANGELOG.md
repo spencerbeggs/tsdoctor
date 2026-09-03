@@ -1,5 +1,15 @@
 # @tsdoctor/vfs
 
+## 0.2.1
+
+### Maintenance
+
+- Force package bumps
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.2.0
 
 ### Features

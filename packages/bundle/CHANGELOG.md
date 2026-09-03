@@ -1,5 +1,15 @@
 # @tsdoctor/bundle
 
+## 0.2.3
+
+### Maintenance
+
+- Force package bumps
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.2.2
 
 ### Dependencies

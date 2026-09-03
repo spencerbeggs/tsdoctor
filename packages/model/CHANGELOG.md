@@ -1,5 +1,21 @@
 # @tsdoctor/model
 
+## 0.6.1
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/vfs | dependency | updated | 0.2.0 | 0.2.1 |
+
+### Maintenance
+
+- Force package bumps
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.6.0
 
 ### Documentation
