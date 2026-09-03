@@ -1,5 +1,63 @@
 # rspress-plugin-api-extractor
 
+## 0.15.0
+
+### Breaking Changes
+
+- Four pieces of public surface that were decoded but never read by the build
+  are removed. None of them ever affected generated output, so a config that
+  set them behaves exactly as before once the key is deleted; a config that
+  still passes one now fails schema validation at plugin construction.
+
+- `categories.<key>.tsdocModifier` — accepted on `CategoryConfig` but never
+  consulted; items were always routed by `itemKinds`. Remove the key. There
+  is no per-item category routing; rename the item instead.
+
+- `externalPackages[].tsconfig` and `externalPackages[].compilerOptions` —
+  accepted on each external package spec but never applied. Remove them and
+  set `tsconfig` / `compilerOptions` at the API level (`api:` or each&#10;`apis:` entry), which is what every code example is type-checked under.
+
+- `observability.thresholds.slowHttpRequest` — accepted and carried on the
+  resolved thresholds, but no phase ever compared against it. Remove the key;
+  the remaining thresholds are unchanged.
+
+- The `LogLevel` type export — no plugin option was typed by it. Type&#10;`observability.logLevel` against its own values (`"none" | "error" |
+  "warn" | "info" | "debug" | "trace" | "verbose"`) instead.
+
+### Bug Fixes
+
+- Fixed a race in prose cross-linking on multi-API builds. The plugin used to
+  cross-link prose through a module-level holder swapped per API while&#10;`generateApiDocs` ran multiple APIs concurrently, so whichever API installed
+  the holder last owned it for every page generated afterwards — on a&#10;`multiVersion` site, v1 pages could link into v2's default-version routes;
+  on a multi-API site, one package's prose could be linked against another
+  package's route map. Cross-linking is now deterministic per API.
+
+### Refactoring
+
+- Page generation now runs through `@tsdoctor/pages`: the eight hand-written
+  page generator classes are replaced by that package's `buildPage` builders
+  plus a local MDX emitter, verified byte-identical against the previous
+  output across every fixture site. This is an internal restructuring with no
+  change to generated output beyond the cross-link fix above. [#208][#208]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/markdown | dependency | updated | ^0.7.0 | ^0.8.0 |
+| @tsdoctor/model | dependency | updated | 0.5.0 | 0.6.0 |
+| @tsdoctor/registry | dependency | updated | 0.3.0 | 0.3.1 |
+| @tsdoctor/vfs | dependency | updated | 0.1.0 | 0.2.0 |
+| @tsdoctor/pages | dependency | added | — | 0.1.0 |
+
+[#208][#208]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#208]: https://github.com/spencerbeggs/tsdoctor/pull/208
+
 ## 0.14.0
 
 ### Breaking Changes

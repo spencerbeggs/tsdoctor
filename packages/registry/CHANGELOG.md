@@ -1,5 +1,13 @@
 # @tsdoctor/registry
 
+## 0.3.1
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/vfs | dependency | updated | 0.1.0 | 0.2.0 |
+
 ## 0.3.0
 
 ### Documentation
