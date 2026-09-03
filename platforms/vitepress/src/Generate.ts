@@ -92,7 +92,7 @@ export interface GenerateResult {
 	readonly externalTypes: ExternalTypesReport;
 	/** Items no category matched; they got no page. */
 	readonly uncategorized: ReadonlyArray<string>;
-	/** Examples Prettier could not format, by page route. */
+	/** Items whose examples Prettier could not format, by display name. */
 	readonly formatFailures: ReadonlyArray<string>;
 }
 

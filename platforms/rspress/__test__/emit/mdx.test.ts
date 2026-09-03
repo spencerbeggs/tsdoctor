@@ -305,3 +305,19 @@ describe("escapeMdxGenerics", () => {
 		expect(escapeMdxGenerics("a < b and <div>")).toBe("a < b and <div>");
 	});
 });
+
+describe("escapeMdxGenerics — bounded backtracking", () => {
+	it("finishes in linear time on an unclosed generic list (CodeQL ReDoS finding)", () => {
+		// `[^>]+` in the extends clause used to share `,` with the parameter
+		// separator, so this shape backtracked exponentially in the repeat count.
+		const pathological = `<A${",A extends X".repeat(60)}`;
+		const started = performance.now();
+		expect(escapeMdxGenerics(pathological)).toBe(pathological);
+		expect(performance.now() - started).toBeLessThan(200);
+	});
+
+	it("still wraps constraints that carry no comma", () => {
+		expect(escapeMdxGenerics("<T extends A | B>")).toBe("`<T extends A | B>`");
+		expect(escapeMdxGenerics("<T extends Foo, U>")).toBe("`<T extends Foo, U>`");
+	});
+});
