@@ -7,11 +7,28 @@
  */
 
 export {
+	BundleManifest,
+	BundleManifestError,
+	KNOWN_REGISTRY_TYPES,
+	type KnownRegistryType,
+	MANIFEST_SPEC,
+	ManifestSource,
+	OpenGraphConfig,
+	OpenGraphImage,
+	ProjectIdentity,
+	RegistryRef,
+	SbomRef,
+	TSDOCTOR_MANIFEST_FILENAME,
+	decodeBundleManifest,
+	decodeManifestSource,
+	encodeBundleManifest,
+	isKnownRegistryType,
+} from "@tsdoctor/manifest";
+export {
 	type ApiModelInfo,
 	type Bundle,
 	type BundleDescriptor,
 	BundleLayerError,
-	TSDOCTOR_MANIFEST_FILENAME,
 	readApiModelInfo,
 	readBundle,
 } from "./Bundle.js";
@@ -33,19 +50,6 @@ export {
 	fetchNpmBundle,
 } from "./BundleFetch.js";
 export { fingerprintResolvedBundle, hashJsonValue, hashLayerText, hashText, normalizeText } from "./BundleHash.js";
-export {
-	BundleManifest,
-	BundleManifestError,
-	KNOWN_REGISTRY_TYPES,
-	type KnownRegistryType,
-	OpenGraphConfig,
-	OpenGraphImage,
-	ProjectIdentity,
-	RegistryRef,
-	SbomRef,
-	decodeBundleManifest,
-	isKnownRegistryType,
-} from "./BundleManifest.js";
 export {
 	type ProvenanceSource,
 	type Provenanced,

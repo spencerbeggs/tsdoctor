@@ -2,17 +2,12 @@ import type { PackageManifest } from "@effected/package-json";
 import { PackageJsonFile } from "@effected/package-json";
 import type { ResolvedTsconfig } from "@effected/tsconfig-json";
 import { TsconfigLoader } from "@effected/tsconfig-json";
+import type { BundleManifest } from "@tsdoctor/manifest";
+import { BundleManifestError, TSDOCTOR_MANIFEST_FILENAME, decodeBundleManifest } from "@tsdoctor/manifest";
 import type { Path } from "effect";
 import { Effect, FileSystem, Option, Schema } from "effect";
-import type { BundleManifest } from "./BundleManifest.js";
-import { BundleManifestError, decodeBundleManifest } from "./BundleManifest.js";
 
-/**
- * The sidecar manifest's file name inside a bundle folder.
- *
- * @public
- */
-export const TSDOCTOR_MANIFEST_FILENAME = "tsdoctor.json";
+export { TSDOCTOR_MANIFEST_FILENAME };
 
 /**
  * The subset of a `<name>.api.json` model this package reads: the package
