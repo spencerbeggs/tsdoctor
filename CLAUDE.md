@@ -37,6 +37,7 @@ Workspace globs (`pnpm-workspace.yaml`): `modules/*`, `packages/*`,
 | `packages/vfs/` | `@tsdoctor/vfs` | Publishable | VFS primitives: `Vfs`, `VirtualPackage`, `TsEnvironment`, the compiler-options seam |
 | `packages/registry/` | `@tsdoctor/registry` | Publishable | External type loading: fetch, cache and resolve package types into a `Vfs` |
 | `packages/model/` | `@tsdoctor/model` | Publishable | api.json loading, TSDoc extraction, routes, signatures, `.d.ts` reconstruction, frontmatter, markdown rendering |
+| `packages/manifest/` | `@tsdoctor/manifest` | Publishable | The `tsdoctor.json` spec-1 sidecar manifest: schema, `encodeBundleManifest` / `decodeBundleManifest` boundaries and the `ManifestSource` authoring-file shape |
 | `packages/bundle/` | `@tsdoctor/bundle` | Publishable | Bundle spec: `tsdoctor.json` manifest, provenance resolver, discovery, fetchers |
 | `packages/snapshot/` | `@tsdoctor/snapshot` | Publishable | Incremental-build snapshot store (SQLite via `@effected/store`) + content hashing |
 | `packages/seo/` | `@tsdoctor/seo` | Publishable | Framework-neutral `<head>` metadata: `HeadTag`, canonical, OG/Twitter, attribution, JSON-LD |
@@ -96,6 +97,11 @@ the other: the `Vfs` currency type, `VirtualPackage`, `TsEnvironment`, the
 compiler-options seam and the Twoslash result cache both adapters warm.
 `typescript`, `@typescript/vfs` and `@shikijs/twoslash` are optional peers
 there and nowhere else in the core.
+
+**manifest** depends on `effect` alone so a bundler can write `tsdoctor.json`
+through it without the bundle package's fetch and cache stack; **bundle**
+depends on it and re-exports every manifest name, so readers in this repo
+import from `@tsdoctor/bundle`.
 
 **seo** owns every `<head>` concern behind one seam, `Seo.headTags(input)`,
 returning a neutral `HeadTag[]` an adapter merely renders. The package decides
