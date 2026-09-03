@@ -171,10 +171,15 @@ Effect-org packages and `catalog:effected` / `catalog:effected:peers` for
 Design docs live in `.claude/design/rspress-plugin-api-extractor/`. Load the
 relevant doc for the area you touch:
 
-**Build & infrastructure** — load when modifying Effect services, layers,
-`Context.Reference`s, plugin lifecycle, or either `ManagedRuntime`:
+**Build & infrastructure** — load when modifying services, layers,
+`Context.Reference`s, either `ManagedRuntime`, hook lifecycle, config
+resolution, or the build script:
 
 - @./.claude/design/rspress-plugin-api-extractor/build-architecture.md
+- @./.claude/design/rspress-plugin-api-extractor/effect-service-layer.md
+- @./.claude/design/rspress-plugin-api-extractor/plugin-lifecycle.md
+- @./.claude/design/rspress-plugin-api-extractor/configuration-system.md
+- @./.claude/design/rspress-plugin-api-extractor/build-tooling.md
 - @./.claude/design/rspress-plugin-api-extractor/snapshot-tracking-system.md
 
 **Page generation & markdown** — load when modifying the Stream pipeline,
@@ -185,10 +190,11 @@ Shiki transformers, or cross-linking:
 - @./.claude/design/rspress-plugin-api-extractor/import-generation-system.md
 
 **Page IR & emitters** — load when modifying `@tsdoctor/pages` blocks or
-builders, the adapter's `src/emit/` MDX and `_meta.json` emitters, or the
-golden-file gate:
+builders, either adapter's `src/emit/` emitters, or the golden-file gate:
 
 - @./.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md
+- @./.claude/design/rspress-plugin-api-extractor/rspress-mdx-emitter.md
+- @./.claude/design/rspress-plugin-api-extractor/vitepress-adapter.md
 
 **Runtime components & SSG** — load when modifying React components or
 SSG-MD dual-mode rendering:
@@ -223,8 +229,7 @@ tracking, the progress heartbeat, or the `issues.json` artifact:
 - @./.claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md
 
 **Roadmap & @tsdoctor consolidation** — load when working on the road to
-1.0.0 or the `@tsdoctor/*` package architecture (phases 1–4 executed;
-phase 5 alpha landed):
+1.0.0 or the `@tsdoctor/*` package architecture:
 
 - @./.claude/design/rspress-plugin-api-extractor/roadmap-1.0.md
 - @./.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
