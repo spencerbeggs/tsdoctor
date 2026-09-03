@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/manifest",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"private": true,
 	"description": "The tsdoctor.json bundle manifest: the spec-1 schema, encode/decode boundaries and the authoring-file shape shared by bundlers that write it and readers that consume it.",
 	"keywords": ["tsdoctor", "manifest", "api-extractor", "effect"],
