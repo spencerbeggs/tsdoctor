@@ -1,5 +1,22 @@
 # @tsdoctor/pages
 
+## 0.1.1
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/model | dependency | updated | 0.6.0 | 0.6.1 |
+| @tsdoctor/seo | dependency | updated | 0.1.1 | 0.1.2 |
+
+### Maintenance
+
+- Force package bumps
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.1.0
 
 ### Features

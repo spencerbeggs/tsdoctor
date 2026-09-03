@@ -1,5 +1,15 @@
 # @tsdoctor/seo
 
+## 0.1.2
+
+### Maintenance
+
+- Force package bumps
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.1.1
 
 ### Bug Fixes
