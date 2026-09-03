@@ -23,7 +23,6 @@ export interface ResolvedObservability {
 		slowPageGeneration: number;
 		slowApiLoad: number;
 		slowFileOperation: number;
-		slowHttpRequest: number;
 		slowDbOperation: number;
 	};
 }
@@ -33,7 +32,6 @@ const DEFAULT_THRESHOLDS: ResolvedObservability["thresholds"] = {
 	slowPageGeneration: 500,
 	slowApiLoad: 1000,
 	slowFileOperation: 50,
-	slowHttpRequest: 2000,
 	slowDbOperation: 100,
 };
 
@@ -71,7 +69,6 @@ export function resolveObservability(input: ResolveObservabilityInput): { resolv
 		slowPageGeneration: merged.slowPageGeneration ?? DEFAULT_THRESHOLDS.slowPageGeneration,
 		slowApiLoad: merged.slowApiLoad ?? DEFAULT_THRESHOLDS.slowApiLoad,
 		slowFileOperation: merged.slowFileOperation ?? DEFAULT_THRESHOLDS.slowFileOperation,
-		slowHttpRequest: merged.slowHttpRequest ?? DEFAULT_THRESHOLDS.slowHttpRequest,
 		slowDbOperation: merged.slowDbOperation ?? DEFAULT_THRESHOLDS.slowDbOperation,
 	};
 

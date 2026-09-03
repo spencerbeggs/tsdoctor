@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: performance
 created: 2026-08-25
-updated: 2026-09-02
-last-synced: 2026-09-02
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 95
 related:
   - rspress-plugin-api-extractor/roadmap-1.0.md
@@ -331,7 +331,7 @@ its existence. The singleton that held those environments has since become the
 
 ## Delivered: The Twoslash Result Cache
 
-Fix (a) is implemented in `src/twoslash-cache.ts` and `services/TwoslashCacheService.ts` (which owns its live layer as `TwoslashCacheService.layer`).
+Fix (a)'s neutral half — the keying scheme, the generation codec and the in-memory `TwoslashTypesCache` (`makeTwoslashCache`) — lives in `@tsdoctor/vfs` as `packages/vfs/src/TwoslashCache.ts`, moved out of this adapter in phase 5 (`25716a9`) with `@shikijs/twoslash` becoming an optional peer of vfs; the RSPress persistence is `services/TwoslashCacheService.ts` (which owns its live layer as `TwoslashCacheService.layer`). The VitePress adapter persists the same generations into the same XDG `tsdoctor/twoslash.sqlite` under the same blob keys, so a site built by either adapter warms the other — measured: the VitePress fixture's first build hit 14 entries the RSPress `sites/basic` build had written under the same environment hash, then 100/100 on its own warm rebuild.
 
 ### Shape
 
@@ -447,7 +447,7 @@ improvement there measures Rspack's cache, not this one.
 | `src/remark-with-api.ts` | `CodeBlockProcessed` emit site for user-authored fences |
 | `src/twoslash-timing-wrapper.ts` | Wraps the transformer's `preprocess` hook for per-block Twoslash timing |
 | `src/observability/events.ts` | `CodeBlockProcessed` shape, `CodeBlockComponent`, `TwoslashCacheLoaded`/`TwoslashCacheSaved` |
-| `src/twoslash-cache.ts` | `twoslashEnvHash`, `makeTwoslashCache`, encode/decode |
+| `packages/vfs/src/TwoslashCache.ts` (`@tsdoctor/vfs`) | `twoslashEnvHash`, `twoslashEntryKey`, `twoslashBlobKey`, `makeTwoslashCache`, encode/decode, `TWOSLASH_CACHE_FORMAT` — moved out of the adapter in phase 5 |
 | `src/services/TwoslashCacheService.ts` | Load/save contract for a stored generation |
 | `src/services/TwoslashCacheService.ts` | Contract plus `TwoslashCacheService.layer`: XDG sqlite-backed persistence via `@effected/store` `Cache`, acquired at layer construction over `layers/xdg.ts` and degrading via `Cache.degrading` — which, unlike the `Layer.catchCause` it replaced, propagates interruption rather than absorbing it. `CacheShape.degraded` is surfaced on the service shape so the build summary can tell a degraded cache from a cold one |
 | `src/services/TwoslashEnvironments.ts` | The environments that own the `typesCache`-carrying transformers, plus `TwoslashEnvironments.layer` |

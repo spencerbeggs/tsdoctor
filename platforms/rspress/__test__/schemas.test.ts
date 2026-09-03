@@ -8,7 +8,6 @@ import {
 	ErrorConfig,
 	ExternalPackageSpec,
 	LlmsPlugin,
-	LogLevel,
 	MultiApiConfig,
 	PluginOptions,
 	SingleApiConfig,
@@ -74,7 +73,6 @@ describe("Performance schemas", () => {
 		expect(result.slowPageGeneration).toBe(500);
 		expect(result.slowApiLoad).toBe(1000);
 		expect(result.slowFileOperation).toBe(50);
-		expect(result.slowHttpRequest).toBe(2000);
 		expect(result.slowDbOperation).toBe(100);
 	});
 
@@ -87,38 +85,11 @@ describe("Performance schemas", () => {
 });
 
 describe("Config leaf schemas", () => {
-	it("decodes LogLevel literals", () => {
-		const decode = Schema.decodeUnknownSync(LogLevel);
-		expect(decode("info")).toBe("info");
-		expect(decode("debug")).toBe("debug");
-		expect(decode("verbose")).toBe("verbose");
-		expect(decode("none")).toBe("none");
-		expect(() => decode("invalid")).toThrow();
-	});
-
 	it("decodes ExternalPackageSpec", () => {
 		const decode = Schema.decodeUnknownSync(ExternalPackageSpec);
 		const result = decode({ name: "zod", version: "^3.22.4" });
 		expect(result.name).toBe("zod");
 		expect(result.version).toBe("^3.22.4");
-	});
-
-	it("decodes ExternalPackageSpec with tsconfig string", () => {
-		const decode = Schema.decodeUnknownSync(ExternalPackageSpec);
-		const result = decode({ name: "zod", version: "3.0.0", tsconfig: "tsconfig.json" });
-		expect(result.tsconfig).toBe("tsconfig.json");
-	});
-
-	it("decodes ExternalPackageSpec with tsconfig function", () => {
-		const decode = Schema.decodeUnknownSync(ExternalPackageSpec);
-		const fn = async () => ({ target: 9 });
-		const result = decode({ name: "zod", version: "3.0.0", tsconfig: fn });
-		expect(typeof result.tsconfig).toBe("function");
-	});
-
-	it("rejects ExternalPackageSpec with tsconfig number", () => {
-		const decode = Schema.decodeUnknownSync(ExternalPackageSpec);
-		expect(() => decode({ name: "zod", version: "3.0.0", tsconfig: 42 })).toThrow();
 	});
 
 	it("decodes AutoDetectDependencies with defaults", () => {
@@ -171,7 +142,6 @@ describe("Config leaf schemas", () => {
 		expect(result.collapsed).toBe(true);
 		expect(result.overviewHeaders).toEqual([2]);
 		expect(result.itemKinds).toBeUndefined();
-		expect(result.tsdocModifier).toBeUndefined();
 	});
 
 	it("decodes CategoryConfig with all fields", () => {
@@ -181,13 +151,11 @@ describe("Config leaf schemas", () => {
 			singularName: "Class",
 			folderName: "class",
 			itemKinds: [1, 2],
-			tsdocModifier: "@public",
 			collapsible: false,
 			collapsed: false,
 			overviewHeaders: [2, 3],
 		});
 		expect(result.itemKinds).toEqual([1, 2]);
-		expect(result.tsdocModifier).toBe("@public");
 		expect(result.collapsible).toBe(false);
 	});
 

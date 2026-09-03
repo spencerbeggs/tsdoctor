@@ -14,10 +14,10 @@
  * all-hit build.
  */
 
+import type { TwoslashCacheValue } from "@tsdoctor/vfs";
 import { Effect, Option } from "effect";
 import { describe, expect, it } from "vitest";
 import { TwoslashCacheService } from "../../src/services/TwoslashCacheService.js";
-import type { TwoslashCacheValue } from "../../src/twoslash-cache.js";
 
 const value = (code: string): TwoslashCacheValue => ({ nodes: [], code });
 

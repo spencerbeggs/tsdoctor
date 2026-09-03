@@ -1,32 +1,24 @@
 import path from "node:path";
-import type {
-	ApiClass,
-	ApiEnum,
-	ApiFunction,
-	ApiInterface,
-	ApiItem,
-	ApiNamespace,
-	ApiPackage,
-	ApiTypeAlias,
-	ApiVariable,
-} from "@microsoft/api-extractor-model";
-import { ApiItemKind } from "@microsoft/api-extractor-model";
-import { ApiItems, EntryPoints, Routes, SyntheticBases, parseFrontmatter, stringifyFrontmatter } from "@tsdoctor/model";
+import type { ApiPackage } from "@microsoft/api-extractor-model";
+import type { CrossLinker } from "@tsdoctor/model";
+import { Routes, parseFrontmatter, stringifyFrontmatter } from "@tsdoctor/model";
+import type { CrossLinkData, NavCategory, WorkItem as PagesWorkItem } from "@tsdoctor/pages";
+import {
+	NavEntry,
+	buildIndexPage,
+	buildNav,
+	buildPage,
+	prepareWorkItems as preparePagesWorkItems,
+} from "@tsdoctor/pages";
 import type { OpenGraphImageConfig, OpenGraphImageMetadata, PackageContext } from "@tsdoctor/seo";
 import { deriveScriptBody, headTags } from "@tsdoctor/seo";
 import type { FileSnapshot } from "@tsdoctor/snapshot";
 import { SnapshotService, hashContent, hashFrontmatter } from "@tsdoctor/snapshot";
 import { Effect, FileSystem, Metric, Option, Stream } from "effect";
+import { emitMdxBody } from "./emit/mdx.js";
+import { emitIndexPage, renderCategoryMeta, renderRootMeta } from "./emit/meta.js";
 import { BuildMetrics } from "./layers/build-metrics.js";
 import { generateFrontmatter } from "./markdown/helpers.js";
-import { ClassPageGenerator } from "./markdown/page-generators/class-page.js";
-import { EnumPageGenerator } from "./markdown/page-generators/enum-page.js";
-import { FunctionPageGenerator } from "./markdown/page-generators/function-page.js";
-import { MainIndexPageGenerator } from "./markdown/page-generators/index-pages.js";
-import { InterfacePageGenerator } from "./markdown/page-generators/interface-page.js";
-import { NamespacePageGenerator } from "./markdown/page-generators/namespace-page.js";
-import { TypeAliasPageGenerator } from "./markdown/page-generators/type-alias-page.js";
-import { VariablePageGenerator } from "./markdown/page-generators/variable-page.js";
 import { emit } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
 import { emitSync, syncBuildId } from "./observability/sync-emitter.js";
@@ -36,48 +28,13 @@ import { OgService } from "./services/OgService.js";
 export type { FileSnapshot } from "@tsdoctor/snapshot";
 
 /**
- * Cross-link priority by API item kind (lower = higher priority). When a bare
- * name maps to multiple pages (the const+type companion pattern), the bare
- * cross-link resolves to the higher-priority kind — value declarations win over
- * type-only declarations, so `Foo` links to the importable schema, not the type.
+ * Lower number = higher priority for which page a bare cross-link name resolves to.
+ *
+ * @remarks
+ * Re-exported from `@tsdoctor/pages`, where the computation now lives.
  */
-const CROSS_LINK_KIND_PRIORITY: Record<string, number> = {
-	Class: 0,
-	Function: 1,
-	Variable: 2,
-	Enum: 3,
-	Interface: 4,
-	TypeAlias: 5,
-	Namespace: 6,
-};
-
-/** Lower number = higher priority for which page a bare cross-link name resolves to. */
-export function crossLinkKindPriority(kind: string): number {
-	return CROSS_LINK_KIND_PRIORITY[kind] ?? 100;
-}
-
-export interface WorkItem {
-	readonly item: ApiItem;
-	readonly categoryKey: string;
-	readonly categoryConfig: CategoryConfig;
-	readonly namespaceMember?: ApiItems.NamespaceMember;
-	/** Entry points this item is available from */
-	readonly availableFrom?: string[];
-	/**
-	 * Unexported base declaration referenced by this class's extends clause
-	 * (e.g. the `Foo_base` variable TypeScript emits for `Schema.Class`-style
-	 * patterns). Rendered inline on the class page instead of its own page.
-	 */
-	readonly syntheticBase?: ApiItem;
-	/**
-	 * Anchor id per member, keyed by the member's canonical reference.
-	 *
-	 * Computed here rather than in the page generator so the `#fragment` in
-	 * the cross-link route map and the `id=` the page emits come from ONE
-	 * computation and cannot drift. Present for classes and interfaces.
-	 */
-	readonly memberAnchors?: ReadonlyMap<string, string>;
-}
+/** A page to build, with the adapter's `CategoryConfig` as its category. */
+export type WorkItem = PagesWorkItem<CategoryConfig>;
 
 export interface GeneratedPageResult {
 	readonly workItem: WorkItem;
@@ -93,10 +50,7 @@ export interface GeneratedPageResult {
 	readonly isUnchanged: boolean;
 }
 
-export interface CrossLinkData {
-	readonly routes: Map<string, string>;
-	readonly kinds: Map<string, string>;
-}
+export type { CrossLinkData } from "@tsdoctor/pages";
 
 export interface FileWriteResult {
 	readonly relativePathWithExt: string;
@@ -112,7 +66,6 @@ export interface PrepareWorkItemsInput {
 	readonly apiPackage: ApiPackage;
 	readonly categories: Record<string, CategoryConfig>;
 	readonly baseRoute: string;
-	readonly packageName: string;
 }
 
 export interface PrepareWorkItemsResult {
@@ -123,11 +76,12 @@ export interface PrepareWorkItemsResult {
 /**
  * Prepare the flat list of WorkItems to process and the cross-link data maps.
  *
- * This function:
- * 1. Categorizes API items from the model
- * 2. Builds cross-link routes and kinds maps for the prose and Shiki cross-linkers
- * 3. Extracts namespace members and adds their routes (with collision detection)
- * 4. Flattens all items into a single WorkItem[]
+ * The computation lives in `@tsdoctor/pages`' `prepareWorkItems`; this is
+ * the adapter's reporting over its result: an `ItemSkipped` warning per
+ * uncategorized item through the sync-island seam, and a typed
+ * `RouteCollisionDetected` event per collision before the fatal
+ * `Routes.RouteCollisionError` — so the fatal build path still surfaces the
+ * collision in .api-docs/build/issues.json (see plugin.ts's config() catch).
  *
  * NOTE: This function does NOT install the prose linker. The caller
  * is responsible for passing the returned crossLinkData to the cross-linker and
@@ -135,32 +89,9 @@ export interface PrepareWorkItemsResult {
  */
 export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItemsResult {
 	const { apiPackage, categories, baseRoute } = input;
+	const prepared = preparePagesWorkItems({ apiPackage, categories, baseRoute });
 
-	// 0. Resolve entry points into deduplicated items
-	const resolvedItems = EntryPoints.resolve(apiPackage);
-
-	// 0b. Detect synthetic base declarations (unexported items referenced by an
-	//     exported class's extends clause, e.g. `Foo_base` from Schema.Class
-	//     patterns). They get no page of their own — the owning class page
-	//     renders them inline — so they are excluded from categorization,
-	//     collision detection and work items below.
-	const syntheticBases = SyntheticBases.detect(resolvedItems.map((r) => r.item));
-	const docItems = syntheticBases.bases.size
-		? resolvedItems.filter((r) => !syntheticBases.bases.has(r.item))
-		: resolvedItems;
-
-	// Build a lookup map from "displayName::kind" to ResolvedEntryItem
-	const resolvedLookup = new Map<string, EntryPoints.ResolvedEntryItem>();
-	for (const resolved of docItems) {
-		const key = `${resolved.item.displayName}::${resolved.item.kind}`;
-		resolvedLookup.set(key, resolved);
-	}
-
-	// 1. Categorize API items by category key (pass resolved items). Items no
-	//    category matched come back as data; surface each as an ItemSkipped
-	//    warning through the sync-island seam.
-	const { items, uncategorized } = ApiItems.categorize(docItems, categories);
-	for (const skipped of uncategorized) {
+	for (const skipped of prepared.uncategorized) {
 		emitSync(
 			PluginEvent.ItemSkipped({
 				ctx: { buildId: syncBuildId() },
@@ -172,56 +103,12 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 		);
 	}
 
-	// 1b. Extract namespace members (needed for both candidates and routes below)
-	const namespaceMembers = ApiItems.namespaceMembers(docItems);
-
-	// 1c. Detect genuine route collisions (same folder + baseName among distinct
-	//     items) and fail the build if any exist. Two distinct API items resolving
-	//     to the same lowercased category route is a user naming/config problem.
-	//     The companion const+type pattern routes to different folders and is NOT a
-	//     collision.
-	const candidates: Routes.RouteCandidate[] = [];
-	for (const [categoryKey, categoryConfig] of Object.entries(categories)) {
-		for (const item of items[categoryKey] || []) {
-			candidates.push(
-				new Routes.RouteCandidate({
-					id: `${item.displayName}::${item.kind}`,
-					displayName: item.displayName,
-					folder: categoryConfig.folderName,
-					baseName: item.displayName.toLowerCase(),
-					kind: String(item.kind),
-					canonicalRef: item.canonicalReference?.toString() ?? item.displayName,
-				}),
-			);
-		}
-	}
-	for (const nsMember of namespaceMembers) {
-		const nsCategoryEntry = Object.entries(categories).find(([, config]) =>
-			config.itemKinds?.includes(nsMember.item.kind),
-		);
-		if (!nsCategoryEntry) continue;
-		const [, nsCategoryConfig] = nsCategoryEntry;
-		candidates.push(
-			new Routes.RouteCandidate({
-				id: nsMember.qualifiedName,
-				displayName: nsMember.qualifiedName,
-				folder: nsCategoryConfig.folderName,
-				baseName: nsMember.qualifiedName.toLowerCase(),
-				kind: String(nsMember.item.kind),
-				canonicalRef: nsMember.item.canonicalReference?.toString() ?? nsMember.qualifiedName,
-			}),
-		);
-	}
 	// Fail fast: two distinct items must never resolve to the same output route.
-	// Emit a typed RouteCollisionDetected event per collision (via the sync-island
-	// seam above) before throwing, so the fatal build path still surfaces the
-	// collision in .api-docs/build/issues.json (see plugin.ts's config() catch).
-	const collisions = Routes.detectCollisions(candidates);
-	if (collisions.length > 0) {
+	if (prepared.collisions.length > 0) {
 		// Guard the emit so a throwing event sink cannot replace the collision
 		// error — the fatal route-collision contract must survive here.
 		try {
-			for (const collision of collisions) {
+			for (const collision of prepared.collisions) {
 				emitSync(
 					PluginEvent.RouteCollisionDetected({
 						ctx: { buildId: syncBuildId(), route: collision.route },
@@ -233,144 +120,10 @@ export function prepareWorkItems(input: PrepareWorkItemsInput): PrepareWorkItems
 		} catch {
 			// event-delivery failure must not mask the route-collision error
 		}
-		throw new Routes.RouteCollisionError({ baseRoute, collisions });
+		throw new Routes.RouteCollisionError({ baseRoute, collisions: prepared.collisions });
 	}
 
-	// 2. Build cross-link routes and kinds maps directly
-	//    (consumed by setProseLinker and the Shiki cross-linker)
-	const routes = new Map<string, string>();
-	const kinds = new Map<string, string>();
-	// Tracks the cross-link kind priority that currently owns each bare-name route,
-	// so a companion's bare name deterministically resolves to the value page.
-	const routeOwnerPriority = new Map<string, number>();
-
-	for (const [categoryKey, categoryConfig] of Object.entries(categories)) {
-		const categoryItems = items[categoryKey] || [];
-		for (const item of categoryItems) {
-			const itemRoute = `${baseRoute}/${categoryConfig.folderName}/${item.displayName.toLowerCase()}`;
-			const priority = crossLinkKindPriority(String(item.kind));
-			const existingPriority = routeOwnerPriority.get(item.displayName);
-			if (existingPriority === undefined || priority < existingPriority) {
-				routes.set(item.displayName, itemRoute);
-				kinds.set(item.displayName, item.kind);
-				routeOwnerPriority.set(item.displayName, priority);
-			}
-
-			// For classes and interfaces, also add routes for their members
-			if (item.kind === "Class" || item.kind === "Interface") {
-				const itemWithMembers = item as ApiClass | ApiInterface;
-				// Anchors and cross-link keys both come from the model, so the
-				// `#fragment` a key resolves to is the same one the page emits.
-				// `memberRouteKeys` decides which member a bare `Class.member`
-				// means (the static one) and emits TSDoc selector keys only where
-				// a static/instance collision makes that ambiguous.
-				const anchors = ApiItems.memberAnchors(itemWithMembers);
-				const byCanonicalRef = new Map(
-					itemWithMembers.members.map((member) => [
-						member.canonicalReference?.toString() ?? member.displayName,
-						member,
-					]),
-				);
-				for (const [routeKey, memberId] of ApiItems.memberRouteKeys(itemWithMembers)) {
-					const member = byCanonicalRef.get(memberId);
-					if (!member) continue;
-					const anchor = anchors.get(memberId) ?? Routes.memberAnchor(member.displayName);
-					routes.set(routeKey, `${itemRoute}#${anchor}`);
-					kinds.set(routeKey, member.kind);
-				}
-			}
-		}
-	}
-
-	// 3. Add namespace member routes
-
-	// Track unqualified names to detect collisions across namespaces
-	const unqualifiedNameCounts = new Map<string, number>();
-	for (const nsMember of namespaceMembers) {
-		const name = nsMember.item.displayName;
-		unqualifiedNameCounts.set(name, (unqualifiedNameCounts.get(name) || 0) + 1);
-	}
-
-	for (const nsMember of namespaceMembers) {
-		const categoryEntry = Object.entries(categories).find(([, config]) =>
-			config.itemKinds?.includes(nsMember.item.kind),
-		);
-		if (!categoryEntry) continue;
-		const [, categoryConfig] = categoryEntry;
-
-		const qualifiedRoute = `${baseRoute}/${categoryConfig.folderName}/${nsMember.qualifiedName.toLowerCase()}`;
-
-		// Always add qualified name (e.g., "Formatters.FormatOptions")
-		routes.set(nsMember.qualifiedName, qualifiedRoute);
-		kinds.set(nsMember.qualifiedName, nsMember.item.kind);
-
-		// Add unqualified PascalCase name if no collision and not already present
-		const displayName = nsMember.item.displayName;
-		const isPascalCase = /^[A-Z]/.test(displayName);
-		if (isPascalCase && (unqualifiedNameCounts.get(displayName) || 0) <= 1 && !routes.has(displayName)) {
-			routes.set(displayName, qualifiedRoute);
-			kinds.set(displayName, nsMember.item.kind);
-		}
-	}
-
-	// 3b. Route synthetic base names to the inline "Base Class" section on the
-	//     owner class page, so the `extends Foo_base` reference in signatures
-	//     stays clickable. Bases whose owner has no route (uncategorized) or
-	//     whose name is already owned by a real page are left unlinked.
-	for (const [baseItem, syntheticBase] of syntheticBases.bases) {
-		const baseName = baseItem.displayName;
-		if (routes.has(baseName)) continue;
-		const owner = syntheticBase.ownerClasses[0];
-		const ownerRoute = owner ? routes.get(owner.displayName) : undefined;
-		if (!ownerRoute) continue;
-		routes.set(baseName, `${ownerRoute}#${SyntheticBases.BASE_CLASS_ANCHOR}`);
-		kinds.set(baseName, baseItem.kind);
-	}
-
-	// 4. Flatten all items into a single WorkItem[]
-	const workItems: WorkItem[] = [];
-
-	for (const [categoryKey, categoryConfig] of Object.entries(categories)) {
-		const categoryItems = items[categoryKey] || [];
-		for (const item of categoryItems) {
-			const lookupKey = `${item.displayName}::${item.kind}`;
-			const resolved = resolvedLookup.get(lookupKey);
-			const syntheticBase = syntheticBases.baseByOwner.get(item);
-			const memberAnchors =
-				item.kind === "Class" || item.kind === "Interface"
-					? ApiItems.memberAnchors(item as ApiClass | ApiInterface)
-					: undefined;
-			workItems.push({
-				item,
-				categoryKey,
-				categoryConfig,
-				...(resolved?.availableFrom != null ? { availableFrom: resolved.availableFrom } : {}),
-				...(syntheticBase != null ? { syntheticBase } : {}),
-				...(memberAnchors != null ? { memberAnchors } : {}),
-			});
-		}
-	}
-
-	// Add namespace members as work items
-	for (const nsMember of namespaceMembers) {
-		const categoryEntry = Object.entries(categories).find(([, config]) =>
-			config.itemKinds?.includes(nsMember.item.kind),
-		);
-		if (categoryEntry) {
-			const [categoryKey, categoryConfig] = categoryEntry;
-			workItems.push({
-				item: nsMember.item,
-				categoryKey,
-				categoryConfig,
-				namespaceMember: nsMember,
-			});
-		}
-	}
-
-	return {
-		workItems,
-		crossLinkData: { routes, kinds },
-	};
+	return { workItems: prepared.workItems, crossLinkData: prepared.crossLinkData };
 }
 
 /**
@@ -406,6 +159,8 @@ export interface GenerateSinglePageContext {
 	readonly resolvedOutputDir: string;
 	readonly suppressExampleErrors?: boolean;
 	readonly llmsPlugin?: LlmsPlugin;
+	/** The prose cross-linker built from this API's route map. */
+	readonly linker: CrossLinker;
 	/**
 	 * SEO inputs, which live HERE rather than in the write stage because the
 	 * head tags they produce must participate in the frontmatter hash.
@@ -451,197 +206,62 @@ export function generateSinglePage(
 		} = ctx;
 		const { item, categoryConfig, namespaceMember } = workItem;
 		const pageGenStart = performance.now();
-		let page: { routePath: string; content: string } | null = null;
 
-		// Generate appropriate page based on item kind
-		switch (item.kind) {
-			case ApiItemKind.Class: {
-				const generator = new ClassPageGenerator();
-				page = yield* Effect.promise(() =>
-					generator.generate(
-						item as ApiClass,
-						baseRoute,
-						packageName,
-						categoryConfig.singularName,
-						apiScope,
-						apiName,
-						source,
-						suppressExampleErrors,
-						llmsPlugin,
-						workItem.availableFrom,
-						workItem.syntheticBase,
-						workItem.memberAnchors,
-					),
-				);
-				page = {
-					routePath: page.routePath.replace("/class/", `/${categoryConfig.folderName}/`),
-					content: page.content,
-				};
-				break;
-			}
-			case ApiItemKind.Interface: {
-				const generator = new InterfacePageGenerator();
-				page = yield* Effect.promise(() =>
-					generator.generate(
-						item as ApiInterface,
-						baseRoute,
-						packageName,
-						categoryConfig.singularName,
-						apiScope,
-						apiName,
-						source,
-						suppressExampleErrors,
-						llmsPlugin,
-						workItem.availableFrom,
-					),
-				);
-				page = {
-					routePath: page.routePath.replace("/interface/", `/${categoryConfig.folderName}/`),
-					content: page.content,
-				};
-				break;
-			}
-			case ApiItemKind.Function: {
-				const generator = new FunctionPageGenerator();
-				page = yield* Effect.promise(() =>
-					generator.generate(
-						item as ApiFunction,
-						baseRoute,
-						packageName,
-						categoryConfig.singularName,
-						apiScope,
-						apiName,
-						source,
-						suppressExampleErrors,
-						llmsPlugin,
-						workItem.availableFrom,
-					),
-				);
-				page = {
-					routePath: page.routePath.replace("/function/", `/${categoryConfig.folderName}/`),
-					content: page.content,
-				};
-				break;
-			}
-			case ApiItemKind.TypeAlias: {
-				const generator = new TypeAliasPageGenerator();
-				page = yield* Effect.promise(() =>
-					generator.generate(
-						item as ApiTypeAlias,
-						baseRoute,
-						packageName,
-						categoryConfig.singularName,
-						apiScope,
-						apiName,
-						source,
-						suppressExampleErrors,
-						llmsPlugin,
-						workItem.availableFrom,
-					),
-				);
-				page = {
-					routePath: page.routePath.replace("/type/", `/${categoryConfig.folderName}/`),
-					content: page.content,
-				};
-				break;
-			}
-			case ApiItemKind.Enum: {
-				const generator = new EnumPageGenerator();
-				page = yield* Effect.promise(() =>
-					generator.generate(
-						item as ApiEnum,
-						baseRoute,
-						packageName,
-						categoryConfig.singularName,
-						apiScope,
-						apiName,
-						source,
-						suppressExampleErrors,
-						llmsPlugin,
-						workItem.availableFrom,
-					),
-				);
-				page = {
-					routePath: page.routePath.replace("/enum/", `/${categoryConfig.folderName}/`),
-					content: page.content,
-				};
-				break;
-			}
-			case ApiItemKind.Variable: {
-				const generator = new VariablePageGenerator();
-				page = yield* Effect.promise(() =>
-					generator.generate(
-						item as ApiVariable,
-						baseRoute,
-						packageName,
-						categoryConfig.singularName,
-						apiScope,
-						apiName,
-						source,
-						suppressExampleErrors,
-						llmsPlugin,
-						workItem.availableFrom,
-					),
-				);
-				page = {
-					routePath: page.routePath.replace("/variable/", `/${categoryConfig.folderName}/`),
-					content: page.content,
-				};
-				break;
-			}
-			case ApiItemKind.Namespace: {
-				const generator = new NamespacePageGenerator();
-				page = yield* Effect.promise(() =>
-					generator.generate(
-						item as ApiNamespace,
-						baseRoute,
-						packageName,
-						categoryConfig.singularName,
-						apiScope,
-						apiName,
-						source,
-						suppressExampleErrors,
-						llmsPlugin,
-						workItem.availableFrom,
-					),
-				);
-				page = {
-					routePath: page.routePath.replace("/namespace/", `/${categoryConfig.folderName}/`),
-					content: page.content,
-				};
-				break;
-			}
-			default: {
-				yield* emit(
-					PluginEvent.ItemSkipped({
+		// The IR builder decides what the page contains; the MDX emitter spells
+		// it. Prettier failures degrade here exactly as they did in the
+		// generators: a PrettierError event, then the unformatted code.
+		const built = yield* buildPage({
+			item,
+			categoryKey: workItem.categoryKey,
+			singularName: categoryConfig.singularName,
+			folderName: categoryConfig.folderName,
+			baseRoute,
+			packageName,
+			apiName,
+			namespaceMember,
+			availableFrom: workItem.availableFrom,
+			syntheticBase: workItem.syntheticBase,
+			memberAnchors: workItem.memberAnchors,
+			source,
+			suppressExampleErrors,
+			linker: ctx.linker,
+			onExampleFormatError: (error) => {
+				const cause = error.cause;
+				return emit(
+					PluginEvent.PrettierError({
 						ctx: { buildId, packageName, apiScope },
-						item: item.displayName,
-						kind: String(item.kind),
-						reason: "unsupported kind",
-						level: "trace",
+						file: "unknown",
+						reason: cause instanceof Error ? cause.message : String(cause),
+						level: "warn",
 					}),
 				);
-				return null;
-			}
-		}
+			},
+		});
 
-		if (!page) {
+		if (Option.isNone(built)) {
+			yield* emit(
+				PluginEvent.ItemSkipped({
+					ctx: { buildId, packageName, apiScope },
+					item: item.displayName,
+					kind: String(item.kind),
+					reason: "unsupported kind",
+					level: "trace",
+				}),
+			);
 			return null;
 		}
 
-		// For namespace members, replace the final route segment (the member's
-		// simple name) with the qualified name. Only the last segment may be
-		// touched: a member named after its category folder (e.g. a type alias
-		// `Type` in the `type` folder) would otherwise corrupt the category
-		// segment and collide with it.
-		if (namespaceMember) {
-			const qualifiedNameLower = namespaceMember.qualifiedName.toLowerCase();
-			const lastSlash = page.routePath.lastIndexOf("/");
-			page = {
-				routePath: `${page.routePath.slice(0, lastSlash + 1)}${qualifiedNameLower}`,
-				content: page.content,
-			};
-		}
+		const irPage = built.value;
+		const body = yield* Effect.fromResult(
+			emitMdxBody(irPage, { apiScope, llmsEnabled: llmsPlugin?.enabled === true }),
+		).pipe(Effect.orDie);
+		// The generator output shape — frontmatter block then body — is
+		// reassembled here so everything downstream (the frontmatter parse, the
+		// body normalization, the hashes) reads exactly what it always read.
+		const page = {
+			routePath: irPage.route,
+			content: generateFrontmatter(irPage.entityName, irPage.description, irPage.singularName, apiName) + body,
+		};
 
 		// Track page generation (metric derived from PageGenerated event in MetricsSink)
 		const codeblockCount = (page.content.match(/<(ApiSignature|ApiMember|ApiExample)\b/g) ?? []).length;
@@ -1023,37 +643,36 @@ export function writeMetadata(
 
 		// ── 1. Root _meta.json ────────────────────────────────────────────────────
 
-		// Derive which categories have items from fileResults
-		const categoriesWithItems = new Set<string>();
-		for (const result of fileResults) {
-			categoriesWithItems.add(result.categoryKey);
-		}
-
-		const apiMetaEntries: Array<{
-			type: string;
-			name: string;
-			label: string;
-			collapsible: boolean;
-			collapsed: boolean;
-			overviewHeaders: number[];
-		}> = [];
-
+		// The navigation tree is IR output: `buildNav` orders groups by category
+		// insertion order (dropping any that received no page) and pages by
+		// label, exactly as this stage used to sort them itself.
+		const navCategories: Record<string, NavCategory> = {};
 		for (const [categoryKey, categoryConfig] of Object.entries(categories)) {
-			if (categoriesWithItems.has(categoryKey)) {
-				apiMetaEntries.push({
-					type: "dir",
-					name: categoryConfig.folderName,
-					label: categoryConfig.displayName,
-					collapsible: categoryConfig.collapsible ?? true,
-					collapsed: categoryConfig.collapsed ?? true,
-					overviewHeaders: categoryConfig.overviewHeaders ?? [2],
-				});
-			}
+			navCategories[categoryKey] = {
+				displayName: categoryConfig.displayName,
+				folderName: categoryConfig.folderName,
+				...(categoryConfig.collapsible !== undefined ? { collapsible: categoryConfig.collapsible } : {}),
+				...(categoryConfig.collapsed !== undefined ? { collapsed: categoryConfig.collapsed } : {}),
+				...(categoryConfig.overviewHeaders !== undefined ? { overviewHeaders: categoryConfig.overviewHeaders } : {}),
+			};
 		}
+		const navTree = buildNav({
+			baseRoute,
+			categories: navCategories,
+			entries: fileResults.map((result) =>
+				NavEntry.make({
+					categoryKey: result.categoryKey,
+					label: result.label,
+					// e.g. "class/foo.mdx" → "foo"
+					name: path.basename(result.relativePathWithExt, ".mdx"),
+					route: result.routePath,
+				}),
+			),
+		});
 
 		const apiMetaJsonPath = path.join(resolvedOutputDir, "_meta.json");
 		const apiMetaJsonRelPath = "_meta.json";
-		const apiMetaJsonContent = JSON.stringify(apiMetaEntries, null, "\t");
+		const apiMetaJsonContent = renderRootMeta(navTree);
 		const apiMetaContentHash = hashContent(apiMetaJsonContent);
 		const apiMetaOldSnapshot = existingSnapshots.get(apiMetaJsonRelPath);
 
@@ -1138,16 +757,11 @@ export function writeMetadata(
 
 		// ── 2. Main index page ────────────────────────────────────────────────────
 
-		const categoryCounts: Record<string, number> = {};
-		for (const result of fileResults) {
-			categoryCounts[result.categoryKey] = (categoryCounts[result.categoryKey] || 0) + 1;
-		}
-
-		const mainIndexGenerator = new MainIndexPageGenerator();
-		const mainIndex = mainIndexGenerator.generate(packageName, baseRoute, categoryCounts);
+		const mainIndex = buildIndexPage({ packageName, baseRoute });
+		const mainIndexContent = emitIndexPage(mainIndex);
 
 		// routePath is e.g. "/api/index" → relative path "index.mdx"
-		const indexRelativePath = `${mainIndex.routePath.replace(baseRoute, "").replace(/^\//, "")}.mdx`;
+		const indexRelativePath = `${mainIndex.route.replace(baseRoute, "").replace(/^\//, "")}.mdx`;
 		const indexAbsolutePath = path.join(resolvedOutputDir, indexRelativePath);
 
 		const indexFileExists = yield* fileSystem.exists(indexAbsolutePath).pipe(Effect.orElseSucceed(() => false));
@@ -1155,7 +769,7 @@ export function writeMetadata(
 		if (!indexFileExists) {
 			const indexDirPath = path.dirname(indexAbsolutePath);
 			yield* fileSystem.makeDirectory(indexDirPath, { recursive: true }).pipe(Effect.orDie);
-			yield* fileSystem.writeFileString(indexAbsolutePath, mainIndex.content).pipe(Effect.orDie);
+			yield* fileSystem.writeFileString(indexAbsolutePath, mainIndexContent).pipe(Effect.orDie);
 			yield* Metric.update(BuildMetrics.filesTotal, 1);
 			yield* Metric.update(BuildMetrics.filesNew, 1);
 		} else {
@@ -1167,37 +781,15 @@ export function writeMetadata(
 
 		// ── 3. Category _meta.json files ──────────────────────────────────────────
 
-		// Group fileResults by categoryKey
-		const categoryMetaEntriesMap = new Map<string, Array<{ name: string; label: string }>>();
-		for (const result of fileResults) {
-			// Derive name: filename without extension from relativePathWithExt
-			// e.g. "class/foo.mdx" → "foo"
-			const baseName = path.basename(result.relativePathWithExt, ".mdx");
-			const entries = categoryMetaEntriesMap.get(result.categoryKey) || [];
-			entries.push({ name: baseName, label: result.label });
-			categoryMetaEntriesMap.set(result.categoryKey, entries);
-		}
-
-		// Build and write each category _meta.json
+		// Build and write each category _meta.json from the tree's groups
 		const metaSnapshots = yield* Effect.forEach(
-			Array.from(categoryMetaEntriesMap.entries()),
-			([categoryKey, entries]) =>
+			navTree.groups,
+			(group) =>
 				Effect.gen(function* () {
-					const categoryConfig = categories[categoryKey];
-					if (!categoryConfig || entries.length === 0) return null;
-
-					// Sort alphabetically by label
-					entries.sort((a, b) => a.label.localeCompare(b.label));
-
-					const categoryMeta = entries.map((entry) => ({
-						type: "file",
-						name: entry.name,
-						label: entry.label,
-					}));
-
+					const categoryConfig = group.category;
 					const categoryMetaPath = path.join(resolvedOutputDir, categoryConfig.folderName, "_meta.json");
 					const relPath = path.join(categoryConfig.folderName, "_meta.json");
-					const content = JSON.stringify(categoryMeta, null, "\t");
+					const content = renderCategoryMeta(group);
 					const contentHash = hashContent(content);
 					const oldSnapshot = existingSnapshots.get(relPath);
 
@@ -1422,6 +1014,8 @@ export interface BuildPipelineInput {
 	readonly existingSnapshots: Map<string, FileSnapshot>;
 	readonly suppressExampleErrors?: boolean;
 	readonly llmsPlugin?: LlmsPlugin;
+	/** The prose cross-linker built from this API's route map. */
+	readonly linker: CrossLinker;
 	readonly siteUrl?: string;
 	readonly docsRoot?: string;
 	readonly ogImage?: OpenGraphImageConfig;
@@ -1457,6 +1051,7 @@ export function buildPipelineForApi(
 		resolvedOutputDir: input.resolvedOutputDir,
 		...(input.suppressExampleErrors != null ? { suppressExampleErrors: input.suppressExampleErrors } : {}),
 		...(input.llmsPlugin != null ? { llmsPlugin: input.llmsPlugin } : {}),
+		linker: input.linker,
 		...(input.docsRoot !== undefined ? { docsRoot: input.docsRoot } : {}),
 		...(input.siteUrl != null ? { siteUrl: input.siteUrl } : {}),
 		...(input.ogImage != null ? { ogImage: input.ogImage } : {}),

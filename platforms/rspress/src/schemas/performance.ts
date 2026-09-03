@@ -5,7 +5,6 @@ export const PerformanceThresholds = Schema.Struct({
 	slowPageGeneration: Schema.Number.pipe(Schema.withDecodingDefault(Effect.succeed(500))),
 	slowApiLoad: Schema.Number.pipe(Schema.withDecodingDefault(Effect.succeed(1000))),
 	slowFileOperation: Schema.Number.pipe(Schema.withDecodingDefault(Effect.succeed(50))),
-	slowHttpRequest: Schema.Number.pipe(Schema.withDecodingDefault(Effect.succeed(2000))),
 	slowDbOperation: Schema.Number.pipe(Schema.withDecodingDefault(Effect.succeed(100))),
 });
 /**

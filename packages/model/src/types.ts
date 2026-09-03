@@ -30,6 +30,8 @@ export interface ApiItemRef {
 /**
  * Metadata handed to the injected frontmatter renderer for one doc.
  *
+ * @deprecated Exists only for `Render.docs`; use the `Page` facts from
+ * `@tsdoctor/pages` (`buildPage`) instead.
  * @public
  */
 export interface DocMeta extends ApiItemRef {
@@ -47,6 +49,8 @@ export type RouteFormatter = (ref: ApiItemRef) => string;
 /**
  * Injected: produce the frontmatter block (incl. trailing blank line) for a doc, or "".
  *
+ * @deprecated Exists only for `Render.docs`; adapters assemble frontmatter
+ * from a `@tsdoctor/pages` `Page` (see `emitFrontmatterBlock`).
  * @public
  */
 export type FrontmatterRenderer = (meta: DocMeta) => string;
@@ -54,6 +58,8 @@ export type FrontmatterRenderer = (meta: DocMeta) => string;
 /**
  * One rendered API doc = its metadata plus the assembled markdown (frontmatter + body).
  *
+ * @deprecated Exists only for `Render.docs`; use `buildPage` +
+ * `renderMarkdown` from `@tsdoctor/pages`.
  * @public
  */
 export interface RenderedDoc extends DocMeta {
@@ -64,6 +70,8 @@ export interface RenderedDoc extends DocMeta {
  * Options for `Render.docs`: the package name plus the optional injected
  * route, frontmatter, and filter services.
  *
+ * @deprecated Exists only for `Render.docs`; use `BuildPageInput` from
+ * `@tsdoctor/pages`.
  * @public
  */
 export interface RenderPackageOptions {

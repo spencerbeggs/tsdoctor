@@ -68,7 +68,6 @@ export interface ResolvedApiConfig {
 	readonly llmsPlugin?: LlmsPlugin;
 	readonly siteUrl?: string;
 	readonly ogImage?: OpenGraphImageConfig;
-	readonly docsDir?: string;
 	readonly docsRoot?: string;
 	readonly theme?: ShikiThemeConfig;
 }

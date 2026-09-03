@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-09-02
-last-synced: 2026-09-02
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 85
 related:
   - rspress-plugin-api-extractor/import-generation-system.md
@@ -19,7 +19,7 @@ dependencies: []
 
 The RSPress API Extractor plugin loads external package type definitions and assembles a virtual file system (VFS) for TypeScript's Twoslash compiler, which is what makes hover tooltips and type-checked code examples possible in generated API documentation. Two workspaces divide that job:
 
-- **`@tsdoctor/vfs`** (`packages/vfs`) owns the VFS *primitives*: the `Vfs` currency type with `mergeVfs` / `prefixVfs` / `isTypeDefinition`, the `VirtualPackage` Schema class, `TsEnvironment`, and the compiler-options seam. It depends on `effect` alone, plus three optional peers (`typescript`, `@typescript/vfs`, `@effected/tsconfig-json`).
+- **`@tsdoctor/vfs`** (`packages/vfs`) owns the VFS *primitives*: the `Vfs` currency type with `mergeVfs` / `prefixVfs` / `isTypeDefinition`, the `VirtualPackage` Schema class, `TsEnvironment`, the compiler-options seam and — since phase 5 — the Twoslash result cache (`TwoslashCache.ts`: the keying scheme, the generation codec and the in-memory `TwoslashTypesCache`, moved out of the RSPress adapter so both adapters share one cache; see `render-phase-instrumentation.md`). It depends on `effect` alone, plus four optional peers (`typescript`, `@typescript/vfs`, `@effected/tsconfig-json`, and `@shikijs/twoslash` for the cache's interface type).
 - **`@tsdoctor/registry`** (`packages/registry`; formerly the external `type-registry-effect@2`, the Effect v4 port — moved in and renamed during the phase 1 consolidation, see `monorepo-consolidation.md`) fetches, caches and resolves published package types INTO a `Vfs`. It sits on `@tsdoctor/vfs` and shed the `typescript`, `@typescript/vfs` and `@effected/tsconfig-json` optional peers when `TsEnvironment` moved out.
 
 The split was measured, not assumed: `VirtualPackage` and `TsEnvironment` had zero consumers inside the registry while `@tsdoctor/model` needed them, and hosting them there would have forced an unwanted edge in one direction or the other. See "The D1 outcome" in `tsdoctor-package-architecture.md`.
@@ -142,7 +142,7 @@ Each documented API is type-checked under the `tsconfig` / `compilerOptions` it 
 This replaces `TwoslashManager`, a `private constructor` + `getInstance()` singleton with mutable state and a hand-rolled static `reset()` standing in for layer substitution. Two consequences of the service form are worth stating:
 
 - **The fallback is the subsystem's most dangerous behaviour.** Every scope-routing bug degrades through it invisibly, so a test that only asserts "a transformer came back" asserts nothing. A registered scope must be asserted to get its OWN environment. The fingerprints computed by `registerEnvironment` and `registerScope` MUST agree; when they drifted apart once, every scope lookup missed, per-scope type-checking silently degraded to build-wide, and a 994-test suite stayed green through it.
-- **Access from the render pass goes through a holder, not a runtime.** `transformerFor` is called from the remark plugins, which RSPress invokes during the render pass outside any fiber. `src/twoslash-access.ts` is a module-level holder — the same shape as `markdown/prose-linker.ts` — installed from **inside** a fiber by `plugin.ts` (`installTwoslashAccess(yield* TwoslashEnvironments)`). A runtime-bound accessor is not an option and must not be "fixed" back into one: the main runtime's layer is asynchronous to build, so `runSync` dies with `AsyncFiberError`; and moving the service to the small sync-buildable runtime yields TWO instances, because layer memoization is per-`ManagedRuntime` `MemoMap` — config resolution would populate one registry and the render pass would read a different, empty one, returning `null` for every block. Both failures are silent. The tell that the holder was never installed is the site build's own summary: `(unscoped): 18 blocks … 0 typechecked` instead of `18 typechecked`.
+- **Access from the render pass goes through a holder, not a runtime.** `transformerFor` is called from the remark plugins, which RSPress invokes during the render pass outside any fiber. `src/twoslash-access.ts` is a module-level holder — the shape the since-deleted `markdown/prose-linker.ts` had — installed from **inside** a fiber by `plugin.ts` (`installTwoslashAccess(yield* TwoslashEnvironments)`). A runtime-bound accessor is not an option and must not be "fixed" back into one: the main runtime's layer is asynchronous to build, so `runSync` dies with `AsyncFiberError`; and moving the service to the small sync-buildable runtime yields TWO instances, because layer memoization is per-`ManagedRuntime` `MemoMap` — config resolution would populate one registry and the render pass would read a different, empty one, returning `null` for every block. Both failures are silent. The tell that the holder was never installed is the site build's own summary: `(unscoped): 18 blocks … 0 typechecked` instead of `18 typechecked`.
 
 The holder is cleared at the start of each build alongside `VfsRegistry.clear()` and `clearTypeRoutes()`. That last one matters for dev HMR: the module-level Twoslash type-route map used to accumulate for the process lifetime, so routes for renamed or deleted items survived across a dev session and every scope's routes merged into one global map.
 
@@ -243,4 +243,5 @@ Errors propagate through the Effect pipeline and are inspected in `layers/extern
 
 - **Import Generation System:** `import-generation-system.md` -- Import statement generation for VFS
 - **Multi-Entry VFS:** `multi-entry-vfs.md` -- VFS `.d.ts` generation for multi-entry packages
+- **Render-Phase Instrumentation:** `render-phase-instrumentation.md` -- the Twoslash result cache now hosted in `@tsdoctor/vfs`
 - **Build Architecture:** `build-architecture.md` -- Service layer and plugin structure

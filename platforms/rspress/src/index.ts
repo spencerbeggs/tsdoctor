@@ -6,7 +6,6 @@ export type { LoadedModel } from "./internal-types.js";
 export { ApiExtractorPlugin } from "./plugin.js";
 export type {
 	CategoryConfig,
-	LogLevel,
 	MultiApiConfig,
 	PluginOptions as ApiExtractorPluginOptions,
 	SingleApiConfig,

@@ -25,15 +25,7 @@ land in different folders.
   }
   ```
 
-- **Same kind, same category** (e.g. two distinct classes named `Config`, each re-exported from a different entry point). Remapping the shared category's `folderName` moves **both**, so it cannot split them. Either rename one item in your source, or route just one out with a new category keyed by a `tsdocModifier` — tag that one item with the modifier in its TSDoc and add a category carrying a distinct `folderName`:
-
-  ```ts
-  categories: {
-    ...DEFAULT_CATEGORIES,
-    // one Config class tagged with the matching @-modifier in its TSDoc lands here
-    configV2: { displayName: "Config", singularName: "Config", folderName: "config-v2", tsdocModifier: "@configV2" },
-  }
-  ```
+- **Same kind, same category** (e.g. two distinct classes named `Config`, each re-exported from a different entry point). Remapping the shared category's `folderName` moves **both**, so it cannot split them; categories are keyed by item kind only, so there is no per-item routing. Rename one item in your source.
 
 **What is *not* a collision:** the same item re-exported from several entry points (deduplicated); a value and a type sharing a name (they route to `/variable/...` and `/type/...`); two same-named items in different categories (different routes). Only two distinct items wanting the *same* folder and name collide.
 

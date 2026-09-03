@@ -1,7 +1,7 @@
 /**
  * Effect program for post-processing LLMs text files in afterBuild.
  *
- * Wires the pure processing functions from llms-processing.ts into the
+ * Wires the pure processing functions from @tsdoctor/pages into the
  * plugin lifecycle, handling file I/O via the core `effect` FileSystem service.
  *
  * Responsibilities:
@@ -11,9 +11,7 @@
  * 4. Generate per-package files (llms.txt, llms-full.txt, llms-docs.txt, llms-api.txt)
  */
 import path from "node:path";
-import { Effect, FileSystem } from "effect";
-import type { GenerateApiDocsResult } from "./build-program.js";
-import type { LlmsTxtEntry, PackagePointer, PackageScopeInfo } from "./llms-processing.js";
+import type { LlmsTxtEntry, PackagePointer, PackageScopeInfo } from "@tsdoctor/pages";
 import {
 	filterLlmsFullTxt,
 	filterLlmsTxt,
@@ -21,7 +19,9 @@ import {
 	generatePackageLlmsTxt,
 	generateStructuredLlmsTxt,
 	parseLlmsTxtLine,
-} from "./llms-processing.js";
+} from "@tsdoctor/pages";
+import { Effect, FileSystem } from "effect";
+import type { GenerateApiDocsResult } from "./build-program.js";
 import { emit } from "./observability/EventBus.js";
 import { PluginEvent } from "./observability/events.js";
 import type { LlmsPlugin } from "./schemas/config.js";
@@ -140,7 +140,7 @@ function buildPackagePointers(
  * Collect API page entries from the global llms.txt for a specific package.
  *
  * Parses the global llms.txt to find entries whose URLs match this package's
- * generated API routes, building the LlmsTxtEntry array for per-package files.
+ * generated API routes, building the `LlmsTxtEntry` array for per-package files.
  */
 function collectApiEntries(globalLlmsTxtContent: string, result: GenerateApiDocsResult): LlmsTxtEntry[] {
 	const base = result.baseRoute.endsWith("/") ? result.baseRoute : `${result.baseRoute}/`;

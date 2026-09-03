@@ -12,20 +12,9 @@ export const ModelInput = Schema.declare(
 		typeof input === "string" || typeof input === "function" || input instanceof URL,
 );
 
-/**
- * Verbosity level for plugin build output.
- *
- * @public
- */
-export const LogLevel = Schema.Literals(["none", "info", "verbose", "debug", "warn", "error"]);
-/** @public */
-export type LogLevel = typeof LogLevel.Type;
-
 export const ExternalPackageSpec = Schema.Struct({
 	name: Schema.String,
 	version: Schema.String,
-	tsconfig: Schema.optional(ModelInput),
-	compilerOptions: Schema.optional(Schema.Unknown),
 });
 export type ExternalPackageSpec = typeof ExternalPackageSpec.Type;
 
@@ -83,8 +72,6 @@ export const CategoryConfig = Schema.Struct({
 	folderName: Schema.String,
 	/** API item kinds included in this category. */
 	itemKinds: Schema.optional(Schema.mutable(Schema.Array(ApiItemKindSchema))),
-	/** TSDoc modifier tag that marks items for this category. */
-	tsdocModifier: Schema.optional(Schema.String),
 	/** Whether the sidebar section is collapsible. Defaults to `true`. */
 	collapsible: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
 	/** Whether the sidebar section starts collapsed. Defaults to `true`. */

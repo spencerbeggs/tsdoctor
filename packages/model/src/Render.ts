@@ -8,6 +8,14 @@
  * canonical serializer; {@link tree} exposes the pre-serialization nodes as
  * the seam a future framework-neutral page IR builds on.
  *
+ * @deprecated This module is superseded by `@tsdoctor/pages`, the
+ * framework-neutral page IR that carries everything the product page needs
+ * (signatures, members with anchors, tables, examples, navigation, head
+ * tags). Use `buildPage` to lift an `ApiItem` into a `Page`, then
+ * `renderMarkdown` (string) or `markdownTree` (mdast nodes) from
+ * `@tsdoctor/pages`. Every export here is kept for one more minor and will be
+ * deleted after that.
+ *
  * @packageDocumentation
  */
 
@@ -33,6 +41,7 @@ import { CrossLinker } from "./CrossLinker.js";
 import { phrasingFromMarkdown } from "./internal/prose.js";
 import * as Signature from "./Signature.js";
 import * as Tsdoc from "./Tsdoc.js";
+// biome-ignore lint/suspicious/noDeprecatedImports: this module is deprecated alongside these types and is their only consumer
 import type { ApiItemRef, DocMeta, ItemKindSlug, RenderPackageOptions, RenderedDoc } from "./types.js";
 
 const KIND_SLUG: Readonly<Record<string, ItemKindSlug>> = {
@@ -53,6 +62,9 @@ const KIND_SLUG: Readonly<Record<string, ItemKindSlug>> = {
  * `ApiExportedMixin`. Every other item, including any lacking the flag, is
  * kept.
  *
+ * @deprecated Use `prepareWorkItems` from `@tsdoctor/pages`, which decides
+ * which items receive a page (`isPageKind` for the kind, `SyntheticBases.detect`
+ * for the hoisted `*_base` declarations this rule was written to drop).
  * @public
  */
 export const isEmittable = (item: ApiItem): boolean => (item as Partial<ApiExportedMixin>).isExported !== false;
@@ -66,6 +78,8 @@ const signatureOf = (item: ApiItem): string => {
  * Options for {@link item} and {@link tree}: the package name used in
  * fallbacks and an optional crosslinker applied to the rendered prose.
  *
+ * @deprecated Use `BuildPageInput` from `@tsdoctor/pages`, which carries the
+ * per-API `CrossLinker` as `linker`.
  * @public
  */
 export interface RenderItemOptions {
@@ -78,6 +92,8 @@ export interface RenderItemOptions {
  * Render one API item's markdown body as flow nodes — the pre-serialization
  * form of {@link item}.
  *
+ * @deprecated Use `buildPage` + `markdownTree` from `@tsdoctor/pages`, which
+ * yields the same `FlowContent` nodes from a typed `Page`.
  * @alpha
  */
 export function tree(apiItem: ApiItem, opts: RenderItemOptions): ReadonlyArray<FlowContent> {
@@ -157,6 +173,7 @@ export function tree(apiItem: ApiItem, opts: RenderItemOptions): ReadonlyArray<F
 /**
  * Render one API item to a markdown body string (no frontmatter).
  *
+ * @deprecated Use `buildPage` + `renderMarkdown` from `@tsdoctor/pages`.
  * @public
  */
 export function item(apiItem: ApiItem, opts: RenderItemOptions): string {
@@ -172,6 +189,9 @@ export function item(apiItem: ApiItem, opts: RenderItemOptions): string {
  * Walk a package's first entry point and assemble one RenderedDoc per
  * top-level member.
  *
+ * @deprecated Use `prepareWorkItems` + `buildPage` + `renderMarkdown` from
+ * `@tsdoctor/pages`; frontmatter is assembled by the adapter from the
+ * `Page`'s facts and head tags.
  * @public
  */
 export function docs(apiPackage: ApiPackage, opts: RenderPackageOptions): RenderedDoc[] {

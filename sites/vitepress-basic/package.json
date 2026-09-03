@@ -1,0 +1,21 @@
+{
+	"name": "@sites/vitepress-basic",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vitepress build docs",
+		"dev": "vitepress dev docs",
+		"preview": "vitepress preview docs",
+		"types:check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@modules/kitchensink": "workspace:*"
+	},
+	"devDependencies": {
+		"@shikijs/vitepress-twoslash": "^4.4.3",
+		"@types/node": "catalog:docs",
+		"vitepress": "2.0.0-alpha.19",
+		"vitepress-plugin-api-extractor": "workspace:*"
+	}
+}

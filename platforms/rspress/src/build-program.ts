@@ -1,4 +1,5 @@
 import path from "node:path";
+import { CrossLinker } from "@tsdoctor/model";
 import { attributionFacts, packageContext } from "@tsdoctor/seo";
 import { SnapshotService } from "@tsdoctor/snapshot";
 import { Effect, FileSystem } from "effect";
@@ -10,7 +11,6 @@ import { buildPipelineForApi, cleanupAndCommit, prepareWorkItems, writeMetadata 
 // value with one fewer indirection. Note the naming: the registry field
 // `hideCutTransformer` holds `MemberFormatTransformer`.
 import { HideCutLinesTransformer, MemberFormatTransformer } from "./hide-cut-transformer.js";
-import { setProseLinker } from "./markdown/prose-linker.js";
 import { withPhase } from "./observability/spans.js";
 import type { ResolvedApiConfig } from "./services/ConfigService.js";
 import { HighlighterService } from "./services/HighlighterService.js";
@@ -121,15 +121,16 @@ export function generateApiDocs(
 					apiPackage,
 					categories,
 					baseRoute,
-					packageName,
 				}),
 			),
 		);
 
 		// Initialize cross-linkers with the prepared data
-		// Use crossLinkData.routes directly so both cross-linkers share the same
-		// routes (including disambiguation suffixes for genuine route collisions)
-		setProseLinker(crossLinkData.routes);
+		// Both cross-linkers are built from the same route map, so a name
+		// resolves to the same page in prose and in code blocks. The prose
+		// linker travels in the pipeline context: the IR builder runs inside the
+		// fiber, so the module-level holder the generators needed is gone.
+		const linker = CrossLinker.fromRoutes(crossLinkData.routes);
 		// API scope is derived from baseRoute to match file path inference in remark plugins
 		// e.g., baseRoute "/example-module" -> scope "example-module"
 		// When baseRoute is "/" (single-API mode), fall back to packageName to ensure a non-empty scope
@@ -186,6 +187,7 @@ export function generateApiDocs(
 				existingSnapshots,
 				...(suppressExampleErrors != null ? { suppressExampleErrors } : {}),
 				...(llmsPlugin != null ? { llmsPlugin } : {}),
+				linker,
 				...(apiConfig.docsRoot != null ? { docsRoot: apiConfig.docsRoot } : {}),
 				...(siteUrl != null ? { siteUrl } : {}),
 				...(ogImage != null ? { ogImage } : {}),

@@ -1,0 +1,22 @@
+{
+	"$schema": "https://turborepo.com/schema.v2.json",
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"cache": false,
+			"dependsOn": ["^build:prod"],
+			"outputLogs": "full",
+			"outputs": ["docs/.vitepress/dist/**"]
+		},
+		"dev": {
+			"cache": false,
+			"dependsOn": ["^build:prod"],
+			"persistent": true
+		},
+		"preview": {
+			"cache": false,
+			"dependsOn": ["build"],
+			"persistent": true
+		}
+	}
+}

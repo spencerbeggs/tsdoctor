@@ -3,14 +3,15 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-24
-last-synced: 2026-08-24
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 90
 related:
   - rspress-plugin-api-extractor/build-architecture.md
   - rspress-plugin-api-extractor/page-generation-system.md
   - rspress-plugin-api-extractor/component-development.md
   - rspress-plugin-api-extractor/ssg-compatible-components.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 
@@ -49,15 +50,21 @@ splitting them into per-package scoped files.
 - **Runtime UI components** -- package-scoped copy/open actions injected
   into RSPress's existing LLMs UI via portals and `resolve.alias`
 - **Pure function + Effect program architecture** -- processing logic is
-  pure and testable; I/O is handled by an Effect program
+  pure and testable, and since phase 5 lives in the framework-neutral
+  `@tsdoctor/pages` (`Llms.ts`); I/O is handled by an Effect program in
+  the adapter
 
 ### Design Principles
 
 - **Non-invasive** -- operates entirely in `afterBuild`, after RSPress
   and `@rspress/plugin-llms` have completed their work
 - **Pure/Effect separation** -- all text processing is in pure functions
-  (`llms-processing.ts`); all file I/O is in the Effect program
-  (`llms-program.ts`)
+  (`packages/pages/src/Llms.ts`, imported from `@tsdoctor/pages`); all
+  file I/O is in the adapter's Effect program (`llms-program.ts`). The
+  transforms moved out of the adapter's former `llms-processing.ts` so a
+  second adapter emits byte-identical files; the VitePress alpha does not
+  produce llms.txt yet (out of scope), so they are ready for it but unwired
+  there
 - **Opt-in scoping** -- the `scopes` flag controls whether per-package
   files are generated; when disabled, only simple filtering is applied
 - **RSPress CSS class reuse** -- UI components use RSPress's own
@@ -106,7 +113,7 @@ config() hook (plugin.ts)
 
 | Module | Type | Purpose |
 | --- | --- | --- |
-| `llms-processing.ts` | Pure functions | Parse, filter, generate LLMs text content |
+| `packages/pages/src/Llms.ts` (`@tsdoctor/pages`) | Pure functions | Parse, filter, generate LLMs text content (formerly the adapter's `llms-processing.ts`) |
 | `llms-program.ts` | Effect program | File I/O orchestration, prefix discovery |
 | `config-utils.ts` | Pure functions | `mergeLlmsPluginConfig` defaults and merge |
 | `schemas/config.ts` | Effect Schema | `LlmsPlugin` schema definition |
@@ -117,10 +124,14 @@ config() hook (plugin.ts)
 
 ## Post-Processing Pipeline
 
-### Pure Functions (llms-processing.ts)
+### Pure Functions (`@tsdoctor/pages` `Llms.ts`)
 
 All text processing is implemented as pure functions with no Effect
-dependencies:
+dependencies in `packages/pages/src/Llms.ts`; `llms-program.ts` imports
+`parseLlmsTxtLine`, `filterLlmsTxt`, `generateStructuredLlmsTxt`,
+`filterLlmsFullTxt`, `generatePackageLlmsTxt` and
+`generatePackageLlmsFullTxt` (plus the `LlmsTxtEntry`, `PackagePointer` and
+`PackageScopeInfo` types) from `@tsdoctor/pages`:
 
 **`parseLlmsTxtLine(line)`** -- Parses a single llms.txt link line
 matching the pattern `- [title](url): description`. Returns
@@ -534,7 +545,7 @@ and shared between `config()` and `afterBuild()`:
 
 | File | Purpose |
 | --- | --- |
-| `src/llms-processing.ts` | Pure functions for parsing, filtering, generating LLMs text |
+| `packages/pages/src/Llms.ts` | Pure functions for parsing, filtering, generating LLMs text (`@tsdoctor/pages`) |
 | `src/llms-program.ts` | Effect program for file I/O orchestration |
 | `src/config-utils.ts` | `mergeLlmsPluginConfig` merge and defaults |
 | `src/schemas/config.ts` | `LlmsPlugin` Effect Schema definition |
@@ -557,3 +568,5 @@ and shared between `config()` and `afterBuild()`:
   `ssg-compatible-components.md` -- Dual-mode rendering patterns
 - **Performance Observability:**
   `performance-observability.md` -- Effect Metrics and build summary
+- **Doc IR and `@tsdoctor/pages`:**
+  `doc-ir-and-pages.md` -- the Tier 2 move that put `Llms.ts` in core

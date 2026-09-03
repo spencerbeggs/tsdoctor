@@ -1,35 +1,8 @@
 /* v8 ignore start -- Prettier integration wrapper, tested via page generator integration tests */
-import { format } from "prettier";
-import { addLogicalBlankLines } from "./code-post-processor.js";
+import { formatExampleCode } from "@tsdoctor/pages";
+import { Effect, Result } from "effect";
 import { PluginEvent as PE } from "./observability/events.js";
 import { emitSync, syncBuildId } from "./observability/sync-emitter.js";
-
-/**
- * Map code fence languages to Prettier parsers
- */
-const LANGUAGE_TO_PARSER: Record<string, string> = {
-	typescript: "typescript",
-	ts: "typescript",
-	tsx: "typescript",
-	javascript: "babel",
-	js: "babel",
-	jsx: "babel",
-	node: "babel",
-};
-
-/**
- * Default Prettier options for consistent formatting
- */
-const PRETTIER_OPTIONS = {
-	printWidth: 80,
-	tabWidth: 2,
-	useTabs: false,
-	semi: true,
-	singleQuote: false,
-	trailingComma: "es5" as const,
-	bracketSpacing: true,
-	arrowParens: "always" as const,
-};
 
 /**
  * Result of formatting code with Prettier
@@ -46,7 +19,12 @@ export interface FormatResult {
 }
 
 /**
- * Format code using Prettier
+ * Format code using Prettier.
+ *
+ * The formatting itself is `formatExampleCode` in `@tsdoctor/pages`, so both
+ * adapters format identically. This wrapper keeps the adapter's fallthrough
+ * contract: a typed `ExampleFormatError` becomes a `PrettierError` event on
+ * the bus and the original code is returned.
  *
  * @param code - The code to format
  * @param language - The code fence language (e.g., "typescript", "ts", "js")
@@ -54,45 +32,18 @@ export interface FormatResult {
  */
 export async function formatCode(code: string, language: string): Promise<FormatResult> {
 	const start = performance.now();
+	const result = await Effect.runPromise(Effect.result(formatExampleCode(code, language)));
+	const formatTime = performance.now() - start;
 
-	// Get the appropriate parser for the language
-	const parser = LANGUAGE_TO_PARSER[language.toLowerCase()];
-	if (!parser) {
-		// Unsupported language, return original code
-		return {
-			code,
-			success: true, // Not an error, just unsupported
-			formatTime: performance.now() - start,
-		};
+	if (Result.isSuccess(result)) {
+		return { code: result.success, success: true, formatTime };
 	}
 
-	try {
-		const formatted = await format(code, {
-			...PRETTIER_OPTIONS,
-			parser,
-		});
+	const cause = result.failure.cause;
+	const errorMsg = cause instanceof Error ? cause.message : String(cause);
 
-		const formatTime = performance.now() - start;
-		const postProcessed = addLogicalBlankLines(formatted.trim());
+	// Metric derived from PrettierError event in MetricsSink
+	emitSync(PE.PrettierError({ ctx: { buildId: syncBuildId() }, file: "unknown", reason: errorMsg, level: "warn" }));
 
-		return {
-			code: postProcessed,
-			success: true,
-			formatTime,
-		};
-	} catch (error) {
-		const formatTime = performance.now() - start;
-		const errorMsg = error instanceof Error ? error.message : String(error);
-
-		// Metric derived from PrettierError event in MetricsSink
-		emitSync(PE.PrettierError({ ctx: { buildId: syncBuildId() }, file: "unknown", reason: errorMsg, level: "warn" }));
-
-		// Return original code on error (fallthrough behavior)
-		return {
-			code,
-			success: false,
-			error: errorMsg,
-			formatTime,
-		};
-	}
+	return { code, success: false, error: errorMsg, formatTime };
 }

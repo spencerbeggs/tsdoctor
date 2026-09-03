@@ -69,17 +69,10 @@ export type PluginEvent = Data.TaggedEnum<{
 	SlowOperation: Base & { readonly operation: string; readonly durationMs: number; readonly threshold: number };
 
 	// Config parse & merge
-	OptionsDecoded: Base & { readonly mode: "api" | "apis"; readonly presentKeys: readonly string[] };
-	DefaultApplied: Base & { readonly path: string; readonly value: string; readonly reason: string };
-	BaseRouteResolved: Base & { readonly mode: "api" | "apis"; readonly explicit: boolean; readonly resolved: string };
-	ConfigMerged: Base & { readonly key: string; readonly winner: string; readonly overridden: readonly string[] };
 	ConfigCascadeWarning: Base & { readonly field: string; readonly chosen: string; readonly ignored: readonly string[] };
 	ConfigValidationWarning: Base & { readonly field: string; readonly value: string; readonly reason: string };
-	AutoDetectedDependencies: Base & { readonly source: "peer" | "auto"; readonly packages: readonly string[] };
-	ConfigResolved: Base & { readonly baseRoute: string; readonly categoryCount: number; readonly externalCount: number };
 
 	// Model loading
-	ModelLoadStarted: Base & { readonly modelPath: string };
 	ModelLoaded: Base & { readonly entryPoints: number; readonly itemCount: number; readonly durationMs: number };
 	ModelLoadFailed: Base & { readonly modelPath: string; readonly reason: string };
 
@@ -93,7 +86,6 @@ export type PluginEvent = Data.TaggedEnum<{
 		readonly content?: string;
 	};
 	ImportsPrepended: Base & { readonly file: string; readonly imports: readonly ImportRef[] };
-	TypeReferenceClassified: Base & { readonly packageRef: string; readonly bucket: "builtin" | "internal" | "external" };
 	TsCacheCreated: Base & { readonly compilerOptions: string; readonly durationMs: number };
 	VfsMerged: Base & { readonly totalFiles: number; readonly packages: readonly string[] };
 	TwoslashInitialized: Base & { readonly durationMs: number; readonly vfsFileCount: number };
@@ -109,15 +101,7 @@ export type PluginEvent = Data.TaggedEnum<{
 	};
 
 	// Multi-entry & routing
-	EntryPointResolved: Base & { readonly itemCount: number };
-	ReExportDeduplicated: Base & {
-		readonly kind: string;
-		readonly definingEntryPoint: string;
-		readonly availableFrom: readonly string[];
-	};
-	RouteCandidateBuilt: Base & { readonly kind: string };
 	RouteCollisionDetected: Base & { readonly items: readonly string[] };
-	CrossLinkRouteRegistered: Base & { readonly name: string; readonly kind: string };
 
 	// Page gen & code blocks
 	PageGenerated: Base & {
@@ -162,7 +146,6 @@ export type PluginEvent = Data.TaggedEnum<{
 		readonly fsMapKeys: readonly string[];
 		readonly compilerOptions: string;
 	};
-	CrossLinkApplied: Base & { readonly from: string; readonly to: string; readonly route: string };
 	PrettierError: Base & { readonly file: string; readonly reason: string };
 	ShikiError: Base & { readonly file: string; readonly reason: string };
 
@@ -174,8 +157,6 @@ export type PluginEvent = Data.TaggedEnum<{
 		readonly frontmatterHash: string;
 		readonly source: "snapshot" | "disk-fallback";
 	};
-	MetadataWritten: Base & { readonly kind: string; readonly file: string; readonly status: string };
-	SnapshotBatchCommitted: Base & { readonly count: number };
 	StaleDeleted: Base & { readonly file: string };
 	OrphanDeleted: Base & { readonly file: string };
 	EmptyDirRemoved: Base & { readonly dir: string };

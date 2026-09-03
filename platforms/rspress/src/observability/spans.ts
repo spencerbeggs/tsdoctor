@@ -62,38 +62,3 @@ export function withPhase<A, E, R>(
 		return result;
 	}) as Effect.Effect<A, E, R>;
 }
-
-/**
- * Wrap an Effect in an operation span (no PhaseStarted/PhaseCompleted pair).
- *
- * Measures wall-clock duration, wraps in Effect.withSpan, and emits
- * SlowOperation on threshold breach. Use for sub-operations within a phase.
- */
-export function withOp<A, E, R>(
-	operation: string,
-	ctx: EventContext,
-	effect: Effect.Effect<A, E, R>,
-	thresholdKey: keyof ResolvedObservability["thresholds"] = "slowApiLoad",
-): Effect.Effect<A, E, R> {
-	return Effect.gen(function* () {
-		const threshold = (yield* Thresholds)[thresholdKey];
-		const start = performance.now();
-		const result = yield* Effect.withSpan(`op.${operation}`)(effect);
-		const elapsed = performance.now() - start;
-		const durationMs = Math.round(elapsed);
-
-		if (elapsed >= threshold) {
-			yield* emit(
-				PluginEvent.SlowOperation({
-					ctx,
-					level: "warn",
-					operation,
-					durationMs,
-					threshold,
-				}),
-			);
-		}
-
-		return result;
-	}) as Effect.Effect<A, E, R>;
-}

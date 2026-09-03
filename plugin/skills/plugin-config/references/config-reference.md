@@ -68,7 +68,6 @@ import { DEFAULT_CATEGORIES } from "rspress-plugin-api-extractor";
 | `singularName` | string | required | Singular label — used in page titles. |
 | `folderName` | string | required | URL/folder segment for items in this category. |
 | `itemKinds` | item-kind array | — | Which API Extractor item kinds belong here. |
-| `tsdocModifier` | string | — | Route items carrying a given TSDoc modifier into this category. |
 | `collapsible` | boolean | `true` | Whether the sidebar group can collapse. |
 | `collapsed` | boolean | `true` | Whether the group starts collapsed. |
 | `overviewHeaders` | number array | `[2]` | Heading levels surfaced in the overview. |
@@ -112,7 +111,7 @@ externalPackages: [
 ]
 ```
 
-Each spec takes `name` and `version`, plus optional `tsconfig` and `compilerOptions` controlling how that package's types load.
+Each spec takes `name` and `version`. The compiler configuration that examples are checked under is the API-level `tsconfig` / `compilerOptions`, not a per-package setting.
 
 ## Open Graph images
 

@@ -242,16 +242,6 @@ describe("makeMetricsSink", () => {
 		expect(d.phase).toBe(1);
 	});
 
-	it("increments configDefaultsApplied when DefaultApplied is handled", () => {
-		const d = measure({ defaults: BuildMetrics.configDefaultsApplied }, (sink) =>
-			sink.handle(
-				PluginEvent.DefaultApplied({ ctx, level: "debug", path: "llms.scopes", value: "true", reason: "default" }),
-			),
-		);
-
-		expect(d.defaults).toBe(1);
-	});
-
 	it("ignores unmapped event tags without touching any counter", () => {
 		let threw = false;
 		const d = measure({ total: BuildMetrics.codeblockTotal, files: BuildMetrics.filesTotal }, (sink) => {

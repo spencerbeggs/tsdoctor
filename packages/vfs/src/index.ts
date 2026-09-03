@@ -1,6 +1,18 @@
 export { TsConfigParseError, parseTsConfig } from "./TsconfigParser.js";
 export { TsEnvironment, TsEnvironmentError, type TsEnvironmentOptions } from "./TsEnvironment.js";
 export {
+	TWOSLASH_CACHE_FORMAT,
+	type TwoslashCacheStats,
+	type TwoslashCacheValue,
+	type TwoslashResultCache,
+	decodeTwoslashCache,
+	encodeTwoslashCache,
+	makeTwoslashCache,
+	twoslashBlobKey,
+	twoslashEntryKey,
+	twoslashEnvHash,
+} from "./TwoslashCache.js";
+export {
 	TypeResolutionCompilerOptions,
 	decodeCompilerOptions,
 	toProgrammaticCompilerOptions,

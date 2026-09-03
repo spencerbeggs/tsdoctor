@@ -6,6 +6,7 @@ await build({
 			"../../sites/basic/lib/models/kitchensink",
 			"../../sites/i18n/lib/models/kitchensink",
 			"../../sites/multi/lib/models/kitchensink",
+			"../../sites/vitepress-basic/lib/models/kitchensink",
 		],
 		tsdoc: {
 			// Compiler-generated mixin bases (AuditedRecord_base) are intentionally
