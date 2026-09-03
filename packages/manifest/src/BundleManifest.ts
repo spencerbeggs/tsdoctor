@@ -246,3 +246,34 @@ export function decodeBundleManifest(
 		Effect.mapError((cause) => new BundleManifestError({ ...(path !== undefined ? { path } : {}), cause })),
 	);
 }
+
+/**
+ * The manifest spec version this package reads and writes.
+ *
+ * @public
+ */
+export const MANIFEST_SPEC = 1 as const;
+
+/**
+ * The sidecar manifest's file name inside a bundle folder.
+ *
+ * @public
+ */
+export const TSDOCTOR_MANIFEST_FILENAME = "tsdoctor.json";
+
+/**
+ * Encode a {@link (BundleManifest:type)} into the JSON-ready value a writer
+ * serializes as `tsdoctor.json`.
+ *
+ * @remarks
+ * The writer's boundary. Going through the schema rather than
+ * `JSON.stringify` means an emitted file is by construction what
+ * {@link decodeBundleManifest} accepts.
+ *
+ * @public
+ */
+export function encodeBundleManifest(manifest: BundleManifest): Effect.Effect<unknown, BundleManifestError> {
+	return Schema.encodeEffect(BundleManifest)(manifest).pipe(
+		Effect.mapError((cause) => new BundleManifestError({ cause })),
+	);
+}

@@ -45,6 +45,7 @@
 		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@savvy-web/bundler": "^2.1.30",
+		"@tsdoctor/manifest": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
@@ -59,6 +60,7 @@
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
+		"@tsdoctor/manifest": "workspace:*",
 		"effect": "catalog:effect"
 	},
 	"engines": {

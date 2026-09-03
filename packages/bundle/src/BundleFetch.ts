@@ -4,11 +4,11 @@ import type { RegistryTarget } from "@effected/npm";
 import { NpmRegistry, PackageTarball, PublishedVersion } from "@effected/npm";
 import { Cache } from "@effected/store";
 import { AppDirs } from "@effected/xdg";
+import type { BundleManifestError } from "@tsdoctor/manifest";
 import { Effect, FileSystem, Option, Path, Schema } from "effect";
 import type { Bundle, BundleLayerError } from "./Bundle.js";
 import { readBundle } from "./Bundle.js";
 import { discoverBundle } from "./BundleDiscovery.js";
-import type { BundleManifestError } from "./BundleManifest.js";
 
 /**
  * Raised when a remote bundle cannot be fetched into the local cache.

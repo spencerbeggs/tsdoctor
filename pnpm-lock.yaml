@@ -242,6 +242,28 @@ importers:
       '@savvy-web/bundler':
         specifier: ^2.1.30
         version: 2.1.30(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/semver@0.5.0(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(@tsdown/css@0.22.14)(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(redis@6.2.1)(tsx@4.23.13)(typescript@6.0.3)
+      '@tsdoctor/manifest':
+        specifier: workspace:*
+        version: link:../manifest/dist/dev/pkg
+      '@types/node':
+        specifier: catalog:build
+        version: 26.4.1
+      effect:
+        specifier: catalog:effect
+        version: 4.0.0-rc.109
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+    publishDirectory: dist/dev/pkg
+
+  packages/manifest:
+    devDependencies:
+      '@effect/vitest':
+        specifier: catalog:effect
+        version: 4.0.0-rc.109(effect@4.0.0-rc.109)(vitest@4.1.11)
+      '@savvy-web/bundler':
+        specifier: ^2.1.30
+        version: 2.1.30(@effected/jsonc@0.8.1(effect@4.0.0-rc.109))(@effected/semver@0.5.0(effect@4.0.0-rc.109))(@effected/walker@0.5.0(@effected/glob@0.4.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109))(@tsdown/css@0.22.14)(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(redis@6.2.1)(tsx@4.23.13)(typescript@6.0.3)
       '@types/node':
         specifier: catalog:build
         version: 26.4.1

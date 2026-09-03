@@ -1,6 +1,7 @@
 import { build } from "@savvy-web/bundler";
 
 await build({
+	bundledPackages: ["@tsdoctor/manifest"],
 	meta: {
 		tsdoc: {
 			// Effect's class factories (Schema.TaggedError) synthesize anonymous

@@ -1,8 +1,8 @@
 import type { PackageManifest } from "@effected/package-json";
 import type { CompilerOptions, ResolvedTsconfig } from "@effected/tsconfig-json";
+import type { BundleManifest, ProjectIdentity, RegistryRef, SbomRef } from "@tsdoctor/manifest";
 import { HashMap, Option } from "effect";
 import type { ApiModelInfo, Bundle } from "./Bundle.js";
-import type { BundleManifest, ProjectIdentity, RegistryRef, SbomRef } from "./BundleManifest.js";
 import type { PlatformOverrides } from "./PlatformOverrides.js";
 
 /**

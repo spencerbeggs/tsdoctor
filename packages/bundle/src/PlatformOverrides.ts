@@ -1,5 +1,5 @@
+import { BundleManifestError, OpenGraphConfig, RegistryRef, SbomRef } from "@tsdoctor/manifest";
 import { Effect, Schema } from "effect";
-import { BundleManifestError, OpenGraphConfig, RegistryRef, SbomRef } from "./BundleManifest.js";
 
 /**
  * The `manifest.platform` tier: a data-override object a consumer passes

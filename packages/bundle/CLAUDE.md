@@ -10,6 +10,9 @@ model.
 
 ## Key Facts
 
+- The `tsdoctor.json` manifest schema lives in `@tsdoctor/manifest`
+  (`packages/manifest/`, depends on `effect` alone) and is re-exported here
+  by name — import it from `@tsdoctor/bundle`.
 - Modules (flat, module-per-concept): `BundleManifest.ts` (schema + typed
   decode, graceful degradation for unknown registry types / top-level
   fields), `PlatformOverrides.ts` (the top-ranked override tier),
