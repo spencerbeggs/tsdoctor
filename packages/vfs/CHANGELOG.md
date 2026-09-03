@@ -1,5 +1,38 @@
 # @tsdoctor/vfs
 
+## 0.2.0
+
+### Features
+
+- `@tsdoctor/vfs` now exports the Twoslash result cache — the keying scheme,
+  the generation codec and the in-memory `TwoslashTypesCache` implementation
+  (`makeTwoslashCache`, `twoslashEnvHash`, `twoslashEntryKey`,&#10;`twoslashBlobKey`, `encodeTwoslashCache`, `decodeTwoslashCache`) — moved out
+  of the RSPress adapter so any adapter can persist and share one Twoslash
+  result cache:
+
+```ts
+import { makeTwoslashCache, twoslashEnvHash } from "@tsdoctor/vfs";
+
+const typesCache = makeTwoslashCache({ store, envHash: twoslashEnvHash(vfs, tsVersion) });
+```
+
+- `@shikijs/twoslash` is now an optional peer dependency, alongside the
+  existing `typescript` and `@typescript/vfs`. [#208][#208]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @shikijs/twoslash | peerDependency | added | — | ^4.4.3 |
+
+[#208][#208]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#208]: https://github.com/spencerbeggs/tsdoctor/pull/208
+
 ## 0.1.0
 
 ### Breaking Changes

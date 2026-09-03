@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/registry",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"private": true,
 	"description": "External TypeScript type loading for Effect: fetch, cache and resolve type definitions from npm via the jsDelivr CDN into a virtual file system.",
 	"keywords": ["typescript", "vfs", "twoslash", "types", "jsdelivr", "cache", "effect"],
