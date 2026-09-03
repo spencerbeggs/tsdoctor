@@ -3,132 +3,68 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-08-25
-last-synced: 2026-08-25
-completeness: 85
+updated: 2026-09-03
+last-synced: 2026-09-03
+completeness: 88
 related:
-  - rspress-plugin-api-extractor/build-architecture.md
   - rspress-plugin-api-extractor/ssg-compatible-components.md
+  - rspress-plugin-api-extractor/build-tooling.md
   - rspress-plugin-api-extractor/llms-integration.md
-dependencies:
-  - rspress-plugin-api-extractor/build-architecture.md
 ---
 
-# Component Development Guide
+# Component development guide
 
-## Table of Contents
+## Table of contents
 
 - [Overview](#overview)
-- [Component Organization](#component-organization)
+- [Current state](#current-state)
 - [Registration](#registration)
-- [Component Structure](#component-structure)
+- [Component structure](#component-structure)
 - [Styling](#styling)
 - [Accessibility](#accessibility)
-- [Common Pitfalls](#common-pitfalls)
+- [Common pitfalls](#common-pitfalls)
+- [Rationale](#rationale)
+- [Related documentation](#related-documentation)
 
 ## Overview
 
-This guide covers conventions for the React components in the runtime tree (`src/runtime/`). Every component must be SSG-MD compatible (render markdown when `import.meta.env.SSG_MD` is set) — see `ssg-compatible-components.md` for the dual-mode pattern. This document focuses on organization, registration and styling.
+Conventions for the React components under `platforms/rspress/src/runtime/`. Every component must be SSG-MD compatible — render markdown when `import.meta.env.SSG_MD` is set — which `ssg-compatible-components.md` covers; this doc covers organization, registration and styling.
 
-## Component Organization
+## Current state
 
-Components live one-per-directory under `src/runtime/components/`, each with an `index.tsx` and, where it has browser-mode styling, an `index.module.css`:
-
-```text
-src/runtime/components/
-├── SignatureBlock/        # signature code block (heading + wrap)
-├── MemberSignature/       # member signature block
-├── ExampleBlock/          # example code block (copy + wrap)
-├── ApiSignature/          # SSG-MD-aware signature wrapper
-├── ApiMember/             # SSG-MD-aware member wrapper
-├── ApiExample/            # SSG-MD-aware example wrapper
-├── ParametersTable/       # parameter table
-├── EnumMembersTable/      # enum member/value table
-├── MarkdownContent/       # rendered markdown body
-├── SignatureToolbar/      # shared toolbar (wrap/copy buttons)
-├── SignatureCode/         # shared Shiki HTML + Twoslash code display
-├── ApiLlmsPackageActions/ # LLMs scope actions (globalUIComponents)
-├── ApiLlmsViewOptions/    # aliased RSPress LlmsViewOptions
-├── buttons/               # ButtonGroup, WrapSignatureButton, CopyCodeButton
-├── icons/                 # CheckIcon, CopyIcon, WrapIcon, UnwrapIcon
-└── shared/                # variables.css, _twoslash.css, types.ts
-```
-
-Colocating logic and styles keeps related files together. The runtime is emitted **bundleless** — `@savvy-web/rspress-builder`'s `build()` transpiles each component to its own `.js` next to its CSS module under `runtime/`, and RSPress does the final per-site compile (resolving `import.meta.env.SSG_MD`); see `ssg-compatible-components.md`. See `src/runtime/components/` for the authoritative tree.
+Components live one per directory under `src/runtime/components/`, each with an `index.tsx` and, where it has browser-mode styling, an `index.module.css`. The tree holds the signature, member and example blocks and their SSG-MD-aware `Api*` wrappers, the parameter and enum tables, the shared toolbar and code display, the two LLMs components, the `buttons/` and `icons/` sets and `shared/` (CSS variables, the global Twoslash stylesheet, shared types). `src/runtime/index.tsx` is the public export; `src/runtime/utils/` holds the HAST-to-React renderer. See the directory for the authoritative list.
 
 ## Registration
 
-Most components are exported from `src/runtime/index.tsx` and imported directly in generated MDX:
+Most components are exported from `src/runtime/index.tsx` and imported directly in generated MDX from `rspress-plugin-api-extractor/runtime`; the emitter chooses the import lines from the page kind (`rspress-mdx-emitter.md`). `ApiLlmsPackageActions` and `ApiLlmsViewOptions` are the exception: they use RSPress runtime hooks and would pull `react-dom` into the pre-imported runtime, so they are registered through `globalUIComponents` / `resolve.alias` against their transpiled `.js` files (`llms-integration.md`).
 
-```typescript
-import { MemberSignature, ParametersTable, SignatureBlock }
-  from "rspress-plugin-api-extractor/runtime";
-```
+**Avoid `import * as` of sibling runtime modules.** The runtime is emitted bundleless, and a namespace import of a sibling forces a webpack namespace object plus a shared runtime chunk outside `runtime/`, breaking the per-file layout. The `Api*` wrappers use named imports of their block components.
 
-`ApiLlmsPackageActions` and `ApiLlmsViewOptions` are the exception: they are registered through RSPress's `globalUIComponents` / `resolve.alias` (pointed at their transpiled `runtime/components/.../index.js` files and compiled by RSPress) rather than imported into MDX, because they use RSPress runtime hooks and would pull `react-dom` into the pre-imported runtime. See `llms-integration.md`.
+## Component structure
 
-### Avoid `import * as` of sibling runtime modules
-
-Because the runtime is emitted bundleless, a namespace import of a sibling runtime module (`import * as RuntimeComponents from "../<Block>/index.js"`) forces a webpack namespace-object plus a shared runtime chunk that lands outside `runtime/`, breaking the per-file layout. Use named imports of sibling components instead: `ApiSignature`, `ApiExample` and `ApiMember` import `{ SignatureBlock }` / `{ ExampleBlock }` / `{ MemberSignature }`, which transpile to clean per-file ESM.
-
-Props are declared as exported TypeScript interfaces with JSDoc so the API is type-checked and self-documenting.
-
-## Component Structure
-
-```tsx
-// src/runtime/components/ExampleComponent/index.tsx
-import type { ReactElement } from "react";
-import { useState } from "react";
-import styles from "./index.module.css";
-
-export interface ExampleComponentProps {
-  /** Brief description of the prop */
-  propName: string;
-  /** Optional prop description */
-  optionalProp?: boolean;
-}
-
-export function ExampleComponent({
-  propName,
-  optionalProp = false,
-}: ExampleComponentProps): ReactElement {
-  const [open, setOpen] = useState(false);
-  return <div className={styles.wrapper}>{/* … */}</div>;
-}
-
-export default ExampleComponent;
-```
-
-Shared building blocks (`SignatureToolbar`, `SignatureCode`, the `buttons/` and `icons/` components) are imported with `.js` extensions to satisfy the Biome `useImportExtensions` rule. The block components compose them: a toolbar plus a `SignatureCode` displaying Shiki HTML with Twoslash tooltips.
+Props are exported TypeScript interfaces with JSDoc on every prop. A component imports its CSS module as a default import and references class names off it; shared pieces are imported with `.js` extensions to satisfy Biome's `useImportExtensions` rule. The block components compose `SignatureToolbar` (wrap and copy buttons) with `SignatureCode` (Shiki HTML plus Twoslash tooltips). See any `index.tsx` for the shape.
 
 ## Styling
 
-Components use **CSS modules** (`index.module.css`), not Sass. Import the module as a default import and reference class names off it:
-
-```tsx
-import styles from "./index.module.css";
-// className={styles.wrapper}
-```
-
-A default import is required to match RSPress's `namedExport: false` CSS-module configuration. Theming uses CSS custom properties defined in `src/runtime/components/shared/variables.css`, with `html.rp-dark` overrides for dark mode. Style nested non-module elements (`pre`, `code`, `a`) with `:global()` selectors. Twoslash hover/error styles are global (not module-scoped) and live in `shared/_twoslash.css`, imported once from `src/runtime/index.tsx`.
+CSS modules, not Sass. Theming uses the custom properties in `shared/variables.css`, with `html.rp-dark` overrides for dark mode. Nested non-module elements (`pre`, `code`, `a`) are styled through `:global()` selectors. Twoslash hover and error styles are global and live in `shared/_twoslash.css`, imported once from `src/runtime/index.tsx`.
 
 ## Accessibility
 
-- Use semantic HTML — a `<button type="button">` for actions, not a clickable `<div>`.
-- Give icon-only buttons an `aria-label` and `title`.
-- Ensure keyboard operation (Tab focus, Enter/Space activation) and a visible `:focus-visible` outline.
-- Test with keyboard navigation and a screen reader (VoiceOver on macOS).
+Semantic elements (`<button type="button">` for actions), `aria-label` and `title` on icon-only buttons, keyboard operation with a visible `:focus-visible` outline and a VoiceOver pass when a component changes.
 
-## Common Pitfalls
+## Common pitfalls
 
-- **Missing CSS module import** — without `import styles from "./index.module.css"` the class names are `undefined` and styling silently drops.
-- **Namespace CSS import** — `import * as styles` breaks against the `namedExport: false` config; use a default import.
-- **Missing `:global()`** — module selectors do not reach nested `pre`/`code`/`a`; wrap them in `:global()`.
-- **Missing `.js` extensions** — Biome's `useImportExtensions` rule requires them on relative imports.
-- **Undocumented props** — add JSDoc to every prop in the interface for IDE support and generated docs.
+- A missing default CSS-module import leaves every class name `undefined` and styling silently drops; a namespace import breaks against RSPress's `namedExport: false` configuration.
+- Module selectors do not reach nested `pre` / `code` / `a` without `:global()`.
+- Relative imports need `.js` extensions.
 
-## Related Documentation
+## Rationale
 
-- **Build Architecture:** `build-architecture.md` — per-file plugin, bundleless runtime and the `./runtime` export
-- **SSG-Compatible Components:** `ssg-compatible-components.md` — dual-mode (markdown vs HTML) rendering
-- **LLMs Integration:** `llms-integration.md` — the `globalUIComponents` registration path
+- **Why colocated CSS modules:** RSPress compiles the runtime per site and handles CSS modules natively; Sass would add a toolchain the site build does not have.
+- **Why named sibling imports:** the bundleless layout is what lets RSPress resolve `import.meta.env` per site and what makes the LLMs registrations path-stable; anything that produces a shared chunk breaks both.
+
+## Related documentation
+
+- **Dual-mode rendering and the bundleless mechanism:** `ssg-compatible-components.md`
+- **Build output and the runtime export:** `build-tooling.md`
+- **The `globalUIComponents` registration path:** `llms-integration.md`

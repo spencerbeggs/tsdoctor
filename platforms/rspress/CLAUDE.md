@@ -42,8 +42,8 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
   `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
   `markdown`) + `@typescript/vfs` — peer-closure deps, some imported directly
   (`services/TypeRegistryService.ts`, `sync-node-fs.ts`).
-  Do NOT prune as "unused" — see the peer dependency closure section in
-  `build-architecture.md`. Declare `@effected/*` as `catalog:effected`; never
+  Do NOT prune as "unused" — see `effect-service-layer.md` (dependency
+  closure). Declare `@effected/*` as `catalog:effected`; never
   hand-pin a version range.
 - `@tsdoctor/vfs` (`workspace:*`) — the `Vfs` currency type, the
   compiler-options seam (`resolveTypeScriptConfig` in
@@ -119,9 +119,14 @@ Prefer a service's own `makeTest`/`layerTest` double over a hand-written stub; r
 ## Design Docs
 
 **Build & infrastructure** — load when modifying services, layers,
-`Context.Reference`s, either `ManagedRuntime`, or the plugin lifecycle:
+`Context.Reference`s, either `ManagedRuntime`, hooks, config resolution,
+or `savvy.build.ts`:
 
 - @../../.claude/design/rspress-plugin-api-extractor/build-architecture.md
+- @../../.claude/design/rspress-plugin-api-extractor/effect-service-layer.md
+- @../../.claude/design/rspress-plugin-api-extractor/plugin-lifecycle.md
+- @../../.claude/design/rspress-plugin-api-extractor/configuration-system.md
+- @../../.claude/design/rspress-plugin-api-extractor/build-tooling.md
 - @../../.claude/design/rspress-plugin-api-extractor/snapshot-tracking-system.md
 
 **Page generation & markdown** — load when modifying the Stream pipeline
@@ -135,6 +140,7 @@ or cross-linking:
 `build-stages.ts` feeds `@tsdoctor/pages`:
 
 - @../../.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md
+- @../../.claude/design/rspress-plugin-api-extractor/rspress-mdx-emitter.md
 
 **Runtime components & SSG** — load when modifying React components or
 SSG-MD rendering:
@@ -143,7 +149,7 @@ SSG-MD rendering:
 - @../../.claude/design/rspress-plugin-api-extractor/ssg-compatible-components.md
 
 **Type loading, VFS & multi-entry points** — load when modifying Twoslash,
-external package types, VFS generation, or multi-entry point resolution:
+external types, VFS generation, or multi-entry resolution:
 
 - @../../.claude/design/rspress-plugin-api-extractor/type-loading-vfs.md
 - @../../.claude/design/rspress-plugin-api-extractor/multi-entry-point-support.md
@@ -151,17 +157,17 @@ external package types, VFS generation, or multi-entry point resolution:
 - @../../.claude/design/rspress-plugin-api-extractor/multi-entry-vfs.md
 
 **LLMs integration** — load when modifying llms.txt post-processing,
-per-package file generation, or scope-aware UI components:
+per-package files, or scope-aware UI:
 
 - @../../.claude/design/rspress-plugin-api-extractor/llms-integration.md
 
-**SEO & head metadata** — load when modifying canonical URLs, Open Graph,
-Twitter cards, attribution, or schema.org JSON-LD:
+**SEO & head metadata** — load when modifying canonical URLs, OG/Twitter
+tags, attribution, or JSON-LD:
 
 - @../../.claude/design/rspress-plugin-api-extractor/structured-data-and-og.md
 
 **Observability** — load when modifying metrics, logging, error tracking, the
-progress heartbeat, or the `issues.json` artifact:
+heartbeat, or `issues.json`:
 
 - @../../.claude/design/rspress-plugin-api-extractor/performance-observability.md
 - @../../.claude/design/rspress-plugin-api-extractor/error-observability.md

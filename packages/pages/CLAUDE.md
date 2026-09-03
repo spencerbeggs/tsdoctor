@@ -85,7 +85,14 @@ pnpm vitest run packages/pages/
 
 ## Design Docs
 
+The IR and the pipeline that runs it:
+
 - @../../.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md
 - @../../.claude/design/rspress-plugin-api-extractor/page-generation-system.md
 - @../../.claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md
 - @../../.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
+
+The two emitters over the IR — load when a block change must render in both:
+
+- @../../.claude/design/rspress-plugin-api-extractor/rspress-mdx-emitter.md
+- @../../.claude/design/rspress-plugin-api-extractor/vitepress-adapter.md

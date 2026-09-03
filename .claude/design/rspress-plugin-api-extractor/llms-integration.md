@@ -5,568 +5,107 @@ category: architecture
 created: 2026-01-17
 updated: 2026-09-03
 last-synced: 2026-09-03
-completeness: 90
+completeness: 92
 related:
-  - rspress-plugin-api-extractor/build-architecture.md
-  - rspress-plugin-api-extractor/page-generation-system.md
-  - rspress-plugin-api-extractor/component-development.md
+  - rspress-plugin-api-extractor/plugin-lifecycle.md
+  - rspress-plugin-api-extractor/configuration-system.md
   - rspress-plugin-api-extractor/ssg-compatible-components.md
+  - rspress-plugin-api-extractor/component-development.md
   - rspress-plugin-api-extractor/doc-ir-and-pages.md
-dependencies: []
 ---
 
-# LLMs Integration
+# LLMs integration
 
-## Table of Contents
+## Table of contents
 
 - [Overview](#overview)
-- [Architecture](#architecture)
-- [Post-Processing Pipeline](#post-processing-pipeline)
-- [Per-Package File Generation](#per-package-file-generation)
-- [Structured Global llms.txt](#structured-global-llmstxt)
-- [Runtime UI Components](#runtime-ui-components)
+- [Current state](#current-state)
+- [Data flow](#data-flow)
+- [Post-processing](#post-processing)
+- [Per-package files](#per-package-files)
+- [Structured global llms.txt](#structured-global-llmstxt)
+- [Runtime UI components](#runtime-ui-components)
 - [Configuration](#configuration)
-- [RSPress Lifecycle Integration](#rspress-lifecycle-integration)
-- [File Locations](#file-locations)
-
----
+- [Lifecycle integration](#lifecycle-integration)
+- [Rationale](#rationale)
+- [Related documentation](#related-documentation)
 
 ## Overview
 
-The LLMs integration system extends RSPress's built-in `@rspress/plugin-llms`
-with package-scoped LLM text files and UI components for API documentation
-sites. It operates as a post-processing step in `afterBuild`, reading the
-global `llms.txt` and `llms-full.txt` files that RSPress generates and
-splitting them into per-package scoped files.
+The LLMs integration extends RSPress's `@rspress/plugin-llms` with package-scoped LLM text files and UI. It runs as a post-processing step in `afterBuild`, reading the global `llms.txt` and `llms-full.txt` RSPress generated and splitting them into per-package files, and injects package-scoped copy/open actions into RSPress's existing LLMs UI. The text transforms are pure functions in `@tsdoctor/pages` (`Llms.ts`), so a second adapter can emit byte-identical files; the file I/O is an Effect program in the adapter.
 
-### Key Features
+## Current state
 
-- **Post-processing of RSPress-generated LLMs files** -- filters API page
-  entries from global files and generates per-package equivalents
-- **Per-package file generation** -- `llms.txt`, `llms-full.txt`,
-  `llms-docs.txt`, `llms-api.txt` scoped to each documented package
-- **Structured global llms.txt** -- reorganizes the flat link list into
-  sections grouped by package with version and description metadata
-- **Runtime UI components** -- package-scoped copy/open actions injected
-  into RSPress's existing LLMs UI via portals and `resolve.alias`
-- **Pure function + Effect program architecture** -- processing logic is
-  pure and testable, and since phase 5 lives in the framework-neutral
-  `@tsdoctor/pages` (`Llms.ts`); I/O is handled by an Effect program in
-  the adapter
+| Module | Purpose |
+| --- | --- |
+| `packages/pages/src/Llms.ts` | Parse, filter and generate llms text (`parseLlmsTxtLine`, `filterLlmsTxt`, `generateStructuredLlmsTxt`, `filterLlmsFullTxt`, `generatePackageLlmsTxt`, `generatePackageLlmsFullTxt`) |
+| `platforms/rspress/src/llms-program.ts` | `processLlmsFiles`, the Effect program orchestrating file I/O and prefix discovery |
+| `platforms/rspress/src/config-utils.ts` | `mergeLlmsPluginConfig` defaults and merge |
+| `platforms/rspress/src/schemas/config.ts` | The `LlmsPlugin` schema |
+| `platforms/rspress/src/plugin.ts` | Scope injection, the `resolve.alias`, the `afterBuild` call |
+| `src/runtime/components/ApiLlmsPackageActions/` | Portal-based package actions (outline mode) |
+| `src/runtime/components/ApiLlmsViewOptions/` | The aliased replacement for RSPress's `LlmsViewOptions` |
 
-### Design Principles
+The VitePress adapter does not produce llms.txt: VitePress has no first-party equivalent to post-process, so that adapter would generate from scratch, and the pure half is ready for it (`vitepress-adapter.md`).
 
-- **Non-invasive** -- operates entirely in `afterBuild`, after RSPress
-  and `@rspress/plugin-llms` have completed their work
-- **Pure/Effect separation** -- all text processing is in pure functions
-  (`packages/pages/src/Llms.ts`, imported from `@tsdoctor/pages`); all
-  file I/O is in the adapter's Effect program (`llms-program.ts`). The
-  transforms moved out of the adapter's former `llms-processing.ts` so a
-  second adapter emits byte-identical files; the VitePress alpha does not
-  produce llms.txt yet (out of scope), so they are ready for it but unwired
-  there
-- **Opt-in scoping** -- the `scopes` flag controls whether per-package
-  files are generated; when disabled, only simple filtering is applied
-- **RSPress CSS class reuse** -- UI components use RSPress's own
-  `rp-llms-*` and `rp-outline__*` CSS classes for visual consistency
-
----
-
-## Architecture
-
-### Data Flow
+## Data flow
 
 ```text
 RSPress build completes
-  → @rspress/plugin-llms generates dist/llms.txt + dist/llms-full.txt
-  → Our plugin's afterBuild hook fires
+  -> @rspress/plugin-llms writes dist/llms.txt + dist/llms-full.txt
+  -> afterBuild (plugin.ts), when rspressLlmsEnabled && resolvedLlmsPlugin.enabled
+       processLlmsFiles():
+         buildApiRoutes()      every API page URL from the build results
+         discoverPrefixes()    version/locale path prefixes (root always included)
+         per prefix, concurrently:
+           rewrite global llms.txt (structured when scopes is on, filtered otherwise)
+           filter API sections out of global llms-full.txt
+           when scopes: generatePerPackageFiles() per build result
 
-afterBuild (plugin.ts)
-  → Checks: rspressLlmsEnabled && resolvedLlmsPlugin.enabled
-  → Dynamic import: llms-program.ts
-  → Runs processLlmsFiles() as Effect program
-       |
-       +→ buildApiRoutes(): collect all API page URLs from build results
-       +→ discoverPrefixes(): find version/locale path prefixes
-       |
-       +→ For each prefix (concurrent):
-       |    processPrefix()
-       |    ├─ Read global llms.txt + llms-full.txt
-       |    ├─ Rewrite global llms.txt (structured or filtered)
-       |    ├─ Filter global llms-full.txt (remove API sections)
-       |    └─ When scopes enabled:
-       |         generatePerPackageFiles() for each build result
-       |         ├─ llms.txt    (per-package index)
-       |         ├─ llms-full.txt (guides + API content)
-       |         ├─ llms-docs.txt (guide-only content)
-       |         └─ llms-api.txt  (API-only content, when apiTxt enabled)
-       |
-       +→ Files written via the core `effect` FileSystem service
-
-config() hook (plugin.ts)
-  → Injects scope metadata into themeConfig.apiExtractorScopes
-  → Registers ApiLlmsPackageActions as globalUIComponent
-  → Aliases RSPress's LlmsViewOptions → ApiLlmsViewOptions via resolve.alias
+config() (plugin.ts)
+  -> themeConfig.apiExtractorScopes populated from the build results
+  -> ApiLlmsPackageActions registered as a globalUIComponent
+  -> RSPress's LlmsViewOptions aliased to ApiLlmsViewOptions via resolve.alias
 ```
 
-### Module Responsibilities
+## Post-processing
 
-| Module | Type | Purpose |
-| --- | --- | --- |
-| `packages/pages/src/Llms.ts` (`@tsdoctor/pages`) | Pure functions | Parse, filter, generate LLMs text content (formerly the adapter's `llms-processing.ts`) |
-| `llms-program.ts` | Effect program | File I/O orchestration, prefix discovery |
-| `config-utils.ts` | Pure functions | `mergeLlmsPluginConfig` defaults and merge |
-| `schemas/config.ts` | Effect Schema | `LlmsPlugin` schema definition |
-| `ApiLlmsPackageActions` | React component | Portal-based package actions (outline mode) |
-| `ApiLlmsViewOptions` | React component | Aliased replacement for RSPress's LlmsViewOptions |
+The transforms operate on RSPress's llms.txt grammar: link lines of the form `- [title](url): description` and, in `llms-full.txt`, sections delimited by `---\nurl: {path}\n---` frontmatter blocks. `filterLlmsTxt` removes API entries and appends pointer lines when scoping is off; `generateStructuredLlmsTxt` reorganizes the flat list when it is on; `filterLlmsFullTxt` removes whole API sections; the two `generatePackage*` functions produce the per-package files. `llms-program.ts` supplies the I/O and the helpers that collect entries and sections per package and per prefix — see the module.
 
----
+## Per-package files
 
-## Post-Processing Pipeline
+When `scopes` is enabled, four files are generated per package at the package route (`dist/<package>/`): `llms.txt` (an index with `## Guides` and `## API Reference` sections), `llms-full.txt` (guide plus API page content with frontmatter delimiters), `llms-docs.txt` (guide-only content) and `llms-api.txt` (API-only content, when `apiTxt` is enabled). The global files stay at the site root, restructured or filtered.
 
-### Pure Functions (`@tsdoctor/pages` `Llms.ts`)
+## Structured global llms.txt
 
-All text processing is implemented as pure functions with no Effect
-dependencies in `packages/pages/src/Llms.ts`; `llms-program.ts` imports
-`parseLlmsTxtLine`, `filterLlmsTxt`, `generateStructuredLlmsTxt`,
-`filterLlmsFullTxt`, `generatePackageLlmsTxt` and
-`generatePackageLlmsFullTxt` (plus the `LlmsTxtEntry`, `PackagePointer` and
-`PackageScopeInfo` types) from `@tsdoctor/pages`:
+With scoping on, the global `llms.txt` becomes a `## Others` section for pages matching no package route and a `## Packages` section with one `### {name} {version}` heading per package carrying its description, its guide links and an API Reference pointer to the per-package `llms-api.txt`. Pages are partitioned by matching URL against each package's route. With scoping off, the global file is filtered of API entries and pointer lines to the per-package files are appended.
 
-**`parseLlmsTxtLine(line)`** -- Parses a single llms.txt link line
-matching the pattern `- [title](url): description`. Returns
-`LlmsTxtEntry` or null for non-link lines.
+## Runtime UI components
 
-**`filterLlmsTxt(content, apiRoutes, pointers)`** -- Removes lines
-whose URL is in the `apiRoutes` set. Appends pointer lines for
-per-package files when `pointers` is non-empty. Used when `scopes`
-is disabled.
+`ApiLlmsPackageActions` is registered as a `globalUIComponent` by absolute path to its transpiled `.js` (`ssg-compatible-components.md` explains why that path is layout-invariant). It reads `themeConfig.apiExtractorScopes`, matches the current route against the package scopes by longest prefix and, in outline placement, portals action rows (copy package docs, copy the llms.txt link, open in ChatGPT or Claude with a package-scoped prompt) into RSPress's outline; in title placement it defers to the aliased component. It reuses RSPress's own `rp-llms-*` and `rp-outline__*` classes.
 
-**`generateStructuredLlmsTxt(content, apiRoutes, packages)`** --
-Reorganizes the flat link list into a structured format with
-`## Others` and `## Packages` sections. Each package gets a
-`### {name} {version}` heading with description, guide page links,
-and an API Reference pointer. Used when `scopes` is enabled.
+`ApiLlmsViewOptions` replaces RSPress's `LlmsViewOptions` through a `resolve.alias` from RSPress's `dist/theme/components/Llms/LlmsViewOptions.js` to the plugin's transpiled component. Outside a package scope it reproduces the original dropdown; inside one it adds a divider and the package-level actions. Page-level options come from the `viewOptions` config, with RSPress's `useI18n` hook for the strings.
 
-**`filterLlmsFullTxt(content, apiRoutes)`** -- Removes entire
-frontmatter-delimited sections from llms-full.txt whose URL matches
-an API route. Sections are delimited by `---\nurl: {path}\n---`
-blocks.
-
-**`generatePackageLlmsTxt(input)`** -- Generates a per-package
-llms.txt index with `## Guides` and `## API Reference` sections.
-
-**`generatePackageLlmsFullTxt(pages)`** -- Concatenates page content
-with frontmatter delimiters. Used for llms-full.txt, llms-docs.txt,
-and llms-api.txt (different page sets produce different files).
-
-### Effect Program (llms-program.ts)
-
-The `processLlmsFiles` function is the single Effect program that
-orchestrates all I/O:
-
-```typescript
-export function processLlmsFiles(
-  input: ProcessLlmsFilesInput,
-): Effect.Effect<void, never, FileSystem.FileSystem>
-```
-
-**Steps:**
-
-1. `buildApiRoutes()` -- Convert generated file paths (e.g.,
-   `class/pipeline.mdx`) to route URLs (e.g.,
-   `/api/class/pipeline.md`) by prepending each build result's
-   `baseRoute` and replacing `.mdx` with `.md`.
-
-2. `discoverPrefixes()` -- Extract version/locale prefixes from base
-   routes. A base route of `/v1/api` yields prefix `v1`; `/api`
-   yields `""` (root). Root is always included.
-
-3. `processPrefix()` per prefix (concurrent) -- Reads global files,
-   applies rewriting, generates per-package files.
-
-4. `generatePerPackageFiles()` per build result (concurrent) --
-   Collects entries and content sections, generates the four file
-   types.
-
-**Helper functions in llms-program.ts:**
-
-- `buildPackagePointers()` -- Creates `PackagePointer` entries for
-  simple filtering mode
-- `collectApiEntries()` -- Extracts API page entries from global
-  llms.txt for a specific package
-- `collectGuideEntries()` -- Extracts non-API entries under a prefix
-- `extractSections()` -- Parses llms-full.txt frontmatter-delimited
-  sections matching a URL predicate
-- `collectApiPageContent()` -- Extracts full content sections for a
-  package's API routes
-
----
-
-## Per-Package File Generation
-
-When `scopes` is enabled, four files are generated per package at the
-package route level (e.g., `dist/kitchensink/`):
-
-### llms.txt
-
-Per-package index listing guide and API pages:
-
-```text
-# Kitchen Sink
-
-> API documentation for the kitchensink package
-
-## Guides
-
-- [Getting Started](/kitchensink/guides/getting-started.md)
-
-## API Reference
-
-- [Pipeline](/kitchensink/api/class/pipeline.md): Pipeline class
-- [Config](/kitchensink/api/interface/config.md): Config interface
-```
-
-### llms-full.txt
-
-Combined guide and API page content with frontmatter delimiters:
-
-```text
----
-url: /kitchensink/guides/getting-started.md
----
-
-Guide content here...
-
-
----
-url: /kitchensink/api/class/pipeline.md
----
-
-API page content here...
-```
-
-### llms-docs.txt
-
-Guide-only content (non-API pages). Same frontmatter-delimited format
-as llms-full.txt but excluding API pages.
-
-### llms-api.txt
-
-API-only content. Generated when `apiTxt` is enabled (default: true).
-Same format but including only API page sections.
-
-### Output Directory Structure
-
-```text
-dist/
-├── llms.txt              (global, restructured)
-├── llms-full.txt         (global, API sections removed)
-├── kitchensink/
-│   ├── llms.txt          (per-package index)
-│   ├── llms-full.txt     (guides + API content)
-│   ├── llms-docs.txt     (guide-only content)
-│   └── llms-api.txt      (API-only content)
-└── other-package/
-    ├── llms.txt
-    ├── llms-full.txt
-    ├── llms-docs.txt
-    └── llms-api.txt
-```
-
----
-
-## Structured Global llms.txt
-
-When `scopes` is enabled, the global `llms.txt` is reorganized from
-RSPress's flat list into a structured format:
-
-```text
-# Site Title
-
-## Others
-
-- [Blog Post](/blog/post.md)
-- [About](/about.md)
-
-## Packages
-
-### Kitchen Sink 1.0.0
-
-A comprehensive test module.
-
-- [Getting Started](/kitchensink/guides/getting-started.md)
-- [API Reference](/kitchensink/llms-api.txt)
-
-### Other Package 2.1.0
-
-Another documented package.
-
-- [Usage Guide](/other-package/guides/usage.md)
-- [API Reference](/other-package/llms-api.txt)
-```
-
-Pages are partitioned by matching their URL against each package's
-`packageRoute`. Unmatched pages go into `## Others`. Each package
-section includes version, description, guide page links, and an
-API Reference pointer to the per-package `llms-api.txt`.
-
-When `scopes` is disabled, the global llms.txt is simply filtered
-to remove API page entries and append pointer lines to per-package
-llms.txt files.
-
----
-
-## Runtime UI Components
-
-### ApiLlmsPackageActions
-
-**Location:** `src/runtime/components/ApiLlmsPackageActions/index.tsx`
-
-Registered as a `globalUIComponent` in the `config()` hook by absolute path to its **transpiled** file. Renders package-scoped LLM actions injected into RSPress's existing UI via React portals. The path is a zero-level `path.resolve(pluginDir, "runtime/components/ApiLlmsPackageActions/index.js")` — the per-component `.js` emitted by the bundleless runtime build, not the `src/runtime/.../index.tsx` source. It is layout-invariant because every emitted package root carries the identical per-file flat shape (the dev/link target `dist/dev/pkg` and the published `dist/prod/npm/pkg`), so the runtime always sits next to `index.js`. RSPress compiles the referenced `.js`, resolving `import.meta.env.SSG_MD` and the RSPress runtime hooks it uses (see `ssg-compatible-components.md`).
-
-**Behavior:**
-
-- Reads `themeConfig.apiExtractorScopes` to find scope metadata
-- Matches the current page route against package scopes using
-  longest-prefix matching
-- In **outline mode** (`llmsUI.placement === "outline"`): injects
-  action rows into `.rp-outline__bottom` via `createPortal`
-- In **title mode**: defers to `ApiLlmsViewOptions` (the aliased
-  component)
-
-**Actions provided:**
-
-- Copy package docs (fetches `llms-docs.txt` and copies to clipboard)
-- Copy llms.txt link
-- Open in ChatGPT (with package-scoped prompt)
-- Open in Claude (with package-scoped prompt)
-
-Uses RSPress CSS classes (`rp-outline__action-row`,
-`rp-llms-view-options__menu`, etc.) for visual consistency.
-
-### ApiLlmsViewOptions
-
-**Location:** `src/runtime/components/ApiLlmsViewOptions/index.tsx`
-
-Replaces RSPress's default `LlmsViewOptions` component via
-`resolve.alias` in the Rsbuild configuration. This allows extending
-the default dropdown with package-level actions without modifying
-RSPress internals.
-
-**Behavior:**
-
-- Outside a package scope: reproduces the original RSPress dropdown
-  (markdown link, ChatGPT, Claude options)
-- Inside a package scope: adds a divider and package-level actions
-  below the page-level options
-
-**Alias setup in config() hook:**
-
-```typescript
-const customLlmsViewOptions = path.resolve(
-  pluginDir,
-  "runtime/components/ApiLlmsViewOptions/index.js",
-);
-const originalLlmsViewOptions = path.join(
-  rspressCoreDir,
-  "dist/theme/components/Llms/LlmsViewOptions.js",
-);
-updatedConfig.builderConfig.resolve.alias = {
-  [originalLlmsViewOptions]: customLlmsViewOptions,
-};
-```
-
-The alias points the original RSPress component file to the plugin's **transpiled** `.js`, which RSPress's bundler compiles during the site build. `customLlmsViewOptions` is the same zero-level `path.resolve(pluginDir, "runtime/components/.../index.js")` as the `globalUIComponents` registration — layout-invariant because the bundleless runtime is emitted next to `index.js` in the identical per-file flat shape of every package root (the dev/link target and the published `dist/prod/npm/pkg`). The earlier `../../src/runtime/...` form pointed into a nonexistent path in the published package, making this alias target unresolvable. RSPress 2.0 still ships `LlmsViewOptions.js`; the "export not found" failures under `llms: true` were a cascade from the broken alias target, not a RSPress API removal.
-
-**Page-level options** are derived from the `viewOptions` config
-(defaults: `markdownLink`, `chatgpt`, `claude`). Uses RSPress's
-`useI18n` hook for localized strings (`copyMarkdownLinkText`,
-`openInText`).
-
-**Package-level options** (when in scope):
-
-- Copy {name} docs (fetches `llms-docs.txt`)
-- Copy llms.txt link
-- Copy llms-full.txt link
-- Open {name} in ChatGPT
-- Open {name} in Claude
-
-### Scope Metadata Injection
-
-The `config()` hook injects scope metadata into
-`themeConfig.apiExtractorScopes` for consumption by the runtime
-components:
-
-```typescript
-interface ApiScope {
-  name: string;           // Display name
-  packageName: string;    // npm package name
-  packageRoute: string;   // e.g., "/kitchensink"
-  baseRoute: string;      // e.g., "/kitchensink/api"
-  version: string | null;
-  locale: string | null;
-  llmsTxt: string;        // e.g., "/kitchensink/llms.txt"
-  llmsFullTxt: string;    // e.g., "/kitchensink/llms-full.txt"
-  llmsDocsTxt: string;    // e.g., "/kitchensink/llms-docs.txt"
-  llmsApiTxt: string | null; // e.g., "/kitchensink/llms-api.txt"
-}
-```
-
----
+The scope metadata injected into `themeConfig.apiExtractorScopes` is one record per API — display name, package name, package and base routes, version and locale, and the URLs of its four llms files — see the `scopes` construction in `plugin.ts`.
 
 ## Configuration
 
-### LlmsPlugin Schema
+`LlmsPlugin` (`schemas/config.ts`) carries `enabled`, `scopes`, `apiTxt`, `showCopyButton`, `showViewOptions`, `copyButtonText` and `viewOptions`, all defaulted on decode. The `llmsPlugin` field accepts `boolean | LlmsPlugin` at the global level and can be overridden per API and per version; `mergeLlmsPluginConfig` merges the levels with spread precedence. RSPress's own `llms: true` (or `pluginLlms()` in the plugins array) is a prerequisite: both `rspressLlmsEnabled` and the resolved `enabled` flag must be true for post-processing and UI injection to activate.
 
-Defined in `schemas/config.ts` as an Effect Schema:
+## Lifecycle integration
 
-```typescript
-export const LlmsPlugin = Schema.Struct({
-  enabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
-  scopes: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
-  apiTxt: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
-  showCopyButton: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
-  showViewOptions: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
-  copyButtonText: Schema.String.pipe(
-    Schema.withDecodingDefault(Effect.succeed("Copy Markdown")),
-  ),
-  viewOptions: Schema.mutable(
-    Schema.Array(Schema.Literals(["markdownLink", "chatgpt", "claude"])),
-  ).pipe(
-    Schema.withDecodingDefault(
-      Effect.succeed(["markdownLink", "chatgpt", "claude"]),
-    ),
-  ),
-});
+In `config()`, scope injection, the `globalUIComponents` registration and the alias are gated on the plugin not being inert: an inert plugin documents no packages, so there are no scopes to inject, and aliasing RSPress's `LlmsViewOptions` in that state would replace a working component with one that can never enter a scope (`configuration-system.md`). In `afterBuild`, post-processing runs once on the first build (never on HMR rebuilds) after `logBuildSummary`, through a dynamic import of `llms-program.ts`, with the FileSystem from the main runtime; the inert path skips it and leaves RSPress's own output untouched. `buildResults`, the package route map, the resolved LLMs config and RSPress's `llms` and `outDir` settings are hoisted to plugin level so `config()` and `afterBuild` share them (`plugin-lifecycle.md`).
 
-/** Consumer-facing type uses Encoded (input shape with optional fields). */
-export type LlmsPlugin = typeof LlmsPlugin.Encoded;
-```
+## Rationale
 
-| Field | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `enabled` | `boolean` | `true` | Enable/disable LLMs integration |
-| `scopes` | `boolean` | `true` | Generate per-package files and UI |
-| `apiTxt` | `boolean` | `true` | Generate llms-api.txt (API-only content) |
-| `showCopyButton` | `boolean` | `true` | Show copy button in UI |
-| `showViewOptions` | `boolean` | `true` | Show view options dropdown |
-| `copyButtonText` | `string` | `"Copy Markdown"` | Copy button label |
-| `viewOptions` | `string[]` | `["markdownLink","chatgpt","claude"]` | Dropdown menu items |
+- **Why post-process rather than generate:** RSPress already produces correct global files; splitting them is cheaper and stays in step with the framework's own llms grammar.
+- **Why the transforms live in `@tsdoctor/pages`:** they are pure text over a cross-framework standard, and a second adapter wanting byte-identical output is the reason the core packages exist.
+- **Why alias rather than fork the RSPress component:** the dropdown's page-level behaviour is RSPress's to evolve; the alias adds the package tier without copying the rest.
 
-### Configuration Hierarchy
+## Related documentation
 
-The `llmsPlugin` field can be set at three levels with increasing
-precedence:
-
-1. **Global** (`PluginOptions.llmsPlugin`) -- applies to all APIs.
-   Accepts `boolean | LlmsPlugin`.
-2. **API-level** (`SingleApiConfig.llmsPlugin` or
-   `MultiApiConfig.llmsPlugin`) -- overrides global for a specific API.
-3. **Version-level** (`VersionConfig.llmsPlugin`) -- overrides API
-   for a specific version.
-
-The `mergeLlmsPluginConfig` function in `config-utils.ts` merges
-these levels with spread precedence and applies defaults when enabled.
-
-### Prerequisite
-
-The LLMs integration requires RSPress's `@rspress/plugin-llms` to be
-enabled in `rspress.config.ts`:
-
-```typescript
-import { pluginLlms } from "@rspress/plugin-llms";
-
-export default defineConfig({
-  llms: true,       // or pluginLlms() in plugins array
-  plugins: [
-    apiExtractor({ llmsPlugin: { scopes: true } }),
-  ],
-});
-```
-
-Both `rspressLlmsEnabled` (from `_config.llms`) and
-`resolvedLlmsPlugin.enabled` must be true for post-processing and
-UI injection to activate.
-
----
-
-## RSPress Lifecycle Integration
-
-### config() Hook
-
-Three things happen in the `config()` hook when LLMs integration is
-active:
-
-1. **Scope metadata injection** -- `themeConfig.apiExtractorScopes`
-   is populated from `buildResults` with URLs to per-package LLMs
-   files.
-
-2. **Global UI component registration** -- The
-   `ApiLlmsPackageActions` component path is added to
-   `globalUIComponents` for portal-based rendering.
-
-3. **resolve.alias setup** -- RSPress's `LlmsViewOptions` component
-   is aliased to `ApiLlmsViewOptions` so the title-mode dropdown
-   includes package-scoped actions.
-
-All three are additionally gated on the plugin not being **inert**. An inert plugin (`api: null`, `apis: null` or `apis: []` — see the inert configuration section of `build-architecture.md`) documents no packages, so there are no scopes to inject, nothing for `ApiLlmsPackageActions` to match against and no package-level actions to add to the dropdown. Aliasing RSPress's own `LlmsViewOptions` in that state would replace a working component with one that can never enter a package scope, so the alias is skipped entirely and RSPress's default LLMs UI is left untouched.
-
-### afterBuild() Hook
-
-Post-processing runs once on the first build (skipped on HMR rebuilds):
-
-1. `logBuildSummary` runs first (Effect metrics).
-2. If `rspressLlmsEnabled && resolvedLlmsPlugin.enabled`:
-   - Dynamic import of `llms-program.ts`
-   - `processLlmsFiles()` runs as an Effect program with
-     `FileSystem.FileSystem` from the existing ManagedRuntime
-3. `isFirstBuild` set to false.
-4. Runtime disposed in production builds.
-
-Steps 1 and 2 sit behind the same inert check: with no `buildResults` there are no API routes to filter out of the global `llms.txt` / `llms-full.txt` and no per-package files to emit, so RSPress's own LLMs output is left exactly as `@rspress/plugin-llms` produced it.
-
-### State Hoisted to Plugin Level
-
-Several pieces of state are initialized at the plugin factory level
-and shared between `config()` and `afterBuild()`:
-
-- `buildResults: GenerateApiDocsResult[]` -- populated during
-  `config()`, consumed by `processLlmsFiles()` in `afterBuild()`
-- `packageRoutes: Map<string, string>` -- maps package names to
-  package-level routes (without API folder)
-- `resolvedLlmsPlugin` -- merged config from `mergeLlmsPluginConfig`
-- `rspressLlmsEnabled` -- captured from `_config.llms`
-- `rspressOutDir` -- captured from `_config.outDir`
-
----
-
-## File Locations
-
-| File | Purpose |
-| --- | --- |
-| `packages/pages/src/Llms.ts` | Pure functions for parsing, filtering, generating LLMs text (`@tsdoctor/pages`) |
-| `src/llms-program.ts` | Effect program for file I/O orchestration |
-| `src/config-utils.ts` | `mergeLlmsPluginConfig` merge and defaults |
-| `src/schemas/config.ts` | `LlmsPlugin` Effect Schema definition |
-| `src/plugin.ts` | Lifecycle hooks (scope injection, alias, afterBuild) |
-| `src/build-program.ts` | `GenerateApiDocsResult` with LLMs metadata |
-| `src/runtime/components/ApiLlmsPackageActions/index.tsx` | Portal-based package actions component |
-| `src/runtime/components/ApiLlmsViewOptions/index.tsx` | Aliased LlmsViewOptions replacement |
-
----
-
-## Related Documentation
-
-- **Build Architecture:**
-  `build-architecture.md` -- Plugin lifecycle and service layer
-- **Page Generation System:**
-  `page-generation-system.md` -- Build results consumed by LLMs program
-- **Component Development:**
-  `component-development.md` -- Runtime component patterns
-- **SSG-Compatible Components:**
-  `ssg-compatible-components.md` -- Dual-mode rendering patterns
-- **Performance Observability:**
-  `performance-observability.md` -- Effect Metrics and build summary
-- **Doc IR and `@tsdoctor/pages`:**
-  `doc-ir-and-pages.md` -- the Tier 2 move that put `Llms.ts` in core
+- **The hooks this wiring lives in:** `plugin-lifecycle.md`
+- **The inert gates and the `LlmsPlugin` schema's home:** `configuration-system.md`
+- **The bundleless component paths:** `ssg-compatible-components.md`
+- **Component conventions:** `component-development.md`
+- **`Llms.ts` in the pages package:** `doc-ir-and-pages.md`

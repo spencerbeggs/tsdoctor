@@ -3,100 +3,84 @@ status: current
 module: rspress-plugin-api-extractor
 category: observability
 created: 2026-07-22
-updated: 2026-08-25
-last-synced: 2026-08-25
-completeness: 90
+updated: 2026-09-03
+last-synced: 2026-09-03
+completeness: 92
 related:
   - rspress-plugin-api-extractor/performance-observability.md
   - rspress-plugin-api-extractor/error-observability.md
-  - rspress-plugin-api-extractor/build-architecture.md
-dependencies: []
+  - rspress-plugin-api-extractor/render-phase-instrumentation.md
+  - rspress-plugin-api-extractor/plugin-lifecycle.md
+  - rspress-plugin-api-extractor/snapshot-tracking-system.md
 ---
 
-# Build Progress Heartbeat and Issues Artifact
+# Build progress heartbeat and issues artifact
 
-## Table of Contents
+## Table of contents
 
 - [Overview](#overview)
-- [The `.api-docs/` Artifact Directory](#the-api-docs-artifact-directory)
-- [Progress Heartbeat](#progress-heartbeat)
-- [Issues Artifact](#issues-artifact)
+- [Current state](#current-state)
+- [The .api-docs directory](#the-api-docs-directory)
+- [Progress heartbeat](#progress-heartbeat)
+- [Issues artifact](#issues-artifact)
 - [Monitor](#monitor)
-- [Known Limitations and Future Work](#known-limitations-and-future-work)
-- [File Locations](#file-locations)
+- [Known limitations](#known-limitations)
+- [Rationale](#rationale)
+- [Related documentation](#related-documentation)
 
 ## Overview
 
-On a large multi-API docs site the production build can run for minutes inside the plugin's `config()` hook with no console output between `BuildStarted` and `BuildCompleted` — at scale this reads as a hang. Separately, Twoslash/Prettier/Shiki diagnostics were only ever rendered to the console, with no durable, machine-readable record an agent could read to locate and fix broken examples.
+On a large multi-API site the production build can run for minutes inside `config()` with no console output between `BuildStarted` and `BuildCompleted`, which reads as a hang. Separately, code-block diagnostics used to be rendered only to the console, with no durable record an agent could read to locate and fix broken examples. Both gaps are closed on the existing event bus: a production-only heartbeat fiber emits a periodic `BuildProgress` event, and the issues sink accumulates diagnostic events into `.api-docs/build/issues.json`, which a background monitor in the api-docs Claude Code plugin surfaces. Both are gated on the real `isProd` flag RSPress passes to `config()`, not a `NODE_ENV` heuristic.
 
-Both gaps are closed by riding the existing `EventBus` / sink architecture (`performance-observability.md`) rather than adding a new logging path: a production-only heartbeat fiber emits a periodic `BuildProgress` event, and a fourth sink accumulates diagnostic events into a `.api-docs/build/issues.json` artifact that a background monitor in the api-docs Claude Code plugin (`plugin/`) surfaces. Both features are **production-only** — gated on the real `isProd` flag RSPress passes into the `config(config, utils, isProd)` hook (`platforms/rspress/src/plugin.ts`), not a `NODE_ENV` heuristic.
+## Current state
 
-## The `.api-docs/` Artifact Directory
+| Concern | Where it lives |
+| --- | --- |
+| Heartbeat fiber, `BuildProgress` builder, `formatProgress` | `src/observability/heartbeat.ts` |
+| Phase `Ref`, heartbeat fork, issues writes (`afterBuild` and the fatal-path `catch`) | `src/plugin.ts` |
+| `Issue`, `IssuesSnapshot`, `eventToIssue`, `makeIssuesSink`, `writeIssuesJson` | `src/observability/sinks/issues-sink.ts` |
+| `progressInterval` and `tracePath` resolution | `src/schemas/observability.ts` |
+| The monitor | `plugin/monitors/watch-issues.mjs`, registered in `plugin/monitors/monitors.json` as `doc-build-issues` |
 
-`<cwd>/.api-docs/` holds all of the plugin's on-disk artifacts, split into two lifecycle subfolders that reflect whether the file is worth persisting across builds:
+## The .api-docs directory
+
+`<cwd>/.api-docs/` holds every on-disk artifact, split by whether the file is worth persisting:
 
 ```text
 .api-docs/
 ├── snapshot/
-│   ├── api-docs.db          # the incremental-build DB (see snapshot-tracking-system.md)
-│   ├── api-docs.db-wal      # SQLite WAL sidecar (checkpointed away on clean shutdown)
-│   └── api-docs.db-shm      # SQLite shared-memory sidecar
+│   ├── api-docs.db          # the incremental-build DB (snapshot-tracking-system.md)
+│   └── api-docs.db-wal/-shm # SQLite sidecars, checkpointed away on clean shutdown
 └── build/
-    ├── issues.json          # prod builds only, stable name, overwritten each build
-    └── trace-<buildId>.jsonl # the EventBus trace sink's JSONL output
+    ├── issues.json          # prod builds only, overwritten each build
+    ├── render-phase.json    # prod builds only (render-phase-instrumentation.md)
+    └── trace-<buildId>.jsonl
 ```
 
-`snapshot/` holds the **one** artifact a production consumer site may choose to commit for CI/local build idempotency — the snapshot DB (`<cwd>/.api-docs/snapshot/api-docs.db`, previously `<cwd>/api-docs.db`). `build/` holds everything regenerated fresh on every build and never worth persisting: `issues.json` and the opt-in trace JSONL. The plugin `mkdirSync`s `.api-docs/snapshot/` at factory time, before `SnapshotServiceLive` opens the SQLite client — unlike `cwd`, this nested path is not guaranteed to exist and SQLite does not create intermediate directories itself. The `mkdirSync` is unconditional, so an inert plugin leaves an empty `snapshot/` with no DB inside it; that is deliberate, and `snapshot-tracking-system.md` explains why.
+`snapshot/` holds the one artifact a production site may commit for CI/local idempotency. `build/` is regenerated every run. The plugin creates `snapshot/` at factory time — SQLite does not create intermediate directories — and does so unconditionally, so an inert plugin leaves an empty directory (`snapshot-tracking-system.md`). The trace path is derived eagerly from `cwd`, which unlike RSPress's `outDir` is known at factory time.
 
-The trace JSONL moved here (originally from `<outDir>/.api-extractor/`, then briefly `<cwd>/.api-docs/trace-<buildId>.jsonl` before the `build/` split). Because `cwd` (unlike RSPress's `outDir`) is known at plugin-factory time, `resolveObservability` (`schemas/observability.ts`) derives the trace path eagerly — `${cwd}/.api-docs/build/trace-${buildId}.jsonl` when `observability.trace: true` — and `buildEventBus` opens the file immediately. This removed the trace sink's deferred-open mode (construct without a path, `setPath()` it once RSPress's real `outDir` was known in `config()`), which has since been deleted along with `setPath` itself.
+This repo gitignores the whole `.api-docs/` directory. A consumer site that wants DB idempotency instead gitignores `.api-docs/build/` plus the `*.db-wal` / `*.db-shm` sidecars and commits `.api-docs/snapshot/`; after a clean production shutdown the directory settles to just `api-docs.db`.
 
-### Gitignore story
+## Progress heartbeat
 
-This repo's fixture sites never commit the snapshot DB, so the root `.gitignore` ignores the whole directory in one line: `.api-docs/`.
+`config()` holds a `Ref<ProgressPhase>` (`resolve` → `generate` → `done`) it flips around `ConfigService.resolve()` and the per-API `Effect.forEach`. When `isProd` and `progressIntervalMs` is set, `runHeartbeat` is forked with `Effect.forkScoped` inside the same scoped block as the build program and loops sleep-first: wait the interval, read the phase and the current metric snapshot, emit `BuildProgress`, repeat. A build that finishes before the first interval emits nothing — the self-suppression for small sites — and scope close on success or failure interrupts the fiber, so there is never a tick after the completion line.
 
-A production consumer site that wants the DB idempotency benefit instead splits the ignore: gitignore `.api-docs/build/` plus the WAL sidecars `.api-docs/snapshot/*.db-wal` and `.api-docs/snapshot/*.db-shm` (both are checkpointed away by the `wal_checkpoint(TRUNCATE)` scope finalizer after a clean production-build shutdown, so the committed directory settles to just `api-docs.db`), then commits `.api-docs/snapshot/`.
-
-## Progress Heartbeat
-
-**Location:** `platforms/rspress/src/observability/heartbeat.ts`
-
-### Mechanism
-
-`plugin.ts`'s `config()` hook holds a shared `Ref<ProgressPhase>` (`"resolve" | "generate" | "done"`), set to `"resolve"` before `ConfigService.resolve()`, flipped to `"generate"` before the `Effect.forEach` over `apiConfigs`, and to `"done"` once that completes. When `isProd && obs.progressIntervalMs !== null`, a heartbeat fiber is forked with `Effect.forkScoped` inside the same `Effect.scoped` block that runs the rest of the build program: `runHeartbeat` loops **sleep-first** — wait `intervalMs`, read the phase Ref, read the current metric snapshot, emit a `BuildProgress` event, repeat — so a build that finishes before the first interval elapses emits zero ticks (the self-suppression for small sites, with no separate threshold logic). The loop exits as soon as it reads `"done"`, and scope close on either success or failure interrupts the fiber cleanly, so there is never an orphan tick after the completion or failure line.
-
-### Data read each tick
-
-`readCounts` (an `Effect.Effect<ProgressCounts>`) reads five `BuildMetrics` counters into a `ProgressCounts` snapshot: `vfsFiles`, `externalPackages` (`externalPackagesTotal`), `apisCompleted`, `pages` (`pagesGenerated`), `codeBlocks` (`codeblockTotal`). `makeProgressEvent` diffs the current snapshot against the previous tick's to compute a phase-appropriate `delta` — `vfsFiles` delta during `resolve`, `pages` delta during `generate` — the "still moving" signal a stalled build would show as `(+0)`.
-
-The **resolve** phase intentionally does not report `N/18 models` against a model-count denominator: the model-load loop runs at `concurrency: "unbounded"` with no clean per-model completion signal, so the heartbeat instead reports the honest moving `vfsFiles` counter (VFS declaration files generated during type resolution) plus its delta. The **generate** phase does have a clean denominator — `apisCompleted`/`apisTotal`, backed by the new `BuildMetrics.apisCompleted` counter, which is driven by an `ApiDocsCompleted` event emitted via `Effect.tap` on each `generateApiDocs` result inside the `Effect.forEach` and mapped to the counter in the metrics sink.
-
-### Event and rendering
-
-`BuildProgress` (added to the `PluginEvent` taxonomy, level `info`) carries `phase`, `elapsedMs`, `vfsFiles`, `externalPackages`, `apisCompleted`, `apisTotal`, `pages`, `codeBlocks` and `delta`. `formatProgress` (pure, in `heartbeat.ts`) renders one line per phase:
+Each tick reads five counters (`vfsFiles`, `externalPackagesTotal`, `apisCompleted`, `pagesGenerated`, `codeblockTotal`) and diffs against the previous tick for a phase-appropriate delta — the "still moving" signal a stalled build shows as `(+0)`. The resolve phase reports the moving `vfsFiles` count rather than `N/M models`, because the model-load loop runs unbounded with no clean per-model completion signal; the generate phase has a real denominator, `apisCompleted / apisTotal`, backed by the `ApiDocsCompleted` event `plugin.ts` emits per finished API. `formatProgress` renders one line per phase:
 
 ```text
-resolve:   API docs · resolving types · 11 files · 4 pkgs · 10s (+6 files)
-generate:  API docs · 9/18 APIs · 402 pages · 918 blocks · 30s (+171 pages)
+API docs · resolving types · 11 files · 4 pkgs · 10s (+6 files)
+API docs · 9/18 APIs · 402 pages · 918 blocks · 30s (+171 pages)
 ```
 
-The console sink dispatches `BuildProgress` to `formatProgress` (`console-sink.ts`); the trace sink records the full payload; the metrics sink ignores it (hits the `default` branch — see `performance-observability.md`).
+`observability.progressInterval` accepts seconds or `false`, resolving to `progressIntervalMs` (default ten seconds; `false` or `0` disables). The heartbeat never runs in dev builds and never on the inert path.
 
-### Configuration
+## Issues artifact
 
-`observability.progressInterval` (`schemas/observability.ts`) accepts a number of seconds or `false`; it resolves to `ResolvedObservability.progressIntervalMs`, defaulting to `10_000`, with `false` or `0` resolving to `null` (heartbeat disabled). The heartbeat only forks when `isProd` is true — it never runs in dev/HMR builds, and never on the inert path (the fork sits inside the doc-generation block an inert plugin skips entirely; see the inert configuration section of `build-architecture.md`).
-
-## Issues Artifact
-
-### Collector sink
-
-**Location:** `platforms/rspress/src/observability/sinks/issues-sink.ts`
-
-`makeIssuesSink()` is the fourth EventBus sink (alongside console, metrics and trace — see `performance-observability.md`). It is always registered by `buildEventBus` (collection is cheap and side-effect-free); only the **write** to disk is gated by production. The pure `eventToIssue(event)` maps a curated subset of diagnostic `PluginEvent` variants to a typed `Issue`, and the bucket it belongs in:
+`makeIssuesSink()` is always registered; only the write is production-gated. `eventToIssue(event)` maps the curated subset to a typed `Issue` and its bucket:
 
 | Event | Bucket | `source` | `code` |
 | --- | --- | --- | --- |
-| `TwoslashDiagnostic` | `warnings` | `twoslash` | `TS<code>` |
-| `TwoslashCheckFailed` | `warnings` | `twoslash` | `TS<code>` |
+| `TwoslashDiagnostic`, `TwoslashCheckFailed` | `warnings` | `twoslash` | `TS<code>` |
 | `PrettierError` | `warnings` | `prettier` | `prettier` |
 | `ShikiError` | `warnings` | `shiki` | `shiki` |
 | `ConfigValidationWarning` | `warnings` | `config` | `config-validation` |
@@ -104,105 +88,31 @@ The console sink dispatches `BuildProgress` to `formatProgress` (`console-sink.t
 | `ModelLoadFailed` | `errors` | `model` | `model-load-failed` |
 | `BuildFailed` | `errors` | `build` | `build-failed` |
 
-Every other event tag returns `null` from `eventToIssue` and is not collected. The `suppressed` bucket is schema-reserved but always empty — no event in the current stream distinguishes a diagnostic silenced by `suppressExampleErrors` / `@noErrors` from one that surfaced, so there is nothing to route into it yet.
+Every other tag is not collected. The `suppressed` bucket is schema-reserved and always empty: no event distinguishes a diagnostic silenced by `suppressExampleErrors` / `@noErrors` from one that surfaced.
 
-### Newly-emitted events
+`writeIssuesJson` serializes an `IssuesSnapshot` matching `@savvy-web/bundler`'s `issues.json` shape field for field (`generatedAt`, `package`, `target`, `warnings[]`, `errors[]`, `suppressed[]`, each entry `source` / `level` / `text` / `code` / `file` / `line` / `column`) so tooling is shared; the optional `api` field is this artifact's one addition, carrying per-scope attribution a multi-API site needs.
 
-`RouteCollisionDetected` and `ModelLoadFailed` existed in the `PluginEvent` taxonomy from early on but had no emit site — each now has one, though after the phase-2 model redesign they reach the bus by different routes:
-
-- `RouteCollisionDetected` — the route-collision check in `build-stages.ts` emits it via `emitSync` before throwing (sync-island pattern, same as the Twoslash/Prettier error flow in `error-observability.md`). The seven per-module seams this used to require — `setBuildStagesEventEmitter` and its Twoslash/Prettier/Shiki-utils/OG/remark siblings — collapsed into one `observability/sync-emitter.ts`, bound once by `installSyncEmitter(emitterRuntime)` in `plugin.ts`. See the Sync-Island Bridge section of `performance-observability.md`.
-- `ModelLoadFailed` — emitted inside the Effect pipeline: model loading is Effect-typed since the phase-2 redesign (`Model.load` from `@tsdoctor/model`, typed `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), so `layers/config-resolution.ts` attaches `Effect.tapError` (emit) + `Effect.orDie` to the load. The former `setModelLoaderEventEmitter` and `setLoaderEventEmitter` sync-island seams are **deleted** — no bridge is needed when the failure already flows through a fiber.
-
-### Schema
-
-`writeIssuesJson(snapshot, opts)` (Effect, requires `FileSystem.FileSystem`) serializes an `IssuesSnapshot` to `<cwd>/.api-docs/build/issues.json`, matching `@savvy-web/bundler`'s `issues.json` shape field-for-field so tooling is shared between the two artifacts:
-
-```jsonc
-{
-  "generatedAt": "2026-07-22T16:02:35.486Z",
-  "package": "@effected/website",
-  "target": "prod",
-  "warnings": [
-    {
-      "source": "twoslash",
-      "level": "warn",
-      "text": "Cannot find name 'ZodType'.",
-      "code": "TS2304",
-      "file": "api/class/schema.mdx",
-      "line": 12,
-      "column": 8,
-      "api": "@effect/schema"
-    }
-  ],
-  "errors": [],
-  "suppressed": []
-}
-```
-
-`source`/`level`/`text`/`code`/`file`/`line`/`column` match the bundler artifact exactly. The optional `api` field is this artifact's one addition — it carries per-scope attribution (`event.ctx.packageName`) that a multi-API docs site needs but a single-package bundler build does not.
-
-### Write path
-
-`writeIssuesJson` is called from two places in `plugin.ts`, both gated on `isProd` and both skipped when the plugin is inert (`api: null` / `apis: null` / `apis: []` — see the inert configuration section of `build-architecture.md`). An inert plugin runs no doc generation, so it collects no diagnostics worth persisting and cannot reach the fatal path at all: the `catch` block below lives inside the same skipped region. No `issues.json` is written, and any artifact from a previous non-inert build is left in place rather than overwritten with an empty one.
-
-- **`afterBuild`**, alongside `logBuildSummary`, on the first build only (skipped on HMR rebuilds) — the normal path.
-- **The `config()` `catch` block**, best-effort, when the build program throws. `afterBuild` never runs on a fatal `config()` failure, so without this second write path a `RouteCollisionDetected` or `ModelLoadFailed` event emitted just before the throw would never reach disk. The write is wrapped so a failure here can never mask the original build error — it is swallowed silently and the original error is still rethrown.
+Two write paths in `plugin.ts`, both `isProd`-gated and both skipped when inert: `afterBuild` on the first build (the normal path) and the `config()` `catch` block, best-effort, because `afterBuild` never runs on a fatal `config()` failure and a `RouteCollisionDetected` or `ModelLoadFailed` emitted just before the throw would otherwise never reach disk. That write is wrapped so it can never mask the original error. Three configuration failures — a bad `package.json`, an `externalPackages` conflict, a malformed tsconfig — reach the artifact as typed `ConfigValidationError`s rather than escaping as defects (`configuration-system.md`).
 
 ## Monitor
 
-**Location:** `plugin/monitors/watch-issues.mjs`, registered in `plugin/monitors/monitors.json` as `doc-build-issues`.
+`plugin/monitors/watch-issues.mjs` polls `**/.api-docs/build/issues.json` (excluding `node_modules`) every two seconds and prints one notification per site once its issue count settles at a non-zero value: a self-scheduling poll loop so ticks never overlap, a stable-streak counter per file so a count still changing build to build is held back (tunable via `API_DOCS_MONITOR_STABLE_POLLS`; `--once` mode uses 0) and notify-once dedup keyed on the settled count. The pure `diagnose(current, prev, minStablePolls)` step is exported and covered by `plugin/__test__/watch-issues.bats`. It counts every entry across `warnings` and `errors` and points at the fix path (read the artifact, dispatch the `rspress-docs` agent for the affected package). Its glob never overlaps the silk monitor's `**/dist/{dev,prod}/issues.json`.
 
-A background monitor in the api-docs Claude Code plugin polls `**/.api-docs/build/issues.json` (excluding `node_modules`) every 2 seconds and prints one notification line per site once its issue count **settles** at a non-zero value. The debounce shape is reused from `savvy-web/systems`' silk `watch-issues.mjs`:
+## Known limitations
 
-- a self-scheduling poll loop (not `setInterval`), so ticks never overlap;
-- a stable-streak counter per file path — a count still changing build-to-build (a build or a fixing agent in flight) is held back until it holds steady for `minStablePolls` polls (env-tunable via `API_DOCS_MONITOR_STABLE_POLLS`, default 3; `--once` mode uses 0);
-- notify-once dedup keyed on the settled count, cleared when the count returns to zero.
+**The heartbeat does not cover the phase where Twoslash dominates.** On a large consumer site the `config()` doc-generation phase completes in seconds while RSPress's own `node_md` render pass — which invokes the remark plugins and therefore Twoslash — runs for minutes. That pass runs after `config()` returns, once the scoped block hosting the heartbeat has been torn down. `CodeBlockProcessed` events are still emitted during it, so the metrics sink sees everything, but nothing ticks live to the console. A render-phase ticker is buildable — the process-model and denominator questions are answered in `render-phase-instrumentation.md` — but needs its own lifetime rather than the heartbeat fiber's.
 
-The pure step function `diagnose(current, prev, minStablePolls)` implements the debounce and is exported for testing (`plugin/__test__/watch-issues.bats`, `--once` mode against fixture `.api-docs/` directories). It counts every entry across `warnings` + `errors` (both are "doc-build issues" for this monitor's purposes — Twoslash `TS`-coded entries are the common case, but Prettier/Shiki/routing/model failures count too) and notifies with a line pointing at the fix path:
+## Rationale
 
-```text
-docs: @site/x has 1 doc-build issue in prod — read .api-docs/build/issues.json and fix the examples (dispatch the rspress-docs agent for the affected package); if a build or fixing agent is already in flight, let it finish before acting on this line
-```
+- **Why ride the event bus:** the heartbeat and the artifact are two more consumers of events the build already emits; a new logging path would be a second vocabulary.
+- **Why sleep-first:** a build shorter than the interval is exactly the build that does not need progress lines, and sleeping first suppresses them without a threshold.
+- **Why the fatal-path write:** the errors most worth persisting are the ones that stop the build before `afterBuild`.
+- **Why the bundler's artifact shape:** one monitor grammar and one fix loop across both artifacts.
 
-The existing silk monitor watches `**/dist/{dev,prod}/issues.json`; this monitor's glob (`**/.api-docs/build/issues.json`) never overlaps it, so the two do not double-report the same artifact.
+## Related documentation
 
-## Known Limitations and Future Work
-
-### The heartbeat does not cover the phase where Twoslash dominates build time
-
-A production build of a large consumer site (`effected/website`, 22 APIs) surfaced this gap. The build log showed the `config()` doc-generation phase — the phase the heartbeat is scoped to — completing in roughly 2 seconds (`Generating API documentation (22 APIs)…` → `API documentation complete (2.05s)`), then RSPress's own build running for over 3 minutes (`ready built in 3m 20.6s (node_md)`), with the end-of-build summary reporting 184 of 184 code blocks as slow (>500ms).
-
-Doc generation — writing the `.mdx` files in `config()` — is fast. The multi-minute cost is RSPress/Rspack's `node_md` render pass invoking `remarkWithApi` / `remarkApiCodeblocks`, which run Twoslash type-checking on the code blocks. That render pass runs *after* `config()` returns, once the `Effect.scoped` block hosting the heartbeat fiber has already been torn down, so the heartbeat as built cannot show progress during the actual hang — it only covers doc generation (and a slow cold-cache type resolve). `CodeBlockProcessed` events are still emitted during the render phase (that is how the summary counts 184 blocks), so the metrics sink sees everything, but nothing ticks live to the console while it happens.
-
-A future improvement would add a live progress ticker to the render phase, driven by the same `CodeBlockProcessed` counts. Two open questions block that work:
-
-- **RSPress's render process model** — whether the `node_md` render pass runs on the main process or inside Rspack worker threads determines whether a main-process ticker could observe the counters live, or whether progress would need to cross a worker boundary.
-- **Unknown denominator** — the resolve/generate heartbeat reports a moving count against a known-or-approximable total (files resolved, APIs completed); the render phase has no equivalent upfront total, since the number of code blocks across all generated pages is not known until they have all been rendered. A render-phase ticker could report a moving count but not a completion fraction without solving this first.
-
-This is a real observability gap, not a nice-to-have: on a large site the heartbeat's silence during the phase that actually dominates build time can still read as a hang.
-
-## File Locations
-
-| File | Purpose |
-| --- | --- |
-| `src/observability/heartbeat.ts` | `ProgressCounts`, `ProgressPhase`, `readCounts`, `makeProgressEvent`, `formatProgress`, `runHeartbeat` |
-| `src/observability/events.ts` | `BuildProgress`, `RouteCollisionDetected`, `ModelLoadFailed` variants |
-| `src/observability/sinks/issues-sink.ts` | `Issue`, `IssuesSnapshot`, `eventToIssue`, `makeIssuesSink`, `writeIssuesJson` |
-| `src/observability/sinks/console-sink.ts` | Renders `BuildProgress` via `formatProgress` |
-| `src/layers/build-metrics.ts` | `apisCompleted` counter |
-| `src/layers/observability.ts` | `buildEventBus` wiring the issues sink + eager trace path |
-| `src/schemas/observability.ts` | `progressInterval` → `progressIntervalMs` resolution, eager `tracePath` derivation |
-| `src/build-stages.ts` | `RouteCollisionDetected` emit site (via `emitSync`) |
-| `src/observability/sync-emitter.ts` | `installSyncEmitter` / `emitSync` / `syncBuildId` — the one sync-island bridge |
-| `src/layers/config-resolution.ts` | `ModelLoadFailed` emit site (`Effect.tapError` + `Effect.orDie` on `Model.load`); the typed `ConfigValidationError` failures |
-| `src/layers/type-environment.ts` | `resolveTsConfigTyped` — the malformed-tsconfig `ConfigValidationError` |
-| `src/plugin.ts` | Real `isProd` threading, phase `Ref`, heartbeat fork, issues write (`afterBuild` + fatal-path `catch`) |
-| `plugin/monitors/monitors.json` | Registers the `doc-build-issues` monitor |
-| `plugin/monitors/watch-issues.mjs` | Poll loop, `diagnose` debounce, notification copy |
-
-## Related Documentation
-
-- **Performance Observability:** `performance-observability.md` — the EventBus/sink/metrics substrate this subsystem rides on
-- **Error Observability:** `error-observability.md` — the Twoslash/Prettier error flow this subsystem extends with two new emit sites
-- **Build Architecture:** `build-architecture.md` — the `config()`/`afterBuild` lifecycle hooks this subsystem wires into
-- **Snapshot Tracking System:** `snapshot-tracking-system.md` — the `api-docs.db` snapshot DB, now nested under `.api-docs/snapshot/` alongside the `build/` artifacts this document covers
+- **The event bus and sinks:** `performance-observability.md`
+- **The Twoslash and Prettier events the artifact collects:** `error-observability.md`
+- **`render-phase.json` and the render-phase questions:** `render-phase-instrumentation.md`
+- **The hooks that fork the heartbeat and write the artifacts:** `plugin-lifecycle.md`
+- **The snapshot DB under `.api-docs/snapshot/`:** `snapshot-tracking-system.md`

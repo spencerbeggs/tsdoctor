@@ -3,8 +3,9 @@
 `vitepress-plugin-api-extractor` (publishable, versioned via changesets) — the
 VitePress adapter over the `@tsdoctor/*` core, and the second live consumer of
 the `@tsdoctor/pages` IR that proves the core/adapter boundary (phase 5 alpha).
-Markdown-only: no Vue components. Design contract in
-`.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md`.
+Markdown-only: no Vue components. Design docs: `vitepress-adapter.md` (this
+adapter) and `doc-ir-and-pages.md` (the IR contract) under
+`.claude/design/rspress-plugin-api-extractor/`.
 
 ## Key Facts
 
@@ -67,6 +68,14 @@ pnpm vitest run platforms/vitepress/
 
 ## Design Docs
 
+**Adapter & page IR** — load when modifying `src/Generate.ts`, the emitters,
+the Twoslash wiring, or the alpha scope:
+
+- @../../.claude/design/rspress-plugin-api-extractor/vitepress-adapter.md
 - @../../.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md
+
+**Type loading & head tags** — load when modifying the VFS, compiler
+options, or `src/emit/frontmatter.ts`:
+
 - @../../.claude/design/rspress-plugin-api-extractor/type-loading-vfs.md
 - @../../.claude/design/rspress-plugin-api-extractor/structured-data-and-og.md
