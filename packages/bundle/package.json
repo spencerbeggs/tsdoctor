@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/bundle",
-	"version": "0.2.3",
+	"version": "0.2.4",
 	"private": true,
 	"description": "The tsdoctor bundle spec: layered bundle discovery, the versioned tsdoctor.json sidecar manifest, provenance-carrying resolution and canonical input hashing for API documentation bundles.",
 	"keywords": ["api-extractor", "bundle", "manifest", "documentation", "provenance", "typescript", "effect", "esm"],

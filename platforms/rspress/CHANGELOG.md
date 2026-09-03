@@ -1,5 +1,13 @@
 # rspress-plugin-api-extractor
 
+## 0.15.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/bundle | dependency | updated | 0.2.3 | 0.2.4 |
+
 ## 0.15.1
 
 ### Dependencies

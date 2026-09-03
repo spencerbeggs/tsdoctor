@@ -1,5 +1,23 @@
 # @tsdoctor/bundle
 
+## 0.2.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/manifest | dependency | updated | 0.0.0 | 0.1.0 |
+| @tsdoctor/manifest | peerDependency | added | — | 0.1.0 |
+
+- The `tsdoctor.json` bundle manifest schema now lives in `@tsdoctor/manifest`;&#10;`@tsdoctor/bundle` depends on it and re-exports its full surface
+  (`BundleManifest`, `BundleManifestError`, `KNOWN_REGISTRY_TYPES`,&#10;`OpenGraphConfig`, `OpenGraphImage`, `ProjectIdentity`, `RegistryRef`,&#10;`SbomRef`, `decodeBundleManifest`, `isKnownRegistryType`, plus the new&#10;`MANIFEST_SPEC`, `ManifestSource`, `decodeManifestSource` and&#10;`encodeBundleManifest`), so no consumer import changes. [#213][#213]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#213]: https://github.com/spencerbeggs/tsdoctor/pull/213
+
 ## 0.2.3
 
 ### Maintenance
