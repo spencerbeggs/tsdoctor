@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-09-02
-last-synced: 2026-09-02
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 92
 related:
   - rspress-plugin-api-extractor/build-architecture.md
@@ -13,6 +13,7 @@ related:
   - rspress-plugin-api-extractor/bundle-spec.md
   - rspress-plugin-api-extractor/tsdoctor-package-architecture.md
   - rspress-plugin-api-extractor/structured-data-and-og.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 

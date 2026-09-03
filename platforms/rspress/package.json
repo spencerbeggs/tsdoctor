@@ -45,6 +45,7 @@
 		"@shikijs/twoslash": "^4.4.3",
 		"@tsdoctor/bundle": "workspace:*",
 		"@tsdoctor/model": "workspace:*",
+		"@tsdoctor/pages": "workspace:*",
 		"@tsdoctor/registry": "workspace:*",
 		"@tsdoctor/seo": "workspace:*",
 		"@tsdoctor/snapshot": "workspace:*",

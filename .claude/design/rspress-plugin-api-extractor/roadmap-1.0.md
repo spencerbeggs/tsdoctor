@@ -1,11 +1,11 @@
 ---
-status: draft
+status: current
 module: rspress-plugin-api-extractor
 category: meta
 created: 2026-08-24
-updated: 2026-09-02
-last-synced: 2026-09-02
-completeness: 80
+updated: 2026-09-03
+last-synced: 2026-09-03
+completeness: 85
 related:
   - rspress-plugin-api-extractor/tsdoctor-package-architecture.md
   - rspress-plugin-api-extractor/monorepo-consolidation.md
@@ -17,12 +17,13 @@ related:
   - rspress-plugin-api-extractor/llms-integration.md
   - rspress-plugin-api-extractor/render-phase-instrumentation.md
   - rspress-plugin-api-extractor/structured-data-and-og.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 
 # Road to 1.0.0
 
-> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done — **phases 1 through 4 are complete** (phase 1 merged via PR #163 and shipped to npm on 2026-08-24; phase 2 code complete 2026-08-24; phase 3 complete 2026-08-25, landed on `feat/phase-3`; phase 4 complete 2026-08-26, landed on `feat/phase-4` — see `monorepo-consolidation.md`, `render-phase-instrumentation.md` and `structured-data-and-og.md`). For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session (phase 3's instrument-first sequencing included) and should be treated as settled unless a section explicitly labels them open.
+> **Forward-looking document.** This doc records PLANNED work, not the current implementation. Nothing described here exists yet unless explicitly marked done — **phases 1 through 4 are complete and the phase 5 alpha has landed** (phase 1 merged via PR #163 and shipped to npm on 2026-08-24; phase 2 code complete 2026-08-24; phase 3 complete 2026-08-25, landed on `feat/phase-3`; phase 4 complete 2026-08-26, landed on `feat/phase-4` — see `monorepo-consolidation.md`, `render-phase-instrumentation.md` and `structured-data-and-og.md`; phase 5 alpha landed 2026-09-03 on `feat/phase-5` with its gate held, close-out in progress — see `doc-ir-and-pages.md`). For the current architecture, see `build-architecture.md`. Decisions listed under each phase were settled in the 2026-08-24 planning session (phase 3's instrument-first sequencing included) and should be treated as settled unless a section explicitly labels them open.
 
 ## Table of Contents
 
@@ -62,7 +63,8 @@ As of 2026-09-02, **phases 1 through 4 are complete**, plus the Tier 1 core move
 - **The pre-phase-4 adapter refactor is landed** (`feat/phase-4`, 2026-08-25) — an unnumbered interlude between phases 3 and 4, described below.
 - **Phase 4 is complete** (same branch, 2026-08-26): a core package `@tsdoctor/seo` owns every `<head>` concern behind one `headTags` seam, JSON-LD ships over `@effected/schema-org`, and a long-standing change-detection defect (head tags invisible to the frontmatter hash) is closed. Full record in `structured-data-and-og.md`.
 - **The Tier 1 core moves are complete** (landed on `feat/tsdoctor-vfs`, 2026-09-02) — the first tranche of the measured core-move candidate list in `tsdoctor-package-architecture.md`, taken between phases 4 and 5 rather than deferred into phase 5 with the rest. A **sixth core package, `@tsdoctor/vfs`**, was extracted from the registry (the `Vfs` currency type, `VirtualPackage`, `TsEnvironment`, the compiler-options seam); `ApiExtractedPackage` and `TypeReferenceExtractor` moved into `@tsdoctor/model` and `Frontmatter.ts` with them. `category-resolver.ts` was deliberately left in the adapter as product policy. Full record, including where the earlier proposal was wrong, is in the Core-Move Candidates section of `tsdoctor-package-architecture.md`.
-- The plugin itself is pre-1.0 and RSPress-specific; the bundle spec is now formalized in `bundle-spec.md` (the informal three-file folder convention is superseded).
+- **The phase 5 alpha landed** (`feat/phase-5`, 2026-09-03; close-out in progress): `@tsdoctor/pages` is the seventh core package, the RSPress adapter runs on it behind a held golden gate, and `platforms/vitepress/` (`vitepress-plugin-api-extractor`) plus `sites/vitepress-basic` hold the alpha gate. Full record in `doc-ir-and-pages.md`.
+- The plugin itself is pre-1.0; the bundle spec is now formalized in `bundle-spec.md` (the informal three-file folder convention is superseded).
 
 ## The 1.0 Definition
 
@@ -104,7 +106,7 @@ Evidence that motivated the phase, recorded in `build-progress-and-issues.md`: o
 
 Corrected, per-scope/per-block attribution found **Twoslash accounts for ~97% of render-phase code-block time, concentrated in ~11% of blocks** (`sites/multi`: 129 blocks, 7.9s summed, 96.8% in Twoslash). The two candidate fixes resolved on that evidence:
 
-- (a) **Delivered as the performance work.** A persisted Twoslash result cache (`src/twoslash-cache.ts`, XDG sqlite-backed via `@effected/store` `Cache`), keyed on code plus a hash of the type environment and compiler options. Measured on `sites/multi`: render phase 8.1s → 0.2s on a warm cache, 14/14 hits, output byte-identical.
+- (a) **Delivered as the performance work.** A persisted Twoslash result cache (`src/twoslash-cache.ts`, since moved to `@tsdoctor/vfs` in phase 5; XDG sqlite-backed via `@effected/store` `Cache`), keyed on code plus a hash of the type environment and compiler options. Measured on `sites/multi`: render phase 8.1s → 0.2s on a warm cache, 14/14 hits, output byte-identical.
 - (b) **Delivered, but on correctness grounds, not performance ones.** Per-scope TypeScript environments — one transformer per distinct resolved compiler config instead of a singleton (the `TwoslashManager` singleton that held them became the `TwoslashEnvironments` service in the pre-phase-4 refactor below). The data gave it no performance case — 97% of the time is inside `twoslasher()`, and splitting one shared environment would reduce `tsEnvCache` sharing. It shipped anyway as the `with-api` scoping **correctness** fix, retiring the documented "first API's tsconfig wins" limitation (`type-loading-vfs.md`); the FILE set (the combined VFS) stays shared, so this is per-scope CONFIG, not per-scope files, and does not sharpen cache invalidation.
 
 **Gate: HELD** — per-scope, per-code-block attribution is live, produced data, and fix priority was decided from that data and recorded in `render-phase-instrumentation.md`.
@@ -141,7 +143,7 @@ Also landed alongside Chunk 5: the `makeTest` / `layerTest` service doubles (5.0
 
 ### Phase 4 — SEO Layer
 
-**COMPLETE** (landed on `feat/phase-4`, 2026-08-26, following the pre-phase-4 adapter refactor on the same branch). Implemented against `.claude/plans/2026-08-25-seo-layer-plan.md`; the full record — package topology, the seam, the JSON-LD mapping, the change-detection defect — is in `structured-data-and-og.md`.
+**COMPLETE** (landed on `feat/phase-4`, 2026-08-26, following the pre-phase-4 adapter refactor on the same branch). Implemented against a working plan (the 2026-08-25 SEO layer plan, untracked and since archived — `.claude/plans/` is gitignored); the full record — package topology, the seam, the JSON-LD mapping, the change-detection defect — is in `structured-data-and-og.md`.
 
 - **A fifth core package, `@tsdoctor/seo`** (`packages/seo`): framework-neutral `<head>` metadata. `HeadTag` (the neutral tag vocabulary), `Canonical`, `OpenGraph` (+ Twitter cards), `Attribution`, `StructuredData`, and `Seo.headTags` — the single adapter seam. The adapter's `og-resolver.ts` and `schemas/opengraph.ts` are deleted into it.
 - **JSON-LD structured data: done**, but **NOT** "computed in `@tsdoctor/model`" as this roadmap originally sited it. The model's `@alpha`, zero-consumer, throwing `StructuredData` stub is **deleted**; derivation lives in `@tsdoctor/seo` over the newly released `@effected/schema-org@0.1.0`. `packageContext` is derived once per API; `derive`/`deriveScriptBody` assemble the per-page `@graph` (`SoftwareSourceCode` + `TechArticle` + `APIReference`, linked by `isPartOf`/`mainEntity`). Reasons for the move are recorded in `structured-data-and-og.md` and `tsdoctor-package-architecture.md`.
@@ -154,8 +156,15 @@ Also landed alongside Chunk 5: the `makeTest` / `layerTest` service doubles (5.0
 
 ### Phase 5 — VitePress Adapter and Doc IR
 
+**ALPHA LANDED (`feat/phase-5`, 2026-09-03), close-out in progress.** `@tsdoctor/pages` exists and the RSPress adapter runs on it behind a golden gate that held byte-identical across all five fixture sites (one labelled deviation, a real prose-linker race the lift fixed). The second adapter, **`vitepress-plugin-api-extractor`** (`platforms/vitepress/`, built with `@savvy-web/bundler`), is one awaited config-load helper, `apiExtractor()`, and `sites/vitepress-basic` is its fixture over the kitchensink bundle. The gate, item by item: the site consumes the same `modules/kitchensink` model folder `sites/basic` does, through `@tsdoctor/bundle` discovery; `vitepress build` is green with 38 routes = 38 against `sites/basic`, category for category, member anchors rendering as element ids; 738 Twoslash hovers across 36 of 37 pages with 0 error annotations, over the same VFS and compiler options through the native `@shikijs/vitepress-twoslash` transformer; prose cross-links and member anchors resolve; the sidebar renders from the nav tree and the `HeadTag[]` reaches each page's head; the RSPress adapter is on the IR. Two Tier 2 moves landed with it — `prepareWorkItems` into `@tsdoctor/pages`, the Twoslash result cache into `@tsdoctor/vfs`, where both adapters now warm one XDG store — and the kit round the lift raised closed the same day: `@effected/markdown` 0.8.0 escapes minimally, both downstream byte-parity shims are deleted, and per-node MDX escaping control was declined in favour of the existing `Html` hatch. Still to close the phase: the changesets release and the model's `Render` deprecation. Full record, including what the alpha deliberately skipped and the next duplication tier it measured, in `doc-ir-and-pages.md`.
+
 **Settled decision: the doc IR is extracted here, not designed up front.** `@tsdoctor/pages` — the framework-neutral page-generation IR (typed doc blocks + mdast prose) — is carved out only in this phase, alongside the VitePress adapter, so the abstraction is shaped by two live consumers rather than speculation.
 
+Design doc: `doc-ir-and-pages.md` (written 2026-09-02, forward-looking). Three further decisions settled in the 2026-09-02 planning session and recorded there:
+
+- **VitePress 2.x is the target** — `vitepress@2.0.0-alpha.19`, vendored at `.repos/vitepress`; `@shikijs/vitepress-twoslash` vendored under `.repos/shiki` (re-pinned to v4.4.3).
+- **The VitePress alpha is markdown-only** — no Vue components; signatures, members and examples are fenced code blocks type-checked by the native `@shikijs/vitepress-twoslash` transformer, tables are markdown tables.
+- **The RSPress adapter switches to the IR immediately**, behind a golden-file gate (byte-identical generated output for all five fixture sites), rather than keeping its generators until the alpha proves the IR.
 - `@tsdoctor/pages` dogfoods `@effected/markdown`, which likely grows MDX serialization capability from this work.
 - **The remaining core moves land here**, per the measured candidate list in `tsdoctor-package-architecture.md`. Tier 1 was taken early, ahead of this phase (see [Current State](#current-state)); what is left is the Tier 2 set, whose destinations genuinely want a second consumer to decide. One correction to this roadmap's own wording: `llms-processing.ts` is pure text transforms over a cross-framework standard and belongs in core — only `llms-program.ts` (I/O, RSPress `outDir`) is what "llms.txt wiring stays in the adapter" describes.
 - **@effected surface:** `markdown` as the IR substrate. The MDX dogfood loop already delivered construction and serialization of the MDX node vocabulary in the released 0.7.0 kit wave, ahead of this phase, proof-tested by `packages/model/__test__/mdx-vocabulary.test.ts`; MDX parsing is still absent, and wiring the vocabulary into an actual page-generation IR remains this phase's work (see "Kit Expansion via Dogfood" in `tsdoctor-package-architecture.md`).
@@ -178,7 +187,7 @@ Each of these docs is authored in the phase that produces the evidence or the se
 | `bundle-spec.md` | Phase 2 — **written** (2026-08-24, during phase-2 planning) | The versioned bundle manifest and fetcher contracts |
 | `render-phase-instrumentation.md` | Phase 3 — **written** (2026-08-25) | Per-scope/per-block attribution design, the measured data and both delivered fixes |
 | `structured-data-and-og.md` | Phase 4 — **written** (2026-08-26) | The `@tsdoctor/seo` package, the `headTags` seam, the JSON-LD mapping and the change-detection defect. The OG image *generation* pipeline is deferred and is named as out of scope there. |
-| `doc-ir-and-pages.md` | Phase 5 | The `@tsdoctor/pages` IR, shaped by the RSPress + VitePress consumers |
+| `doc-ir-and-pages.md` | Phase 5 — **written** (2026-09-02; updated 2026-09-03 to the delivered state) | The `@tsdoctor/pages` IR, the RSPress MDX and VitePress markdown emitters, the golden-file gate for the RSPress switch, the Tier 2 core moves, the kit round and the alpha gate result. |
 
 Also idea-stage and deliberately unscheduled (no phase, no gate): `@tsdoctor/cli`, a scaffolding `tsdoctor` binary — see "Future Packages (Idea-Stage Stubs)" in `tsdoctor-package-architecture.md`.
 

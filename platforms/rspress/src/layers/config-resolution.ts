@@ -1,8 +1,8 @@
 import type { PathLike } from "node:fs";
-import path from "node:path";
 import { PackageManifest } from "@effected/package-json";
 import type { ApiEntryPoint, ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
 import { ApiExtractedPackage, TypeReferenceExtractor } from "@tsdoctor/model";
+import { apiScopeOf, normalizeBaseRoute, unscopedName } from "@tsdoctor/pages";
 import { deriveSiteUrl } from "@tsdoctor/seo";
 import { hashContent } from "@tsdoctor/snapshot";
 import type { Vfs } from "@tsdoctor/vfs";
@@ -25,7 +25,7 @@ import { emit, wantsLevel } from "../observability/EventBus.js";
 import type { ImportRef } from "../observability/events.js";
 import { PluginEvent } from "../observability/events.js";
 import { withPhase } from "../observability/spans.js";
-import { apiScopeOf, deriveOutputPaths, normalizeBaseRoute, unscopedName } from "../path-derivation.js";
+import { deriveOutputPaths } from "../path-derivation.js";
 import type {
 	ExternalPackageSpec,
 	MultiApiConfig,
@@ -412,7 +412,6 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 										...(resolvedLlms != null ? { llmsPlugin: resolvedLlms } : {}),
 										...(siteUrl != null ? { siteUrl } : {}),
 										...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),
-										docsDir: path.dirname(outputDir),
 										...(docsRoot != null ? { docsRoot } : {}),
 										...(resolvedTheme != null ? { theme: resolvedTheme } : {}),
 									} satisfies ResolvedApiConfig,
@@ -567,7 +566,6 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 															...(resolvedLlms != null ? { llmsPlugin: resolvedLlms } : {}),
 															...(siteUrl != null ? { siteUrl } : {}),
 															...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),
-															docsDir: path.dirname(outputDir),
 															...(docsRoot != null ? { docsRoot } : {}),
 															...(resolvedTheme != null ? { theme: resolvedTheme } : {}),
 														} satisfies ResolvedApiConfig,

@@ -133,10 +133,6 @@ export function makeMetricsSink(context: Context.Context<never>): EventSink {
 					both(BuildMetrics.phaseTimeMs, event.durationMs, { phase: event.phase });
 					break;
 
-				case "DefaultApplied":
-					update(BuildMetrics.configDefaultsApplied, 1);
-					break;
-
 				default:
 					break;
 			}

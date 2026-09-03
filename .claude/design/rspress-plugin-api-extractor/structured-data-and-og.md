@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-08-26
-updated: 2026-09-02
-last-synced: 2026-09-02
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 90
 related:
   - rspress-plugin-api-extractor/roadmap-1.0.md
@@ -12,12 +12,13 @@ related:
   - rspress-plugin-api-extractor/build-architecture.md
   - rspress-plugin-api-extractor/page-generation-system.md
   - rspress-plugin-api-extractor/snapshot-tracking-system.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 
 # Structured Data and Head Metadata (`@tsdoctor/seo`)
 
-> This is the deferred phase-4 design doc named in `roadmap-1.0.md`'s "Deferred Design Docs" table. It records the DELIVERED design: the `@tsdoctor/seo` workspace, the single `headTags` adapter seam, the schema.org JSON-LD derivation, and the change-detection defect the work uncovered and closed. Implemented against `.claude/plans/2026-08-25-seo-layer-plan.md` and its spec.
+> This is the deferred phase-4 design doc named in `roadmap-1.0.md`'s "Deferred Design Docs" table. It records the DELIVERED design: the `@tsdoctor/seo` workspace, the single `headTags` adapter seam, the schema.org JSON-LD derivation, and the change-detection defect the work uncovered and closed. Implemented against a working plan and spec (the 2026-08-25 SEO layer plan, untracked and since archived — `.claude/plans/` is gitignored); this document is the record.
 
 ## Table of Contents
 

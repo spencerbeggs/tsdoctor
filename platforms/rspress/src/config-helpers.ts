@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import type { BundleDescriptor } from "@tsdoctor/bundle";
 import { discoverBundle } from "@tsdoctor/bundle";
+import { normalizeBaseRoute } from "@tsdoctor/pages";
 import { Effect, Result } from "effect";
-import { normalizeBaseRoute } from "./path-derivation.js";
 import type { MultiApiConfig } from "./schemas/config.js";
 import { SyncDiscoveryLayer } from "./sync-node-fs.js";
 

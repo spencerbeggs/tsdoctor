@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: observability
 created: 2026-01-15
-updated: 2026-08-25
-last-synced: 2026-08-25
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 90
 related:
   - rspress-plugin-api-extractor/performance-observability.md
@@ -23,6 +23,7 @@ dependencies: []
 - [Prettier Error Flow](#prettier-error-flow)
 - [Metrics Derived from Error Events](#metrics-derived-from-error-events)
 - [Build Summary Integration](#build-summary-integration)
+- [Persisted to `issues.json`](#persisted-to-issuesjson)
 - [File Locations](#file-locations)
 
 ---

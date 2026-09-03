@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { Thresholds } from "../../src/BuildEnv.js";
 import { makeEventBusLayer } from "../../src/observability/EventBus.js";
 import type { PluginEvent } from "../../src/observability/events.js";
-import { withOp, withPhase } from "../../src/observability/spans.js";
+import { withPhase } from "../../src/observability/spans.js";
 import type { ResolvedObservability } from "../../src/schemas/observability.js";
 
 const FULL_THRESHOLDS: ResolvedObservability["thresholds"] = {
@@ -11,7 +11,6 @@ const FULL_THRESHOLDS: ResolvedObservability["thresholds"] = {
 	slowPageGeneration: 500,
 	slowApiLoad: 1000,
 	slowFileOperation: 50,
-	slowHttpRequest: 2000,
 	slowDbOperation: 100,
 };
 
@@ -58,41 +57,5 @@ describe("withPhase", () => {
 	it("works without an EventBus in context (no-op)", async () => {
 		// emit is serviceOption-based so withPhase must not fail without a bus
 		await expect(Effect.runPromise(withPhase("generate", { buildId: "b1" }, Effect.succeed("ok")))).resolves.toBe("ok");
-	});
-});
-
-describe("withOp", () => {
-	it("runs the effect, returns its value, and emits no PhaseStarted/PhaseCompleted pair", async () => {
-		const seen: PluginEvent[] = [];
-		let runs = 0;
-		const layer = makeEventBusLayer([{ minLevel: "trace", handle: (e) => seen.push(e) }]);
-		const result = await Effect.runPromise(
-			withOp(
-				"modelLoad",
-				{ buildId: "b1" },
-				Effect.sync(() => {
-					runs += 1;
-					return "value";
-				}),
-				"slowApiLoad",
-			).pipe(Effect.provide(layer), Effect.provide(Layer.succeed(Thresholds, FULL_THRESHOLDS))),
-		);
-		expect(result).toBe("value");
-		expect(runs).toBe(1);
-		const tags = seen.map((e) => e._tag);
-		expect(tags).not.toContain("PhaseStarted");
-		expect(tags).not.toContain("PhaseCompleted");
-	});
-
-	it("emits SlowOperation on a threshold=0 breach", async () => {
-		const seen: PluginEvent[] = [];
-		const layer = makeEventBusLayer([{ minLevel: "trace", handle: (e) => seen.push(e) }]);
-		await Effect.runPromise(
-			withOp("modelLoad", { buildId: "b1" }, Effect.succeed(1), "slowApiLoad").pipe(
-				Effect.provide(layer),
-				Effect.provide(Layer.succeed(Thresholds, { ...FULL_THRESHOLDS, slowApiLoad: 0 })),
-			),
-		);
-		expect(seen.map((e) => e._tag)).toContain("SlowOperation");
 	});
 });

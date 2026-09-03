@@ -2,8 +2,8 @@
 
 `@tsdoctor/vfs` (publishable, versioned via changesets) — virtual file system
 primitives for TypeScript documentation tooling: the `Vfs` currency type,
-declaration-backed virtual packages, `@typescript/vfs` environments, and the
-compiler-options seam.
+declaration-backed virtual packages, `@typescript/vfs` environments, the
+compiler-options seam and the persisted Twoslash result cache.
 
 Factored out of `@tsdoctor/registry` so `@tsdoctor/registry` and
 `@tsdoctor/model` can share the substrate without either depending on the
@@ -22,7 +22,11 @@ hovers over the `multi` fixture before and after). Version line starts at 0.x.
   `decodeCompilerOptions`/`toProgrammaticCompilerOptions`
   (`TypeResolutionOptions.ts`), and `DEFAULT_COMPILER_OPTIONS`/
   `TypeScriptConfig`/`CompilerOptionsInput`/`mergeCompilerOptions`/
-  `resolveTypeScriptConfig*` (`TypeScriptConfig.ts`).
+  `resolveTypeScriptConfig*` (`TypeScriptConfig.ts`), and the Twoslash cache
+  surface — `TWOSLASH_CACHE_FORMAT`, `twoslashEnvHash`/`twoslashEntryKey`/
+  `twoslashBlobKey`, `makeTwoslashCache`, `encodeTwoslashCache`/
+  `decodeTwoslashCache`, `TwoslashResultCache`/`TwoslashCacheValue`/
+  `TwoslashCacheStats` (`TwoslashCache.ts`).
 - `Vfs` is a `Map<string, string>` of `node_modules/`-prefixed paths to
   contents. It is the **currency type** every VFS-shaped API in the monorepo
   speaks; the `VirtualFileSystem` alias is deleted, so do not reintroduce a
@@ -45,10 +49,22 @@ hovers over the `multi` fixture before and after). Version line starts at 0.x.
   than replacing, with one exception: a discovered tsconfig that declares `lib`
   replaces the array wholesale. `DEFAULT_COMPILER_OPTIONS` deliberately keeps
   the tsconfig spelling (including `DOM`) so it reads the way users write it.
+- **`TwoslashCache.ts` is the persisted Twoslash result cache**, moved here
+  from the RSPress adapter (phase 5) because both adapters key it on the same
+  VFS hash: `twoslashEnvHash(vfs, toolchain)` names a generation (the
+  toolchain string carries the TypeScript version — load-bearing), and
+  `makeTwoslashCache` is the synchronous `TwoslashTypesCache` Shiki reads
+  through. Persistence is the caller's: RSPress's `TwoslashCacheService` and
+  VitePress's `TwoslashCacheStore` both store one gzipped generation blob per
+  `twoslashBlobKey(envHash)` in the XDG `tsdoctor/twoslash.sqlite` store, so a
+  site built by either adapter warms the other. Keep the keying scheme stable —
+  changing it silently cold-starts every cache — and bump
+  `TWOSLASH_CACHE_FORMAT` when upgrading `@shikijs/twoslash` / `twoslash`.
 - Peers: `effect` and `@effected/tsconfig-json` are **required**; `typescript`
   and `@typescript/vfs` are **optional**, reached through lazy `import()` in
-  `TsEnvironment` — keep those two that way, so a consumer that never builds an
-  environment never installs a compiler. `@effected/tsconfig-json` is NOT in
+  `TsEnvironment`, and `@shikijs/twoslash` is **optional** (a type-only import
+  for `TwoslashTypesCache`) — keep those three that way, so a consumer that
+  never builds an environment never installs a compiler. `@effected/tsconfig-json` is NOT in
   that group: `TypeResolutionOptions.ts` value-imports it and evaluates
   `CompilerOptions.schema.fields` at module load, so importing this package
   without it fails outright. It was marked optional when the package was
@@ -73,3 +89,8 @@ The two-workspace split and the compiler-options seam:
 - @../../.claude/design/rspress-plugin-api-extractor/type-loading-vfs.md
 - @../../.claude/design/rspress-plugin-api-extractor/multi-entry-vfs.md
 - @../../.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
+
+The Twoslash result cache's keying scheme and measured effect — load when
+touching `TwoslashCache.ts`:
+
+- @../../.claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md

@@ -37,24 +37,6 @@
 				"startHere": "packages/twoslash/src/index.ts"
 			}
 		},
-		"shiki": {
-			"url": "https://github.com/shikijs/shiki",
-			"ref": "v4.3.1",
-			"purpose": "Shiki authority: the @shikijs/twoslash integration package we consume directly (packages/twoslash) and the underlying shiki core (packages/shiki); pinned to the installed shiki version",
-			"sparse": [
-				"packages/twoslash",
-				"packages/shiki"
-			],
-			"orientation": {
-				"layout": "packages/twoslash is @shikijs/twoslash — the Shiki transformer we consume directly: src/ (transformerTwoslash, renderer-rich, renderer-classic, icons), style-rich.css / style-classic.css (the hover/popup CSS our _twoslash.css mirrors), test/. packages/shiki is the shiki core package (highlighter entry, bundles); its src re-exports @shikijs/core internals.",
-				"keyPaths": {
-					"packages/twoslash/src": "transformerTwoslash + rich renderer — the HAST our ShikiCrossLinker post-processes",
-					"packages/twoslash/style-rich.css": "upstream popup/hover CSS that plugin runtime styling aligns with",
-					"packages/shiki/src": "shiki core entry — highlighter creation, bundle composition"
-				},
-				"startHere": "packages/twoslash/src/index.ts"
-			}
-		},
 		"rsbuild": {
 			"url": "https://github.com/web-infra-dev/rsbuild",
 			"ref": "v2.1.5",
@@ -103,6 +85,47 @@
 					"note": "Re-pin target: v4 pre-releases (beta and rc alike) are tagged in the MAIN Effect-TS/effect repo as `effect@<version>` (e.g. `effect@4.0.0-rc.109` -> b5946ec), NOT in Effect-TS/effect-smol — effect-smol has no 4.0.0 pre-release tags at all, despite being where the v4 rewrite originally lived. Confirm the tag exists with `git ls-remote --tags https://github.com/Effect-TS/effect | grep 'effect@<version>'` before pinning. This is a monorepo, so sibling packages carry their own tags; verify a pin with `git rev-parse HEAD` inside the checkout against `git ls-files -s .repos/effect`, never `git describe --tags`."
 				}
 			]
+		},
+		"vitepress": {
+			"url": "https://github.com/vuejs/vitepress",
+			"ref": "v2.0.0-alpha.19",
+			"purpose": "VitePress 2.x authority: framework source (src/node, src/client, src/shared) and the official English docs (docs/en); pinned to the VitePress version the phase-5 platforms/vitepress adapter targets",
+			"sparse": [
+				"src/node",
+				"src/client",
+				"src/shared",
+				"docs/en"
+			],
+			"orientation": {
+				"layout": "src/node is the Node build side: siteConfig.ts (UserConfig, the transformPageData/transformHead/buildEnd/postRender hooks), config.ts (config resolution), markdown/ (markdown-it pipeline; plugins/highlight.ts is where Shiki and codeTransformers run), build/, plugin.ts (the Vite plugin). src/client is the Vue runtime and default theme; src/shared holds types both sides use. docs/en is the official English site markdown: guide/ and reference/ — reference/site-config.md and reference/default-theme-sidebar.md are the config surface an adapter targets.",
+				"keyPaths": {
+					"src/node/siteConfig.ts": "UserConfig and every site-level hook an adapter wires into",
+					"src/node/markdown/plugins/highlight.ts": "Shiki highlighting and codeTransformers — where @shikijs/vitepress-twoslash plugs in",
+					"docs/en/reference/site-config.md": "every config option and hook, authoritative for 2.x",
+					"docs/en/reference/default-theme-sidebar.md": "sidebar config shape (navigation is config, not files)"
+				},
+				"startHere": "src/node/siteConfig.ts"
+			}
+		},
+		"shiki": {
+			"url": "https://github.com/shikijs/shiki",
+			"ref": "v4.4.3",
+			"purpose": "Shiki authority: the @shikijs/twoslash transformer we consume directly (packages/twoslash), the @shikijs/vitepress-twoslash integration the phase-5 VitePress adapter leans on (packages/vitepress-twoslash) and the shiki core (packages/shiki); pinned to the installed shiki version",
+			"sparse": [
+				"packages/twoslash",
+				"packages/shiki",
+				"packages/vitepress-twoslash"
+			],
+			"orientation": {
+				"layout": "packages/twoslash is @shikijs/twoslash — the Shiki transformer we consume directly: src/ (transformerTwoslash, renderer-rich, renderer-classic, icons), style-rich.css / style-classic.css (the hover/popup CSS our _twoslash.css mirrors), test/. packages/vitepress-twoslash is @shikijs/vitepress-twoslash — the markdown-it codeTransformer plus Vue floating-UI renderer the VitePress adapter integrates with instead of porting the remark pipeline. packages/shiki is the shiki core package (highlighter entry, bundles); its src re-exports @shikijs/core internals.",
+				"keyPaths": {
+					"packages/twoslash/src": "transformerTwoslash + rich renderer — the HAST our ShikiCrossLinker post-processes",
+					"packages/twoslash/style-rich.css": "upstream popup/hover CSS that plugin runtime styling aligns with",
+					"packages/vitepress-twoslash/src": "transformerTwoslash for VitePress: the typesCache seam, the Vue renderer, the client enhanceApp hook",
+					"packages/shiki/src": "shiki core entry — highlighter creation, bundle composition"
+				},
+				"startHere": "packages/twoslash/src/index.ts"
+			}
 		}
 	}
 }

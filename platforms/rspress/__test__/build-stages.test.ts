@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { ApiModel } from "@microsoft/api-extractor-model";
+import { CrossLinker } from "@tsdoctor/model";
 import { SnapshotService } from "@tsdoctor/snapshot";
 import { Effect, Layer, References } from "effect";
 import { describe, expect, it } from "vitest";
@@ -16,7 +17,6 @@ import type {
 import {
 	buildPipelineForApi,
 	cleanupAndCommit,
-	crossLinkKindPriority,
 	generateSinglePage,
 	prepareWorkItems,
 	writeMetadata,
@@ -83,7 +83,6 @@ describe("prepareWorkItems", () => {
 			apiPackage,
 			categories,
 			baseRoute: "/example-module",
-			packageName: "example-module",
 		});
 
 		expect(result.workItems.length).toBeGreaterThan(0);
@@ -103,7 +102,6 @@ describe("prepareWorkItems", () => {
 			apiPackage,
 			categories: {},
 			baseRoute: "/test",
-			packageName: "test",
 		});
 		expect(result.workItems).toHaveLength(0);
 		expect(result.crossLinkData.routes.size).toBe(0);
@@ -116,7 +114,6 @@ describe("prepareWorkItems", () => {
 			apiPackage: pkg,
 			categories: DEFAULT_CATEGORIES,
 			baseRoute: "/api",
-			packageName: "effect-kit",
 		});
 		for (const route of crossLinkData.routes.values()) {
 			expect(route).not.toContain("/default/");
@@ -154,7 +151,6 @@ describe("prepareWorkItems", () => {
 					apiPackage: pkg,
 					categories: collidingCategories,
 					baseRoute: "/api",
-					packageName: "effect-kit",
 				}),
 			).toThrow(/Route collision/);
 		} finally {
@@ -197,7 +193,6 @@ describe("prepareWorkItems", () => {
 					apiPackage: pkg,
 					categories: collidingCategories,
 					baseRoute: "/api",
-					packageName: "effect-kit",
 				}),
 			).toThrow(/Route collision/);
 		} finally {
@@ -214,7 +209,6 @@ describe("prepareWorkItems", () => {
 			apiPackage: pkg,
 			categories: DEFAULT_CATEGORIES,
 			baseRoute: "/api",
-			packageName: "example",
 		});
 
 		// No page/sidebar entry for the unexported base declaration
@@ -233,12 +227,6 @@ describe("prepareWorkItems", () => {
 		const catWorkItem = workItems.find((wi) => wi.item.displayName === "Cat");
 		expect(catWorkItem?.syntheticBase).toBeUndefined();
 		expect(crossLinkData.routes.get("Animal")).toBe("/api/class/animal");
-	});
-
-	it("prioritizes value kinds over type-only kinds for cross-link targets", () => {
-		expect(crossLinkKindPriority("Variable")).toBeLessThan(crossLinkKindPriority("TypeAlias"));
-		expect(crossLinkKindPriority("Class")).toBeLessThan(crossLinkKindPriority("Interface"));
-		expect(crossLinkKindPriority("Namespace")).toBeLessThan(crossLinkKindPriority("SomethingUnknown"));
 	});
 });
 
@@ -677,7 +665,6 @@ describe("generateSinglePage", () => {
 			apiPackage,
 			categories,
 			baseRoute: "/example-module",
-			packageName: "example-module",
 		});
 
 		const ctx: GenerateSinglePageContext = {
@@ -686,6 +673,7 @@ describe("generateSinglePage", () => {
 			baseRoute: "/example-module",
 			packageName: "example-module",
 			apiScope: "example-module",
+			linker: CrossLinker.empty,
 			buildTime: new Date().toISOString(),
 			resolvedOutputDir: "/tmp/nonexistent-dir",
 		};
@@ -721,6 +709,7 @@ describe("generateSinglePage", () => {
 			baseRoute: "/test",
 			packageName: "test",
 			apiScope: "test",
+			linker: CrossLinker.empty,
 			buildTime: new Date().toISOString(),
 			resolvedOutputDir: "/tmp/nonexistent-dir",
 		};
@@ -744,7 +733,6 @@ describe("generateSinglePage", () => {
 			apiPackage,
 			categories,
 			baseRoute: "/example-module",
-			packageName: "example-module",
 		});
 
 		const buildTime = new Date().toISOString();
@@ -754,6 +742,7 @@ describe("generateSinglePage", () => {
 			baseRoute: "/example-module",
 			packageName: "example-module",
 			apiScope: "example-module",
+			linker: CrossLinker.empty,
 			buildTime,
 			resolvedOutputDir: "/tmp/nonexistent-dir",
 		};
@@ -797,7 +786,6 @@ describe("generateSinglePage", () => {
 			apiPackage,
 			categories,
 			baseRoute: "/tsconfig-json/api",
-			packageName: "qualified-alias",
 		});
 
 		const typeItem = workItems.find((w) => w.namespaceMember?.qualifiedName === "CompilerOptions.Type");
@@ -810,6 +798,7 @@ describe("generateSinglePage", () => {
 			baseRoute: "/tsconfig-json/api",
 			packageName: "qualified-alias",
 			apiScope: "qualified-alias",
+			linker: CrossLinker.empty,
 			buildTime: new Date().toISOString(),
 			resolvedOutputDir: "/tmp/nonexistent-dir",
 		};
@@ -856,7 +845,6 @@ describe("writeSingleFile", () => {
 			apiPackage,
 			categories,
 			baseRoute: "/example-module",
-			packageName: "example-module",
 		});
 		return {
 			workItem: workItems[0] as WorkItem,
@@ -866,6 +854,7 @@ describe("writeSingleFile", () => {
 				baseRoute: "/example-module",
 				packageName: "example-module",
 				apiScope: "example-module",
+				linker: CrossLinker.empty,
 				buildTime: new Date().toISOString(),
 				resolvedOutputDir: "/tmp/nonexistent-dir",
 				siteUrl: "https://example.com",
@@ -1050,7 +1039,6 @@ describe("Stream pipeline (native)", () => {
 			apiPackage,
 			categories,
 			baseRoute: "/example-module",
-			packageName: "example-module",
 		});
 
 		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "native-stream-"));
@@ -1061,6 +1049,7 @@ describe("Stream pipeline (native)", () => {
 			baseRoute: "/example-module",
 			packageName: "example-module",
 			apiScope: "example-module",
+			linker: CrossLinker.empty,
 			buildTime: new Date().toISOString(),
 			resolvedOutputDir: tmpDir,
 			pageConcurrency: 2,
@@ -1095,7 +1084,6 @@ describe("Stream pipeline (native)", () => {
 			apiPackage,
 			categories,
 			baseRoute: "/example-module",
-			packageName: "example-module",
 		});
 
 		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "native-stream-2-"));
@@ -1109,6 +1097,7 @@ describe("Stream pipeline (native)", () => {
 				baseRoute: "/example-module",
 				packageName: "example-module",
 				apiScope: "example-module",
+				linker: CrossLinker.empty,
 				buildTime,
 				resolvedOutputDir: tmpDir,
 				pageConcurrency: 2,
@@ -1130,6 +1119,7 @@ describe("Stream pipeline (native)", () => {
 				baseRoute: "/example-module",
 				packageName: "example-module",
 				apiScope: "example-module",
+				linker: CrossLinker.empty,
 				buildTime,
 				resolvedOutputDir: tmpDir,
 				pageConcurrency: 2,

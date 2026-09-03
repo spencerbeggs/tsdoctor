@@ -1,9 +1,9 @@
 import { Cache } from "@effected/store";
 import { AppDirs } from "@effected/xdg";
+import type { TwoslashCacheStats, TwoslashCacheValue, TwoslashResultCache } from "@tsdoctor/vfs";
+import { decodeTwoslashCache, encodeTwoslashCache, makeTwoslashCache, twoslashBlobKey } from "@tsdoctor/vfs";
 import { Context, Effect, Layer, Option, Path } from "effect";
 import { AppDirsLive, PlatformLive } from "../layers/xdg.js";
-import type { TwoslashCacheStats, TwoslashCacheValue, TwoslashResultCache } from "../twoslash-cache.js";
-import { decodeTwoslashCache, encodeTwoslashCache, makeTwoslashCache, twoslashBlobKey } from "../twoslash-cache.js";
 
 export interface TwoslashCacheServiceShape {
 	/**

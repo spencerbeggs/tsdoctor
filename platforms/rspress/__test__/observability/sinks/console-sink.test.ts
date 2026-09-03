@@ -20,7 +20,7 @@ describe("makeConsoleSink", () => {
 	it("drops events below the configured level", () => {
 		const sink = makeConsoleSink("info", { now: fixedNow });
 		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
-		sink.handle(PluginEvent.CrossLinkApplied({ ctx, level: "trace", from: "A", to: "B", route: "/r" }));
+		sink.handle(PluginEvent.StaleDeleted({ ctx, level: "trace", file: "a.mdx" }));
 		expect(spy).not.toHaveBeenCalled();
 		spy.mockRestore();
 	});
@@ -187,14 +187,6 @@ describe("makeConsoleSink", () => {
 			).toContain("loaded model: 17 items, 2 entry point(s) (30ms)");
 		});
 
-		it("ConfigResolved", () => {
-			expect(
-				renderLine(
-					PluginEvent.ConfigResolved({ ctx, level: "info", baseRoute: "/api", categoryCount: 5, externalCount: 1 }),
-				),
-			).toContain("resolved /api: 5 categories, 1 external");
-		});
-
 		it("TwoslashDiagnostic", () => {
 			expect(
 				renderLine(
@@ -310,9 +302,7 @@ describe("makeConsoleSink", () => {
 		});
 
 		it("falls back to the bare tag for unhandled variants", () => {
-			expect(
-				renderLine(PluginEvent.CrossLinkApplied({ ctx, level: "info", from: "A", to: "B", route: "/r" })),
-			).toContain("CrossLinkApplied");
+			expect(renderLine(PluginEvent.StaleDeleted({ ctx, level: "info", file: "a.mdx" }))).toContain("StaleDeleted");
 		});
 	});
 });

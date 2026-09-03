@@ -38,7 +38,7 @@
  * eliminate it. What changes is where the STATE lives — in a Layer, where a
  * test substitutes it by providing a different layer instead of calling a
  * static `reset()`. What remains is ~15 lines of adapter wiring, the same shape
- * and the same justification as `markdown/prose-linker.ts`.
+ * and the same justification as the sync-island event emitter holder.
  *
  * @packageDocumentation
  */

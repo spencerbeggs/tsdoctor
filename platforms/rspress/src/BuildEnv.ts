@@ -46,7 +46,6 @@ export const Thresholds = Context.Reference<ResolvedObservability["thresholds"]>
 			slowPageGeneration: 500,
 			slowApiLoad: 1000,
 			slowFileOperation: 50,
-			slowHttpRequest: 2000,
 			slowDbOperation: 100,
 		}),
 	},

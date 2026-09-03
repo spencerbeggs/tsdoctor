@@ -1,11 +1,11 @@
 /* v8 ignore start -- remark plugin, requires MDX compilation context */
+import { stripTwoslashDirectives } from "@tsdoctor/pages";
 import type { Code, Parent, Root } from "mdast";
 import type { MdxJsxFlowElement } from "mdast-util-mdx-jsx";
 import type { ShikiTransformer } from "shiki";
 import { codeToHast, hastToHtml } from "shiki";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
-import { stripTwoslashDirectives } from "./markdown/helpers.js";
 import type { ShikiThemeConfig } from "./markdown/shiki-utils.js";
 import { DEFAULT_SHIKI_THEMES } from "./markdown/shiki-utils.js";
 import { PluginEvent as PE } from "./observability/events.js";

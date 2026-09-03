@@ -17,8 +17,11 @@ import path from "node:path";
 import { describe, expect, it } from "@effect/vitest";
 import type { ApiClass } from "@microsoft/api-extractor-model";
 import { ApiModel } from "@microsoft/api-extractor-model";
+import { CrossLinker } from "@tsdoctor/model";
+import { buildPage } from "@tsdoctor/pages";
+import { Effect, Option, Result } from "effect";
 import { prepareWorkItems } from "../../src/build-stages.js";
-import { ClassPageGenerator } from "../../src/markdown/page-generators/class-page.js";
+import { emitMdxBody } from "../../src/emit/mdx.js";
 import { DEFAULT_CATEGORIES } from "../../src/schemas/config.js";
 
 const fixture = path.join(import.meta.dirname, "..", "__fixtures__", "anchor-collision", "anchor-collision.api.json");
@@ -55,10 +58,13 @@ interface Collected {
 }
 
 /**
- * Run the real pipeline: `prepareWorkItems` computes the anchors, then the
- * page generator renders with the same map. Passing the map is the contract
- * under test — a caller that drops it gets unprefixed anchors, which is why
- * the collision test below would catch that regression.
+ * Run the real pipeline: `prepareWorkItems` computes the anchors, the IR
+ * builder carries the same map as data on each member block, and the MDX
+ * emitter spells it as the `id=` prop. Passing the map is the contract under
+ * test — a caller that drops it gets unprefixed anchors, which is why the
+ * collision test below would catch that regression. The emitter path is
+ * covered here too: the ids are read from the EMITTED MDX, so an emitter
+ * that recomputed an anchor would break the invariant just as visibly.
  */
 async function collect(): Promise<Collected> {
 	const { apiPackage, registry } = loadRegistry();
@@ -66,25 +72,32 @@ async function collect(): Promise<Collected> {
 		apiPackage,
 		categories: DEFAULT_CATEGORIES,
 		baseRoute: "/api",
-		packageName: "anchors",
 	});
 	const workItem = workItems.find((w) => w.item.displayName === "Registry");
 	if (!workItem) throw new Error("prepareWorkItems produced no Registry work item");
-	const { content } = await new ClassPageGenerator().generate(
-		registry,
-		"/api",
-		"anchors",
-		"Class",
-		"anchors",
-		undefined,
-		undefined,
-		true,
-		undefined,
-		undefined,
-		undefined,
-		workItem.memberAnchors,
+	const page = await Effect.runPromise(
+		buildPage({
+			item: registry,
+			categoryKey: "classes",
+			singularName: "Class",
+			folderName: "class",
+			baseRoute: "/api",
+			packageName: "anchors",
+			memberAnchors: workItem.memberAnchors,
+			linker: CrossLinker.fromRoutes(crossLinkData.routes),
+		}),
 	);
-	return { ids: emittedIds(content), anchors: declaredAnchors(crossLinkData.routes), content };
+	if (Option.isNone(page)) throw new Error("buildPage produced no page for Registry");
+	// The IR itself carries the anchors as data; the emitter must only spell them.
+	const irAnchors = new Set(
+		page.value.blocks.flatMap((block) => (block.kind === "member-group" ? block.members.map((m) => m.anchor) : [])),
+	);
+	const content = Result.getOrThrow(emitMdxBody(page.value, { apiScope: "anchors" }));
+	const ids = emittedIds(content);
+	if ([...ids].some((id) => !irAnchors.has(id)) || [...irAnchors].some((anchor) => !ids.has(anchor))) {
+		throw new Error("the emitter spelled an anchor the IR does not carry");
+	}
+	return { ids, anchors: declaredAnchors(crossLinkData.routes), content };
 }
 
 describe("member anchor invariant", () => {

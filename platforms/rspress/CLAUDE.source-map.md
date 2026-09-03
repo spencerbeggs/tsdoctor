@@ -6,30 +6,29 @@ Loaded from `platforms/rspress/CLAUDE.md`.
 ## Source Structure
 
 - `src/index.ts` — main plugin entry (re-exports plugin.ts, serve.ts)
-- `src/plugin.ts` — RSPress adapter: calls `makeAppLayers`, builds both `ManagedRuntime`s over the returned stacks, installs the sync-emitter and Twoslash-access holders, `isInert` lifecycle gating
+- `src/plugin.ts` — RSPress adapter: `makeAppLayers` → both `ManagedRuntime`s, installs the sync-emitter and Twoslash-access holders, `isInert` lifecycle gating
 - `src/BuildEnv.ts` — the per-build `Context.Reference`s: `BuildId`, `Thresholds`, `PageConcurrency`, `SuppressExampleErrors`
 - `src/twoslash-access.ts` — module-level holder bridging RSPress's render pass to `TwoslashEnvironments`; installed from inside a fiber, never bound to a runtime
-- `src/path-derivation.ts` — pure route/output path functions, imported directly (the former `PathDerivationService` is deleted)
-- `src/og-resolver.ts` is **deleted** (phase 4) — its pure URL/MIME/alt helpers moved to `@tsdoctor/seo` (`Canonical.ts`, `OpenGraph.ts`), along with `schemas/opengraph.ts`. The adapter keeps only `services/OgService.ts`, which is genuinely I/O (filesystem probing of a configured local image). The plugin's `siteUrl` option is **removed**: the canonical URL comes from RSPress's own `siteOrigin` + `base` (both on `RspressConfigSubset`) via `deriveSiteUrl`. With no `siteOrigin` the URLs fall back to root-relative and the tags are still emitted — `sites/basic` sets `siteOrigin` + `ogImage`, so this path is exercised end to end
-- `src/serve.ts` — public `serve(options?)` dev/preview RSPress server runner (also exports `ServeOptions`/`ServeMode`/`ResolvedServeConfig`/`isServerReady`/`resolveServeConfig`); used by the sites' `lib/scripts/dev.mts`/`preview.mts`
-- `src/build-program.ts` — doc generation orchestration (5-stage pipeline)
-- `src/build-stages.ts` — Stream pipeline, page gen, file writes. **`generateSinglePage` builds the page's head tags** (OG resolve → `deriveScriptBody` → `headTags`) and assembles the final frontmatter BEFORE hashing it; `writeSingleFile` just writes `result.content`. Do not move head-tag construction back into the write stage — that is what made head tags invisible to change detection
-- `src/config-utils.ts` — pure config helpers shared by `layers/config-resolution.ts` and `plugin.ts`: `classifyApiConfig` (inert detection), `mergeLlmsPluginConfig`, dep extraction
+- `src/path-derivation.ts` — `deriveOutputPaths` only, the `docs/{locale}/{version}/…` layout the adapter owns; the scope helpers live in `@tsdoctor/pages` and are imported from there (no re-export here; the former `PathDerivationService` is deleted)
+- There is no `siteUrl` option: the canonical URL is RSPress's `siteOrigin` + `base` via `deriveSiteUrl`, falling back to root-relative with the tags still emitted (`sites/basic` exercises the full path); `services/OgService.ts` only probes a configured image
+- `src/serve.ts` — public `serve(options?)` dev/preview runner (+ `ServeOptions`/`ServeMode`/`ResolvedServeConfig`/`isServerReady`/`resolveServeConfig`); used by the sites' `lib/scripts/dev.mts`/`preview.mts`
+- `src/build-program.ts` — doc generation orchestration (5-stage pipeline); builds one `CrossLinker` per API and carries it in the pipeline context
+- `src/build-stages.ts` — Stream pipeline, page gen, file writes. `prepareWorkItems` is a reporting wrapper over `@tsdoctor/pages`' (emits `ItemSkipped` / `RouteCollisionDetected`, throws `Routes.RouteCollisionError`); `WorkItem` is the pages type over `CategoryConfig`. `generateSinglePage` is `buildPage` → `emitMdxBody` → `generateFrontmatter`; `writeMetadata` is `buildNav` → `src/emit/meta.ts`. **`generateSinglePage` builds the head tags** (OG resolve → `deriveScriptBody` → `headTags`) and assembles the final frontmatter BEFORE hashing; `writeSingleFile` just writes `result.content`. Never move head-tag construction back into the write stage — that made head tags invisible to change detection
+- `src/config-utils.ts` — pure config helpers: `classifyApiConfig` (inert detection), `mergeLlmsPluginConfig`, dep extraction
 - `src/config-helpers.ts` — `fromDir`/`fromParentDir` config builders, delegating discovery to `@tsdoctor/bundle`
 - `src/sync-node-fs.ts` — sync `FileSystem` bridge so bundle discovery runs under the sync helper API
 - `src/model-loader.ts` — plain functions over `@tsdoctor/model`'s `Model.load` (typed `ModelLoadError`)
-- `src/twoslash-transformer.ts` — the Shiki/Twoslash transformer per environment. It calls `toProgrammaticCompilerOptions` from `@tsdoctor/vfs`, the **single** seam converting the tsconfig spelling (`lib: ["esnext"]`) to the programmatic one (`lib.esnext.d.ts`). Fingerprint environments on the ENCODED value, or the two spellings build two identical environments
-- `src/twoslash-cache.ts` — persisted Twoslash result cache: env fingerprint, sync cache object, gzip codec
+- `src/twoslash-transformer.ts` — the Shiki/Twoslash transformer per environment; calls `toProgrammaticCompilerOptions` (`@tsdoctor/vfs`), the **single** tsconfig→programmatic seam. Fingerprint environments on the ENCODED value, or the two spellings build two identical environments
 - `src/observability/` — EventBus, PluginEvent taxonomy, sinks, heartbeat, span helpers, metric reporting
-  - `events.ts` — `PluginEvent` taggedEnum, `EventLevel`, `EventContext`, `levelOf`
+  - `events.ts` — `PluginEvent` taggedEnum, `EventLevel`, `EventContext`, `levelOf`. Every variant has an emit site and a sink case (the sweep removed those that did not) — read the file, not an older list
   - `EventBus.ts` — synchronous fan-out bus, `makeRuntimeEmitter`
   - `sync-emitter.ts` — the **one** sync-island bridge: `installSyncEmitter`, `emitSync`, `syncBuildId`, `syncSlowCodeBlockMs`
   - `sinks/` — `console-sink.ts`, `trace-sink.ts`, `metrics-sink.ts`, `issues-sink.ts`, `render-sink.ts`, `types.ts`
   - `metric-report.ts` — `seriesFor` / `codeBlockReport` over `Metric.snapshot`
   - `heartbeat.ts` — production-only `BuildProgress` heartbeat fiber
-  - `spans.ts` — `withPhase`, `withOp`, `PHASE_THRESHOLD_KEY`
+  - `spans.ts` — `withPhase` and `PHASE_THRESHOLD_KEY` (`withOp` is deleted — no production caller)
 - `src/schemas/` — Effect Schema definitions (config, performance, observability); `opengraph.ts` is deleted into `@tsdoctor/seo` and re-exported from `src/index.ts`. Import the concrete module, there is no barrel
-- `src/services/` — Effect service tags (`Context.Service`), each owning its live layer as a static plus, on five of them, `makeTest`/`layerTest` doubles
+- `src/services/` — Effect service tags (`Context.Service`), each owning its live layer as a static plus, on five of them, `makeTest`/`layerTest` doubles. `ResolvedApiConfig` has no `docsDir` (written, never read — deleted); `TwoslashCacheService.ts` persists `@tsdoctor/vfs`'s cache into the XDG `twoslash.sqlite` the VitePress adapter also reads
 - `src/layers/` — composition and shared layer pieces, no longer per-service `*Live` modules:
   - `AppLayer.ts` — `makeAppLayers(input)`, the tiered stack; returns both the `app` and `emitter` layers from one call
   - `config-resolution.ts` — `makeConfigService`, the effect behind `ConfigService.layer` (renamed from `ConfigServiceLive.ts`)
@@ -39,12 +38,13 @@ Loaded from `platforms/rspress/CLAUDE.md`.
   - `build-metrics.ts` — `BuildMetrics`, `MetricStore`/`makeMetricStore`; the **only** import path for `BuildMetrics`
   - `observability.ts` — `buildEventBus`, `BuiltSinks`, `makeSummaryLoggerLayer`, `logBuildSummary` (renamed from `ObservabilityLive.ts`; it no longer re-exports `BuildMetrics`)
   - `xdg.ts` — `TSDOCTOR_NAMESPACE`, `PlatformLive`, `AppDirsLive` — one home for both cache-backed layers
-- `src/internal-types.ts` — the few genuinely adapter-local types (`LoadedModel`, `PackageJson`) plus a re-export of `TypeResolutionCompilerOptions`/`TypeScriptConfig`/`CompilerOptionsInput` from `@tsdoctor/vfs`, which owns the compiler-options whitelist
-- `src/errors.ts` — `ConfigValidationError` and `TypeRegistryError` only; the four never-constructed classes are deleted and the surviving `TaggedError` bases are no longer exported
-- `src/markdown/` — page generators (class, enum, function, interface, etc.) plus `prose-linker.ts`, the module-level holder over the `@tsdoctor/model` `CrossLinker` (`setProseLinker`/`linkProse`); no barrel here either
+- `src/internal-types.ts` — adapter-local types (`LoadedModel`, `PackageJson`) plus re-exports of the `@tsdoctor/vfs` compiler-options types
+- `src/errors.ts` — `ConfigValidationError` and `TypeRegistryError` only; the `TaggedError` bases are not exported
+- `src/emit/` — the IR emitters: `mdx.ts` (`emitMdxBody`, `escapeMdxGenerics`; no byte-parity shim — the kit serializes `_`/`&` minimally since 0.8.0) and `meta.ts` (`renderRootMeta`, `renderCategoryMeta`, `emitIndexPage`)
+- `src/markdown/` — `helpers.ts` (`generateFrontmatter` only) and `shiki-utils.ts`; no barrel here either
 - `src/runtime/`, `src/runtime/components/` — React components for SSG-compatible rendering (SignatureBlock, etc.)
 
-The former `@tsdoctor/model` shims (`loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`, the class-based `model-loader.ts`) are **deleted** — call sites use the model's namespace modules directly. `multi-entry-resolver.ts`, `route-collisions.ts`, `synthetic-bases.ts` and then `api-extracted-package.ts`, `type-reference-extractor.ts` and `frontmatter.ts` moved into `@tsdoctor/model`; `tsconfig-parser.ts` and `typescript-config.ts` into `@tsdoctor/vfs`; `content-hash.ts` and `migrations/` into `@tsdoctor/snapshot`; `og-resolver.ts` and `schemas/opengraph.ts` into `@tsdoctor/seo`. `services/PathDerivationService.ts` and the five `layers/*ServiceLive.ts` modules are **deleted** — every layer is a static on its service class. Page generators stay plugin-local, and so does `category-resolver.ts`: it merges sidebar presentation and multiVersion product policy, not model vocabulary.
+Moved out, do not recreate here: the model shims (`loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) and `multi-entry-resolver.ts`, `route-collisions.ts`, `synthetic-bases.ts`, `api-extracted-package.ts`, `type-reference-extractor.ts`, `frontmatter.ts` → `@tsdoctor/model`; `tsconfig-parser.ts`, `typescript-config.ts`, `twoslash-cache.ts` → `@tsdoctor/vfs`; `prepareWorkItems` and the scope helpers → `@tsdoctor/pages`; `content-hash.ts`, `migrations/` → `@tsdoctor/snapshot`; `og-resolver.ts`, `schemas/opengraph.ts` → `@tsdoctor/seo`. Deleted outright: `services/PathDerivationService.ts`, the `layers/*ServiceLive.ts` modules (every layer is a static on its service), `markdown/page-generators/`, `markdown/prose-linker.ts`, `twoslash-patterns.ts`, `code-post-processor.ts` (pages come from `@tsdoctor/pages`, rendered by `src/emit/`). `category-resolver.ts` stays plugin-local: sidebar presentation and multiVersion product policy, not model vocabulary.
 
 Barrel modules are avoided here. A barrel counts as a consumer of everything it re-exports, hiding unused exports from any reachability check — deleting `schemas/index.ts` and `markdown/index.ts` immediately surfaced an orphan a first scan had scored live. Do not add one back.
 

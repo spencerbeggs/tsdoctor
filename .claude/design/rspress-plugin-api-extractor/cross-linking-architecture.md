@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: cross-linking
 created: 2026-01-17
-updated: 2026-09-02
-last-synced: 2026-09-02
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 90
 related:
   - rspress-plugin-api-extractor/page-generation-system.md
@@ -12,6 +12,7 @@ related:
   - rspress-plugin-api-extractor/ssg-compatible-components.md
   - rspress-plugin-api-extractor/import-generation-system.md
   - rspress-plugin-api-extractor/multi-entry-resolution.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 
@@ -30,6 +31,7 @@ dependencies: []
 - [VfsRegistry](#vfsregistry)
 - [Testing](#testing)
 - [File Locations](#file-locations)
+- [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -38,18 +40,12 @@ dependencies: []
 The cross-linking system turns type references into clickable links
 throughout generated API documentation. It operates at two levels:
 
-1. **Markdown text** -- the immutable `CrossLinker` from
-   `@tsdoctor/model`, installed per build through the
-   `markdown/prose-linker.ts` holder, replaces type names in prose
-   descriptions with `[TypeName](/route)` links during page generation.
+1. **Markdown text** -- the immutable `CrossLinker` from `@tsdoctor/model`, built once per API in `build-program.ts` and carried in the pipeline context into the `@tsdoctor/pages` builder, replaces type names in prose descriptions with `[TypeName](/route)` links before the prose is parsed into the IR.
 2. **Code blocks** -- `ShikiCrossLinker` post-processes Shiki HAST
    output to wrap type identifiers in `<a>` tags, including inside
    Twoslash hover tooltips.
 
-Both are installed once per API scope during the build and shared across
-all page generators and remark plugins — the prose side via a
-module-level holder (page generators run synchronously outside any
-service context), the code side via the `VfsRegistry`.
+Both are built once per API scope during the build from the same route map — the prose side travels as a value through `GenerateSinglePageContext` into `buildPage`, the code side is registered behind that scope's `VfsRegistry` entry for the remark plugins.
 
 ### Key Design Decisions
 
@@ -78,10 +74,10 @@ prepareWorkItems (build-stages.ts)
   ├─> Build kinds Map: typeName → apiItemKind (priority arbitration only)
   └─> Return crossLinkData: { routes, kinds }
          │
-         ├─> setProseLinker(crossLinkData.routes)
-         │     Installs CrossLinker.fromRoutes(routes) in the
-         │     prose-linker holder; both cross-linkers share the
-         │     single route map
+         ├─> CrossLinker.fromRoutes(crossLinkData.routes)
+         │     One immutable prose linker per API, passed as
+         │     `linker` in the pipeline context; both cross-linkers
+         │     share the single route map
          │
          ├─> ShikiCrossLinker.fromRoutes(routes, apiScope)
          │     A NEW immutable linker per API; builds classMembersMap
@@ -89,9 +85,9 @@ prepareWorkItems (build-stages.ts)
          └─> VfsRegistry.register(apiScope, { crossLinker, ... })
                Makes cross-linker available to remark plugins
 
-Page generation (page-generators/*.ts)
-  └─> linkProse(descriptionText)
-        Markdown text → markdown text with [TypeName](/route) links
+Page generation (build-stages.ts → @tsdoctor/pages Build.ts)
+  └─> buildPage({ …, linker }) → linker.link(text), then parse to mdast
+        Prose enters the IR already linked; the emitter serializes it
 
 Code block rendering (remark-api-codeblocks.ts)
   └─> VfsRegistry.get(apiScope).crossLinker.transformHast(hast)
@@ -103,20 +99,16 @@ Both cross-linkers consume the same `crossLinkData.routes` map built once in `pr
 ### Instances
 
 ```typescript
-// src/markdown/prose-linker.ts — module-level holder
-let current: CrossLinker = CrossLinker.empty;
-
-// src/build-program.ts — one immutable linker per API, per build
-const shikiCrossLinker = ShikiCrossLinker.fromRoutes(routes, apiScope);
+// src/build-program.ts — one immutable linker of each kind per API, per build
+const linker = CrossLinker.fromRoutes(crossLinkData.routes);          // → pipeline context
+const shikiCrossLinker = ShikiCrossLinker.fromRoutes(routes, apiScope); // → VfsRegistry
 ```
 
-Both sides are now immutable and built the same way. The prose side is a
-module-level holder over the model `CrossLinker`, swapped per build. The
-`ShikiCrossLinker` is constructed once per API in `generateApiDocs` and stored
-behind that scope's `VfsRegistry` entry, from which the remark plugins retrieve
-it.
+Both sides are immutable, built the same way and scoped the same way. The prose `CrossLinker` is constructed once per API in `generateApiDocs` and handed to the pipeline as `GenerateSinglePageContext.linker`, from which `generateSinglePage` passes it into `buildPage`. The `ShikiCrossLinker` is constructed beside it and stored behind that scope's `VfsRegistry` entry, from which the remark plugins retrieve it.
 
-This replaced a single long-lived instance created at plugin-factory time,
+**The prose side carried the same race the Shiki side did, until phase 5's RSPress switch.** From the pre-phase-4 refactor to 2026-09-02 it was a module-level holder (`markdown/prose-linker.ts`: `setProseLinker` / `linkProse` / `clearProseLinker`), swapped per API — necessary while the page generators ran synchronously outside any fiber, and racy because `generateApiDocs` runs per API at concurrency 2: whichever API installed the holder last owned it for every page generated afterwards. On `sites/versioned` the v1 pages linked into v2's default-version routes (`/api/class/logger` instead of `/v1/api/class/logger`); on `sites/multi` the effect-kit pages were linked against kitchensink's map, so `Encoded` was never linked. The IR builder runs inside the fiber, so the linker travels as a value and the holder is deleted; the two mislinked pages were the one labelled deviation in the golden gate (`doc-ir-and-pages.md`).
+
+This in turn replaced, on the Shiki side, a single long-lived instance created at plugin-factory time,
 threaded through the former `ConfigServiceLive` factory's constructor and the build context, and
 mutated per API by `reinitialize()`. Scope isolation used to be a property of
 internal `…ByScope` maps plus a mutable `currentApiScope` any caller could
@@ -129,15 +121,9 @@ another package's routes at all.
 
 ## Prose Cross-Linking
 
-**Locations:** `packages/model/src/CrossLinker.ts` (the linker) and
-`platforms/rspress/src/markdown/prose-linker.ts` (the adapter holder).
+**Locations:** `packages/model/src/CrossLinker.ts` (the linker) and `packages/pages/src/Build.ts` (the consumer).
 
-Transforms type references in plain markdown text into clickable links.
-Used by page generators to cross-link descriptions, parameter docs, and
-remarks. The phase-2 model redesign deleted the former
-`MarkdownCrossLinker` shell (`markdown/cross-linker.ts`); the plugin now
-consumes the `@tsdoctor/model` `CrossLinker` class directly through a
-15-line holder — adapter wiring, not logic.
+Transforms type references in plain markdown text into clickable links. The `@tsdoctor/pages` builders cross-link descriptions, parameter docs, returns, deprecation notices and see-also references before parsing them to mdast, so a prose block enters the IR already linked. The phase-2 model redesign deleted the former `MarkdownCrossLinker` shell (`markdown/cross-linker.ts`); the adapter's later `prose-linker.ts` holder is deleted too (see [Instances](#instances)) — the linker is now constructed in `build-program.ts` and consumed in the pages package, with no adapter wiring between them.
 
 ### CrossLinker (the model class)
 
@@ -159,20 +145,11 @@ longest-first matching, word-boundary regex and backtick/existing-link
 skipping, and (unlike the phase-1 library) has a first-class HTML
 variant, `linkHtml`.
 
-### The prose-linker holder
+### The per-API linker in the pipeline context
 
-```typescript
-// src/markdown/prose-linker.ts
-export function setProseLinker(routes: ReadonlyMap<string, string>): void;
-export function clearProseLinker(): void;  // reset to CrossLinker.empty
-export function linkProse(text: string): string;
-```
+`build-program.ts` builds `CrossLinker.fromRoutes(crossLinkData.routes)` once per API and passes it as `linker` in the pipeline input; `build-stages.ts` carries it on `GenerateSinglePageContext` and hands it to `buildPage` as `BuildPageInput.linker`. Inside `Build.ts` a private `linked(linker, text)` applies `linker.link` and parses the result as commonmark phrasing content. There is no module-level state on this path — the builder is an Effect run inside the pipeline fiber, which is what made the holder unnecessary.
 
-`build-program.ts` calls `setProseLinker(crossLinkData.routes)` per API
-build; page generators call `linkProse(text)`. Page generators run
-synchronously outside any service context, hence the module-level
-holder — the same shape as the sync-island event emitters
-(`performance-observability.md`).
+One carried quirk, recorded in `doc-ir-and-pages.md`: the summary paragraph is NOT cross-linked, because no generator linked it and the golden gate cannot see a fix. Normalizing that is a product change for a labelled commit.
 
 ### Route map contents
 
@@ -471,7 +448,7 @@ const regex = new RegExp(`\\b${name}\\b(?![a-zA-Z])`, "g");
 
 ### Conflict Avoidance
 
-**Prose linking** (the model `CrossLinker` behind `linkProse`):
+**Prose linking** (the model `CrossLinker`, via `Build.ts`'s `linked`):
 
 - Skips matches inside existing markdown links (checks for `](` or `[`
   prefix before the match offset).
@@ -498,7 +475,7 @@ false matches in multi-API builds.
 
 ## Backtick Code Span Safety
 
-Both the cross-linking path behind `linkProse()` and the `escapeMdxGenerics()` helper detect backtick code spans and skip processing inside them. The backtick-safety logic for cross-linking lives in the `@tsdoctor/model` `CrossLinker`; the algorithm below describes its behavior.
+Both `CrossLinker.link` and the RSPress emitter's `escapeMdxGenerics` (`src/emit/mdx.ts`) detect backtick code spans and skip processing inside them. The backtick-safety logic for cross-linking lives in the `@tsdoctor/model` `CrossLinker`; the algorithm below describes its behavior. Note that since phase 5 the emitter applies generics escaping on the mdast tree (a `Text` run becomes `InlineCode`) rather than on a string — the code-span rule holds by construction there, since an existing code span is already an `InlineCode` node.
 
 ### Problem
 
@@ -552,7 +529,7 @@ Cross-linkers are initialized in `generateApiDocs` using data from
 const { workItems, crossLinkData } = prepareWorkItems({ ... });
 
 // Both cross-linkers share the same pre-built route map
-setProseLinker(crossLinkData.routes);
+const linker = CrossLinker.fromRoutes(crossLinkData.routes);   // → pipeline context
 const shikiCrossLinker = ShikiCrossLinker.fromRoutes(
   crossLinkData.routes,
   apiScope,
@@ -571,28 +548,20 @@ VfsRegistry.register(apiScope, {
 });
 ```
 
-### 2. Page Generation
+### 2. Page building
 
-**Location:** `src/markdown/page-generators/*.ts`
+**Location:** `packages/pages/src/Build.ts`, called from `generateSinglePage` (`src/build-stages.ts`)
 
-All page generators import `linkProse` from the prose-linker holder and
-apply cross-linking to description text:
+The builders receive the linker as `BuildPageInput.linker` and link prose while converting it to mdast:
 
 ```typescript
-import { linkProse } from "../prose-linker.js";
-
-// In generator methods:
-const summary = linkProse(rawSummary);
-const description = linkProse(rawDescription);
+// packages/pages/src/Build.ts
+function linked(linker: CrossLinker, text: string): ReadonlyArray<PhrasingContent> {
+  return phrasing(linker.link(text));
+}
 ```
 
-Cross-linking is applied to:
-
-- Class/interface summaries and remarks
-- Constructor and method parameter descriptions
-- Property descriptions
-- Return type descriptions
-- `@see` and `@link` tag content
+Cross-linking is applied to member summaries and returns, parameter descriptions, the deprecation notice, the function returns section, enum member descriptions, see-also references and namespace member-index summaries — and NOT to the summary paragraph (a carried generator quirk, see above).
 
 ### 3. Code Block Rendering
 
@@ -669,9 +638,10 @@ in a fixture build.
 | Subject | Test file |
 | --- | --- |
 | `CrossLinker` (`link`, `linkHtml`, matching/backtick behavior) | `packages/model/__test__/cross-linker.test.ts`, `cross-linker-behavior.test.ts` |
+| Builders linking prose into the IR | `packages/pages/__test__/build.test.ts` |
 | ShikiCrossLinker (three-phase HAST transform, scope isolation) | `platforms/rspress/__test__/shiki-transformer.test.ts` |
 | VfsRegistry (scope registration, `clear`) | `platforms/rspress/__test__/vfs-registry.test.ts` |
-| Member anchor / page-id agreement | `platforms/rspress/__test__/markdown/anchor-invariant.test.ts` |
+| Member anchor / page-id agreement (runs `prepareWorkItems` → `buildPage` → `emitMdxBody` and reads the ids from the emitted MDX) | `platforms/rspress/__test__/markdown/anchor-invariant.test.ts` |
 | `Routes.memberAnchors` / `memberRouteKeys` | `packages/model/__test__/routes.test.ts` |
 
 ---
@@ -684,12 +654,12 @@ in a fixture build.
 | `packages/model/src/Routes.ts` | `RouteCandidate`, `detectCollisions`, `RouteCollisionError`, `sanitizeId`, `memberAnchor`, `memberAnchors`, `memberRouteKeys`, `MemberRef`/`MemberSlot` |
 | `packages/model/src/ApiItems.ts` | `memberAnchors(item)` / `memberRouteKeys(item)` — the `ApiItem` view of the above |
 | `packages/model/src/SyntheticBases.ts` | `SyntheticBases.detect` + `BASE_CLASS_ANCHOR` |
-| `src/markdown/prose-linker.ts` | Module-level prose-linker holder (`setProseLinker`/`linkProse`) |
 | `src/shiki-transformer.ts` | ShikiCrossLinker class + HAST transformation |
 | `src/vfs-registry.ts` | VfsRegistry connecting cross-linker to remark |
-| `src/build-program.ts` | Per-API `ShikiCrossLinker.fromRoutes` construction |
+| `packages/pages/src/Build.ts` | The `ApiItem` → `Page` builders that consume the prose `CrossLinker` |
+| `src/build-program.ts` | Per-API `CrossLinker.fromRoutes` and `ShikiCrossLinker.fromRoutes` construction |
 | `src/build-stages.ts` | Route/kinds map construction in prepareWorkItems |
-| `src/markdown/helpers.ts` | `escapeMdxGenerics()` with backtick safety |
+| `src/emit/mdx.ts` | `escapeMdxGenerics()` with backtick safety, and its mdast-tree form the emitter applies |
 | `src/remark-api-codeblocks.ts` | Generated code block cross-linking |
 | `src/remark-with-api.ts` | User-authored code block cross-linking |
 
@@ -727,6 +697,7 @@ in a fixture build.
    treatment from route anchors, that is a design change, not a local helper.
 3. **HTML cross-links in tooltips** -- Phase 2 Twoslash tooltip parsing
    uses a regex that may not match all TypeScript declaration forms
+4. **Prose-linker race — FIXED (2026-09-02, phase 5).** The module-level `prose-linker.ts` holder was installed per API while `generateApiDocs` ran concurrently, so a page could be linked against another API's route map (see [Instances](#instances) for the two fixture pages it mislinked). The linker now travels per API in the pipeline context. Do not reintroduce a module-level prose linker: anything the builders need reaches them as a value on `BuildPageInput`.
 
 ---
 
@@ -734,6 +705,8 @@ in a fixture build.
 
 - **Page Generation System:**
   `page-generation-system.md` -- Stream pipeline using cross-link data
+- **Doc IR and `@tsdoctor/pages`:**
+  `doc-ir-and-pages.md` -- the builders that consume the prose linker, and the golden gate that surfaced the race
 - **SSG Compatible Components:**
   `ssg-compatible-components.md` -- Runtime components rendering
   cross-linked code blocks

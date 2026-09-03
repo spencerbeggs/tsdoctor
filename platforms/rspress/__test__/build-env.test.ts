@@ -18,7 +18,7 @@ import { BuildId, Thresholds } from "../src/BuildEnv.js";
 import { emit, makeEventBusLayer } from "../src/observability/EventBus.js";
 import type { PluginEvent } from "../src/observability/events.js";
 import { PluginEvent as PE } from "../src/observability/events.js";
-import { withOp, withPhase } from "../src/observability/spans.js";
+import { withPhase } from "../src/observability/spans.js";
 import {
 	clearSyncEmitter,
 	emitSync,
@@ -33,7 +33,6 @@ const THRESHOLDS: ResolvedObservability["thresholds"] = {
 	slowPageGeneration: 500,
 	slowApiLoad: 1000,
 	slowFileOperation: 50,
-	slowHttpRequest: 2000,
 	slowDbOperation: 100,
 };
 
@@ -122,7 +121,7 @@ describe("withPhase reads Thresholds from context", () => {
 	it("reports the provided threshold in the event, not the default", async () => {
 		const { seen, layer } = recordingBus();
 		await Effect.runPromise(
-			withOp("modelLoad", { packageName: "p" }, Effect.succeed(1), "slowApiLoad").pipe(
+			withPhase("modelLoad", { packageName: "p" }, Effect.succeed(1)).pipe(
 				Effect.provide(layer),
 				Effect.provide(Layer.succeed(Thresholds, { ...THRESHOLDS, slowApiLoad: 0 })),
 			),

@@ -36,6 +36,7 @@
 		"@effected/memfs": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
 		"@savvy-web/bundler": "^2.1.29",
+		"@shikijs/twoslash": "^4.4.3",
 		"@types/node": "catalog:build",
 		"@typescript/vfs": "^1.6.4",
 		"effect": "catalog:effect",
@@ -43,11 +44,15 @@
 	},
 	"peerDependencies": {
 		"@effected/tsconfig-json": "catalog:effected",
+		"@shikijs/twoslash": "^4.4.3",
 		"@typescript/vfs": "^1.6.4",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
 	},
 	"peerDependenciesMeta": {
+		"@shikijs/twoslash": {
+			"optional": true
+		},
 		"@typescript/vfs": {
 			"optional": true
 		},

@@ -39,8 +39,6 @@ function render(event: PluginEvent): string {
 			return `${event.field}: rejected '${event.value}'${event.reason ? ` — ${event.reason}` : ""}`;
 		case "ModelLoaded":
 			return `loaded model: ${event.itemCount} items, ${event.entryPoints} entry point(s) (${event.durationMs}ms)`;
-		case "ConfigResolved":
-			return `resolved ${event.baseRoute}: ${event.categoryCount} categories, ${event.externalCount} external`;
 		case "TwoslashDiagnostic":
 			return `Twoslash TS${event.code} in ${event.file}:${event.line}:${event.col}: ${event.message}`;
 		case "TwoslashCheckFailed":

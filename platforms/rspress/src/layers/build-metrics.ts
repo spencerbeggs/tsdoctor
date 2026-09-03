@@ -124,5 +124,4 @@ export const BuildMetrics = {
 	vfsFiles: Metric.counter("vfs.files"),
 	importsPrepended: Metric.counter("imports.prepended"),
 	twoslashDiagnostics: Metric.counter("twoslash.diagnostics"),
-	configDefaultsApplied: Metric.counter("config.defaults.applied"),
 } as const;

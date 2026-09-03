@@ -128,7 +128,6 @@ Each category is an object:
 | `singularName` | string | required | Singular label used in page titles. |
 | `folderName` | string | required | URL/folder segment for items in this category. |
 | `itemKinds` | API item kind array | — | Which API Extractor item kinds belong here. |
-| `tsdocModifier` | string | — | Route items carrying a given TSDoc modifier into this category. |
 | `collapsible` | boolean | `true` | Whether the sidebar group can collapse. |
 | `collapsed` | boolean | `true` | Whether the group starts collapsed. |
 | `overviewHeaders` | number array | `[2]` | Heading levels surfaced in the overview. |
@@ -226,7 +225,7 @@ api: {
 }
 ```
 
-Each spec takes `name` and `version`, plus an optional `tsconfig` and `compilerOptions` that control how that package's types load.
+Each spec takes `name` and `version`. The compiler configuration that examples are checked under is the API-level `tsconfig` / `compilerOptions`, not a per-package setting.
 
 ## Twoslash result cache
 

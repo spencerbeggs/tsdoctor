@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escapeMdxGenerics } from "../../src/markdown/helpers.js";
+import { escapeMdxGenerics } from "../../src/emit/mdx.js";
 
 describe("escapeMdxGenerics", () => {
 	it("should wrap generics in backticks", () => {

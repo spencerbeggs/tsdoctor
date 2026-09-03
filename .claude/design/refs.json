@@ -4,7 +4,7 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/build-architecture.md",
-			"hash": "41fca8f20b83c1c28ec3dedd0f46011c9695f6c671152fc1c9be363ab4914b43",
+			"hash": "9242f7e18dbc70bece4a515f8ebae1d5a519326af1700ab5c42b409ec05a3387",
 			"recordedAt": "2026-09-02"
 		},
 		{
@@ -22,14 +22,20 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md",
-			"hash": "541bf1dce2df85eb1e8d2b49d2569073c9be36f1a5600d4112368db8969b1dbf",
+			"hash": "0936728dbff0480dfd95b6421153b9833bb99841ab129253b0c1f5a9c6c25a66",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md",
+			"hash": "108bef25c207dc12e332669fa762f9dfe12e1a101fa5d7d1fe770219000aeb75",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/error-observability.md",
-			"hash": "44d243d9bd51b3460ed72824734cc5c28c6cd3df6c0cd3380d39f343da6f5102",
-			"recordedAt": "2026-08-25"
+			"hash": "1a0a5f244b8dc8e7c4db69999d84a080a3e315c585b63ba2d4636013c4a45a35",
+			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "CLAUDE.md",
@@ -40,8 +46,8 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/llms-integration.md",
-			"hash": "568f58f8d5d05f3f20c7796f56cb09a126c2b7b626dad5a0d87e3002dfed9d3e",
-			"recordedAt": "2026-08-24"
+			"hash": "070ddff38714fd57b2fca1b46595b08acd0c06f94168788bdff43f871f70e75d",
+			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "CLAUDE.md",
@@ -58,8 +64,8 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/multi-entry-resolution.md",
-			"hash": "994c405d53ae1746929f55506952e05947e69a7bb6feda1ea3d31957f6cf8e4f",
-			"recordedAt": "2026-08-25"
+			"hash": "8509f1e09c1683d5112073702b1fb422936d827897505a657aa6530f105f73fb",
+			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "CLAUDE.md",
@@ -70,25 +76,25 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/page-generation-system.md",
-			"hash": "a972c3b90097ad206d53a2dff49947b69825c9893b224f87d4b1629e70ab2d3d",
+			"hash": "62598dcd019a5f7e96f1a1bf0f17779f9a0966e3101772bc591dc28d05c6fbbc",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/performance-observability.md",
-			"hash": "a078c1981010cc9c94893094e4e5c208b023f66ca57f360502a9273e4660244e",
+			"hash": "00989fa00e9fb7e332176e980c5baf8b3d709dca468dc8ebbf38b7d31357719c",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md",
-			"hash": "ee108cb1a592554d4c3b11f9ef8de154e995ef6f899684dd58589f93ae498aba",
+			"hash": "e29a95e1b202e275049102fc0de5d391da0e1dbc85908f65f9be5fcc3e919cef",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/roadmap-1.0.md",
-			"hash": "7923d8e21dbcbd5ca04809d1c22bf9c46fca3bcc85a7cc800fce1d6dda53a95a",
+			"hash": "4a81938e1635588f1bb52e98352402452aefc18a92f5b305ce768b0fb29246c8",
 			"recordedAt": "2026-09-02"
 		},
 		{
@@ -106,19 +112,19 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/structured-data-and-og.md",
-			"hash": "1aa21e3705e691c9c8483ba9db265f822a6802c3368e8c1e4a12a98d38fe6c49",
+			"hash": "9ee795639a3780de0e709eac151147da445b775ef4e1f0c65bc94354fcef9dcc",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md",
-			"hash": "06031e3fa5f911a7c1ef4efd9507f91f96e429dfe0a879dfc197a17778b5ed37",
+			"hash": "95d0a847f7b8c4fa047e7d503af9661a8c3d9b49a8b1e4ca39ba5634e5d50f84",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/type-loading-vfs.md",
-			"hash": "d620959ae3e726f406a9244d228743d0cffd29cf1a798ce32dd7e22a5d377b40",
+			"hash": "0c6c5398c4467c3319f57b504afb1180c40a1670c4be157311a1b6ee61f00e48",
 			"recordedAt": "2026-09-02"
 		},
 		{
@@ -142,25 +148,49 @@
 		{
 			"source": "packages/model/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/build-architecture.md",
-			"hash": "41fca8f20b83c1c28ec3dedd0f46011c9695f6c671152fc1c9be363ab4914b43",
+			"hash": "9242f7e18dbc70bece4a515f8ebae1d5a519326af1700ab5c42b409ec05a3387",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "packages/model/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md",
-			"hash": "541bf1dce2df85eb1e8d2b49d2569073c9be36f1a5600d4112368db8969b1dbf",
+			"hash": "0936728dbff0480dfd95b6421153b9833bb99841ab129253b0c1f5a9c6c25a66",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "packages/model/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/multi-entry-resolution.md",
-			"hash": "994c405d53ae1746929f55506952e05947e69a7bb6feda1ea3d31957f6cf8e4f",
-			"recordedAt": "2026-08-25"
+			"hash": "8509f1e09c1683d5112073702b1fb422936d827897505a657aa6530f105f73fb",
+			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "packages/model/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md",
-			"hash": "06031e3fa5f911a7c1ef4efd9507f91f96e429dfe0a879dfc197a17778b5ed37",
+			"hash": "95d0a847f7b8c4fa047e7d503af9661a8c3d9b49a8b1e4ca39ba5634e5d50f84",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "packages/pages/CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md",
+			"hash": "0936728dbff0480dfd95b6421153b9833bb99841ab129253b0c1f5a9c6c25a66",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "packages/pages/CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md",
+			"hash": "108bef25c207dc12e332669fa762f9dfe12e1a101fa5d7d1fe770219000aeb75",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "packages/pages/CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/page-generation-system.md",
+			"hash": "62598dcd019a5f7e96f1a1bf0f17779f9a0966e3101772bc591dc28d05c6fbbc",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "packages/pages/CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md",
+			"hash": "95d0a847f7b8c4fa047e7d503af9661a8c3d9b49a8b1e4ca39ba5634e5d50f84",
 			"recordedAt": "2026-09-02"
 		},
 		{
@@ -219,20 +249,26 @@
 		},
 		{
 			"source": "packages/vfs/CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md",
+			"hash": "e29a95e1b202e275049102fc0de5d391da0e1dbc85908f65f9be5fcc3e919cef",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "packages/vfs/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md",
-			"hash": "06031e3fa5f911a7c1ef4efd9507f91f96e429dfe0a879dfc197a17778b5ed37",
+			"hash": "95d0a847f7b8c4fa047e7d503af9661a8c3d9b49a8b1e4ca39ba5634e5d50f84",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "packages/vfs/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/type-loading-vfs.md",
-			"hash": "d620959ae3e726f406a9244d228743d0cffd29cf1a798ce32dd7e22a5d377b40",
+			"hash": "0c6c5398c4467c3319f57b504afb1180c40a1670c4be157311a1b6ee61f00e48",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/build-architecture.md",
-			"hash": "41fca8f20b83c1c28ec3dedd0f46011c9695f6c671152fc1c9be363ab4914b43",
+			"hash": "9242f7e18dbc70bece4a515f8ebae1d5a519326af1700ab5c42b409ec05a3387",
 			"recordedAt": "2026-09-02"
 		},
 		{
@@ -250,14 +286,20 @@
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md",
-			"hash": "541bf1dce2df85eb1e8d2b49d2569073c9be36f1a5600d4112368db8969b1dbf",
+			"hash": "0936728dbff0480dfd95b6421153b9833bb99841ab129253b0c1f5a9c6c25a66",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "platforms/rspress/CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md",
+			"hash": "108bef25c207dc12e332669fa762f9dfe12e1a101fa5d7d1fe770219000aeb75",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/error-observability.md",
-			"hash": "44d243d9bd51b3460ed72824734cc5c28c6cd3df6c0cd3380d39f343da6f5102",
-			"recordedAt": "2026-08-25"
+			"hash": "1a0a5f244b8dc8e7c4db69999d84a080a3e315c585b63ba2d4636013c4a45a35",
+			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "platforms/rspress/CLAUDE.md",
@@ -268,8 +310,8 @@
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/llms-integration.md",
-			"hash": "568f58f8d5d05f3f20c7796f56cb09a126c2b7b626dad5a0d87e3002dfed9d3e",
-			"recordedAt": "2026-08-24"
+			"hash": "070ddff38714fd57b2fca1b46595b08acd0c06f94168788bdff43f871f70e75d",
+			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "platforms/rspress/CLAUDE.md",
@@ -280,8 +322,8 @@
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/multi-entry-resolution.md",
-			"hash": "994c405d53ae1746929f55506952e05947e69a7bb6feda1ea3d31957f6cf8e4f",
-			"recordedAt": "2026-08-25"
+			"hash": "8509f1e09c1683d5112073702b1fb422936d827897505a657aa6530f105f73fb",
+			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "platforms/rspress/CLAUDE.md",
@@ -292,19 +334,19 @@
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/page-generation-system.md",
-			"hash": "a972c3b90097ad206d53a2dff49947b69825c9893b224f87d4b1629e70ab2d3d",
+			"hash": "62598dcd019a5f7e96f1a1bf0f17779f9a0966e3101772bc591dc28d05c6fbbc",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/performance-observability.md",
-			"hash": "a078c1981010cc9c94893094e4e5c208b023f66ca57f360502a9273e4660244e",
+			"hash": "00989fa00e9fb7e332176e980c5baf8b3d709dca468dc8ebbf38b7d31357719c",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md",
-			"hash": "ee108cb1a592554d4c3b11f9ef8de154e995ef6f899684dd58589f93ae498aba",
+			"hash": "e29a95e1b202e275049102fc0de5d391da0e1dbc85908f65f9be5fcc3e919cef",
 			"recordedAt": "2026-09-02"
 		},
 		{
@@ -322,13 +364,31 @@
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/structured-data-and-og.md",
-			"hash": "1aa21e3705e691c9c8483ba9db265f822a6802c3368e8c1e4a12a98d38fe6c49",
+			"hash": "9ee795639a3780de0e709eac151147da445b775ef4e1f0c65bc94354fcef9dcc",
 			"recordedAt": "2026-09-02"
 		},
 		{
 			"source": "platforms/rspress/CLAUDE.md",
 			"target": ".claude/design/rspress-plugin-api-extractor/type-loading-vfs.md",
-			"hash": "d620959ae3e726f406a9244d228743d0cffd29cf1a798ce32dd7e22a5d377b40",
+			"hash": "0c6c5398c4467c3319f57b504afb1180c40a1670c4be157311a1b6ee61f00e48",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "platforms/vitepress/CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md",
+			"hash": "108bef25c207dc12e332669fa762f9dfe12e1a101fa5d7d1fe770219000aeb75",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "platforms/vitepress/CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/structured-data-and-og.md",
+			"hash": "9ee795639a3780de0e709eac151147da445b775ef4e1f0c65bc94354fcef9dcc",
+			"recordedAt": "2026-09-02"
+		},
+		{
+			"source": "platforms/vitepress/CLAUDE.md",
+			"target": ".claude/design/rspress-plugin-api-extractor/type-loading-vfs.md",
+			"hash": "0c6c5398c4467c3319f57b504afb1180c40a1670c4be157311a1b6ee61f00e48",
 			"recordedAt": "2026-09-02"
 		}
 	]

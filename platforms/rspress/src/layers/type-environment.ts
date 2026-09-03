@@ -10,7 +10,7 @@
  * @packageDocumentation
  */
 
-import { resolveTypeScriptConfig } from "@tsdoctor/vfs";
+import { resolveTypeScriptConfig, twoslashEnvHash } from "@tsdoctor/vfs";
 import { Effect } from "effect";
 import ts from "typescript";
 import { ConfigValidationError } from "../errors.js";
@@ -19,7 +19,6 @@ import { emit } from "../observability/EventBus.js";
 import { PluginEvent } from "../observability/events.js";
 import { TwoslashCacheService } from "../services/TwoslashCacheService.js";
 import { TwoslashEnvironments } from "../services/TwoslashEnvironments.js";
-import { twoslashEnvHash } from "../twoslash-cache.js";
 
 /**
  * Resolve a TypeScript configuration, failing typed on a malformed one.

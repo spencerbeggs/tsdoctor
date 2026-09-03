@@ -15,9 +15,9 @@ import type { RegisterEnvironmentOptions } from "./services/TwoslashEnvironments
 
 /**
  * Module-level type routes map for resolving link references.
- * This is set by TwoslashManager.setTypeRoutes() before initialization.
+ * Populated per build by `addTypeRoutes` and reset by `clearTypeRoutes`.
  */
-let typeRoutes: Map<string, string> = new Map();
+const typeRoutes: Map<string, string> = new Map();
 
 /**
  * Transform TSDoc link tag syntax to markdown links or plain text.
@@ -559,16 +559,11 @@ export class TwoslashEnvironmentRegistry {
  * These were `static` members of the old singleton, but they are cross-link
  * DATA, not type-checking state — they only ever read and wrote the
  * module-level `typeRoutes` map above, and they share their concern with
- * `markdown/prose-linker.ts` rather than with the environment registry. They
+ * the prose cross-linker rather than with the environment registry. They
  * are deliberately NOT part of {@link TwoslashEnvironments}: folding them in
  * would widen the service's surface with state that has nothing to do with
  * compiler configurations.
  */
-
-/** Replace the type routes map wholesale. */
-export function setTypeRoutes(routes: Map<string, string>): void {
-	typeRoutes = routes;
-}
 
 /** Merge routes in, so a multi-API build accumulates every scope's names. */
 export function addTypeRoutes(routes: Map<string, string>): void {

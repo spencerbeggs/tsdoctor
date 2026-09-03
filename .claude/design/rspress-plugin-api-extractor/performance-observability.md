@@ -3,8 +3,8 @@ status: current
 module: rspress-plugin-api-extractor
 category: observability
 created: 2026-01-17
-updated: 2026-09-02
-last-synced: 2026-09-02
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 90
 related:
   - rspress-plugin-api-extractor/build-progress-and-issues.md
@@ -87,22 +87,33 @@ requiring `R = never` so they are safe to call from any effect.
 
 **Location:** `platforms/rspress/src/observability/events.ts`
 
-`PluginEvent` is a `Data.TaggedEnum` with approximately 40 variants organized
-across seven subsystems:
+`PluginEvent` is a `Data.TaggedEnum` with 36 variants organized across seven
+subsystems:
 
 | Subsystem | Representative events |
 | --------- | --------------------- |
 | Lifecycle | `BuildStarted`, `BuildCompleted`, `BuildProgress`, `ApiDocsCompleted`, `PhaseStarted`, `PhaseCompleted`, `SlowOperation` |
-| Config parse / merge | `OptionsDecoded`, `DefaultApplied`, `ConfigResolved` |
+| Config resolution | `ConfigCascadeWarning`, `ConfigValidationWarning` |
 | Model loading | `ModelLoaded`, `ModelLoadFailed` |
-| Type loading / VFS | `VfsGenerated`, `ImportsPrepended`, `TypeRegistryEvent` |
-| Multi-entry / routing | `EntryPointResolved`, `RouteCollisionDetected`, `ItemSkipped` (an item no category matched — surfaced per item from the `ApiItems.categorize` `uncategorized` result) |
+| Type loading / VFS | `VfsGenerated`, `VfsMerged`, `ImportsPrepended`, `TypeRegistryEvent`, `ExternalPackageSkipped`, `TsCacheCreated`, `TwoslashInitialized`, `TwoslashCacheLoaded`, `TwoslashCacheSaved` |
+| Routing | `RouteCollisionDetected`, `ItemSkipped` (an item no category matched — surfaced per item from the `ApiItems.categorize` `uncategorized` result) |
 | Page gen / code blocks | `PageGenerated`, `CodeBlockProcessed`, `TwoslashDiagnostic`, `TwoslashCheckFailed`, `PrettierError`, `ShikiError` |
-| Write / snapshot / cleanup | `FileDecision`, `SnapshotUpdated`, `StaleFileRemoved`, `OrphanFileRemoved` |
-| LLMs | `LlmsPackageFilesGenerated`, `LlmsGlobalFilesRewritten` |
+| Write / cleanup | `FileDecision`, `StaleDeleted`, `OrphanDeleted`, `EmptyDirRemoved` |
+| LLMs | `LlmsRoutesBuilt`, `LlmsPrefixProcessed`, `LlmsPackageFilesGenerated` |
 
 `levelOf(event)` extracts `event.level`. Every variant carries a `level` field
 of type `EventLevel`.
+
+**A variant with no emit site is deleted, not kept.** The 2026-09-02 dead-code
+sweep (`8ef0aa0`) removed fifteen variants nothing emitted — `OptionsDecoded`,
+`DefaultApplied`, `BaseRouteResolved`, `ConfigMerged`,
+`AutoDetectedDependencies`, `ConfigResolved`, `ModelLoadStarted`,
+`TypeReferenceClassified`, `EntryPointResolved`, `ReExportDeduplicated`,
+`RouteCandidateBuilt`, `CrossLinkRouteRegistered`, `CrossLinkApplied`,
+`MetadataWritten`, `SnapshotBatchCommitted` — along with the console-sink and
+metrics-sink cases behind two of them (`ConfigResolved` was rendered and
+`DefaultApplied` counted by sinks nothing ever fed). A taxonomy entry the code
+cannot produce is a promise the trace and the issues artifact cannot keep.
 
 **Known limitation:** `BuildStarted.mode` is always `"prod"` regardless of
 whether `rspress dev` or `rspress build` is running.
@@ -247,7 +258,6 @@ for the `.api-docs/` directory this trace file now lives in, alongside `issues.j
 | `VfsGenerated` | `vfsFiles` |
 | `ImportsPrepended` | `importsPrepended` |
 | `PhaseCompleted` | `phaseDuration`, `phaseTimeMs` |
-| `DefaultApplied` | `configDefaultsApplied` |
 
 Every mapped event still updates the plain counter/histogram the summary reads for build-wide totals. `FileDecision`, `TwoslashDiagnostic`, `PrettierError`, `ShikiError`, `CodeBlockProcessed` and `PhaseCompleted` additionally record a `Metric.withAttributes` copy tagged with bounded dimensions (scope, status, component, TS code, phase) — `ShikiError` used to hit the sink's `default` branch and reach no metric at all. The dimensional recording pattern, the full attribute set per metric and the reader (`metric-report.ts`) that breaks a series down are documented in `render-phase-instrumentation.md`; this table stays the map of event to metric NAME. Any other tag not listed here hits the `default` branch and is silently ignored.
 
@@ -282,7 +292,7 @@ The heartbeat only covers the `config()` doc-generation phase (`resolve` + `gene
 
 **Location:** `platforms/rspress/src/observability/spans.ts`
 
-Two helpers wrap Effects in `Effect.withSpan` and emit timing events:
+One helper wraps an Effect in `Effect.withSpan` and emits timing events:
 
 ### `withPhase(phase, ctx, effect)`
 
@@ -302,14 +312,11 @@ started. Phase names map to threshold keys via `PHASE_THRESHOLD_KEY`:
 | `"write"` | `slowFileOperation` |
 | `"cleanup"` | `slowDbOperation` |
 
-### `withOp(operation, ctx, effect, thresholdKey?)`
+`withOp` — a sibling that emitted only `SlowOperation` against a named
+threshold key, for sub-operation timing inside a phase — is **deleted**
+(`8ef0aa0`): it had no production caller, only its own test.
 
-No phase events — emits `SlowOperation` only if the duration exceeds the named
-threshold. Takes a **key** into `Thresholds` (default `"slowApiLoad"`) rather
-than a number, and reads the value from the Reference. Used for sub-operation
-timing inside a phase.
-
-Both helpers call `Effect.withSpan`, which creates OpenTelemetry-compatible
+`withPhase` calls `Effect.withSpan`, which creates OpenTelemetry-compatible
 spans in the Effect fiber context. **No OTLP exporter is wired in the live
 plugin.** The spans are a dormant seam for future integration.
 
@@ -454,7 +461,7 @@ seams are deleted. See `build-progress-and-issues.md`.
 | `src/observability/metric-report.ts` | `seriesFor`, `codeBlockReport` over `Metric.snapshot` — see `render-phase-instrumentation.md` |
 | `src/observability/sinks/issues-sink.ts` | Issues collector sink, `eventToIssue`, `writeIssuesJson` — see `build-progress-and-issues.md` |
 | `src/observability/heartbeat.ts` | Progress heartbeat fiber, `BuildProgress` event builder, `formatProgress` — see `build-progress-and-issues.md` |
-| `src/observability/spans.ts` | `withPhase`, `withOp`, `PHASE_THRESHOLD_KEY` (thresholds read from the `Thresholds` Reference) |
+| `src/observability/spans.ts` | `withPhase`, `PHASE_THRESHOLD_KEY` (thresholds read from the `Thresholds` Reference) |
 | `src/observability/sync-emitter.ts` | The one sync-island bridge: `installSyncEmitter`, `emitSync`, `syncBuildId`, `syncSlowCodeBlockMs` |
 | `src/BuildEnv.ts` | `BuildId`, `Thresholds`, `PageConcurrency`, `SuppressExampleErrors` References |
 | `src/layers/build-metrics.ts` | `BuildMetrics` counters and histograms, `MetricStore`/`makeMetricStore` |

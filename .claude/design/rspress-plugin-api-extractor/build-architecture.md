@@ -3,10 +3,11 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-09-02
-last-synced: 2026-09-02
+updated: 2026-09-03
+last-synced: 2026-09-03
 completeness: 90
 related:
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
   - rspress-plugin-api-extractor/component-development.md
   - rspress-plugin-api-extractor/ssg-compatible-components.md
   - rspress-plugin-api-extractor/snapshot-tracking-system.md
@@ -132,7 +133,7 @@ The deferring forms used here are `Layer.suspend(() => …)` for a layer composi
 | Reference | Default | Read by |
 | --- | --- | --- |
 | `BuildId` | `""` | `EventBus.emit` (fills `ctx.buildId`), `sync-emitter.ts` |
-| `Thresholds` | the `ResolvedObservability` defaults | `withPhase` / `withOp` (`observability/spans.ts`) |
+| `Thresholds` | the `ResolvedObservability` defaults | `withPhase` (`observability/spans.ts`) |
 | `PageConcurrency` | `1` (`plugin.ts` provides `os.cpus().length`) | `build-program.ts` |
 | `SuppressExampleErrors` | `true` | `build-program.ts` |
 
@@ -185,8 +186,8 @@ The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned through the `cat
 The v3 peer-closure block (`@effect/cluster`, `@effect/experimental`, `@effect/rpc`, `@effect/workflow`) has been **removed**: the v4 peer graph is small enough that issue #69's escaping-peer problem no longer applies in that form. The closure principle still holds, though — because the per-file plugin build leaves `dependencies` external, any unclosed non-optional peer escapes to the consuming workspace where pnpm `autoInstallPeers` can bind it unpredictably. As of phase 2 the closure lives in the plugin's `dependencies` block (only `@rspress/core`/`react`/`react-dom` remain peers):
 
 - `ioredis` — non-optional peer of the `@effect/platform-node` v4 beta.
-- The full `@effected` surface the six `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling, now behind `@tsdoctor/model`), alongside `@typescript/vfs`. The released effected round-1 kit wave added two more: `@effected/jsonc` (canonical JSON-value hashing behind `@tsdoctor/bundle`'s `BundleHash.ts`) and `@effected/markdown` (frontmatter fence grammar and block assembly behind `@tsdoctor/model`'s `Frontmatter.ts` and, transitively, its prose/render internals). Round 2 (phase 4) added `@effected/schema-org@0.1.0` behind `@tsdoctor/seo`, alongside `@effected/spdx@0.5.0` and `@effected/package-json@0.13.0`, and bumped the `@effected/pnpm-plugin-effect` config dependency in `pnpm-workspace.yaml` to `0.6.11` to carry the schema-org catalog entry. `@effected/package-json` is now a DIRECT plugin import as well as a closure entry — `layers/config-resolution.ts` decodes each API's `package.json` through `PackageManifest`.
-- The six core workspaces themselves: `@tsdoctor/vfs`, `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot` and `@tsdoctor/seo`, each `workspace:*`.
+- The full `@effected` surface the seven `@tsdoctor/*` workspaces ride on, all via `catalog:effected`: `@effected/semver`, `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg` (registry closure) plus the phase-2 additions `@effected/github`, `@effected/glob`, `@effected/npm`, `@effected/package-json`, `@effected/walker` (bundle closure) and `@effected/yaml` (frontmatter handling, now behind `@tsdoctor/model`), alongside `@typescript/vfs`. The released effected round-1 kit wave added two more: `@effected/jsonc` (canonical JSON-value hashing behind `@tsdoctor/bundle`'s `BundleHash.ts`) and `@effected/markdown` (frontmatter fence grammar and block assembly behind `@tsdoctor/model`'s `Frontmatter.ts` and, transitively, its prose/render internals). Round 2 (phase 4) added `@effected/schema-org@0.1.0` behind `@tsdoctor/seo`, alongside `@effected/spdx@0.5.0` and `@effected/package-json@0.13.0`, and bumped the `@effected/pnpm-plugin-effect` config dependency in `pnpm-workspace.yaml` to `0.6.11` to carry the schema-org catalog entry. `@effected/package-json` is now a DIRECT plugin import as well as a closure entry — `layers/config-resolution.ts` decodes each API's `package.json` through `PackageManifest`.
+- The seven core workspaces themselves: `@tsdoctor/vfs`, `@tsdoctor/registry`, `@tsdoctor/model`, `@tsdoctor/bundle`, `@tsdoctor/snapshot`, `@tsdoctor/seo` and `@tsdoctor/pages`, each `workspace:*`.
 
 `@effect/sql-sqlite-node` and `gray-matter` are **gone** from the plugin manifest — SQLite moved behind `@tsdoctor/snapshot`'s `Store.layerSqlite`, and frontmatter parsing moved to `@effected/yaml` — and then out of the adapter entirely, into `@tsdoctor/model`'s `Frontmatter.ts` (Tier 1 core moves; the adapter now imports `parseFrontmatter` / `emitFrontmatterBlock` from the model). Do not prune the closure entries as "unused"; the plugin imports some of them directly (see `services/TypeRegistryService.ts`, `sync-node-fs.ts`, `twoslash-transformer.ts`) and the rest exist to keep the dependency graph closed.
 
@@ -250,29 +251,31 @@ The helper types (`DirInfo`, `BaseRoute`, `FromDirOptions`) are re-exported from
 
 ## Core Package Consumption
 
-The plugin depends on all six `@tsdoctor/*` core workspaces via `workspace:*` and, since the phase-2 model redesign, consumes **`@tsdoctor/model`** directly — the four phase-1 delegation shims (`loader.ts`, the class-based `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) are **deleted**. The model's v4 surface is namespace modules: `Model` (Effect-typed loading with `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), `Tsdoc` (pure TSDoc accessors), `ApiItems` (categorization + namespace members), `EntryPoints`, `Routes`, `SyntheticBases`, `Signature` (de-classed formatting), `Render` and the `CrossLinker` class. (The model's `@alpha` `StructuredData` stub is **deleted** as of phase 4; schema.org derivation lives in `@tsdoctor/seo`.)
+The plugin depends on all seven `@tsdoctor/*` core workspaces via `workspace:*` and, since the phase-2 model redesign, consumes **`@tsdoctor/model`** directly — the four phase-1 delegation shims (`loader.ts`, the class-based `model-loader.ts`, `formatter.ts`, `markdown/cross-linker.ts`) are **deleted**. The model's v4 surface is namespace modules: `Model` (Effect-typed loading with `ModelNotFoundError`/`ModelParseError`/`EmptyModelError`), `Tsdoc` (pure TSDoc accessors), `ApiItems` (categorization + namespace members), `EntryPoints`, `Routes`, `SyntheticBases`, `Signature` (de-classed formatting), `Render` and the `CrossLinker` class. (The model's `@alpha` `StructuredData` stub is **deleted** as of phase 4; schema.org derivation lives in `@tsdoctor/seo`.)
 
 How the former shim call sites consume it now:
 
 | Concern | Now |
 | --- | --- |
 | Model loading | `model-loader.ts` is plain functions over `Model.load` (typed `ModelLoadError = Model.ModelNotFoundError \| Model.ModelParseError \| Model.EmptyModelError`); failures emit `ModelLoadFailed` via `Effect.tapError` in `layers/config-resolution.ts` (see `build-progress-and-issues.md`) |
-| TSDoc extraction | page generators call `Tsdoc.summary`/`Tsdoc.params`/`Tsdoc.releaseTag`/`Tsdoc.deprecation` etc. directly |
+| TSDoc extraction | the `@tsdoctor/pages` builders (`Build.ts`) call `Tsdoc.summary`/`Tsdoc.params`/`Tsdoc.releaseTag`/`Tsdoc.deprecation` etc. directly; the adapter's page generators are deleted (phase 5) |
 | Signature formatting | `Signature.format(excerpt)` directly (the `TypeSignatureFormatter` class is gone) |
 | Categorization | `ApiItems.categorize(items, categories)` returning `{ items, uncategorized }`; the adapter emits an `ItemSkipped` event per uncategorized item |
-| Prose cross-linking | `markdown/prose-linker.ts`, a 15-line module-level holder (`setProseLinker(routes)` / `linkProse(text)` / `clearProseLinker()`) over the model `CrossLinker` (see `cross-linking-architecture.md`) |
+| Prose cross-linking | one immutable `CrossLinker.fromRoutes(routes)` per API, built in `build-program.ts` and carried through `GenerateSinglePageContext.linker` into `@tsdoctor/pages`'s `buildPage` — the former `markdown/prose-linker.ts` module-level holder is **deleted** (phase 5; see `cross-linking-architecture.md`) |
 
 **Moved into the model, still not merged.** `ApiExtractedPackage` (now `packages/model/src/ApiExtractedPackage.ts`) keeps its OWN private `extractPlainText`. Despite the shared name with the library helper, it is a different algorithm for declaration reconstruction: it PRESERVES `{@link X.Y}` TSDoc syntax and reconstructs fenced code blocks for `.d.ts`/JSDoc output, whereas the library's prose extraction flattens `{@link}` to display text and drops code fences. The two are not interchangeable.
 
 **`@tsdoctor/bundle`** supplies discovery for the config helpers (see [Config Helpers](#config-helpers)) plus the npm-tarball and GitHub-release fetchers (`bundle-spec.md`). **`@tsdoctor/snapshot`** supplies the snapshot service (`snapshot-tracking-system.md`). **`@tsdoctor/registry`** fetches, caches and resolves external package types into a `Vfs` (`type-loading-vfs.md`), with its tag ids renamed to `"@tsdoctor/registry/..."` in phase 2.
 
-**`@tsdoctor/vfs`** is the sixth core workspace, extracted from the registry in the Tier 1 core moves: the `Vfs` currency type and its `mergeVfs`/`prefixVfs`/`isTypeDefinition` helpers, `VirtualPackage`, `TsEnvironment`, and the compiler-options seam (`parseTsConfig`, `TypeResolutionCompilerOptions`, `decodeCompilerOptions`, `toProgrammaticCompilerOptions`, `DEFAULT_COMPILER_OPTIONS`, `resolveTypeScriptConfig`). The adapter consumes the seam from `layers/type-environment.ts` and `twoslash-transformer.ts`; the model sits on `VirtualPackage` independently, with no edge between the model and the registry in either direction. See [The D1 outcome](tsdoctor-package-architecture.md) for why the substrate was extracted rather than hosted, and `type-loading-vfs.md` for the seam itself.
+**`@tsdoctor/vfs`** is the sixth core workspace, extracted from the registry in the Tier 1 core moves: the `Vfs` currency type and its `mergeVfs`/`prefixVfs`/`isTypeDefinition` helpers, `VirtualPackage`, `TsEnvironment`, and the compiler-options seam (`parseTsConfig`, `TypeResolutionCompilerOptions`, `decodeCompilerOptions`, `toProgrammaticCompilerOptions`, `DEFAULT_COMPILER_OPTIONS`, `resolveTypeScriptConfig`). Since phase 5 it also hosts the **Twoslash result cache** (`TwoslashCache.ts`: `makeTwoslashCache`, `twoslashBlobKey`, `encodeTwoslashCache`/`decodeTwoslashCache`, `TWOSLASH_CACHE_FORMAT`), moved out of the adapter's `twoslash-cache.ts` so both adapters warm one XDG store; `services/TwoslashCacheService.ts` keeps only the persistence over it. The adapter consumes the seam from `layers/type-environment.ts` and `twoslash-transformer.ts`; the model sits on `VirtualPackage` independently, with no edge between the model and the registry in either direction. See [The D1 outcome](tsdoctor-package-architecture.md) for why the substrate was extracted rather than hosted, and `type-loading-vfs.md` for the seam itself.
 
 **`@tsdoctor/seo`** (phase 4) supplies every `<head>` concern behind one seam. `deriveSiteUrl` is consumed in `layers/config-resolution.ts`; `attributionFacts` + `packageContext` in `build-program.ts`, once per API; `deriveScriptBody` + `headTags` in `generateSinglePage`; the `HeadTag` vocabulary in `markdown/helpers.ts`, which renders each tag into an RSPress frontmatter `head` pair. The adapter's `og-resolver.ts` and `schemas/opengraph.ts` were **deleted** into it. What the adapter kept is `OgService` — filesystem probing of a configured local image, genuinely I/O and genuinely RSPress-path-shaped — now importing `imageMimeType` / `ogAltText` / `resolveUrl` from the package. See `structured-data-and-og.md`.
 
-### Stage 2 output convergence (deferred)
+**`@tsdoctor/pages`** (phase 5) is the seventh core workspace and the one the page pipeline is written against. `build-stages.ts` imports `prepareWorkItems` (entry-point deduplication, synthetic bases, categorization, collision detection, the route map and member anchors — with `uncategorized` items and route `collisions` returned as DATA; the adapter's own `prepareWorkItems` is a reporting wrapper that emits `ItemSkipped` per uncategorized item and `RouteCollisionDetected` per collision before throwing `Routes.RouteCollisionError`), `buildPage` / `buildIndexPage` (the `ApiItem` → `Page` builders) and `buildNav` / `NavEntry` (the sidebar tree). Around it: `prettier-formatter.ts` wraps the package's `formatExampleCode` so both adapters format examples identically; `remark-with-api.ts` imports `stripTwoslashDirectives`; `plugin.ts` and `config-helpers.ts` take the scope helpers `normalizeBaseRoute` / `unscopedName`; and `llms-program.ts` imports the llms.txt text transforms (`parseLlmsTxtLine`, `filterLlmsTxt`, `generateStructuredLlmsTxt`, `filterLlmsFullTxt`, `generatePackageLlmsTxt`, `generatePackageLlmsFullTxt` — see `llms-integration.md`). What the adapter keeps is emission: `src/emit/mdx.ts` and `src/emit/meta.ts`. See `doc-ir-and-pages.md`.
 
-A "Stage 2" that would emit the MDX pages on top of the library's `renderItem` body was evaluated and **deferred**. The page generators emit MDX with JSX components (`<ApiSignature>`, `<ParametersTable>`, `<ApiMember>`, `<ApiExample>`) carrying dual `code`/`source` props for Shiki + Twoslash, so the library's plain-markdown body is not a clean substring of the generated output. Converging would require the library to expose a structured `bodyParts(item)` API. The full diff and decision are recorded at `docs/superpowers/notes/2026-06-01-renderitem-vs-pagegen-diff.md`.
+### Stage 2 output convergence (resolved, phase 5)
+
+An earlier "Stage 2" that would have emitted the MDX pages on top of the model's `renderItem` body was deferred because the eight page generators built MDX with JSX components carrying dual `code`/`source` props, so the plain-markdown body was not a clean substring of the output; converging needed a structured `bodyParts(item)` API. **That API is the `@tsdoctor/pages` block IR.** The generators are deleted; `buildPage` produces typed blocks with mdast prose and the adapter's `src/emit/mdx.ts` renders them, switched behind a byte-identical golden gate over all five fixture sites. The model's `Render` module is deprecated in favour of `@tsdoctor/pages`. Full record in `doc-ir-and-pages.md`.
 
 ## Plugin Lifecycle
 
@@ -341,7 +344,7 @@ await effectRuntime.runPromise(
 
 `generateApiDocs` orchestrates the 5 build stages for a single API:
 
-1. **prepareWorkItems** -- Categorize items, build cross-link data
+1. **prepareWorkItems** -- `@tsdoctor/pages` computes work items, cross-link data, uncategorized items and collisions; the adapter wrapper reports them
 2. **buildPipelineForApi** (Stream) -- Generate pages and write files
 3. **writeMetadata** -- Root _meta.json, index page, category_meta.json
 4. **cleanupAndCommit** -- Batch upsert snapshots, delete stale/orphans
@@ -405,7 +408,7 @@ The classifier is covered by `__test__/config-utils.test.ts`; the empty-result r
 
 **Three configuration failures are now typed rather than defects.** `loadPackageJson`, `validateExternalPackages` and `resolveTypeScriptConfig` (at two call sites) threw from inside `Effect.promise` bodies. A throw there escapes as an untyped DEFECT, so the build died with an unhandled rejection and wrote NO `issues.json` entry — the issues sink only ever sees events, and a defect is not a failure. All four `Effect.promise` bodies in that file are gone; each of these now fails with a `ConfigValidationError` carrying `field` and `reason`, plus an optional `cause` that preserves the original error rather than stringifying its message and discarding the stack. A malformed tsconfig stays fatal rather than degrading to default compiler options, which would type-check every example against a configuration the user did not ask for.
 
-**Four error classes are deleted** from `errors.ts`: `ApiModelLoadError`, `PageGenerationError`, `TwoslashProcessingError` and `PrettierFormatError`. None was constructed anywhere in `src` — their only references were tests asserting their own message strings, a suite testing nothing but itself. What those subsystems actually report is a `PluginEvent` through the EventBus (`error-observability.md`), so the types were a second, unused error vocabulary sitting beside the real one. `ConfigValidationError` and `TypeRegistryError` remain, and the two `TaggedError` base constants they extend are no longer exported. One note for plan readers: Chunk 6 Task 6.1 of `.claude/plans/2026-08-25-rspress-adapter-refactor.md` speaks of "resurrecting" `PageGenerationError` — that is a proposal for a type that does not currently exist, not a description of the tree.
+**Four error classes are deleted** from `errors.ts`: `ApiModelLoadError`, `PageGenerationError`, `TwoslashProcessingError` and `PrettierFormatError`. None was constructed anywhere in `src` — their only references were tests asserting their own message strings, a suite testing nothing but itself. What those subsystems actually report is a `PluginEvent` through the EventBus (`error-observability.md`), so the types were a second, unused error vocabulary sitting beside the real one. `ConfigValidationError` and `TypeRegistryError` remain, and the two `TaggedError` base constants they extend are no longer exported. One note for readers of the archived 2026-08-25 adapter-refactor plan (untracked; `.claude/plans/` is gitignored): its final chunk proposed "resurrecting" `PageGenerationError` — a proposal for a type that does not exist in the tree, not a description of it.
 
 ### Config resolution, split into siblings
 
@@ -532,11 +535,13 @@ The plugin exports a `serve(options?: ServeOptions): Promise<void>` runner (`src
 | `plugin.ts` | RSPress adapter, runtime management |
 | `serve.ts` | `serve` dev/preview runner + pure config/readiness helpers |
 | `build-program.ts` | Doc generation orchestration |
-| `build-stages.ts` | Stream pipeline, page gen, file writes |
+| `build-stages.ts` | Stream pipeline (`buildPage` → `emitMdxBody`), the reporting `prepareWorkItems` wrapper, file writes |
 | `config-helpers.ts` | `fromDir` / `fromParentDir` config builders (delegating to `@tsdoctor/bundle` discovery) |
 | `config-utils.ts` | `classifyApiConfig`, `mergeLlmsPluginConfig`, dependency extraction |
 | `sync-node-fs.ts` | Sync `FileSystem` bridge for running bundle discovery under the sync helper API |
-| `markdown/prose-linker.ts` | Per-build prose cross-linker holder over the model `CrossLinker` |
+| `markdown/helpers.ts` | `generateFrontmatter` — the one helper left after phase 5 moved example preparation to `@tsdoctor/pages` |
+| `emit/mdx.ts` | `emitMdxBody` + `escapeMdxGenerics` — renders a `@tsdoctor/pages` `Page` as RSPress MDX |
+| `emit/meta.ts` | `renderRootMeta` / `renderCategoryMeta` / `emitIndexPage` — `_meta.json` and `index.mdx` from the nav tree and `IndexPage` |
 | `BuildEnv.ts` | The per-build `Context.Reference`s (`BuildId`, `Thresholds`, `PageConcurrency`, `SuppressExampleErrors`) |
 | `twoslash-access.ts` | Module-level holder bridging RSPress's render pass to `TwoslashEnvironments` |
 | `observability/sync-emitter.ts` | The one sync-island bridge (`installSyncEmitter` / `emitSync`) |
@@ -568,3 +573,5 @@ The plugin exports a `serve(options?: ServeOptions): Promise<void>` runner (`src
   `build-progress-and-issues.md`
 - **Structured Data & Head Metadata:**
   `structured-data-and-og.md`
+- **Doc IR and `@tsdoctor/pages`:**
+  `doc-ir-and-pages.md`

@@ -3,9 +3,9 @@ status: current
 module: rspress-plugin-api-extractor
 category: architecture
 created: 2026-01-17
-updated: 2026-09-02
-last-synced: 2026-09-02
-completeness: 87
+updated: 2026-09-03
+last-synced: 2026-09-03
+completeness: 88
 related:
   - rspress-plugin-api-extractor/build-architecture.md
   - rspress-plugin-api-extractor/snapshot-tracking-system.md
@@ -13,6 +13,7 @@ related:
   - rspress-plugin-api-extractor/component-development.md
   - rspress-plugin-api-extractor/multi-entry-resolution.md
   - rspress-plugin-api-extractor/structured-data-and-og.md
+  - rspress-plugin-api-extractor/doc-ir-and-pages.md
 dependencies: []
 ---
 
@@ -23,16 +24,13 @@ dependencies: []
 - [Overview](#overview)
 - [Stream Pipeline Architecture](#stream-pipeline-architecture)
 - [Build Stages](#build-stages)
-- [Page Generators](#page-generators)
+- [Page builders and emitters](#page-builders-and-emitters)
 - [Metadata Generation](#metadata-generation)
 - [Integration Points](#integration-points)
 
 ## Overview
 
-The page generation system transforms Microsoft API Extractor models
-into markdown/MDX files for RSPress. It uses a Stream-based pipeline
-in `build-stages.ts` composed of Effect programs, with specialized
-class-based generators for each API item category.
+The page generation system transforms Microsoft API Extractor models into markdown/MDX files for RSPress. It uses a Stream-based pipeline in `build-stages.ts` composed of Effect programs. Since phase 5 (2026-09-02) what a page CONTAINS is decided by the framework-neutral `@tsdoctor/pages` builders and the adapter only EMITS: `buildPage` lifts an `ApiItem` into a typed `Page`, and `src/emit/mdx.ts` spends it as RSPress MDX. The eight generator classes are deleted. See `doc-ir-and-pages.md` for the IR and the golden gate the switch was made behind.
 
 **Key Features:**
 
@@ -40,12 +38,10 @@ class-based generators for each API item category.
 - **5-stage build process** orchestrated by `build-program.ts`
 - **Multi-entry point resolution** via `@tsdoctor/model`'s `EntryPoints`
   module for deduplication and collision detection
-- **Class-based generators** for each API category (class, interface,
-  function, type alias, enum, variable, namespace), consuming
-  `Tsdoc.*`/`Signature.*` from `@tsdoctor/model` directly
+- **`@tsdoctor/pages` builders** (`buildPage`, one per item kind) producing a typed `Page`, and the adapter's MDX emitter (`emitMdxBody`) rendering it
 - **Snapshot-tracked writes** for incremental builds (`@tsdoctor/snapshot`)
 - **Cross-linking** via ShikiCrossLinker and the `@tsdoctor/model`
-  `CrossLinker` (installed through `markdown/prose-linker.ts`)
+  `CrossLinker`, built once per API and carried in the pipeline context
 - **Effect Metrics** for build statistics
 
 ## Stream Pipeline Architecture
@@ -134,13 +130,13 @@ interface FileWriteResult {
 
 **Location:** `build-stages.ts` `prepareWorkItems()`
 
-Runs before the Stream pipeline. The pure logic lives in `@tsdoctor/model`'s namespace modules (`EntryPoints`, `SyntheticBases`, `ApiItems`, `Routes` — extracted from the former plugin files in the phase-2 model migration); `prepareWorkItems` is the adapter orchestration over them. Produces:
+Runs before the Stream pipeline. Since phase 5 (`b09db83`) the computation is `@tsdoctor/pages`'s `prepareWorkItems` (`WorkItems.ts`), lifted out of this adapter once the VitePress adapter needed the same step; it orchestrates `@tsdoctor/model`'s namespace modules (`EntryPoints`, `SyntheticBases`, `ApiItems`, `Routes`) and returns `uncategorized` items and route `collisions` as DATA. The adapter's `prepareWorkItems` in `build-stages.ts` is a reporting wrapper of the same name over that result: it emits an `ItemSkipped` event per uncategorized item and a `RouteCollisionDetected` event per collision before throwing `Routes.RouteCollisionError`, so the fatal path still reaches `issues.json`. The adapter's `WorkItem` is the pages `WorkItem<CategoryConfig>`. Produces:
 
 1. **Multi-entry resolution** -- `EntryPoints.resolve(apiPackage)`
    deduplicates re-exports across entry points. Each item receives
    `availableFrom`.
 2. **Synthetic base detection** -- `SyntheticBases.detect()` finds unexported items (hoisted into the model via `includeForgottenExports`, `isExported === false` per `ApiExportedMixin`) that an exported class's extends clause references — the `Foo_base` declarations TypeScript emits for class-factory heritage (Effect `Schema.Class`, `Data.TaggedError`, mixins). Detected bases are **excluded** from categorization, collision detection and work items: they get no page and no sidebar entry. Instead the owning class's `WorkItem` carries `syntheticBase`, and the class page renders the declaration inline in a "Base Class" section (anchor `SyntheticBases.BASE_CLASS_ANCHOR` = `#base-class`). The base's cross-link route points at that anchor, so the `extends Foo_base` reference in signatures stays clickable. Unexported items NOT referenced by a class extends clause (genuine forgotten exports) keep the previous behavior, as do dangling extends references whose base is absent from the model.
-3. **Member anchors** -- `ApiItems.memberAnchors(item)` for each class and interface, carried on the `WorkItem` and consumed by BOTH the cross-link route map and the page generator, so a member's `#fragment` and its `id=` cannot drift (see `cross-linking-architecture.md`)
+3. **Member anchors** -- `ApiItems.memberAnchors(item)` for each class and interface, carried on the `WorkItem` and consumed by BOTH the cross-link route map and the page builder, so a member's `#fragment` and its `id=` cannot drift (see `cross-linking-architecture.md`)
 4. **Categorized items** -- API items grouped by category key via
    `ApiItems.categorize(items, categories)`, which returns
    `{ items, uncategorized }`; the adapter emits an `ItemSkipped`
@@ -149,7 +145,8 @@ Runs before the Stream pipeline. The pure logic lives in `@tsdoctor/model`'s nam
    `ApiItems.namespaceMembers(items)`.
 5. **Route collision detection** -- `Routes.RouteCandidate` records are
    built for all top-level items and namespace members and checked with
-   `Routes.detectCollisions()`; any collision **throws**
+   `Routes.detectCollisions()`; the pages function returns the collisions,
+   and the adapter wrapper **throws**
    `Routes.RouteCollisionError` (a `Schema.TaggedError`) with a clear
    message naming both items, their kinds, canonical references, and the
    shared lowercased `categoryFolder/name` route, with guidance to
@@ -166,8 +163,8 @@ Runs before the Stream pipeline. The pure logic lives in `@tsdoctor/model`'s nam
 
 For each WorkItem:
 
-1. Dispatch to the appropriate page generator based on `item.kind`
-2. For namespace members, rewrite the route by replacing ONLY the final segment with the lowercased qualified name (e.g. `.../type/type` → `.../type/compileroptions.type`). Only the last segment may be touched: a member whose lowercased simple name equals its category folder (a type alias named `Type` in the `type` folder — the Effect Schema companion-namespace pattern) would otherwise have the category segment corrupted by a first-occurrence replace, producing colliding `_meta.json` entries that break RSPress auto-nav-sidebar. The resulting file path is identical to the cross-link route built in `prepareWorkItems` by construction (asserted by a regression test against the `qualified-alias` fixture)
+1. **`buildPage`** (`@tsdoctor/pages`, `Build.ts`) — the work item's facts (`item`, category key/singular/folder, `availableFrom`, `syntheticBase`, `memberAnchors`, the namespace member's qualified name, the source-link target, `suppressExampleErrors`) plus the per-API `linker` go in; an `Option<Page>` comes out. `None` means an unsupported item kind, and the stage emits `ItemSkipped` and returns `null`. A namespace member's route is decided by the builder from the qualified name (`.../type/compileroptions.type`), so the file path equals the cross-link route built in `prepareWorkItems` by construction. Prettier failures inside the builder degrade through `onExampleFormatError`, which is where the stage emits its `PrettierError` event; the builder's error channel is `never`
+2. **`emitMdxBody`** (`src/emit/mdx.ts`) renders the page's blocks as the MDX body — import lines chosen from `Page.kind`, JSX elements as `@effected/markdown` MDX nodes, prose serialized by the kit. The stage then prepends `generateFrontmatter(...)` (`markdown/helpers.ts`) so the text downstream has exactly the frontmatter-plus-body shape the generators produced
 3. Parse generated content with `parseFrontmatter` (`@tsdoctor/model`'s `Frontmatter.ts`, moved out of the adapter in the Tier 1 core moves — `@effected/markdown`'s `FrontmatterSource.split` for the fence grammar plus `@effected/yaml` for the YAML; the hand-rolled gray-matter-parity split it replaced is gone, the digests it produced are unchanged, and the four boundary tests that pinned gray-matter's quirks are re-pinned to the strict grammar)
 4. Normalize markdown spacing
 5. Hash the body via `hashContent`
@@ -177,6 +174,8 @@ For each WorkItem:
 9. If no snapshot exists, fall back to disk comparison
 10. Determine timestamps (new/modified/unchanged)
 11. Return `GeneratedPageResult`, whose `content` is the assembled final text
+
+Steps 1–2 replaced a single "dispatch to the page generator" step in phase 5; everything from step 3 on is untouched, which is what let the switch be made behind a byte-identity gate (`doc-ir-and-pages.md`).
 
 **Step 6 is here, not in the write stage, and that placement is load-bearing.** Head tags used to be built in `writeSingleFile`, one stage after the hash was taken — so the hash was computed over the page generator's own frontmatter, which carries no `head` at all, and every `og:image`, canonical URL and JSON-LD change was invisible to change detection. See the head-tag section of `snapshot-tracking-system.md` for the full defect and its measured fix.
 
@@ -202,14 +201,11 @@ For each GeneratedPageResult:
 
 **Location:** `build-stages.ts` `writeMetadata()`
 
-Writes three groups of metadata after the Stream pipeline:
+Writes three groups of metadata after the Stream pipeline. The navigation is IR output: the stage builds one `NavTree` per API with `buildNav` (`@tsdoctor/pages`, from the resolved categories and one `NavEntry` per written page) and renders it through `src/emit/meta.ts`, which owns the RSPress sidebar defaults (`collapsible` / `collapsed` true, `overviewHeaders: [2]`) and the tab-indented JSON spelling the snapshot system compares against:
 
-1. **Root `_meta.json`** -- Category folder entries with
-   collapsible/collapsed settings
-2. **Main index page** (`index.mdx`) -- API landing page (skipped if
-   already exists)
-3. **Category `_meta.json` files** -- Sorted navigation entries per
-   category folder
+1. **Root `_meta.json`** -- `renderRootMeta(navTree)`, one `dir` entry per category group that received a page
+2. **Main index page** (`index.mdx`) -- `buildIndexPage` → `emitIndexPage`, frontmatter only with `overview: true` (skipped if the file already exists)
+3. **Category `_meta.json` files** -- `renderCategoryMeta(group)` per nav group, pages in the tree's label-sorted order
 
 All writes use snapshot tracking for incremental builds.
 
@@ -223,51 +219,25 @@ All writes use snapshot tracking for incremental builds.
 3. **Orphan cleanup** -- Delete disk files not tracked in
    `generatedFiles` set
 
-## Page Generators
+## Page builders and emitters
 
-### Generator Classes
+### Builders (`@tsdoctor/pages`)
 
-Each generator produces `{ routePath: string; content: string }`:
+`packages/pages/src/Build.ts` exports `buildPage`, `buildIndexPage` and `isPageKind`. `buildPage` is one builder per item kind (class, interface, function, type alias, enum, variable, namespace), lifted from the generator classes as a characterization — same blocks, same order, same text — so the golden gate could be the oracle. Its input, `BuildPageInput`, is framework-neutral and carries exactly the facts the work item and the API config contribute; its output is a `Page` (`Page.ts`): title parts, description, route, `headTags`, the ordered `blocks` and the page's `NavEntry`, plus a required `kind` so an emitter can pick imports and layout without re-inspecting the item. The landing page is a separate, blockless `IndexPage`. See `doc-ir-and-pages.md` for the vocabulary and the decisions.
 
-| Generator | Location | Handles |
-| --- | --- | --- |
-| `ClassPageGenerator` | `markdown/page-generators/class-page.ts` | `ApiClass` |
-| `InterfacePageGenerator` | `markdown/page-generators/interface-page.ts` | `ApiInterface` |
-| `FunctionPageGenerator` | `markdown/page-generators/function-page.ts` | `ApiFunction` |
-| `TypeAliasPageGenerator` | `markdown/page-generators/type-alias-page.ts` | `ApiTypeAlias` |
-| `EnumPageGenerator` | `markdown/page-generators/enum-page.ts` | `ApiEnum` |
-| `VariablePageGenerator` | `markdown/page-generators/variable-page.ts` | `ApiVariable` |
-| `NamespacePageGenerator` | `markdown/page-generators/namespace-page.ts` | `ApiNamespace` |
-| `MainIndexPageGenerator` | `markdown/page-generators/index-pages.ts` | Index page |
+Three properties of the builders matter to the pipeline:
 
-### Generator Interface
+- **Anchors are data.** `memberAnchors` from the work item is the source of every member `id`; only the fixed constructor and call/construct/index-signature anchors are spelled in the builder, through the model's `Routes.memberAnchor`. Assert that the pipeline path passes the map — the builder falls back to recomputing anchors only for out-of-pipeline callers (tests), and a dropped argument would silently revert route/page agreement to two computations matching.
+- **Prose is linked, then parsed.** Every prose field goes through the per-API `CrossLinker` and is parsed as commonmark mdast before it enters a block, so links are baked into the IR (`cross-linking-architecture.md`).
+- **The error channel is `never`.** Example formatting runs through `formatExampleCode` (`Examples.ts`, Prettier, Effect-typed `ExampleFormatError`); a failure invokes the caller's `onExampleFormatError` hook and the example carries its unformatted code.
 
-All generators follow the same pattern:
+The class builder renders a detected `syntheticBase` as a `BaseClass` block after the signature — the emitter spells it as the `## Base Class` section whose slug is `SyntheticBases.BASE_CLASS_ANCHOR` (`@tsdoctor/model`), where the base name's cross-link route points.
 
-```typescript
-class XxxPageGenerator {
-  async generate(
-    item: ApiXxx,
-    baseRoute: string,
-    packageName: string,
-    singularName: string,
-    apiScope: string,
-    apiName?: string,
-    source?: SourceConfig,
-    suppressExampleErrors?: boolean,
-    llmsPlugin?: LlmsPlugin,
-    availableFrom?: string[],
-  ): Promise<{ routePath: string; content: string }>
-}
-```
+### Emitters (`platforms/rspress/src/emit/`)
 
-The `availableFrom` parameter is passed from `WorkItem.availableFrom`. When the item is exported from multiple entry points, the generator calls `generateAvailableFrom()` to emit an "Available from" line listing all entry point import paths.
+`mdx.ts` — `emitMdxBody(page, { apiScope, llmsEnabled })` returns the MDX body as a `Result`: the import lines, `ApiSignature` / `ApiMember` / `ApiExample` as `MdxJsxFlowElement`s with JSON-encoded `code` / `source` props, `ParametersTable` / `EnumMembersTable` as JSON props, and the prose between them. Every node is `@effected/markdown` mdast serialized by the kit; the emitter owns only the joining of top-level nodes (each serialized as its own document, because the kit's MDX-presence escaping is tree-wide), and the tree-form generics escaping where the generators applied `escapeMdxGenerics`. The labelled `unescapeLiteral` byte-parity shim it once carried is deleted since `@effected/markdown` 0.8.0 escapes minimally. Both, and the kit round behind the deletion, are recorded in `doc-ir-and-pages.md`.
 
-`ClassPageGenerator.generate` takes two additional trailing parameters, `syntheticBase?: ApiItem` and `memberAnchors?: ReadonlyMap<string, string>` (both from the `WorkItem`); `InterfacePageGenerator.generate` takes `memberAnchors` too. The generators fall back to recomputing anchors when no map is passed, which only out-of-pipeline callers (tests) do — **assert that the pipeline path passes the map**, because the fallback absorbs a dropped argument and route/page agreement silently reverts to depending on two computations matching. When present it renders a `## Base Class` section after the signature — an explanatory note plus the base declaration's formatted signature as an `ApiSignature` block with hidden Twoslash imports prepended. The heading slugs to `SyntheticBases.BASE_CLASS_ANCHOR` (`@tsdoctor/model`), which is where the base name's cross-link route points (see `cross-linking-architecture.md`).
-
-The generators are called via `Effect.promise()` in `generateSinglePage`
-since they use async operations (Shiki highlighting, Prettier formatting)
-that are not yet Effect-native.
+`meta.ts` — `renderRootMeta` / `renderCategoryMeta` over the `NavTree`, and `emitIndexPage` over the `IndexPage`. Pure functions of the IR, consumed by `writeMetadata`.
 
 ### Page Structure
 
@@ -310,19 +280,15 @@ more than one entry point.
 
 ### Helper Functions
 
-**Location:** `markdown/helpers.ts`
+**Location:** `markdown/helpers.ts` — frontmatter only, since phase 5
 
-- `generateAvailableFrom()` -- Renders "Available from" line for
-  multi-entry items (returns empty string for single-entry)
 - `generateFrontmatter()` -- YAML frontmatter, taking a neutral `ReadonlyArray<HeadTag>` from `@tsdoctor/seo` and rendering each into an RSPress `[tagName, attrs]` head pair. A `script` tag's body becomes the `children` attribute — the name unhead maps onto `innerHTML`, and the only spelling that reaches the browser (any other emits an empty `<script>` and fails silently at runtime rather than in the build). The block itself is emitted via
   `emitFrontmatterBlock` (`@tsdoctor/model`'s `Frontmatter.ts`, `@effected/yaml`
   `Yaml.stringify` with `quoteCompat: "yaml-1.1"` + `quoteStyle: "double"` --
   double-quoting only the scalars a YAML 1.1 resolver would coerce
   (timestamps, `yes`/`no`/`on`/`off`, legacy numbers) -- then assembled into
   the fenced block via `@effected/markdown`'s `FrontmatterSource.join`)
-- `prepareExampleCode()` -- Adds imports and `// @noErrors` for Twoslash
-- `stripTwoslashDirectives()` -- Removes directives for copy button
-- `escapeMdxGenerics()` -- Wraps `<T>` in backticks for MDX
+Everything else the module used to hold has moved: example preparation (`prepareExampleCode`, `stripTwoslashDirectives`, `prependHiddenImports`, `formatExampleCode`) lives in `@tsdoctor/pages`'s `Examples.ts`, the "Available from" line is an `AvailableFrom` block the emitter spells, and `escapeMdxGenerics` lives in `src/emit/mdx.ts` beside its mdast-tree form. `remark-with-api.ts` imports `stripTwoslashDirectives` from the package directly.
 
 `sanitizeId()` and `escapeYamlString()` are **deleted**. The page-side
 `sanitizeId` was a second, subtly different anchor algorithm and is replaced by
@@ -392,7 +358,7 @@ Cross-linkers are initialized in `build-program.ts` with data from
 `prepareWorkItems`:
 
 ```typescript
-setProseLinker(crossLinkData.routes);  // installs the @tsdoctor/model CrossLinker
+const linker = CrossLinker.fromRoutes(crossLinkData.routes);  // → pipeline context, into buildPage
 const shikiCrossLinker = ShikiCrossLinker.fromRoutes(
   crossLinkData.routes,
   crossLinkData.kinds,
@@ -449,5 +415,7 @@ Both use the VfsRegistry to access the highlighter and transformers.
   `ssg-compatible-components.md` -- Dual-mode components
 - **Structured Data and Head Metadata:**
   `structured-data-and-og.md` -- the `@tsdoctor/seo` seam Stage 1 consumes
+- **Doc IR and `@tsdoctor/pages`:**
+  `doc-ir-and-pages.md` -- the builders Stage 1 calls, the emitter decisions and the golden gate
 - **LLMs Integration:**
   `llms-integration.md` -- LLMs file generation and UI

@@ -40,7 +40,6 @@ function makeObs(overrides: Partial<ResolvedObservability> = {}): ResolvedObserv
 			slowPageGeneration: 500,
 			slowApiLoad: 1000,
 			slowFileOperation: 50,
-			slowHttpRequest: 2000,
 			slowDbOperation: 100,
 		},
 		...overrides,

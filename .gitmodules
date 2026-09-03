@@ -6,10 +6,6 @@
 	path = .repos/twoslash
 	url = https://github.com/twoslashes/twoslash
 	shallow = true
-[submodule ".repos/shiki"]
-	path = .repos/shiki
-	url = https://github.com/shikijs/shiki
-	shallow = true
 [submodule ".repos/rsbuild"]
 	path = .repos/rsbuild
 	url = https://github.com/web-infra-dev/rsbuild
@@ -17,4 +13,12 @@
 [submodule ".repos/effect"]
 	path = .repos/effect
 	url = https://github.com/Effect-TS/effect
+	shallow = true
+[submodule ".repos/vitepress"]
+	path = .repos/vitepress
+	url = https://github.com/vuejs/vitepress
+	shallow = true
+[submodule ".repos/shiki"]
+	path = .repos/shiki
+	url = https://github.com/shikijs/shiki
 	shallow = true
