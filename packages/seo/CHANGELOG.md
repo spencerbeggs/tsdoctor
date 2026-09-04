@@ -1,5 +1,39 @@
 # @tsdoctor/seo
 
+## 0.2.0
+
+### Breaking Changes
+
+- `SeoPageInput.title` (and `OpenGraphMetadata.title`) is now a **required**&#10;field — every caller must supply the page title used for `og:title` and&#10;`twitter:title`. `siteName` is a new optional field for `og:site_name`. The&#10;`ogAltText` helper is removed; a caller now composes its own fallback alt
+  text rather than relying on a package-supplied wording. This package is
+  still on a 0.x line, so the break ships as a minor per semver's pre-1.0
+  convention. [#215][#215]
+
+### Features
+
+- `headTags` (and `createPageMetadata`) now emit `og:title`, `og:site_name`&#10;(when a site name is given) and `twitter:title` alongside the existing
+  Open Graph and Twitter tags:
+
+```ts
+import { headTags } from "@tsdoctor/seo";
+
+const tags = headTags({
+	siteUrl,
+	pageRoute,
+	title: "MyClass",
+	siteName: "my-package",
+	description,
+	publishedTime,
+	modifiedTime,
+});
+```
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#215]: https://github.com/spencerbeggs/tsdoctor/pull/215
+
 ## 0.1.2
 
 ### Maintenance
