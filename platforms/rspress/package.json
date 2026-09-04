@@ -44,6 +44,7 @@
 		"@microsoft/api-extractor-model": "^7.33.11",
 		"@shikijs/twoslash": "^4.4.3",
 		"@tsdoctor/bundle": "workspace:*",
+		"@tsdoctor/manifest": "workspace:*",
 		"@tsdoctor/model": "workspace:*",
 		"@tsdoctor/pages": "workspace:*",
 		"@tsdoctor/registry": "workspace:*",

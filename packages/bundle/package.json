@@ -48,6 +48,7 @@
 		"@tsdoctor/manifest": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
+		"image-size": "^2.0.2",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
@@ -61,7 +62,8 @@
 		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@tsdoctor/manifest": "workspace:*",
-		"effect": "catalog:effect"
+		"effect": "catalog:effect",
+		"image-size": "^2.0.2"
 	},
 	"engines": {
 		"node": ">=24.11.0"

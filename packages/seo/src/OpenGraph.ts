@@ -3,9 +3,9 @@
  * page-metadata assembly and the two tag emitters.
  *
  * @remarks
- * The schemas and {@link createPageMetadata} / {@link ogAltText} moved here
- * verbatim from the RSPress adapter (`schemas/opengraph.ts` and
- * `og-resolver.ts`). {@link openGraphTags} is the tag-emission logic that was
+ * The schemas and {@link createPageMetadata} moved here verbatim from the
+ * RSPress adapter (`schemas/opengraph.ts` and `og-resolver.ts`).
+ * {@link openGraphTags} is the tag-emission logic that was
  * inlined in the adapter's `generateFrontmatter`, lifted unchanged — same tag
  * order, same conditional emission of each optional image sub-tag — so that a
  * second adapter can reach the vocabulary rather than reimplement it.
@@ -60,6 +60,10 @@ export const OpenGraphMetadata = Schema.Struct({
 	siteUrl: Schema.String,
 	/** Page route path (e.g. `/api/classes/myclass`). */
 	pageRoute: Schema.String,
+	/** Page title for the `og:title` and `twitter:title` tags. */
+	title: Schema.String,
+	/** Site name for the `og:site_name` tag, when the site declares one. */
+	siteName: Schema.optional(Schema.String),
 	/** Page description for the `og:description` tag. */
 	description: Schema.String,
 	/** ISO 8601 date string for `article:published_time`. */
@@ -79,15 +83,6 @@ export const OpenGraphMetadata = Schema.Struct({
 export type OpenGraphMetadata = typeof OpenGraphMetadata.Type;
 
 /**
- * Descriptive alt text for a package's (or one API's) OG image.
- *
- * @public
- */
-export function ogAltText(packageName: string, apiName?: string): string {
-	return apiName ? `${apiName} - ${packageName} API Documentation` : `${packageName} API Documentation`;
-}
-
-/**
  * Assemble the complete Open Graph metadata for one documentation page.
  *
  * @public
@@ -95,6 +90,8 @@ export function ogAltText(packageName: string, apiName?: string): string {
 export function createPageMetadata(options: {
 	siteUrl: string;
 	pageRoute: string;
+	title: string;
+	siteName?: string;
 	description: string;
 	publishedTime: string;
 	modifiedTime: string;
@@ -105,6 +102,8 @@ export function createPageMetadata(options: {
 	return {
 		siteUrl: options.siteUrl,
 		pageRoute: options.pageRoute,
+		title: options.title,
+		...(options.siteName != null ? { siteName: options.siteName } : {}),
 		description: options.description,
 		publishedTime: options.publishedTime,
 		modifiedTime: options.modifiedTime,
@@ -129,8 +128,10 @@ export function openGraphTags(metadata: OpenGraphMetadata): ReadonlyArray<HeadTa
 	const tags: HeadTag[] = [
 		meta("og:url", canonicalUrl(metadata.siteUrl, metadata.pageRoute)),
 		meta("og:type", metadata.ogType),
-		meta("og:description", metadata.description),
+		meta("og:title", metadata.title),
 	];
+	if (metadata.siteName !== undefined && metadata.siteName !== "") tags.push(meta("og:site_name", metadata.siteName));
+	tags.push(meta("og:description", metadata.description));
 
 	const image = metadata.ogImage;
 	if (image) {
@@ -170,6 +171,7 @@ export function openGraphTags(metadata: OpenGraphMetadata): ReadonlyArray<HeadTa
 export function twitterTags(metadata: OpenGraphMetadata, site?: string): ReadonlyArray<HeadTag> {
 	const tags: HeadTag[] = [
 		metaNamed("twitter:card", metadata.ogImage ? "summary_large_image" : "summary"),
+		metaNamed("twitter:title", metadata.title),
 		metaNamed("twitter:description", metadata.description),
 	];
 	if (site != null && site !== "") tags.push(metaNamed("twitter:site", site));

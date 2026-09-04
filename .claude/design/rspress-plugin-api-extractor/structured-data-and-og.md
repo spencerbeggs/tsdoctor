@@ -22,6 +22,7 @@ related:
 - [Overview](#overview)
 - [Current state](#current-state)
 - [The headTags seam](#the-headtags-seam)
+- [Resolving Open Graph images from the bundle](#resolving-open-graph-images-from-the-bundle)
 - [Canonical URLs and Open Graph](#canonical-urls-and-open-graph)
 - [Attribution](#attribution)
 - [Structured data](#structured-data)
@@ -44,19 +45,29 @@ Every generated API page carries complete `<head>` metadata — a canonical `<li
 | --- | --- |
 | `packages/seo/src/HeadTag.ts` | The neutral tag vocabulary: `HeadTag`, `meta`, `metaNamed`, `link`, `jsonLd`, `escapeScriptBody` |
 | `packages/seo/src/Canonical.ts` | `deriveSiteUrl`, `canonicalUrl`, `resolveUrl`, `imageMimeType` |
-| `packages/seo/src/OpenGraph.ts` | The OG schemas, `createPageMetadata`, `ogAltText`, `openGraphTags`, `twitterTags` |
+| `packages/seo/src/OpenGraph.ts` | The OG schemas, `createPageMetadata`, `openGraphTags`, `twitterTags` |
 | `packages/seo/src/Attribution.ts` | `attributionFacts(manifest)` |
 | `packages/seo/src/StructuredData.ts` | `packageContext`, `derive`, `deriveScriptBody`, `StructuredDataError` |
 | `packages/seo/src/Seo.ts` | `headTags(input)` — the one adapter seam |
-| `platforms/rspress/src/services/OgService.ts` | Filesystem probing of a configured OG image (genuinely I/O, genuinely RSPress-path-shaped) |
+| `platforms/rspress/src/services/OgService.ts` | Filesystem probing of a configured OG image (genuinely I/O, genuinely RSPress-path-shaped); `resolveImage` now takes a required `fallbackAlt` the caller composes |
+| `platforms/rspress/src/layers/config-resolution.ts` | `resolveApiBundle` — loads and resolves each API's bundle, publishes its Open Graph images |
 | `platforms/rspress/src/markdown/helpers.ts` | RSPress frontmatter `head` pairs from `HeadTag[]` |
+| `platforms/vitepress/src/Generate.ts` | Bundle load, resolve and asset publishing for the VitePress adapter |
 | `platforms/vitepress/src/emit/frontmatter.ts` | VitePress `HeadConfig` from the same `HeadTag[]` |
+| `packages/bundle/src/BundleAssets.ts` | `publishBundleAssets` — the neutral image-copy-and-URL-rewrite helper both adapters call (`bundle-spec.md`) |
 
-The package is pure — no filesystem, no network, no native dependencies — and depends on `@effected/package-json`, `@effected/schema-org` and `@effected/spdx` plus `effect`. OG image generation (satori + resvg) is not built; configured images are resolved by `OgService`.
+The package is pure — no filesystem, no network, no native dependencies — and depends on `@effected/package-json`, `@effected/schema-org` and `@effected/spdx` plus `effect`. OG image *generation* (satori + resvg) now happens at build time in `@savvy-web/bundler`'s meta pass, not in this package or either adapter; both adapters only resolve and publish whatever image the bundle manifest already carries.
 
 ## The headTags seam
 
-`headTags(input: SeoPageInput): ReadonlyArray<HeadTag>` takes the site URL, page route, description, timestamps, section, package name and the optional `ogImage`, `twitterSite` and serialized `structuredData`. A `HeadTag` is deliberately dumb — a tag name, an attribute record and an optional body. Tag order is fixed (canonical, Open Graph, Twitter, JSON-LD) so a page's head is stable build to build and a diff over generated pages stays readable; the order carries no semantics. `twitterSite` is a seam input with no adapter wiring yet — there is no plugin option that supplies a handle.
+`headTags(input: SeoPageInput): ReadonlyArray<HeadTag>` takes the site URL, page route, a required `title`, the optional `siteName`, description, timestamps, section, package name and the optional `ogImage`, `twitterSite` and serialized `structuredData`. `openGraphTags` emits `og:title` (always) and `og:site_name` (when `siteName` is present) immediately after `og:type`; `twitterTags` emits `twitter:title` alongside. `ogAltText` is deleted — the only alt-text chain left is the bundle resolver's (an authored `alt` → `tagline` → `description` → `"<name> API documentation"`), so a page's alt text is decided once, not twice by two disagreeing helpers. The wording is user-visible and changed: `ogAltText` produced `"<Api> - <package> API Documentation"` (or, with no `apiName`, `"<package> API Documentation"`); the resolver's fallback lowercases "documentation" and drops the api-name/package-name pairing in favour of whatever tier resolved a name. Because alt text lives in `og:image:alt`, part of the frontmatter the snapshot hash covers, every page's head changed once — on the first rebuild after this branch — even for a page whose content was otherwise untouched. A `HeadTag` is deliberately dumb — a tag name, an attribute record and an optional body. Tag order is fixed (canonical, Open Graph, Twitter, JSON-LD) so a page's head is stable build to build and a diff over generated pages stays readable; the order carries no semantics. `twitterSite` is a seam input with no adapter wiring yet — there is no plugin option that supplies a handle.
+
+## Resolving Open Graph images from the bundle
+
+Both adapters now resolve `og:image`, `og:title` and `og:site_name` from the resolved `@tsdoctor/bundle`, not from a hand-configured option alone. `resolveBundleFrom(bundle, platform)` ranks a platform-tier image above the bundle's own `tsdoctor.json`; `publishBundleAssets` (`bundle-spec.md`) copies every bundle-relative image into the site's public directory and returns an absolute URL. `siteName` resolves as `resolved.project?.value.name ?? resolved.name.value` — the project identity when the bundle carries one, otherwise the package's own resolved name.
+
+- **RSPress.** `resolveApiBundle` (`layers/config-resolution.ts`) loads each API's bundle from its model directory (a loader-function or URL-based model has no directory to discover a sidecar beside, so it falls back to an inferred bundle carrying only the package name) and resolves it with an empty platform tier — the RSPress adapter has no platform-override tier of its own. The legacy `ogImage` option keeps going through `OgService`, which can probe `docs/public` (something the bundle resolver cannot do), and outranks a bundle image at the call site in `generateSinglePage`, not in resolution. A bundle-load failure is a `ConfigValidationError` (`field: "bundle"`); an asset-publish failure degrades to a `ConfigValidationWarning` (`field: "openGraph"`) and the page renders without a bundle-supplied `og:image`.
+- **VitePress.** `ApiExtractorOptions.ogImage?: string | OpenGraphImage` is the platform tier: an absolute `http(s)://` string becomes a `url` image, any other string a bundle-relative `path`, an object passes through as the manifest image shape verbatim. `Generate.ts` loads the bundle, resolves it and publishes into `<docsDir>/public`; a publish failure degrades silently to no image — there is no event bus on this adapter yet to carry the warning (`vitepress-adapter.md`).
 
 ## Canonical URLs and Open Graph
 
@@ -86,7 +97,7 @@ The RSPress adapter renders a `HeadTag` into a frontmatter `head` pair `[tagName
 
 ## Data threading through the adapter
 
-`ResolvedApiConfig` carries `manifest?: PackageManifest`, the package's `package.json` decoded through `@effected/package-json`'s shape-strict tier (`configuration-system.md`). `build-program.ts` derives `structuredDataPkg` once per API from that manifest plus the resolved `siteUrl` and threads it into the pipeline input beside `siteUrl`, `docsRoot` and `ogImage`; `generateSinglePage` resolves the OG image, derives the script body and calls `headTags` (`page-generation-system.md`).
+`ResolvedApiConfig` carries `manifest?: PackageManifest`, the package's `package.json` decoded through `@effected/package-json`'s shape-strict tier (`configuration-system.md`), and now also `bundle: ResolvedBundle` (always present, falling back to an inferred bundle carrying only the package name), `siteName?: string` and `bundleOgImage?: PublishedOpenGraphImage`. `build-program.ts` derives `structuredDataPkg` once per API from the manifest plus the resolved `siteUrl` and threads it into the pipeline input beside `siteUrl`, `docsRoot`, `ogImage`, `siteName` and `bundleOgImage`; `generateSinglePage` resolves the OG image — the legacy `ogImage` option first, `bundleOgImage` otherwise — derives the script body and calls `headTags` with `title: item.displayName` and, when the bundle resolved one, `siteName` (`page-generation-system.md`).
 
 ## Change detection
 
@@ -110,7 +121,7 @@ Conformance is checked offline and in CI: `Conformance.check` from `@effected/sc
 
 ## Out of scope
 
-OG image generation (needs a native binary and its own persistence story; it rides on this seam when built); sitemaps and `robots.txt`; a `twitter:site` plugin option; per-page conformance validation in a production build.
+OG image *generation* — it now happens at build time in `@savvy-web/bundler`'s meta pass (a satori-plus-resvg renderer over optional peers), not in this package or either adapter; sitemaps and `robots.txt`; a `twitter:site` plugin option; per-page conformance validation in a production build.
 
 ## Rationale
 
@@ -124,6 +135,7 @@ OG image generation (needs a native binary and its own persistence story; it rid
 - **Site URL derivation and the manifest decode:** `configuration-system.md`
 - **The generate stage that calls the seam:** `page-generation-system.md`
 - **The frontmatter hash:** `snapshot-tracking-system.md`
-- **The second renderer of `HeadTag[]`:** `vitepress-adapter.md`
+- **The bundle spec, `publishBundleAssets` and the manifest's writer side:** `bundle-spec.md`
+- **The second renderer of `HeadTag[]` and its platform tier:** `vitepress-adapter.md`
 - **Package architecture and the `@effected` dependency map:** `tsdoctor-package-architecture.md`
 - **Where `ConfigValidationWarning` ends up:** `build-progress-and-issues.md`

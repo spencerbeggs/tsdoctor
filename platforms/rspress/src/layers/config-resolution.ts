@@ -1,11 +1,15 @@
 import type { PathLike } from "node:fs";
+import path from "node:path";
 import { PackageManifest } from "@effected/package-json";
 import type { ApiEntryPoint, ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
+import type { PlatformOverrides, PublishedOpenGraphImage, ResolvedBundle } from "@tsdoctor/bundle";
+import { loadBundle, publishBundleAssets, resolveBundleFrom } from "@tsdoctor/bundle";
 import { ApiExtractedPackage, TypeReferenceExtractor } from "@tsdoctor/model";
 import { apiScopeOf, normalizeBaseRoute, unscopedName } from "@tsdoctor/pages";
 import { deriveSiteUrl } from "@tsdoctor/seo";
 import { hashContent } from "@tsdoctor/snapshot";
 import type { Vfs } from "@tsdoctor/vfs";
+import type { FileSystem, Path } from "effect";
 import { Effect, Metric } from "effect";
 import { BuildId } from "../BuildEnv.js";
 import { CategoryResolver } from "../category-resolver.js";
@@ -135,6 +139,125 @@ function decodeManifest(
 			return undefined;
 		}
 		return decoded.success;
+	});
+}
+
+/**
+ * Resolve an API's bundle — display identity and Open Graph images — from its
+ * model directory, with provenance across the manifest tiers.
+ *
+ * @remarks
+ * Every API resolves a bundle, even one declared with a loader function
+ * rather than a path: a loader has no directory to discover a `tsdoctor.json`
+ * sidecar beside, so resolution falls back to an inferred bundle carrying
+ * only the package name — the same floor {@link resolveBundleFrom} itself
+ * guarantees for `name`.
+ *
+ * A present-but-malformed `tsdoctor.json` fails the build typed, the same
+ * posture as a malformed tsconfig: {@link ConfigValidationError} with
+ * `field: "bundle"`. Asset publishing degrades instead — a malformed or
+ * unreadable image must not stop the docs from generating, it should just
+ * render without a bundle-supplied `og:image`.
+ */
+function resolveApiBundle(input: {
+	readonly model: unknown;
+	readonly packageName: string;
+	readonly buildId: string;
+	readonly siteUrl: string | undefined;
+	readonly rspressRoot: string;
+	/** A version string, when this is one version of a multi-version site — keeps each version's published assets from overwriting one another. */
+	readonly assetSubdir?: string;
+}): Effect.Effect<
+	{ readonly bundle: ResolvedBundle; readonly siteName: string; readonly bundleOgImage?: PublishedOpenGraphImage },
+	ConfigValidationError,
+	FileSystem.FileSystem | Path.Path
+> {
+	const inferredBundle: { readonly bundle: ResolvedBundle; readonly siteName: string } = {
+		bundle: { name: { value: input.packageName, source: "inferred" } },
+		siteName: input.packageName,
+	};
+
+	return Effect.gen(function* () {
+		// A loader function or a URL has no directory to discover a sidecar
+		// manifest beside — only a path-based model can carry one.
+		const modelPath = input.model;
+		if (typeof modelPath !== "string") {
+			return inferredBundle;
+		}
+		const modelDir = path.dirname(modelPath);
+
+		// A non-manifest discovery/layer failure degrades to a warning plus the
+		// inferred bundle, exactly the loader-function fallback above; only a
+		// malformed `tsdoctor.json` (BundleManifestError) stays fatal.
+		const degradeToWarning = (cause: { readonly path: string; readonly message: string }) =>
+			Effect.andThen(
+				emit(
+					PluginEvent.ConfigValidationWarning({
+						ctx: { buildId: input.buildId, packageName: input.packageName },
+						field: "bundle",
+						value: cause.path,
+						reason: cause.message,
+						level: "warn",
+					}),
+				),
+				Effect.succeed(undefined),
+			);
+
+		// Pin the model already known rather than letting `loadBundle`
+		// re-discover it: re-running `*.api.json` candidate selection widens
+		// the fatal surface to "a second unrelated model file in this folder"
+		// or "a malformed package.json", neither of which is what "bundle"
+		// should mean here.
+		const bundle = yield* loadBundle(modelDir, {
+			overrides: { modelPath, name: input.packageName },
+		}).pipe(
+			Effect.catchTag("BundleManifestError", (cause) =>
+				Effect.fail(new ConfigValidationError({ field: "bundle", reason: cause.message, cause })),
+			),
+			Effect.catchTags({
+				BundleDiscoveryError: degradeToWarning,
+				BundleLayerError: degradeToWarning,
+			}),
+		);
+
+		if (bundle === undefined) {
+			return inferredBundle;
+		}
+
+		// The RSPress adapter has no platform-override tier: the legacy `ogImage`
+		// option keeps going through OgService (it can probe `docs/public`,
+		// which the resolver cannot) and outranks a bundle image at the call
+		// site in `generateSinglePage`, not here.
+		const platform: PlatformOverrides = {};
+		const resolved = resolveBundleFrom(bundle, platform);
+		const siteName = resolved.project?.value.name ?? resolved.name.value;
+
+		const published =
+			resolved.openGraph !== undefined && input.siteUrl != null
+				? yield* publishBundleAssets({
+						bundleDir: bundle.descriptor.dir,
+						images: resolved.openGraph.value.images,
+						publicDir: path.join(input.rspressRoot, "public"),
+						siteUrl: input.siteUrl,
+						unscopedName: unscopedName(input.packageName),
+						...(input.assetSubdir != null ? { subdir: input.assetSubdir } : {}),
+					}).pipe(
+						Effect.tapError((error) =>
+							emit(
+								PluginEvent.ConfigValidationWarning({
+									ctx: { buildId: input.buildId, packageName: input.packageName },
+									field: "openGraph",
+									value: error.path,
+									reason: error.message,
+									level: "warn",
+								}),
+							),
+						),
+						Effect.orElseSucceed(() => [] as ReadonlyArray<PublishedOpenGraphImage>),
+					)
+				: [];
+
+		return { bundle: resolved, siteName, ...(published[0] != null ? { bundleOgImage: published[0] } : {}) };
 	});
 }
 
@@ -395,6 +518,17 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 								// Normalize theme configuration
 								const resolvedTheme = normalizeThemeConfig(api.theme);
 
+								// Resolve display identity and Open Graph images from the
+								// bundle beside this API's model, publishing manifest images
+								// into the site's public directory.
+								const { bundle, siteName, bundleOgImage } = yield* resolveApiBundle({
+									model,
+									packageName: api.packageName,
+									buildId,
+									siteUrl,
+									rspressRoot,
+								});
+
 								return {
 									vfs,
 									vfsPayloads,
@@ -414,6 +548,9 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 										...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),
 										...(docsRoot != null ? { docsRoot } : {}),
 										...(resolvedTheme != null ? { theme: resolvedTheme } : {}),
+										bundle,
+										siteName,
+										...(bundleOgImage != null ? { bundleOgImage } : {}),
 									} satisfies ResolvedApiConfig,
 								};
 							}
@@ -549,6 +686,17 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 													const outputDir = versionDp.outputDir;
 													const fullRoute = versionDp.routeBase;
 
+													// Resolved against the version's own model directory — each
+													// version may carry its own `tsdoctor.json` sidecar.
+													const { bundle, siteName, bundleOgImage } = yield* resolveApiBundle({
+														model: versionConfig.model,
+														packageName: api.packageName,
+														buildId,
+														siteUrl,
+														rspressRoot,
+														assetSubdir: version,
+													});
+
 													return {
 														vfs,
 														vfsPayloads,
@@ -568,6 +716,9 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 															...(resolvedOgImage != null ? { ogImage: resolvedOgImage } : {}),
 															...(docsRoot != null ? { docsRoot } : {}),
 															...(resolvedTheme != null ? { theme: resolvedTheme } : {}),
+															bundle,
+															siteName,
+															...(bundleOgImage != null ? { bundleOgImage } : {}),
 														} satisfies ResolvedApiConfig,
 													};
 												}

@@ -1,5 +1,6 @@
 import path from "node:path";
-import { Effect, Layer } from "effect";
+import { NodeFileSystem } from "@effect/platform-node";
+import { Effect, Layer, Path } from "effect";
 import { describe, expect, it } from "vitest";
 import { ConfigValidationError, TypeRegistryError } from "../src/errors.js";
 import type { PluginOptions } from "../src/schemas/config.js";
@@ -19,6 +20,11 @@ const makeTestLayer = (options: PluginOptions) =>
 			MockTwoslashCacheServiceLayer,
 			TwoslashEnvironments.layer,
 			Layer.succeed(PluginConfig, options),
+			// `resolve()` now loads each API's bundle (`loadBundle`), which needs
+			// a real FileSystem/Path to discover a `tsdoctor.json` sidecar beside
+			// the fixture model.
+			NodeFileSystem.layer,
+			Path.layer,
 		),
 	);
 
@@ -301,6 +307,8 @@ describe("ConfigService.layer.resolve", () => {
 				MockTwoslashCacheServiceLayer,
 				TwoslashEnvironments.layer,
 				Layer.succeed(PluginConfig, options),
+				NodeFileSystem.layer,
+				Path.layer,
 			),
 		);
 
@@ -439,5 +447,119 @@ describe("ConfigService.layer.resolve — typed configuration failures", () => {
 		// Names both sides of the conflict, so the message is actionable.
 		expect((error as ConfigValidationError).reason).toMatch(/zod/);
 		expect((error as ConfigValidationError).reason).toMatch(/4\.0\.0/);
+	});
+});
+
+/**
+ * `resolve()` resolving each API's bundle — display identity and Open Graph
+ * images from a `tsdoctor.json` sidecar beside the model.
+ */
+describe("ConfigService.layer.resolve — bundle manifest", () => {
+	const bundleFixtureModel = path.join(import.meta.dirname, "__fixtures__/bundle-manifest/kitchensink.api.json");
+
+	it("resolves siteName, bundle identity and publishes the manifest's OG image", async () => {
+		const fs = await import("node:fs/promises");
+		const os = await import("node:os");
+		const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "config-service-bundle-"));
+
+		const options: PluginOptions = {
+			api: {
+				packageName: "kitchensink",
+				model: bundleFixtureModel,
+				baseRoute: "/kitchensink",
+			},
+		};
+
+		const program = Effect.gen(function* () {
+			const config = yield* ConfigService;
+			return yield* config.resolve({ siteOrigin: "https://basic.example.com", root: tmpDir });
+		}).pipe(Effect.scoped);
+
+		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
+
+		expect(result).toHaveLength(1);
+		const cfg = result[0];
+		expect(cfg.siteName).toBe("tsdoctor");
+		expect(cfg.bundle.name.value).toBe("Kitchen Sink");
+		expect(cfg.bundleOgImage?.url).toBe("https://basic.example.com/tsdoctor/kitchensink/k.png");
+
+		const published = await fs.readFile(path.join(tmpDir, "public/tsdoctor/kitchensink/k.png"));
+		expect(published.byteLength).toBeGreaterThan(0);
+	});
+
+	it("resolves a fallback bundle (name only) for a model with no tsdoctor.json beside it", async () => {
+		const options: PluginOptions = {
+			api: {
+				packageName: "example-module",
+				model: fixtureModel,
+				baseRoute: "/example-module",
+			},
+		};
+
+		const program = Effect.gen(function* () {
+			const config = yield* ConfigService;
+			return yield* config.resolve({});
+		}).pipe(Effect.scoped);
+
+		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
+
+		expect(result).toHaveLength(1);
+		expect(result[0].bundle.name.value).toBe("example-module");
+		expect(result[0].siteName).toBe("example-module");
+		expect(result[0].bundleOgImage).toBeUndefined();
+	});
+
+	it("resolves cleanly when the model folder holds a second, unrelated *.api.json", async () => {
+		// The fixture directory also carries `other-package.api.json`
+		// (`__fixtures__/bundle-manifest/`) — before the model-pinning fix,
+		// `loadBundle` re-ran `*.api.json` candidate discovery from scratch and
+		// this ambiguity failed the build with `ambiguousApiModel`. Pinning the
+		// already-known model path skips discovery entirely, so a second
+		// unrelated file beside it must not matter.
+		const fs = await import("node:fs/promises");
+		const os = await import("node:os");
+		const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "config-service-bundle-collision-"));
+
+		const options: PluginOptions = {
+			api: {
+				packageName: "kitchensink",
+				model: bundleFixtureModel,
+				baseRoute: "/kitchensink",
+			},
+		};
+
+		const program = Effect.gen(function* () {
+			const config = yield* ConfigService;
+			return yield* config.resolve({ root: tmpDir });
+		}).pipe(Effect.scoped);
+
+		const result = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options))));
+
+		expect(result).toHaveLength(1);
+		expect(result[0].bundle.name.value).toBe("Kitchen Sink");
+	});
+
+	it("fails typed when the pinned model's tsdoctor.json is malformed", async () => {
+		const malformedModel = path.join(
+			import.meta.dirname,
+			"__fixtures__/bundle-manifest-malformed/kitchensink.api.json",
+		);
+		const options: PluginOptions = {
+			api: {
+				packageName: "kitchensink",
+				model: malformedModel,
+				baseRoute: "/kitchensink",
+			},
+		};
+
+		const program = Effect.gen(function* () {
+			const config = yield* ConfigService;
+			return yield* config.resolve({});
+		}).pipe(Effect.scoped);
+
+		const error = await Effect.runPromise(program.pipe(Effect.provide(makeTestLayer(options)), Effect.flip));
+
+		expect(error).toBeInstanceOf(ConfigValidationError);
+		expect((error as ConfigValidationError).field).toBe("bundle");
 	});
 });

@@ -3,11 +3,9 @@ import { PackageJsonFile } from "@effected/package-json";
 import type { ResolvedTsconfig } from "@effected/tsconfig-json";
 import { TsconfigLoader } from "@effected/tsconfig-json";
 import type { BundleManifest } from "@tsdoctor/manifest";
-import { BundleManifestError, TSDOCTOR_MANIFEST_FILENAME, decodeBundleManifest } from "@tsdoctor/manifest";
+import { BundleManifestError, decodeBundleManifest } from "@tsdoctor/manifest";
 import type { Path } from "effect";
 import { Effect, FileSystem, Option, Schema } from "effect";
-
-export { TSDOCTOR_MANIFEST_FILENAME };
 
 /**
  * The subset of a `<name>.api.json` model this package reads: the package

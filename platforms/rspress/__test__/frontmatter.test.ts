@@ -92,6 +92,7 @@ describe("generateFrontmatter emission parity", () => {
 			openGraphTags({
 				siteUrl: "https://example.com",
 				pageRoute: "/api/class/myclass",
+				title: "MyClass",
 				ogType: "article",
 				description: 'A utility class:\nwith  newlines and "quotes".',
 				ogImage: {
@@ -116,6 +117,7 @@ describe("generateFrontmatter emission parity", () => {
 			head: [
 				["meta", { property: "og:url", content: "https://example.com/api/class/myclass" }],
 				["meta", { property: "og:type", content: "article" }],
+				["meta", { property: "og:title", content: "MyClass" }],
 				["meta", { property: "og:description", content: 'A utility class: with newlines and "quotes".' }],
 				["meta", { property: "og:image", content: "https://example.com/og.png" }],
 				["meta", { property: "og:image:secure_url", content: "https://example.com/og.png" }],
@@ -130,7 +132,7 @@ describe("generateFrontmatter emission parity", () => {
 				["meta", { property: "article:tag", content: "api" }],
 			],
 		});
-		expect(hashFrontmatter(data)).toBe("7d5730c72526f42ccf509cfebc65082c7c78f6185f6d4e0549b2695cc68e535e");
+		expect(hashFrontmatter(data)).toBe("2a94eb93cf2db0dd036d1766056179cc50c02eba42e416ed6da63a5f2e1fb766");
 		expect(hashContent(content)).toBe("cd6eb7d1fa7bffee0d6c0881301abd0ba728a45edcfcf616ecc2a7030c83a4fa");
 	});
 

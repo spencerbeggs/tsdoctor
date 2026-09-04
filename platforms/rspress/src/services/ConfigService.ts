@@ -1,7 +1,9 @@
 /* v8 ignore start -- service interface + Context.Tag, no testable logic */
 import type { PackageManifest } from "@effected/package-json";
 import type { ApiPackage } from "@microsoft/api-extractor-model";
+import type { PublishedOpenGraphImage, ResolvedBundle } from "@tsdoctor/bundle";
 import type { OpenGraphImageConfig } from "@tsdoctor/seo";
+import type { FileSystem, Path } from "effect";
 import { Context, Effect, Layer } from "effect";
 import type { ConfigValidationError } from "../errors.js";
 import type { PackageJson } from "../internal-types.js";
@@ -70,6 +72,34 @@ export interface ResolvedApiConfig {
 	readonly ogImage?: OpenGraphImageConfig;
 	readonly docsRoot?: string;
 	readonly theme?: ShikiThemeConfig;
+	/**
+	 * The API's bundle, resolved with provenance across the manifest tiers.
+	 *
+	 * @remarks
+	 * Always present: a bundle with no `tsdoctor.json` still resolves, its
+	 * `name` falling back to the api.json model's own name.
+	 */
+	readonly bundle: ResolvedBundle;
+	/**
+	 * The site's display name, for `og:site_name`.
+	 *
+	 * @remarks
+	 * `resolved.project?.value.name ?? resolved.name.value` — a monorepo's
+	 * project identity when the manifest carries one, else the package's own
+	 * resolved name.
+	 */
+	readonly siteName?: string;
+	/**
+	 * The bundle manifest's Open Graph image, published into the site's public
+	 * directory.
+	 *
+	 * @remarks
+	 * Absent when the bundle declares no `openGraph` block, when publishing
+	 * failed (degrades to a `ConfigValidationWarning`) or when `siteUrl` is
+	 * unset. The legacy `ogImage` option, resolved through {@link OgService},
+	 * always outranks this — see `generateSinglePage`.
+	 */
+	readonly bundleOgImage?: PublishedOpenGraphImage;
 }
 
 /**
@@ -91,7 +121,7 @@ export interface ConfigServiceShape {
 	) => Effect.Effect<
 		ReadonlyArray<ResolvedApiConfig>,
 		ConfigValidationError,
-		TwoslashCacheService | TwoslashEnvironments
+		TwoslashCacheService | TwoslashEnvironments | FileSystem.FileSystem | Path.Path
 	>;
 }
 

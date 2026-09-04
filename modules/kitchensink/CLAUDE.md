@@ -51,6 +51,14 @@ pnpm vitest run modules/kitchensink/               # Run tests
 | `index.ts` | `@packageDocumentation` | Module documentation |
 | `testing.ts` | `@packageDocumentation` | Module documentation |
 
+## Bundle Manifest
+
+`savvy.build.ts` carries a `meta.tsdoctor` block (name, tagline, an Open
+Graph image generated via `@savvy-web/bundler/og`'s `ogImage.satori()`) that
+the bundler writes out as this module's `tsdoctor.json` sidecar, flattened
+over the root `tsdoctor.json` project tier. `satori` and `@resvg/resvg-js`
+are dev dependencies solely for generating that image.
+
 ## Example Block Conventions
 
 - All `@example` blocks import from `"kitchensink"` or `"kitchensink/testing"` — never relative paths

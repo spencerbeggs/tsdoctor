@@ -37,7 +37,10 @@ model.
   services; cache layout `bundles/npm/<name>/<version>` and
   `bundles/github/<owner>/<repo>/<tag>/<asset>`; the real `*.npm.meta.tgz`
   release asset unpacks to a `meta/` root, which `locateBundleRoot` handles
-  alongside npm's `package/`).
+  alongside npm's `package/`; a cached bundle also carries every
+  `openGraph.images[].path` its manifest declares, copied under that same
+  bundle-relative path, or fails typed `missingAsset`/`invalidRef` when the
+  archive lacks it or the path escapes the bundle).
 - Layers enrich, never gate: absence of layers 1–3 is `Option.none()`, a
   PRESENT-but-malformed file fails typed (`BundleLayerError` /
   `BundleManifestError` / `BundleDiscoveryError`, all `Schema.TaggedError`).

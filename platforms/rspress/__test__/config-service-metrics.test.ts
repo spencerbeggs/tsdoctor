@@ -16,7 +16,8 @@
  * empty snapshot even with the production code correct.
  */
 import path from "node:path";
-import { Effect, Layer, Metric } from "effect";
+import { NodeFileSystem } from "@effect/platform-node";
+import { Effect, Layer, Metric, Path } from "effect";
 import { describe, expect, it } from "vitest";
 import { makeMetricStore } from "../src/layers/build-metrics.js";
 import type { PluginOptions } from "../src/schemas/config.js";
@@ -55,7 +56,9 @@ describe("ConfigService.layer.resolve — metrics reach the build's own registry
 			return yield* Metric.snapshot;
 		}).pipe(Effect.scoped);
 
-		const snapshots = await Effect.runPromise(program.pipe(Effect.provide(Layer.mergeAll(testLayer, metrics.layer))));
+		const snapshots = await Effect.runPromise(
+			program.pipe(Effect.provide(Layer.mergeAll(testLayer, metrics.layer, NodeFileSystem.layer, Path.layer))),
+		);
 
 		// FORBIDS the `Effect.runSync(Metric.update(...))` this replaced: run
 		// outside the fiber, that resolved the MetricRegistry Reference DEFAULT,

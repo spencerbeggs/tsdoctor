@@ -26,6 +26,10 @@ export interface SeoPageInput {
 	readonly siteUrl: string;
 	/** Page route path, beginning with `/`. */
 	readonly pageRoute: string;
+	/** Page title, used for both `og:title` and `twitter:title`. */
+	readonly title: string;
+	/** Site name for the `og:site_name` tag, when the site declares one. */
+	readonly siteName?: string;
 	/** Page description, used for both `og:description` and `twitter:description`. */
 	readonly description: string;
 	/** ISO 8601 date string for `article:published_time`. */
@@ -59,6 +63,8 @@ export function headTags(input: SeoPageInput): ReadonlyArray<HeadTag> {
 	const metadata = createPageMetadata({
 		siteUrl: input.siteUrl,
 		pageRoute: input.pageRoute,
+		title: input.title,
+		...(input.siteName != null ? { siteName: input.siteName } : {}),
 		description: input.description,
 		publishedTime: input.publishedTime,
 		modifiedTime: input.modifiedTime,

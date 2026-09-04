@@ -13,6 +13,7 @@
  * @packageDocumentation
  */
 
+import type { OpenGraphImage } from "@tsdoctor/bundle";
 import { Effect, Layer, ManagedRuntime } from "effect";
 import type { ShikiTransformer } from "shiki";
 
@@ -54,6 +55,13 @@ export interface ApiExtractorOptions {
 	readonly suppressExampleErrors?: boolean | undefined;
 	/** The source repository, when the site links to it. */
 	readonly source?: { readonly url: string; readonly ref?: string | undefined } | undefined;
+	/**
+	 * The `manifest.platform` Open Graph image override, ranked above the
+	 * bundle's own `tsdoctor.json`. A string is an absolute `http(s)://` URL or
+	 * a path relative to the bundle directory; an object is the manifest image
+	 * shape (`path` XOR `url`, plus `type`/`width`/`height`/`alt`).
+	 */
+	readonly ogImage?: string | OpenGraphImage | undefined;
 	/** Whether to print a one-line summary. Defaults to `true`. */
 	readonly log?: boolean | undefined;
 }
@@ -117,6 +125,7 @@ export async function apiExtractor(options: ApiExtractorOptions): Promise<ApiExt
 			externalPackages: options.externalPackages,
 			suppressExampleErrors: options.suppressExampleErrors,
 			source: options.source,
+			ogImage: options.ogImage,
 		}),
 	);
 

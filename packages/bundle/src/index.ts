@@ -33,6 +33,12 @@ export {
 	readBundle,
 } from "./Bundle.js";
 export {
+	BundleAssetError,
+	type PublishBundleAssetsInput,
+	type PublishedOpenGraphImage,
+	publishBundleAssets,
+} from "./BundleAssets.js";
+export {
 	BundleDiscoveryError,
 	type BundleOverrides,
 	type DiscoverBundleOptions,

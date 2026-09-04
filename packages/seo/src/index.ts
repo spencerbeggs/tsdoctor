@@ -16,7 +16,6 @@ export {
 	OpenGraphImageMetadata,
 	OpenGraphMetadata,
 	createPageMetadata,
-	ogAltText,
 	openGraphTags,
 	twitterTags,
 } from "./OpenGraph.js";

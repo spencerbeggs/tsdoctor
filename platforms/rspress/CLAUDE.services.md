@@ -13,7 +13,11 @@ The plugin runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned via `catalog:eff
   config; `resolve()` returns `ReadonlyArray<ResolvedApiConfig>` (the 16-field
   `ResolvedBuildContext` is deleted). Zero-argument, so "call it twice" is a
   type error. Implementation: `makeConfigService` in
-  `layers/config-resolution.ts`.
+  `layers/config-resolution.ts`, which now also resolves each API's
+  `@tsdoctor/bundle` (`loadBundle` + `resolveBundleFrom`, publishing Open
+  Graph images via `publishBundleAssets`) — `resolve`'s requirement channel
+  grew `Path.Path` for it, so `AppLayer.ts`'s `app` stack adds `Path.layer`
+  beside `NodeFileSystem.layer`.
 - `PluginConfig` — `Layer.succeed` over the decoded `PluginOptions`. A service,
   not a Reference, because "which APIs?" has no safe default.
 - `HighlighterService.layer(themes)` — the build's one Shiki highlighter,

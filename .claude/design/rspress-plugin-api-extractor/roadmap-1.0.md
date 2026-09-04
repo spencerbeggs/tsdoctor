@@ -13,6 +13,7 @@ related:
   - rspress-plugin-api-extractor/render-phase-instrumentation.md
   - rspress-plugin-api-extractor/structured-data-and-og.md
   - rspress-plugin-api-extractor/doc-ir-and-pages.md
+  - rspress-plugin-api-extractor/vitepress-adapter.md
 ---
 
 # Road to 1.0
@@ -33,7 +34,7 @@ This is the umbrella roadmap for taking `rspress-plugin-api-extractor` to 1.0.0 
 
 ## Current state
 
-Phases 1 through 5 are executed. Seven core packages exist under `packages/` (`vfs`, `registry`, `model`, `bundle`, `snapshot`, `seo`, `pages`), two adapters under `platforms/` (`rspress`, `vitepress`), and the RSPress adapter runs on the shared page IR. Releases ship from this repo through changesets, tagged `<package>@<version>`; the pre-consolidation npm packages `type-registry-effect` and `api-extractor-llms` are deprecated with their repos archived. The plugin is pre-1.0 and every core package is on a 0.x line.
+Phases 1 through 6 are executed. Eight core packages exist under `packages/` (`vfs`, `registry`, `model`, `manifest`, `bundle`, `snapshot`, `seo`, `pages`), two adapters under `platforms/` (`rspress`, `vitepress`), and the RSPress adapter runs on the shared page IR. Releases ship from this repo through changesets, tagged `<package>@<version>`; the pre-consolidation npm packages `type-registry-effect` and `api-extractor-llms` are deprecated with their repos archived. The plugin is pre-1.0 and every core package is on a 0.x line.
 
 ## The 1.0 definition
 
@@ -46,14 +47,16 @@ Each phase had a gate that held before the next started; phases were ordered by 
 1. **Consolidation.** The two external support libraries moved into this monorepo as `@tsdoctor/registry` and `@tsdoctor/model` with no behaviour change, the plugin workspace moved to `platforms/rspress/`, and the first releases shipped under the new org. Record: `monorepo-consolidation.md`.
 2. **Carve the core.** `@tsdoctor/bundle` (the bundle spec, `bundle-spec.md`) and `@tsdoctor/snapshot` (on `@effected/store`, `snapshot-tracking-system.md`) were extracted; the model was redesigned as Effect v4 namespace modules and the plugin's delegation shims collapsed into direct usage; the registry's identity strings became tsdoctor-native, with a one-time on-disk cache invalidation accepted.
 3. **Instrumentation, then scoping and performance.** Render-phase code-block time was attributed per scope and per block before any optimization; the data put nearly all cost in Twoslash and decided the fix priority: the persisted Twoslash result cache as the performance work, and per-scope TypeScript environments on correctness grounds only. Record: `render-phase-instrumentation.md`. The instrument-first sequencing paid for itself — the first two measurement attempts were both wrong in ways that would have misdirected the fix.
-4. **Adapter refactor and SEO layer.** An unnumbered refactor first deleted the adapter's sixteen-field build context in favour of services and `Context.Reference`s, split the runtimes and collapsed the sync-emitter seams (`effect-service-layer.md`), fixing two live defects on the way (a second anchor spelling that produced dead cross-links, and compiler options reaching Twoslash in the wrong spelling). Then `@tsdoctor/seo` landed as the single `headTags` seam, with JSON-LD over `@effected/schema-org` and a change-detection defect closed. Record: `structured-data-and-og.md`. OG image generation was deliberately deferred.
+4. **Adapter refactor and SEO layer.** An unnumbered refactor first deleted the adapter's sixteen-field build context in favour of services and `Context.Reference`s, split the runtimes and collapsed the sync-emitter seams (`effect-service-layer.md`), fixing two live defects on the way (a second anchor spelling that produced dead cross-links, and compiler options reaching Twoslash in the wrong spelling). Then `@tsdoctor/seo` landed as the single `headTags` seam, with JSON-LD over `@effected/schema-org` and a change-detection defect closed. Record: `structured-data-and-og.md`. OG image generation was deliberately deferred at the time.
 5. **Doc IR and the VitePress adapter.** The Tier 1 core moves extracted `@tsdoctor/vfs` and moved the api-model files into the model; then `@tsdoctor/pages` lifted the page generators into a typed IR, the RSPress adapter switched to it behind a byte-identity gate, and `platforms/vitepress/` plus `sites/vitepress-basic` held the alpha gate: same bundle, same routes and anchors, Twoslash over the same VFS, prose links and head tags resolving, sidebar from the nav tree. Record: `doc-ir-and-pages.md`, `rspress-mdx-emitter.md`, `vitepress-adapter.md`.
+6. **The manifest writer and Open Graph end to end.** The deferred OG image generation landed: `@tsdoctor/manifest` split the `tsdoctor.json` schema out of `@tsdoctor/bundle`, `@savvy-web/bundler`'s meta pass became the writer (config/leaf/project tiers, `targets.json`-derived registries, an optional satori-plus-resvg generated image), `silk-release-action` upserts the SBOM pointer, and both adapters resolve and publish the manifest's images with `@tsdoctor/seo` emitting `og:title` and `og:site_name`. Record: `bundle-spec.md`, `structured-data-and-og.md`, `vitepress-adapter.md`.
 
 ## Remaining work
 
 - **Phase 5 close-out:** the model's `Render` deprecation is in place; its deletion a minor later is the recorded lean (`doc-ir-and-pages.md`).
 - **The next core-move tier**, measured by building the VitePress adapter and not yet taken (`tsdoctor-package-architecture.md`).
-- **Phase 6 — 1.0:** stabilize APIs, write user docs, finalize deprecations; `@tsdoctor/*` core packages go 1.0 and `rspress-plugin-api-extractor@1.0.0` ships on them. TS7 / api-extractor is explicitly off the critical path — the bundle spec is the firewall, since `api.json` is the input contract regardless of which TypeScript produced it.
+- **A versioned JSON Schema for `tsdoctor.json`** (recorded follow-up, user-requested 2026-09-03): generate it from `@tsdoctor/manifest`'s `BundleManifest` with `@effected/schemastore`, emitted to the repo root as `schemas/<version>/tsdoctor-<version>.json` by a `lib/scripts/generate-schema.ts` script, following `savvy-web/silk-release-action`'s own schema-generation precedent, for submission to SchemaStore under the `tsdoctor.json` filename pattern. Unscheduled.
+- **Phase 7 — 1.0:** stabilize APIs, write user docs, finalize deprecations; `@tsdoctor/*` core packages go 1.0 and `rspress-plugin-api-extractor@1.0.0` ships on them. TS7 / api-extractor is explicitly off the critical path — the bundle spec is the firewall, since `api.json` is the input contract regardless of which TypeScript produced it.
 - **Unscheduled ideas:** `@tsdoctor/cli`, a scaffolding binary (`tsdoctor-package-architecture.md`).
 
 ## Rationale
@@ -68,7 +71,8 @@ Each phase had a gate that held before the next started; phases were ordered by 
 
 - **Target package architecture:** `tsdoctor-package-architecture.md`
 - **Phase 1 record:** `monorepo-consolidation.md`
-- **Bundle spec:** `bundle-spec.md`
+- **Bundle spec, the manifest writer and `publishBundleAssets`:** `bundle-spec.md`
 - **Phase 3 record:** `render-phase-instrumentation.md`
 - **Phase 4 record:** `structured-data-and-og.md`
 - **Phase 5 record:** `doc-ir-and-pages.md`
+- **Phase 6 record:** `vitepress-adapter.md`

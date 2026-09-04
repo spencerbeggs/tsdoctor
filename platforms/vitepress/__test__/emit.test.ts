@@ -10,6 +10,7 @@ describe("frontmatter", () => {
 	const tags = headTags({
 		siteUrl: "https://example.com",
 		pageRoute: "/api/class/x",
+		title: "X",
 		description: "desc",
 		publishedTime: "2026-01-01T00:00:00.000Z",
 		modifiedTime: "2026-01-01T00:00:00.000Z",

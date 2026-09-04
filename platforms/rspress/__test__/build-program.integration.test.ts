@@ -36,6 +36,7 @@ describe("generateApiDocs (Effect program)", () => {
 			outputDir: tmpDir,
 			baseRoute: "/example-module",
 			categories,
+			bundle: { name: { value: "example-module", source: "inferred" } },
 		};
 
 		const fileContextMap = new Map<string, { api?: string; version?: string; file: string }>();

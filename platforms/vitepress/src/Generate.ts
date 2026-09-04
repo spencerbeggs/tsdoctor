@@ -19,10 +19,11 @@
 
 import { PackageManifest } from "@effected/package-json";
 import type { ApiEntryPoint, ApiPackage } from "@microsoft/api-extractor-model";
-import { discoverBundle } from "@tsdoctor/bundle";
+import type { OpenGraphImage, PlatformOverrides, PublishedOpenGraphImage } from "@tsdoctor/bundle";
+import { loadBundle, publishBundleAssets, resolveBundleFrom } from "@tsdoctor/bundle";
 import { ApiExtractedPackage, CrossLinker, Model, TypeReferenceExtractor } from "@tsdoctor/model";
 import type { CrossLinkData, NavEntry, WorkItem } from "@tsdoctor/pages";
-import { buildIndexPage, buildNav, buildPage, prepareWorkItems } from "@tsdoctor/pages";
+import { buildIndexPage, buildNav, buildPage, prepareWorkItems, unscopedName } from "@tsdoctor/pages";
 import type { TypeRegistry } from "@tsdoctor/registry";
 import type { HeadTag, PackageContext } from "@tsdoctor/seo";
 import { attributionFacts, deriveScriptBody, deriveSiteUrl, headTags, packageContext } from "@tsdoctor/seo";
@@ -66,6 +67,13 @@ export interface GenerateInput {
 	readonly suppressExampleErrors?: boolean | undefined;
 	/** The source repository, when the site links to it. */
 	readonly source?: { readonly url: string; readonly ref?: string | undefined } | undefined;
+	/**
+	 * The `manifest.platform` Open Graph image override, ranked above the
+	 * bundle's own `tsdoctor.json`. A string is an absolute `http(s)://` URL or
+	 * a path relative to the bundle directory; an object is the manifest image
+	 * shape (`path` XOR `url`, plus `type`/`width`/`height`/`alt`).
+	 */
+	readonly ogImage?: string | OpenGraphImage | undefined;
 }
 
 /**
@@ -145,8 +153,9 @@ export const generate = Effect.fn("Generate.generate")(function* (input: Generat
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 
-	// 1. The bundle: model, package.json, tsconfig.
-	const descriptor = yield* discoverBundle(input.dir, { cwd: input.cwd });
+	// 1. The bundle: model, package.json, tsconfig, and its tsdoctor.json sidecar.
+	const bundle = yield* loadBundle(input.dir, { cwd: input.cwd });
+	const descriptor = bundle.descriptor;
 	const apiPackage = yield* Model.load(descriptor.modelPath);
 	const packageName = descriptor.name;
 
@@ -196,6 +205,43 @@ export const generate = Effect.fn("Generate.generate")(function* (input: Generat
 
 	// 5. SEO facts derived once per API.
 	const siteUrl = deriveSiteUrl(input.siteOrigin, input.base);
+	const docsDir = path.resolve(input.cwd, input.docsDir);
+
+	// The `ogImage` option is the `manifest.platform` tier, ranked above the
+	// bundle's own `tsdoctor.json`: a string is either an absolute URL or a
+	// path relative to the bundle directory, an object is the manifest image
+	// shape verbatim.
+	const platform: PlatformOverrides =
+		input.ogImage === undefined
+			? {}
+			: {
+					openGraph: {
+						images: [
+							typeof input.ogImage === "string"
+								? /^https?:\/\//.test(input.ogImage)
+									? { url: input.ogImage }
+									: { path: input.ogImage }
+								: input.ogImage,
+						],
+					},
+				};
+	const resolvedBundle = resolveBundleFrom(bundle, platform);
+	const siteName = resolvedBundle.project?.value.name ?? resolvedBundle.name.value;
+	// Publishing is an enhancement over an enhancement: a malformed or
+	// unreadable image must not stop the docs from generating, it should just
+	// render without a bundle-supplied `og:image`.
+	const publishedOgImages: ReadonlyArray<PublishedOpenGraphImage> =
+		resolvedBundle.openGraph === undefined
+			? []
+			: yield* publishBundleAssets({
+					bundleDir: descriptor.dir,
+					images: resolvedBundle.openGraph.value.images,
+					publicDir: path.join(docsDir, "public"),
+					siteUrl,
+					unscopedName: unscopedName(packageName),
+				}).pipe(Effect.orElseSucceed((): ReadonlyArray<PublishedOpenGraphImage> => []));
+	const ogImage = publishedOgImages[0];
+
 	const structuredDataPkg: PackageContext | undefined =
 		manifest === undefined
 			? undefined
@@ -210,7 +256,6 @@ export const generate = Effect.fn("Generate.generate")(function* (input: Generat
 	const buildTime = new Date().toISOString();
 
 	// 6. Pages.
-	const docsDir = path.resolve(input.cwd, input.docsDir);
 	const entries: NavEntry[] = [];
 	const routes: string[] = [];
 	const formatFailures: string[] = [];
@@ -220,6 +265,8 @@ export const generate = Effect.fn("Generate.generate")(function* (input: Generat
 			packageName,
 			linker,
 			siteUrl,
+			siteName,
+			ogImage,
 			structuredDataPkg,
 			buildTime,
 			docsDir,
@@ -272,6 +319,8 @@ interface PageContext {
 	readonly packageName: string;
 	readonly linker: CrossLinker;
 	readonly siteUrl: string;
+	readonly siteName: string;
+	readonly ogImage: PublishedOpenGraphImage | undefined;
 	readonly structuredDataPkg: PackageContext | undefined;
 	readonly buildTime: string;
 	readonly docsDir: string;
@@ -319,11 +368,14 @@ const writePage = Effect.fn("Generate.writePage")(function* (workItem: WorkItem<
 	const tags: ReadonlyArray<HeadTag> = headTags({
 		siteUrl: ctx.siteUrl,
 		pageRoute: page.route,
+		title: item.displayName,
+		siteName: ctx.siteName,
 		description: page.description,
 		publishedTime: ctx.buildTime,
 		modifiedTime: ctx.buildTime,
 		section: categoryConfig.displayName,
 		packageName: ctx.packageName,
+		...(ctx.ogImage !== undefined ? { ogImage: ctx.ogImage } : {}),
 		...(structuredData !== undefined && structuredData._tag === "Success"
 			? { structuredData: structuredData.success }
 			: {}),

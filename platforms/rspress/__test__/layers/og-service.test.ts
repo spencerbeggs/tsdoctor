@@ -59,6 +59,7 @@ function harness(seed: Record<string, string | Uint8Array> = {}): Harness {
 							siteUrl: SITE,
 							docsRoot: DOCS_ROOT,
 							packageName: "my-lib",
+							fallbackAlt: "my-lib API documentation",
 							...request,
 						} as OgImageRequest),
 					);
@@ -89,7 +90,7 @@ describe("OgService.resolveImage", () => {
 			const result = await h.resolve({ config: "https://cdn.example.com/og.png" });
 			expect(success(result)).toMatchObject({
 				url: "https://cdn.example.com/og.png",
-				alt: "my-lib API Documentation",
+				alt: "my-lib API documentation",
 			});
 		});
 
@@ -237,6 +238,7 @@ describe("OgService.resolveImage", () => {
 					siteUrl: SITE,
 					docsRoot: DOCS_ROOT,
 					packageName: "my-lib",
+					fallbackAlt: "my-lib API documentation",
 				};
 				yield* svc.resolveImage(request);
 				yield* svc.resolveImage(request);

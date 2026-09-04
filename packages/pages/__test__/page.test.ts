@@ -29,6 +29,7 @@ describe("Page", () => {
 		const tags = headTags({
 			siteUrl: "https://x.test",
 			pageRoute: "/api/class/foo",
+			title: "Foo",
 			description: "d",
 			publishedTime: "2026-01-01T00:00:00.000Z",
 			modifiedTime: "2026-01-01T00:00:00.000Z",
