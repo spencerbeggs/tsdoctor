@@ -20,7 +20,7 @@ import { NodeFileSystem } from "@effect/platform-node";
 import type { StoreError, StoreMigrationError } from "@effected/store";
 import { SnapshotService } from "@tsdoctor/snapshot";
 import type { FileSystem } from "effect";
-import { Layer } from "effect";
+import { Layer, Path } from "effect";
 import { BuildId, PageConcurrency, SuppressExampleErrors, Thresholds } from "../BuildEnv.js";
 import { collectShikiThemes } from "../markdown/shiki-utils.js";
 import type { EventBus } from "../observability/EventBus.js";
@@ -94,7 +94,8 @@ export interface AppLayers {
 		| OgService
 		| SnapshotService
 		| EventBus
-		| FileSystem.FileSystem,
+		| FileSystem.FileSystem
+		| Path.Path,
 		StoreError | StoreMigrationError
 	>;
 	/**
@@ -170,7 +171,7 @@ export function makeAppLayers(input: AppLayerInput): AppLayers {
 
 	const app = Layer.provideMerge(
 		ConfigService.layer,
-		Layer.mergeAll(BuildLayer, CoreLayer, ObservabilityLayer, NodeFileSystem.layer),
+		Layer.mergeAll(BuildLayer, CoreLayer, ObservabilityLayer, NodeFileSystem.layer, Path.layer),
 	);
 
 	const emitter = Layer.mergeAll(ObservabilityLayer, BuildEnvLayer);

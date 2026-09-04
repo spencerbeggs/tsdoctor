@@ -14,6 +14,8 @@ related:
   - rspress-plugin-api-extractor/vitepress-adapter.md
   - rspress-plugin-api-extractor/type-loading-vfs.md
   - rspress-plugin-api-extractor/snapshot-tracking-system.md
+  - rspress-plugin-api-extractor/bundle-spec.md
+  - rspress-plugin-api-extractor/structured-data-and-og.md
 ---
 
 # @tsdoctor package architecture
@@ -41,7 +43,8 @@ The `@tsdoctor` org is a set of framework-neutral core packages plus thin per-fr
 | `packages/vfs` | `@tsdoctor/vfs` | The `Vfs` currency type and helpers, `VirtualPackage`, `TsEnvironment`, the compiler-options seam, the Twoslash result cache. Depends on `effect` alone plus optional peers |
 | `packages/registry` | `@tsdoctor/registry` | Fetch, cache and resolve published package types into a `Vfs`; tag ids `"@tsdoctor/registry/..."` |
 | `packages/model` | `@tsdoctor/model` | Effect v4 namespace modules — `Model`, `Tsdoc`, `ApiItems`, `EntryPoints`, `Routes`, `SyntheticBases`, `Signature`, the deprecated `Render` — plus the `CrossLinker` class, `ApiExtractedPackage`, `TypeReferenceExtractor` and the `Frontmatter` contract |
-| `packages/bundle` | `@tsdoctor/bundle` | The bundle spec: discovery, the sidecar manifest, the provenance resolver, fetchers |
+| `packages/manifest` | `@tsdoctor/manifest` | The `tsdoctor.json` spec-1 sidecar manifest schema: `BundleManifest`, `MANIFEST_SPEC`, `encodeBundleManifest` / `decodeBundleManifest`, the `ManifestSource` authoring-file shape. Depends on `effect` alone |
+| `packages/bundle` | `@tsdoctor/bundle` | The bundle spec: discovery, the sidecar manifest (re-exported from `@tsdoctor/manifest`), the provenance resolver, fetchers, `publishBundleAssets` |
 | `packages/snapshot` | `@tsdoctor/snapshot` | The incremental-build snapshot store on `@effected/store` |
 | `packages/seo` | `@tsdoctor/seo` | Every `<head>` concern behind the `headTags` seam |
 | `packages/pages` | `@tsdoctor/pages` | The page IR: blocks, `prepareWorkItems`, the builders, the nav tree, example preparation, the plain-markdown emitter, the llms.txt transforms |
@@ -52,7 +55,7 @@ Each package's own `CLAUDE.md` records its invariants. Every publishable workspa
 
 ## The layer cake
 
-The model is the vocabulary (api.json, TSDoc, routes, anchors). The VFS is the substrate the registry and the model share so neither depends on the other: `VirtualPackage` and `TsEnvironment` had no consumers inside the registry while the model needed them, and hosting them in either package would have forced an unwanted edge — the registry depending on the api.json vocabulary, or the model dragging the registry's fetch/cache/XDG stack to reuse one Schema class. The bundle is the input contract. The snapshot store is the durable per-page metadata every adapter will need and none should own. SEO and pages are the two seams an adapter renders over. `@tsdoctor/pages` was deliberately last, extracted with two live consumers rather than designed up front.
+The model is the vocabulary (api.json, TSDoc, routes, anchors). The VFS is the substrate the registry and the model share so neither depends on the other: `VirtualPackage` and `TsEnvironment` had no consumers inside the registry while the model needed them, and hosting them in either package would have forced an unwanted edge — the registry depending on the api.json vocabulary, or the model dragging the registry's fetch/cache/XDG stack to reuse one Schema class. `@tsdoctor/manifest` is the schema every writer and reader of `tsdoctor.json` shares — `@savvy-web/bundler`'s meta pass writes through it, `@tsdoctor/bundle` re-exports it for every reader in this repo — sitting below the bundle for the same reason the VFS sits below the registry: the writer needs the schema without the bundle's fetch/cache/discovery peers. The bundle is the input contract. The snapshot store is the durable per-page metadata every adapter will need and none should own. SEO and pages are the two seams an adapter renders over. `@tsdoctor/pages` was deliberately last, extracted with two live consumers rather than designed up front.
 
 ## Foundation: @effected
 
@@ -63,6 +66,7 @@ What each package takes from the kit, as declared in its `package.json` (`catalo
 - **vfs** — `@effected/tsconfig-json` (optional) for the compiler-options seam.
 - **registry** — `semver`, `store` (`Cache`), `xdg`.
 - **model** — `markdown` for TSDoc prose to mdast, `yaml` behind `Frontmatter.ts`.
+- **manifest** — `effect` alone; no `@effected/*` dependency.
 - **bundle** — `package-json` and `tsconfig-json` (the bundle's manifest files), `github`, `npm`, `semver`, `store` plus `xdg` for cached fetches, `glob` / `walker` for discovery, `jsonc`'s `JsoncFingerprint` for hashing.
 - **snapshot** — `store` (`Store.layerSqlite` with `checkpointOnClose`), `jsonc` for the frontmatter hash.
 - **seo** — `schema-org` (vocabulary and the offline conformance validator), `package-json`'s `PackageManifest`, `spdx`.
@@ -91,7 +95,7 @@ An adapter owns: its component layer; code-block rendering integration; framewor
 
 Coupling was counted from inside the code (references to `@rspress`, `shiki`, `hast`, `react`), not judged by file name, and the "wait for two consumers" rule does not apply to a file whose boundary is already proven by an import crossing it — that rule exists to stop abstractions being designed speculatively.
 
-**Taken.** The api-model pair (`ApiExtractedPackage`, `TypeReferenceExtractor`) and `Frontmatter.ts` to the model; the compiler-options pair to `@tsdoctor/vfs`, following `TsEnvironment`; the llms.txt transforms and the scope helpers, `prepareWorkItems` and the page generators to `@tsdoctor/pages`; the Twoslash result cache to `@tsdoctor/vfs` once both adapters wired the same `TwoslashTypesCache` interface and were measured warming one store; the OG and canonical helpers to `@tsdoctor/seo`.
+**Taken.** The api-model pair (`ApiExtractedPackage`, `TypeReferenceExtractor`) and `Frontmatter.ts` to the model; the compiler-options pair to `@tsdoctor/vfs`, following `TsEnvironment`; the llms.txt transforms and the scope helpers, `prepareWorkItems` and the page generators to `@tsdoctor/pages`; the Twoslash result cache to `@tsdoctor/vfs` once both adapters wired the same `TwoslashTypesCache` interface and were measured warming one store; the OG and canonical helpers to `@tsdoctor/seo`; the `tsdoctor.json` manifest schema out of `@tsdoctor/bundle` into `@tsdoctor/manifest` once `@savvy-web/bundler` needed to depend on the writer boundary (`encodeBundleManifest`) without the bundle package's fetch/cache/discovery peers — the same "substrate a second consumer needs without the rest of the stack" reasoning that put the VFS below the registry.
 
 **Deliberately staying in the adapter.** `category-resolver.ts` — it merges full category configs across a plugin/package/version precedence chain, which is sidebar presentation plus multiVersion product policy, and the neutral half already exists as `ApiItems.CategorySpec`. `path-derivation.ts` — the `docs/{locale}/{version}/…` layout is indistinguishable from RSPress's own conventions from inside this repo, the case the two-consumer rule is for. The observability cluster — infrastructure rather than logic; a second adapter without diagnostics is a worse product, but that is a 1.0 question.
 
@@ -116,3 +120,5 @@ Coupling was counted from inside the code (references to `@rspress`, `shiki`, `h
 - **The second adapter:** `vitepress-adapter.md`
 - **The vfs / registry split:** `type-loading-vfs.md`
 - **The snapshot store:** `snapshot-tracking-system.md`
+- **The manifest / bundle split, the writer side and `publishBundleAssets`:** `bundle-spec.md`
+- **The `siteName`/`og:title` seam the manifest feeds:** `structured-data-and-og.md`

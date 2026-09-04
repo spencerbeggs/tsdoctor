@@ -18,14 +18,22 @@ adapter) and `doc-ir-and-pages.md` (the IR contract) under
   runs at config-load time. `buildEnd` persists the cache and disposes the
   runtime — under `vitepress dev` it never fires, so the cache is not saved.
 - **Generation is `src/Generate.ts`**, an Effect program over `FileSystem`,
-  `Path` and the registry: `discoverBundle` → `Model.load` →
+  `Path` and the registry: `loadBundle` → `Model.load` →
   `ApiExtractedPackage.toVfs` + import prepending → external types via
   `@tsdoctor/registry` (`src/Registry.ts`, degrading; `externalPackagesOf`
   reads them from the bundle's `package.json`) → `resolveTypeScriptConfig` →
   `prepareWorkItems` (`@tsdoctor/pages`; collisions die, uncategorized names
-  are reported) → `buildPage` → `emitMarkdownBody` → write. This re-spells the neutral half of the RSPress `ConfigService`
-  (recorded Tier 2 duplication); it emits no events and no snapshot tracking —
-  every file is written on every build.
+  are reported) → `resolveBundleFrom` + `publishBundleAssets` (bundle Open
+  Graph images into `<docsDir>/public/tsdoctor/<unscopedName>/`; asset-publish
+  failures degrade silently — no event bus, a known limitation) →
+  `buildPage` → `emitMarkdownBody` → write. This re-spells the neutral half of
+  the RSPress `ConfigService` (recorded Tier 2 duplication); it emits no
+  events and no snapshot tracking — every file is written on every build.
+  `ApiExtractorOptions.ogImage?: string | OpenGraphImage` is the platform
+  tier — an absolute `http(s)://` string resolves to a `url` image, any other
+  string to a bundle-relative `path` — ranked above the bundle's own
+  `tsdoctor.json`. Pages emit `og:title` (the item's display name) and
+  `og:site_name` (the resolved project or package name) alongside `og:image`.
 - **The emitter is `src/emit/markdown.ts`.** Signatures, members, base
   classes and type-checked examples are `ts twoslash` fences carrying the
   block's `source` (Twoslash's own `// ---cut---` hides the prepended imports;
@@ -54,7 +62,7 @@ adapter) and `doc-ir-and-pages.md` (the IR contract) under
   both adapters generate the same routes from one bundle; keep them in step.
 - Out of scope for the alpha, deliberately: code-block cross-links
   (`ShikiCrossLinker` is RSPress-HAST-shaped), llms.txt, multiVersion / i18n /
-  multi-API, OG image resolution, snapshot-tracked writes, a `serve` runner.
+  multi-API, snapshot-tracked writes, a `serve` runner.
 - Builds with `build()` (`savvy.build.ts`, `@savvy-web/bundler`); tsconfig
   extends `@savvy-web/bundler/tsconfig/ecma.json`; `vitepress` is a peer.
 

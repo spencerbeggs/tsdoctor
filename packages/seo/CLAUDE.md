@@ -22,8 +22,10 @@ types. Filesystem probing of a configured OG image stays in the adapter's
 - Modules, one per concern: `HeadTag.ts` (the `HeadTag` interface + `meta`,
   `metaNamed`, `link`, `jsonLd`, `escapeScriptBody`), `Canonical.ts`
   (`deriveSiteUrl`, `canonicalUrl`, `resolveUrl`, `imageMimeType`),
-  `OpenGraph.ts` (the OG schemas, `createPageMetadata`, `ogAltText`,
-  `openGraphTags`, `twitterTags`), `Attribution.ts` (`attributionFacts`),
+  `OpenGraph.ts` (the OG schemas, `createPageMetadata`, `openGraphTags`,
+  `twitterTags` — `og:title` and `og:site_name` come from the page `title`
+  and optional `siteName`, no separate alt-text chain), `Attribution.ts`
+  (`attributionFacts`),
   `StructuredData.ts` (`packageContext`, `derive`, `deriveScriptBody`,
   `StructuredDataError`), `Seo.ts` (`headTags`).
 - `HeadTag` is deliberately dumb — `{ tag; attrs; body? }`. Keeping it stupid is

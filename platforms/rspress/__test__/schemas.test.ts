@@ -53,6 +53,7 @@ describe("OpenGraph schemas", () => {
 		const result = decode({
 			siteUrl: "https://example.com",
 			pageRoute: "/api/class/foo",
+			title: "Foo",
 			description: "Foo class",
 			publishedTime: "2025-01-01T00:00:00.000Z",
 			modifiedTime: "2025-01-01T00:00:00.000Z",

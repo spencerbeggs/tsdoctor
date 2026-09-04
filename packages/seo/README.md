@@ -16,7 +16,7 @@ Framework-neutral `<head>` metadata for static TypeScript API documentation: sch
 - **`headTags(input: SeoPageInput)`** — every `<head>` tag for one page, in a fixed order so a diff over generated pages stays readable.
 - **`HeadTag`, `meta`, `metaNamed`, `link`, `jsonLd`, `escapeScriptBody`** — the neutral tag vocabulary. `escapeScriptBody` is idempotent, so a body already escaped by an upstream serializer survives a second pass unchanged.
 - **`deriveSiteUrl`, `canonicalUrl`, `resolveUrl`, `imageMimeType`** — URL derivation. With no configured origin the prefix is `""`, so URLs stay root-relative and the tags are still emitted rather than dropped.
-- **`OpenGraphImageConfig`, `OpenGraphImageMetadata`, `OpenGraphMetadata`, `createPageMetadata`, `openGraphTags`, `twitterTags`, `ogAltText`** — the Open Graph and Twitter card vocabulary, as Effect Schemas plus the emitters over them.
+- **`OpenGraphImageConfig`, `OpenGraphImageMetadata`, `OpenGraphMetadata`, `createPageMetadata`, `openGraphTags`, `twitterTags`** — the Open Graph and Twitter card vocabulary, as Effect Schemas plus the emitters over them.
 - **`attributionFacts(manifest)`** — author, maintainers, repository URL, homepage, SPDX license ids and per-license canonical URLs, and keywords, derived from an `@effected/package-json` `PackageManifest`. Total and synchronous: a manifest carrying none of these yields empty arrays and no optional properties.
 - **`packageContext`, `derive`, `deriveScriptBody`** — the schema.org graph. `packageContext` is derived once per package; `derive` assembles a page's `@graph` (a `SoftwareSourceCode`, a `TechArticle` and an `APIReference`, linked by `isPartOf` and `mainEntity`, plus a `Person` per credited human).
 

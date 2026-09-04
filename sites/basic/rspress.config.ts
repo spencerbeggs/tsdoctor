@@ -19,7 +19,8 @@ export default defineConfig({
 	plugins: [
 		ApiExtractorPlugin({
 			observability: { logLevel: "info" },
-			ogImage: "/images/og.png",
+			// The bundle's tsdoctor.json manifest now supplies the Open Graph
+			// image — see lib/models/kitchensink/tsdoctor.json.
 			api: ApiExtractorPlugin.api.fromDir("./lib/models/kitchensink"),
 		}),
 	],

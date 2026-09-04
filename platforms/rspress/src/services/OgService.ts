@@ -15,7 +15,7 @@
  */
 
 import type { OpenGraphImageConfig, OpenGraphImageMetadata } from "@tsdoctor/seo";
-import { imageMimeType, ogAltText, resolveUrl } from "@tsdoctor/seo";
+import { imageMimeType, resolveUrl } from "@tsdoctor/seo";
 import { Context, Data, Effect, FileSystem, Layer, Option, Path } from "effect";
 import { imageSize } from "image-size";
 import { emit } from "../observability/EventBus.js";
@@ -70,6 +70,16 @@ export interface OgImageRequest {
 	readonly docsRoot?: string | undefined;
 	readonly packageName: string;
 	readonly apiName?: string | undefined;
+	/**
+	 * Alt text to use when neither the configured image nor the bundle manifest
+	 * supplies one.
+	 *
+	 * @remarks
+	 * Replaces `@tsdoctor/seo`'s removed `ogAltText` helper: the caller now owns
+	 * composing the fallback string (typically `` `${apiName ?? packageName} API
+	 * documentation` ``), since the service has no opinion on wording.
+	 */
+	readonly fallbackAlt: string;
 }
 
 /** @internal */
@@ -242,7 +252,7 @@ const make = () =>
 					type: facts?.type,
 					width: facts?.width,
 					height: facts?.height,
-					alt: ogAltText(request.packageName, request.apiName),
+					alt: request.fallbackAlt,
 				});
 			});
 
@@ -288,7 +298,7 @@ const make = () =>
 					type,
 					width,
 					height,
-					alt: alt ?? ogAltText(request.packageName, request.apiName),
+					alt: alt ?? request.fallbackAlt,
 				});
 			});
 

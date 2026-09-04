@@ -22,6 +22,7 @@ related:
 - [Overview](#overview)
 - [Current state](#current-state)
 - [Generation at config load](#generation-at-config-load)
+- [Resolving Open Graph images](#resolving-open-graph-images)
 - [The markdown emitter](#the-markdown-emitter)
 - [Twoslash wiring](#twoslash-wiring)
 - [Head tags and the sidebar](#head-tags-and-the-sidebar)
@@ -38,8 +39,8 @@ related:
 
 | Module | Contents |
 | --- | --- |
-| `src/ApiExtractor.ts` | `apiExtractor(options)`, the one public helper |
-| `src/Generate.ts` | The Effect program from bundle discovery to written files |
+| `src/ApiExtractor.ts` | `apiExtractor(options)`, the one public helper; `ogImage?: string \| OpenGraphImage` is its platform-tier option |
+| `src/Generate.ts` | The Effect program from bundle load to written files |
 | `src/Registry.ts` | The registry stack over the shared `"tsdoctor"` XDG namespace, degrading external type loading |
 | `src/Twoslash.ts` | `transformerTwoslash` from `@shikijs/vitepress-twoslash` over the combined VFS |
 | `src/TwoslashCache.ts` | `TwoslashCacheStore`, persistence for `@tsdoctor/vfs`'s cache generations over `@effected/store`'s `Cache.degrading` |
@@ -52,7 +53,11 @@ The package is built with `@savvy-web/bundler`'s `build()` (the RSPress builder 
 
 VitePress has no pre-scan hook comparable to RSPress's `config()`; its config file is ESM and can top-level await, and `buildEnd` / `postRender` run after the fact. So a site's `docs/.vitepress/config.mts` awaits `apiExtractor()`, which generates every page under `docs/` and returns `{ sidebar, codeTransformers, hooks: { buildEnd }, generated }` to merge into `defineConfig`. `buildEnd` persists the Twoslash result cache and disposes the runtime; under `vitepress dev` it never fires, so a dev session does not save the cache.
 
-`Generate.ts` runs `discoverBundle` → `Model.load` → `ApiExtractedPackage.toVfs` plus import prepending → external types through `@tsdoctor/registry` → `resolveTypeScriptConfig` → `prepareWorkItems` → `buildPage` → emit → write. Every file is written on every build; there is no snapshot tracking. A route collision dies with a message naming the colliding items; uncategorized items are reported on the result (`multi-entry-resolution.md`).
+`Generate.ts` runs `loadBundle` → `Model.load` → `ApiExtractedPackage.toVfs` plus import prepending → external types through `@tsdoctor/registry` → `resolveTypeScriptConfig` → `prepareWorkItems` → `resolveBundleFrom` + `publishBundleAssets` → `buildPage` → emit → write. Every file is written on every build; there is no snapshot tracking. A route collision dies with a message naming the colliding items; uncategorized items are reported on the result (`multi-entry-resolution.md`).
+
+## Resolving Open Graph images
+
+`ApiExtractorOptions.ogImage?: string | OpenGraphImage` is the platform tier — ranked above the bundle's own `tsdoctor.json` — mapped the same way as RSPress's legacy `ogImage` option: an absolute `http(s)://` string becomes a `{ url }` image, any other string a `{ path }` relative to the bundle directory, an object passes through as the manifest image shape verbatim. `Generate.ts` calls `resolveBundleFrom(bundle, platform)`, derives `siteName` as `resolvedBundle.project?.value.name ?? resolvedBundle.name.value` and, when the resolved bundle carries an `openGraph` block, publishes its images via `publishBundleAssets` into `<docsDir>/public/tsdoctor/<unscopedName>/`. A publish failure degrades to no image — `Effect.orElseSucceed` swallows it — because this adapter has no event bus to carry a warning on, a recorded limitation rather than a design choice. Every page then emits `og:image` (when one resolved), `og:title` (the item's display name) and `og:site_name` (the resolved `siteName`) alongside the rest of the head block (`structured-data-and-og.md`).
 
 ## The markdown emitter
 
@@ -74,7 +79,7 @@ The transformer takes a `typesCache` implemented by `@tsdoctor/vfs`'s `makeTwosl
 
 ## Alpha scope
 
-Deliberately excluded, each a design question with an obvious home rather than a gap in the architecture: Vue components; code-block cross-links (`ShikiCrossLinker` is a HAST walk coupled to RSPress's Twoslash output, so a port is a rewrite — prose links and working anchors satisfy the gate); llms.txt (`@tsdoctor/pages`'s `Llms.ts` is ready, but VitePress has no first-party post-processor to hook); multiVersion, i18n and multi-API sites; OG image resolution; snapshot-tracked incremental writes; the `serve` runner. No CI workflow builds any fixture site — the root `ci:build` filters `!@sites/*` — so the fixture participates in CI only through `typecheck`, like the RSPress sites.
+Deliberately excluded, each a design question with an obvious home rather than a gap in the architecture: Vue components; code-block cross-links (`ShikiCrossLinker` is a HAST walk coupled to RSPress's Twoslash output, so a port is a rewrite — prose links and working anchors satisfy the gate); llms.txt (`@tsdoctor/pages`'s `Llms.ts` is ready, but VitePress has no first-party post-processor to hook); multiVersion, i18n and multi-API sites; snapshot-tracked incremental writes; the `serve` runner. OG image resolution is no longer excluded — `ogImage` and the bundle-manifest path above cover it, with silent-degrade publish failures the one recorded gap against RSPress's warning path. No CI workflow builds any fixture site — the root `ci:build` filters `!@sites/*` — so the fixture participates in CI only through `typecheck`, like the RSPress sites.
 
 ## Recorded duplication
 
@@ -92,5 +97,6 @@ Building the second consumer measured the next tier of neutral logic the adapter
 - **The RSPress emitter:** `rspress-mdx-emitter.md`
 - **The VFS and compiler-option seam both adapters share:** `type-loading-vfs.md`
 - **The Twoslash result cache:** `render-phase-instrumentation.md`
-- **The `HeadTag[]` seam:** `structured-data-and-og.md`
+- **The `HeadTag[]` seam and the bundle-resolved OG title/site name:** `structured-data-and-og.md`
+- **`loadBundle`, `resolveBundleFrom` and `publishBundleAssets`:** `bundle-spec.md`
 - **Core-move candidates:** `tsdoctor-package-architecture.md`

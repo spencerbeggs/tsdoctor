@@ -79,6 +79,8 @@ export function generateApiDocs(
 			siteUrl,
 			ogImage,
 			manifest,
+			siteName,
+			bundleOgImage,
 		} = apiConfig;
 
 		const phaseCtx = {
@@ -192,6 +194,8 @@ export function generateApiDocs(
 				...(siteUrl != null ? { siteUrl } : {}),
 				...(ogImage != null ? { ogImage } : {}),
 				...(structuredDataPkg != null ? { structuredDataPkg } : {}),
+				...(siteName != null ? { siteName } : {}),
+				...(bundleOgImage != null ? { bundleOgImage } : {}),
 			}),
 		);
 

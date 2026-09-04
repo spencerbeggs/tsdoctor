@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { ApiPackage } from "@microsoft/api-extractor-model";
+import type { PublishedOpenGraphImage } from "@tsdoctor/bundle";
 import type { CrossLinker } from "@tsdoctor/model";
 import { Routes, parseFrontmatter, stringifyFrontmatter } from "@tsdoctor/model";
 import type { CrossLinkData, NavCategory, WorkItem as PagesWorkItem } from "@tsdoctor/pages";
@@ -180,6 +181,17 @@ export interface GenerateSinglePageContext {
 	readonly docsRoot?: string;
 	readonly ogImage?: OpenGraphImageConfig;
 	readonly structuredDataPkg?: PackageContext;
+	/** The site's display name, for `og:site_name`. */
+	readonly siteName?: string;
+	/**
+	 * The bundle manifest's published Open Graph image.
+	 *
+	 * @remarks
+	 * Used only when the legacy `ogImage` option resolves to nothing — the
+	 * option keeps winning when both are configured, since it can probe
+	 * `docs/public`, which the bundle resolver cannot.
+	 */
+	readonly bundleOgImage?: PublishedOpenGraphImage;
 }
 
 /**
@@ -317,6 +329,7 @@ export function generateSinglePage(
 					docsRoot: ctx.docsRoot,
 					packageName,
 					...(apiName != null ? { apiName } : {}),
+					fallbackAlt: `${apiName ?? packageName} API documentation`,
 				}),
 			);
 			if (ogImageResult._tag === "Failure") {
@@ -332,6 +345,14 @@ export function generateSinglePage(
 				);
 			} else if (Option.isSome(ogImageResult.success)) {
 				ogImageMetadata = ogImageResult.success.value;
+			}
+
+			// The legacy `ogImage` option always wins when configured: it is the
+			// only path that can probe `docs/public`, which the bundle resolver
+			// cannot see. The bundle manifest's image is the fallback, not a
+			// second source competing on equal footing.
+			if (ogImageMetadata == null && ctx.bundleOgImage != null) {
+				ogImageMetadata = ctx.bundleOgImage;
 			}
 
 			// Degrade the same way. Every failure here is an identity problem
@@ -384,11 +405,13 @@ export function generateSinglePage(
 						headTags({
 							siteUrl: ctx.siteUrl as string,
 							pageRoute: page.routePath,
+							title: item.displayName,
 							description,
 							publishedTime: published,
 							modifiedTime: modified,
 							section: categoryConfig.displayName,
 							packageName,
+							...(ctx.siteName != null ? { siteName: ctx.siteName } : {}),
 							...(ogImageMetadata != null ? { ogImage: ogImageMetadata } : {}),
 							...(structuredData != null ? { structuredData } : {}),
 						}),
@@ -1021,6 +1044,10 @@ export interface BuildPipelineInput {
 	readonly ogImage?: OpenGraphImageConfig;
 	/** Per-API structured-data context, derived once by the caller. */
 	readonly structuredDataPkg?: PackageContext;
+	/** The site's display name, for `og:site_name`. */
+	readonly siteName?: string;
+	/** The bundle manifest's published Open Graph image, when one was published. */
+	readonly bundleOgImage?: PublishedOpenGraphImage;
 }
 
 /**
@@ -1056,6 +1083,8 @@ export function buildPipelineForApi(
 		...(input.siteUrl != null ? { siteUrl: input.siteUrl } : {}),
 		...(input.ogImage != null ? { ogImage: input.ogImage } : {}),
 		...(input.structuredDataPkg != null ? { structuredDataPkg: input.structuredDataPkg } : {}),
+		...(input.siteName != null ? { siteName: input.siteName } : {}),
+		...(input.bundleOgImage != null ? { bundleOgImage: input.bundleOgImage } : {}),
 	};
 
 	const writeCtx: WriteSingleFileContext = {

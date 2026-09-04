@@ -33,6 +33,7 @@ pnpm-release.json
 sites/*/lib/models/
 sites/*/docs/api/
 sites/*/docs/*/api/
+sites/*/docs/public/tsdoctor/
 sites/*/.rspress/
 sites/*/docs/.vitepress/cache/
 sites/*/docs/.vitepress/dist/

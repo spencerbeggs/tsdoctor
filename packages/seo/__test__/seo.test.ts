@@ -6,6 +6,7 @@ import { headTags } from "../src/Seo.js";
 const input: SeoPageInput = {
 	siteUrl: "https://x.test",
 	pageRoute: "/api/class/pipeline",
+	title: "Pipeline",
 	description: "A pipeline",
 	publishedTime: "2026-01-15T12:00:00.000Z",
 	modifiedTime: "2026-01-17T10:30:00.000Z",
@@ -29,6 +30,19 @@ describe("headTags", () => {
 		const tags = headTags(input);
 		expect(tags.some((t) => t.attrs.property === "og:url")).toBe(true);
 		expect(tags.some((t) => t.attrs.name === "twitter:card")).toBe(true);
+	});
+
+	it("emits og:url, og:type, og:title, og:site_name and og:description in order, with twitter:title present", () => {
+		const tags = headTags({ ...input, siteName: "tsdoctor" });
+		const properties = tags.filter((t) => t.tag === "meta" && t.attrs.property != null).map((t) => t.attrs.property);
+		expect(properties.slice(0, 5)).toEqual(["og:url", "og:type", "og:title", "og:site_name", "og:description"]);
+		expect(tags.find((t) => t.attrs.property === "og:title")?.attrs.content).toBe("Pipeline");
+		expect(tags.find((t) => t.attrs.property === "og:site_name")?.attrs.content).toBe("tsdoctor");
+		expect(tags.find((t) => t.attrs.name === "twitter:title")?.attrs.content).toBe("Pipeline");
+	});
+
+	it("omits og:site_name when no siteName is configured", () => {
+		expect(headTags(input).some((t) => t.attrs.property === "og:site_name")).toBe(false);
 	});
 
 	it("emits no script tag when no structured data is supplied", () => {

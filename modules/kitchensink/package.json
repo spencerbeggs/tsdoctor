@@ -26,8 +26,10 @@
 		"types:check": "tsc --noEmit"
 	},
 	"devDependencies": {
+		"@resvg/resvg-js": "^2.6.2",
 		"@savvy-web/bundler": "^2.1.30",
 		"@types/node": "catalog:build",
+		"satori": "^0.33.4",
 		"typescript": "catalog:build"
 	},
 	"publishConfig": {

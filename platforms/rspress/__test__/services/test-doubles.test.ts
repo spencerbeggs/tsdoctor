@@ -24,9 +24,14 @@ import { TypeRegistryService } from "../../src/services/TypeRegistryService.js";
 describe("service test doubles", () => {
 	it("OgService.makeTest throws naming the member when resolveImage is unstubbed", () => {
 		const double = OgService.makeTest();
-		expect(() => double.resolveImage({ config: undefined, siteUrl: "https://example.com", packageName: "x" })).toThrow(
-			/OgService\.makeTest: resolveImage\(\) was called but not stubbed/,
-		);
+		expect(() =>
+			double.resolveImage({
+				config: undefined,
+				siteUrl: "https://example.com",
+				packageName: "x",
+				fallbackAlt: "x API documentation",
+			}),
+		).toThrow(/OgService\.makeTest: resolveImage\(\) was called but not stubbed/);
 	});
 
 	it("ConfigService.makeTest throws naming the member when resolve is unstubbed", () => {

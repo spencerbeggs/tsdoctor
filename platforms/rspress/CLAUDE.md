@@ -74,16 +74,30 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
   serialization stays (no kit separator option; the enum-signature
   single-newline join needs it)
 - `@tsdoctor/bundle` (`workspace:*`) — bundle discovery for the
-  `fromDir`/`fromParentDir` config helpers, plus npm/GitHub bundle fetchers
+  `fromDir`/`fromParentDir` config helpers, plus npm/GitHub bundle fetchers.
+  `ConfigService.resolve` now also `loadBundle`s + `resolveBundleFrom`s each
+  API's model directory (`layers/config-resolution.ts`'s `resolveApiBundle`),
+  publishing the manifest's `openGraph` images via `publishBundleAssets` into
+  `<docsRoot>/public/tsdoctor/<unscopedName>/`; a loader-function model has no
+  directory to discover a sidecar beside and falls back to an inferred
+  bundle. `ResolvedApiConfig` carries `bundle: ResolvedBundle` (always
+  present), `siteName?` and `bundleOgImage?`; the legacy `ogImage` option
+  always outranks `bundleOgImage` (`generateSinglePage` — it can probe
+  `docs/public`, which the bundle resolver cannot). Publish failures degrade
+  to a `ConfigValidationWarning`, never fail the build
 - `@tsdoctor/snapshot` (`workspace:*`) — `SnapshotService.layer(dbPath)` plus
   the standalone `hashContent`/`hashFrontmatter` helpers
 - `@tsdoctor/seo` (`workspace:*`) — every `<head>` concern behind one seam:
   `deriveSiteUrl` (`layers/config-resolution.ts`), `attributionFacts` +
   `packageContext` once per API (`build-program.ts`), `deriveScriptBody` +
-  `headTags` (`generateSinglePage`), and the `HeadTag` vocabulary rendered
-  into RSPress frontmatter `head` pairs (`markdown/helpers.ts`). Only
-  `OgService` (probing a configured image) stays here. Never compose head
-  tags in the adapter — `headTags` decides which a page gets
+  `headTags` (`generateSinglePage`, now passing `title: item.displayName`
+  and, when the bundle resolved one, `siteName` — `og:title`/`og:site_name`),
+  and the `HeadTag` vocabulary rendered into RSPress frontmatter `head` pairs
+  (`markdown/helpers.ts`). Only `OgService` (probing a configured image)
+  stays here; `OgService.resolveImage` now takes a required `fallbackAlt`
+  (the caller composes it, e.g. `` `${apiName ?? packageName} API
+  documentation` ``) rather than the deleted `ogAltText` helper. Never
+  compose head tags in the adapter — `headTags` decides which a page gets
 - `@microsoft/api-extractor-model` — `.api.json` parsing (via `Model.load`)
 - `@shikijs/twoslash` — highlighting with type information
 - `mdast-util-to-hast` — a **runtime** dep and staying one (markdown→HTML is

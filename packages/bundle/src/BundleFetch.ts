@@ -5,10 +5,12 @@ import { NpmRegistry, PackageTarball, PublishedVersion } from "@effected/npm";
 import { Cache } from "@effected/store";
 import { AppDirs } from "@effected/xdg";
 import type { BundleManifestError } from "@tsdoctor/manifest";
+import { decodeBundleManifest } from "@tsdoctor/manifest";
 import { Effect, FileSystem, Option, Path, Schema } from "effect";
 import type { Bundle, BundleLayerError } from "./Bundle.js";
 import { readBundle } from "./Bundle.js";
 import { discoverBundle } from "./BundleDiscovery.js";
+import { isSafeAssetPath } from "./internal/asset-path.js";
 
 /**
  * Raised when a remote bundle cannot be fetched into the local cache.
@@ -34,6 +36,7 @@ export class BundleFetchError extends Schema.TaggedError<BundleFetchError>()("Bu
 		"assetAmbiguous",
 		"download",
 		"notABundle",
+		"missingAsset",
 		"cache",
 	]),
 	/** The remote coordinate: `name@version` or `owner/repo@tag#asset`. */
@@ -131,6 +134,30 @@ function validateSegments(
 		}
 	}
 	return Effect.void;
+}
+
+// `isSafeAssetPath` — the same traversal guard for a manifest-declared,
+// bundle-relative asset path — is shared with `BundleAssets.ts` from
+// `./internal/asset-path.js` rather than duplicated here.
+
+/**
+ * The bundle-relative `openGraph.images[].path` entries a manifest declares,
+ * when the manifest at `manifestPath` exists and decodes. A manifest that
+ * fails to parse or decode here degrades to no assets — `readBundle` at the
+ * end of {@link persistAndRead}'s caller re-reads the cached manifest and
+ * surfaces the typed `BundleManifestError` itself; this probe must not fail
+ * the fetch on its own.
+ */
+function manifestImagePaths(manifestPath: string): Effect.Effect<ReadonlyArray<string>, never, FileSystem.FileSystem> {
+	return Effect.gen(function* () {
+		const fs = yield* FileSystem.FileSystem;
+		const text = yield* fs.readFileString(manifestPath);
+		const parsed = yield* Effect.try(() => JSON.parse(text) as unknown);
+		const manifest = yield* decodeBundleManifest(parsed, manifestPath);
+		return (manifest.openGraph?.images ?? [])
+			.map((image) => image.path)
+			.filter((imagePath): imagePath is string => imagePath !== undefined);
+	}).pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
 }
 
 /** The durable cache directory for one remote bundle coordinate. */
@@ -239,6 +266,40 @@ function persistAndRead(
 			yield* fs.copyFile(layerPath, path.join(cacheDir, fileName)).pipe(Effect.mapError(failCache));
 			files.push(fileName);
 		}
+
+		// A manifest may declare Open Graph image assets by bundle-relative path;
+		// those live outside the four named layer files and are copied alongside
+		// them so a fetched bundle's image is never dangling.
+		const assetPaths = discovered.manifestPath !== undefined ? yield* manifestImagePaths(discovered.manifestPath) : [];
+		for (const assetPath of assetPaths) {
+			if (!isSafeAssetPath(assetPath)) {
+				return yield* Effect.fail(
+					new BundleFetchError({
+						source,
+						reason: "invalidRef",
+						ref,
+						detail: `openGraph image path escapes the bundle: "${assetPath}"`,
+					}),
+				);
+			}
+			const assetSource = path.join(extractedDir, assetPath);
+			const assetPresent = yield* fs.exists(assetSource).pipe(Effect.orElseSucceed(() => false));
+			if (!assetPresent) {
+				return yield* Effect.fail(
+					new BundleFetchError({
+						source,
+						reason: "missingAsset",
+						ref,
+						detail: `openGraph image declared at "${assetPath}" is not present in the fetched bundle`,
+					}),
+				);
+			}
+			const assetDest = path.join(cacheDir, assetPath);
+			yield* fs.makeDirectory(path.dirname(assetDest), { recursive: true }).pipe(Effect.mapError(failCache));
+			yield* fs.copyFile(assetSource, assetDest).pipe(Effect.mapError(failCache));
+			files.push(assetPath);
+		}
+
 		yield* cache
 			.set({ key, value: utf8Encode(JSON.stringify({ files })), contentType: "application/json" })
 			.pipe(Effect.mapError(failCache));

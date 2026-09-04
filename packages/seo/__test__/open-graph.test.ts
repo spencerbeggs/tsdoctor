@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { OpenGraphImageMetadata, OpenGraphMetadata } from "../src/OpenGraph.js";
-import { createPageMetadata, ogAltText, openGraphTags, twitterTags } from "../src/OpenGraph.js";
+import { createPageMetadata, openGraphTags, twitterTags } from "../src/OpenGraph.js";
 
 const base: OpenGraphMetadata = {
 	siteUrl: "https://x.test",
 	pageRoute: "/api/class/pipeline",
+	title: "Pipeline",
 	description: "A pipeline",
 	publishedTime: "2026-01-15T12:00:00.000Z",
 	modifiedTime: "2026-01-17T10:30:00.000Z",
@@ -18,11 +19,18 @@ function content(tags: ReadonlyArray<{ attrs: Readonly<Record<string, string>> }
 }
 
 describe("openGraphTags", () => {
-	it("emits url, type and description", () => {
+	it("emits url, type, title and description", () => {
 		const tags = openGraphTags(base);
 		expect(content(tags, "og:url")).toBe("https://x.test/api/class/pipeline");
 		expect(content(tags, "og:type")).toBe("article");
+		expect(content(tags, "og:title")).toBe("Pipeline");
 		expect(content(tags, "og:description")).toBe("A pipeline");
+	});
+
+	it("emits og:site_name only when siteName is a non-empty string", () => {
+		expect(content(openGraphTags(base), "og:site_name")).toBeUndefined();
+		expect(content(openGraphTags({ ...base, siteName: "" }), "og:site_name")).toBeUndefined();
+		expect(content(openGraphTags({ ...base, siteName: "tsdoctor" }), "og:site_name")).toBe("tsdoctor");
 	});
 
 	it("emits one article:tag per tag", () => {
@@ -30,11 +38,12 @@ describe("openGraphTags", () => {
 		expect(tags.map((t) => t.attrs.content)).toEqual(["api", "class"]);
 	});
 
-	it("emits the article block in a fixed order after the image block", () => {
+	it("emits tags in a fixed order: url, type, title, description, then the article block", () => {
 		const properties = openGraphTags(base).map((t) => t.attrs.property);
 		expect(properties).toEqual([
 			"og:url",
 			"og:type",
+			"og:title",
 			"og:description",
 			"article:published_time",
 			"article:modified_time",
@@ -42,6 +51,11 @@ describe("openGraphTags", () => {
 			"article:tag",
 			"article:tag",
 		]);
+	});
+
+	it("places og:site_name between og:title and og:description when configured", () => {
+		const properties = openGraphTags({ ...base, siteName: "tsdoctor" }).map((t) => t.attrs.property);
+		expect(properties.slice(0, 5)).toEqual(["og:url", "og:type", "og:title", "og:site_name", "og:description"]);
 	});
 
 	it("omits every image tag when no image is configured", () => {
@@ -78,6 +92,12 @@ describe("openGraphTags", () => {
 });
 
 describe("twitterTags", () => {
+	it("includes twitter:title immediately after twitter:card", () => {
+		const names = twitterTags(base).map((t) => t.attrs.name);
+		expect(names.slice(0, 2)).toEqual(["twitter:card", "twitter:title"]);
+		expect(content(twitterTags(base), "twitter:title")).toBe("Pipeline");
+	});
+
 	it("uses summary_large_image when an image is present", () => {
 		const tags = twitterTags({ ...base, ogImage: { url: "https://x.test/a.png" } });
 		expect(content(tags, "twitter:card")).toBe("summary_large_image");
@@ -113,24 +133,6 @@ describe("twitterTags", () => {
 	});
 });
 
-describe("ogAltText", () => {
-	it("names the API when one is given", () => {
-		expect(ogAltText("my-lib", "Core")).toBe("Core - my-lib API Documentation");
-	});
-
-	it("falls back to the package name alone", () => {
-		expect(ogAltText("my-lib")).toBe("my-lib API Documentation");
-	});
-
-	it("keeps an empty package name verbatim in the alt text", () => {
-		expect(ogAltText("")).toBe(" API Documentation");
-	});
-
-	it("keeps a scoped package name verbatim", () => {
-		expect(ogAltText("@scope/my-package")).toBe("@scope/my-package API Documentation");
-	});
-});
-
 describe("createPageMetadata", () => {
 	it("should create complete metadata object", () => {
 		const ogImage: OpenGraphImageMetadata = {
@@ -144,6 +146,8 @@ describe("createPageMetadata", () => {
 		const result = createPageMetadata({
 			siteUrl: "https://example.com",
 			pageRoute: "/api/classes/MyClass",
+			title: "MyClass",
+			siteName: "tsdoctor",
 			description: "MyClass provides...",
 			publishedTime: "2024-01-15T10:00:00Z",
 			modifiedTime: "2024-01-20T15:30:00Z",
@@ -155,6 +159,8 @@ describe("createPageMetadata", () => {
 		expect(result).toEqual({
 			siteUrl: "https://example.com",
 			pageRoute: "/api/classes/MyClass",
+			title: "MyClass",
+			siteName: "tsdoctor",
 			description: "MyClass provides...",
 			publishedTime: "2024-01-15T10:00:00Z",
 			modifiedTime: "2024-01-20T15:30:00Z",
@@ -165,10 +171,11 @@ describe("createPageMetadata", () => {
 		});
 	});
 
-	it("should work without ogImage", () => {
+	it("should work without ogImage or siteName", () => {
 		const result = createPageMetadata({
 			siteUrl: "https://example.com",
 			pageRoute: "/api/functions/myFunction",
+			title: "myFunction",
 			description: "myFunction provides...",
 			publishedTime: "2024-01-15T10:00:00Z",
 			modifiedTime: "2024-01-20T15:30:00Z",
@@ -177,6 +184,7 @@ describe("createPageMetadata", () => {
 		});
 
 		expect(result.ogImage).toBeUndefined();
+		expect(result.siteName).toBeUndefined();
 		expect(result.ogType).toBe("article");
 	});
 
@@ -184,6 +192,7 @@ describe("createPageMetadata", () => {
 		const result = createPageMetadata({
 			siteUrl: "https://example.com",
 			pageRoute: "/api/types/MyType",
+			title: "MyType",
 			description: "MyType description",
 			publishedTime: "2024-01-15T10:00:00Z",
 			modifiedTime: "2024-01-20T15:30:00Z",
@@ -198,6 +207,7 @@ describe("createPageMetadata", () => {
 		const result = createPageMetadata({
 			siteUrl: "https://example.com",
 			pageRoute: "/api/interfaces/IConfig",
+			title: "IConfig",
 			description: "IConfig description",
 			publishedTime: "2024-01-15T10:00:00Z",
 			modifiedTime: "2024-01-20T15:30:00Z",

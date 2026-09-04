@@ -127,14 +127,22 @@ bats tests in `plugin/__test__/`. Load with `pnpm claude`. See
 Test fixture modules built with `defineBuild()` from `@savvy-web/bundler`
 (`savvy.build.ts`), producing `dist/dev/` (source maps) and `dist/prod/`
 (API Extractor model, `.api.json` under `dist/<mode>/meta/`).
-**kitchensink** also exports a `./testing` entry point for multi-entry testing.
+**kitchensink** also exports a `./testing` entry point for multi-entry
+testing. `modules/kitchensink/savvy.build.ts` carries a `meta.tsdoctor` block
+(name, tagline, a satori-generated Open Graph image via
+`@savvy-web/bundler/og`'s `ogImage.satori()`) that the bundler writes out as
+the site's `tsdoctor.json` sidecar.
 
 ### sites/
 
 RSPress 2.0 sites consuming the plugin via `workspace:*` plus one or more
 modules (configurations in the workspace table). `sites/vitepress-basic/` is
 the VitePress 2 fixture, populated by kitchensink's `localPaths` like
-`sites/basic/`.
+`sites/basic/`. Each site's `sites/*/lib/models/kitchensink/` is populated by
+the kitchensink build (generated, gitignored) with `tsdoctor.json` and
+`og/kitchensink.png` beside the api.json trio. The root `tsdoctor.json` is
+the project tier the bundler flattens into every site's resolved bundle
+manifest.
 
 ## Effect-TS Architecture
 

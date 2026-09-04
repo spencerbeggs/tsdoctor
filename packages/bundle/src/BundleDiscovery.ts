@@ -2,9 +2,10 @@ import { GlobPatternOptions } from "@effected/glob";
 import { LenientManifest } from "@effected/package-json";
 import { compileAndExpand } from "@effected/walker";
 import type { BundleManifestError } from "@tsdoctor/manifest";
+import { TSDOCTOR_MANIFEST_FILENAME } from "@tsdoctor/manifest";
 import { Effect, FileSystem, Option, Path, Schema } from "effect";
 import type { Bundle, BundleDescriptor, BundleLayerError } from "./Bundle.js";
-import { TSDOCTOR_MANIFEST_FILENAME, readApiModelInfo, readBundle } from "./Bundle.js";
+import { readApiModelInfo, readBundle } from "./Bundle.js";
 
 /**
  * Raised when a directory cannot be resolved into a bundle descriptor.

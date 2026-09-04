@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { ApiModel } from "@microsoft/api-extractor-model";
-import { CrossLinker } from "@tsdoctor/model";
+import { CrossLinker, parseFrontmatter } from "@tsdoctor/model";
 import { SnapshotService } from "@tsdoctor/snapshot";
 import { Effect, Layer, References } from "effect";
 import { describe, expect, it } from "vitest";
@@ -931,6 +931,68 @@ describe("writeSingleFile", () => {
 		const b = await runSeo({ ogImage: "/images/og.png", buildTime: "2030-06-15T12:34:56.000Z" });
 
 		expect(a.result?.frontmatterHash).toBe(b.result?.frontmatterHash);
+	});
+
+	describe("bundle Open Graph image", () => {
+		const bundleImage = {
+			url: "https://cdn.example.com/tsdoctor/kitchensink/k.png",
+			width: 1,
+			height: 1,
+			alt: "Kitchen Sink API documentation",
+		};
+
+		// FORBIDS the bundle image winning when the legacy option is configured:
+		// only the option can probe `docs/public`, which the bundle resolver
+		// cannot see, so it must keep outranking a bundle-supplied image.
+		it("prefers the legacy ogImage option over the bundle image", async () => {
+			const { result } = await runSeo({ ogImage: "/images/og.png", bundleOgImage: bundleImage });
+
+			expect(result?.content).toContain("https://example.com/images/og.png");
+			expect(result?.content).not.toContain(bundleImage.url);
+		});
+
+		it("falls back to the bundle image when no ogImage option is configured", async () => {
+			const { result } = await runSeo({ bundleOgImage: bundleImage });
+
+			const { data } = parseFrontmatter(result?.content ?? "");
+			const head = data.head as ReadonlyArray<[string, Record<string, string>]>;
+			expect(head).toContainEqual(["meta", { property: "og:image", content: bundleImage.url }]);
+			expect(head).toContainEqual(["meta", { property: "og:image:width", content: "1" }]);
+			expect(head).toContainEqual(["meta", { property: "og:image:height", content: "1" }]);
+		});
+
+		it("emits og:site_name from the resolved bundle's site name and og:title from the item's display name", async () => {
+			const events: PluginEvent[] = [];
+			const bus = makeEventBusLayer([{ minLevel: "trace", handle: (e) => events.push(e) }]);
+			const { ctx, workItem } = await seoCtx({ siteName: "tsdoctor" });
+			const result = await Effect.runPromise(
+				generateSinglePage(workItem, ctx).pipe(
+					Effect.provide(
+						Layer.mergeAll(
+							NodeFileSystem.layer,
+							TestOgServiceLayer,
+							bus as unknown as Layer.Layer<never>,
+							Layer.succeed(References.MinimumLogLevel, "None"),
+						),
+					),
+				),
+			);
+
+			const { data } = parseFrontmatter(result?.content ?? "");
+			const head = data.head as ReadonlyArray<[string, Record<string, string>]>;
+			expect(head).toContainEqual(["meta", { property: "og:site_name", content: "tsdoctor" }]);
+			expect(head).toContainEqual(["meta", { property: "og:title", content: workItem.item.displayName }]);
+		});
+
+		// Extends the existing hash-direction pin: a bundle-image URL change must
+		// move the frontmatter hash exactly like an ogImage-option change does —
+		// both flow through the same `headTags` call the hash is taken over.
+		it("makes a bundle-image URL change visible to the frontmatter hash", async () => {
+			const a = await runSeo({ bundleOgImage: bundleImage });
+			const b = await runSeo({ bundleOgImage: { ...bundleImage, url: "https://cdn.example.com/other.png" } });
+
+			expect(a.result?.frontmatterHash).not.toBe(b.result?.frontmatterHash);
+		});
 	});
 
 	it("writes a changed file to disk and returns correct result", async () => {
