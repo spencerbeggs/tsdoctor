@@ -27,7 +27,7 @@
 	},
 	"devDependencies": {
 		"@resvg/resvg-js": "^2.6.2",
-		"@savvy-web/bundler": "^2.1.30",
+		"@savvy-web/bundler": "^2.2.0",
 		"@types/node": "catalog:build",
 		"satori": "^0.33.4",
 		"typescript": "catalog:build"
