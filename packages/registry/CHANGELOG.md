@@ -1,5 +1,26 @@
 # @tsdoctor/registry
 
+## 0.3.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/vfs | dependency | updated | 0.2.1 | 0.2.2 |
+| @effect/platform-node | peerDependency | updated | 4.0.0-rc.109 | 4.0.0-rc.112 |
+| @effected/semver | peerDependency | updated | ^0.5.1 | ^0.6.0 |
+| @effected/store | peerDependency | updated | ^0.6.0 | ^0.7.0 |
+| @effected/xdg | peerDependency | updated | ^0.3.0 | ^0.4.0 |
+| effect | peerDependency | updated | 4.0.0-rc.109 | 4.0.0-rc.112 |
+
+[#221][#221]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#221]: https://github.com/spencerbeggs/tsdoctor/pull/221
+
 ## 0.3.3
 
 ### Dependencies

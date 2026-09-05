@@ -1,5 +1,22 @@
 # @tsdoctor/snapshot
 
+## 0.2.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/store | peerDependency | updated | ^0.6.0 | ^0.7.0 |
+| effect | peerDependency | updated | 4.0.0-rc.109 | 4.0.0-rc.112 |
+
+[#221][#221]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#221]: https://github.com/spencerbeggs/tsdoctor/pull/221
+
 ## 0.2.4
 
 ### Maintenance
