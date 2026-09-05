@@ -1,5 +1,24 @@
 # @tsdoctor/pages
 
+## 0.1.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/model | dependency | updated | 0.6.2 | 0.6.3 |
+| @tsdoctor/seo | dependency | updated | 0.2.0 | 0.2.1 |
+| @effected/markdown | peerDependency | updated | ^0.8.1 | ^0.9.0 |
+| effect | peerDependency | updated | 4.0.0-rc.109 | 4.0.0-rc.112 |
+
+[#221][#221]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#221]: https://github.com/spencerbeggs/tsdoctor/pull/221
+
 ## 0.1.3
 
 ### Dependencies

@@ -1,5 +1,23 @@
 # @tsdoctor/model
 
+## 0.6.3
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/vfs | dependency | updated | 0.2.1 | 0.2.2 |
+| @effected/markdown | peerDependency | updated | ^0.8.1 | ^0.9.0 |
+| effect | peerDependency | updated | 4.0.0-rc.109 | 4.0.0-rc.112 |
+
+[#221][#221]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#221]: https://github.com/spencerbeggs/tsdoctor/pull/221
+
 ## 0.6.2
 
 ### Dependencies
