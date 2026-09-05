@@ -1,5 +1,21 @@
 # @tsdoctor/registry
 
+## 0.3.3
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/semver | peerDependency | updated | ^0.5.0 | ^0.5.1 |
+
+[#218][#218]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#218]: https://github.com/spencerbeggs/tsdoctor/pull/218
+
 ## 0.3.2
 
 ### Dependencies
