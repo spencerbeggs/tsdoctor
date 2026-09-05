@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/pages",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"private": true,
 	"description": "Framework-neutral documentation page IR for static TypeScript API sites: typed doc blocks over an API Extractor model, per-API navigation trees, display/source code preparation, a plain-markdown emitter and the llms.txt text transforms.",
 	"keywords": ["api-extractor", "tsdoc", "documentation", "markdown", "mdast", "llms", "typescript", "effect"],
