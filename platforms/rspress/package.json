@@ -70,7 +70,7 @@
 		"@effected/memfs": "catalog:effected",
 		"@microsoft/tsdoc": "^0.16.0",
 		"@rspress/core": "catalog:docs",
-		"@savvy-web/rspress-builder": "^1.1.33",
+		"@savvy-web/rspress-builder": "^1.1.34",
 		"@types/hast": "^3.0.5",
 		"@types/mdast": "^4.0.4",
 		"@types/node": "catalog:build",
