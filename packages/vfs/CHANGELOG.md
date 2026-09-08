@@ -1,5 +1,21 @@
 # @tsdoctor/vfs
 
+## 0.2.3
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/tsconfig-json | peerDependency | updated | ^0.8.0 | ^0.8.1 |
+
+[#225][#225]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#225]: https://github.com/spencerbeggs/tsdoctor/pull/225
+
 ## 0.2.2
 
 ### Dependencies
