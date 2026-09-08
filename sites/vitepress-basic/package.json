@@ -15,7 +15,7 @@
 	"devDependencies": {
 		"@shikijs/vitepress-twoslash": "^4.4.3",
 		"@types/node": "catalog:docs",
-		"vitepress": "2.0.0-alpha.19",
+		"vitepress": "catalog:docs",
 		"vitepress-plugin-api-extractor": "workspace:*"
 	}
 }
