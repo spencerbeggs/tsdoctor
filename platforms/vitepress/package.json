@@ -38,7 +38,7 @@
 		"@effected/store": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
-		"@microsoft/api-extractor-model": "^7.33.11",
+		"@microsoft/api-extractor-model": "^7.33.12",
 		"@shikijs/twoslash": "^4.4.3",
 		"@shikijs/vitepress-twoslash": "^4.4.3",
 		"@tsdoctor/bundle": "workspace:*",
@@ -55,7 +55,7 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
-		"@savvy-web/bundler": "^2.3.2",
+		"@savvy-web/bundler": "^2.3.3",
 		"@types/node": "catalog:build",
 		"vitepress": "2.0.0-alpha.19"
 	},

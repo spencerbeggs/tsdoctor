@@ -32,14 +32,14 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@microsoft/api-extractor-model": "^7.33.11",
+		"@microsoft/api-extractor-model": "^7.33.12",
 		"@microsoft/tsdoc": "^0.16.0",
 		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {
 		"@effected/markdown": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"@savvy-web/bundler": "^2.3.2",
+		"@savvy-web/bundler": "^2.3.3",
 		"@tsdoctor/snapshot": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",

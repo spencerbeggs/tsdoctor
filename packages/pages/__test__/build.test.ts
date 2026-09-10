@@ -302,25 +302,34 @@ describe("buildPage — examples", () => {
 		const pkg = loadKitchensink();
 		const item = find(pkg, "Pipeline", "Class");
 		const seen: ExampleFormatError[] = [];
-		// Poison Prettier's input by handing it a package name it must format around: the
-		// fixture examples are valid TypeScript, so exercise the hook with a malformed item instead.
-		const malformed = Object.create(item, {
-			tsdocComment: {
-				value: {
-					summarySection: (item as { tsdocComment?: { summarySection?: unknown } }).tsdocComment?.summarySection,
-					customBlocks: [
-						{
-							blockTag: { tagNameWithUpperCase: "@EXAMPLE" },
-							content: { nodes: [{ kind: "FencedCode", language: "ts", code: "const = ;" }] },
-						},
-					],
-				},
+		// Poison Prettier's input: the fixture examples are valid TypeScript, so swap in a
+		// malformed `@example` instead. The comment is shadowed as an own data property on the
+		// real item and deleted again, rather than layered onto an `Object.create` proxy —
+		// api-extractor-model's accessors read ECMAScript `#private` fields, which are branded
+		// per instance and throw on any object that merely inherits from one.
+		const documented = item as ApiItem & { tsdocComment?: unknown };
+		const original = documented.tsdocComment;
+		Object.defineProperty(item, "tsdocComment", {
+			configurable: true,
+			value: {
+				summarySection: (original as { summarySection?: unknown } | undefined)?.summarySection,
+				customBlocks: [
+					{
+						blockTag: { tagNameWithUpperCase: "@EXAMPLE" },
+						content: { nodes: [{ kind: "FencedCode", language: "ts", code: "const = ;" }] },
+					},
+				],
 			},
-		}) as ApiItem;
-		const page = await build({
-			...baseInput(malformed, "class", "Class"),
-			onExampleFormatError: (error) => Effect.sync(() => void seen.push(error)),
 		});
+		let page: Page;
+		try {
+			page = await build({
+				...baseInput(item, "class", "Class"),
+				onExampleFormatError: (error) => Effect.sync(() => void seen.push(error)),
+			});
+		} finally {
+			delete (item as { tsdocComment?: unknown }).tsdocComment;
+		}
 		expect(seen).toHaveLength(1);
 		expect(seen[0]).toBeInstanceOf(ExampleFormatError);
 		const example = block(page, "examples").items[0];
