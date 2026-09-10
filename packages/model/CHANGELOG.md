@@ -1,5 +1,21 @@
 # @tsdoctor/model
 
+## 0.6.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @microsoft/api-extractor-model | dependency | updated | ^7.33.11 | ^7.33.12 |
+
+[#233][#233]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#233]: https://github.com/spencerbeggs/tsdoctor/pull/233
+
 ## 0.6.4
 
 ### Dependencies
@@ -72,10 +88,14 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 ### Documentation
 
 - The `Render` module (`tree`, `item`, `docs`, `isEmittable`, `RenderItemOptions`)
-  and the types it alone consumes (`DocMeta`, `FrontmatterRenderer`,&#10;`RenderedDoc`, `RenderPackageOptions`) are deprecated in favor of&#10;`@tsdoctor/pages`, the framework-neutral page IR. Every export is kept for
+  and the types it alone consumes (`DocMeta`, `FrontmatterRenderer`,
+  `RenderedDoc`, `RenderPackageOptions`) are deprecated in favor of
+  `@tsdoctor/pages`, the framework-neutral page IR. Every export is kept for
   one more minor release before removal.
 
-- Replace `Render.tree` / `Render.item` with `buildPage` + `markdownTree` /&#10;`renderMarkdown`, and `Render.docs` with `prepareWorkItems` + `buildPage` +&#10;`renderMarkdown` (adapters assemble frontmatter from the `Page`'s facts and
+- Replace `Render.tree` / `Render.item` with `buildPage` + `markdownTree` /
+  `renderMarkdown`, and `Render.docs` with `prepareWorkItems` + `buildPage` +
+  `renderMarkdown` (adapters assemble frontmatter from the `Page`'s facts and
   head tags rather than an injected `FrontmatterRenderer`): [#208][#208]
 
 ```ts
