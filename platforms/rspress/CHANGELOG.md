@@ -1,5 +1,23 @@
 # rspress-plugin-api-extractor
 
+## 0.16.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @microsoft/api-extractor-model | dependency | updated | ^7.33.11 | ^7.33.12 |
+| @tsdoctor/model | dependency | updated | 0.6.4 | 0.6.5 |
+| @tsdoctor/pages | dependency | updated | 0.1.5 | 0.1.6 |
+
+[#233][#233]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#233]: https://github.com/spencerbeggs/tsdoctor/pull/233
+
 ## 0.16.3
 
 ### Dependencies
@@ -86,7 +104,8 @@ Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contri
 
 ### Features
 
-- Config resolution now loads and resolves each documented API's&#10;`tsdoctor.json` bundle, pinned to the API's already-known model file, and
+- Config resolution now loads and resolves each documented API's
+  `tsdoctor.json` bundle, pinned to the API's already-known model file, and
   publishes its manifest-declared Open Graph images into the site's public
   directory, ranked below the plugin's own legacy `ogImage` option. Every
   generated page now emits `og:title` and, when the bundle resolves a site
@@ -98,9 +117,11 @@ Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contri
   without a bundle-supplied `og:image`.
 
 - Dropping the plugin's `ogAltText` inference in favor of `@tsdoctor/seo`'s
-  single alt chain also changes every page's `og:image:alt`, from&#10;`"<Item> - <package> API Documentation"` to `"<Item> API documentation"` —
+  single alt chain also changes every page's `og:image:alt`, from
+  `"<Item> - <package> API Documentation"` to `"<Item> API documentation"` —
   different wording, and the package name no longer appears. Combined with
-  the new `og:title`/`og:site_name` tags, this rewrites the frontmatter `head`&#10;block of every generated page once on the first rebuild after upgrading; a
+  the new `og:title`/`og:site_name` tags, this rewrites the frontmatter `head`
+  block of every generated page once on the first rebuild after upgrading; a
   subsequent rebuild with no other changes reports every page unchanged. [#215][#215]
 
 ### Dependencies
@@ -162,20 +183,24 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 
 - `externalPackages[].tsconfig` and `externalPackages[].compilerOptions` —
   accepted on each external package spec but never applied. Remove them and
-  set `tsconfig` / `compilerOptions` at the API level (`api:` or each&#10;`apis:` entry), which is what every code example is type-checked under.
+  set `tsconfig` / `compilerOptions` at the API level (`api:` or each
+  `apis:` entry), which is what every code example is type-checked under.
 
 - `observability.thresholds.slowHttpRequest` — accepted and carried on the
   resolved thresholds, but no phase ever compared against it. Remove the key;
   the remaining thresholds are unchanged.
 
-- The `LogLevel` type export — no plugin option was typed by it. Type&#10;`observability.logLevel` against its own values (`"none" | "error" |
+- The `LogLevel` type export — no plugin option was typed by it. Type
+  `observability.logLevel` against its own values (`"none" | "error" |
   "warn" | "info" | "debug" | "trace" | "verbose"`) instead.
 
 ### Bug Fixes
 
 - Fixed a race in prose cross-linking on multi-API builds. The plugin used to
-  cross-link prose through a module-level holder swapped per API while&#10;`generateApiDocs` ran multiple APIs concurrently, so whichever API installed
-  the holder last owned it for every page generated afterwards — on a&#10;`multiVersion` site, v1 pages could link into v2's default-version routes;
+  cross-link prose through a module-level holder swapped per API while
+  `generateApiDocs` ran multiple APIs concurrently, so whichever API installed
+  the holder last owned it for every page generated afterwards — on a
+  `multiVersion` site, v1 pages could link into v2's default-version routes;
   on a multi-API site, one package's prose could be linked against another
   package's route map. Cross-linking is now deterministic per API.
 
@@ -1119,7 +1144,8 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 
 * [`9aa4fe4`](https://github.com/spencerbeggs/rspress-plugin-api-extractor/commit/9aa4fe43b145cfd95f2625a80865f0ed7b51106b) Fixes spurious `TS2353 "X does not exist in type"` Twoslash errors on valid nested-struct fields in API doc code blocks for packages that use Effect Schema companion types (the `const T + type T` pattern). The type reference extractor now imports the namespace root (e.g., `Schema`) rather than a leaf member (e.g., `Struct`), matching the qualified form used in reconstructed `.d.ts` declarations. Previously, importing only the leaf left the namespace identifier undefined, causing companion types like `type T = typeof T.Type` to collapse to an error type in hover rendering.
 
-- [`9aa4fe4`](https://github.com/spencerbeggs/rspress-plugin-api-extractor/commit/9aa4fe43b145cfd95f2625a80865f0ed7b51106b) Reference tokens carrying a dts-rollup disambiguation suffix (e.g.&#10;`CoverageLevelName$1`, emitted when a symbol is re-imported under an alias) are
+- [`9aa4fe4`](https://github.com/spencerbeggs/rspress-plugin-api-extractor/commit/9aa4fe43b145cfd95f2625a80865f0ed7b51106b) Reference tokens carrying a dts-rollup disambiguation suffix (e.g.
+  `CoverageLevelName$1`, emitted when a symbol is re-imported under an alias) are
   now reconstructed using their canonical, un-suffixed name. The prepended import
   uses the canonical name, so emitting the suffixed form previously left the
   identifier undefined (`TS2304`) in the generated Twoslash VFS declarations. The
