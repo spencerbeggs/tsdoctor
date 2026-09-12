@@ -1,5 +1,22 @@
 # @tsdoctor/vfs
 
+## 0.2.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/tsconfig-json | peerDependency | updated | ^0.8.1 | ^0.9.0 |
+| effect | peerDependency | updated | 4.0.0-rc.112 | 4.0.0-rc.115 |
+
+[#237][#237]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#237]: https://github.com/spencerbeggs/tsdoctor/pull/237
+
 ## 0.2.3
 
 ### Dependencies
@@ -49,7 +66,8 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 
 - `@tsdoctor/vfs` now exports the Twoslash result cache — the keying scheme,
   the generation codec and the in-memory `TwoslashTypesCache` implementation
-  (`makeTwoslashCache`, `twoslashEnvHash`, `twoslashEntryKey`,&#10;`twoslashBlobKey`, `encodeTwoslashCache`, `decodeTwoslashCache`) — moved out
+  (`makeTwoslashCache`, `twoslashEnvHash`, `twoslashEntryKey`,
+  `twoslashBlobKey`, `encodeTwoslashCache`, `decodeTwoslashCache`) — moved out
   of the RSPress adapter so any adapter can persist and share one Twoslash
   result cache:
 

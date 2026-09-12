@@ -1,5 +1,31 @@
 # @tsdoctor/bundle
 
+## 0.3.3
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/manifest | dependency | updated | 0.1.1 | 0.1.2 |
+| @effected/github | peerDependency | updated | ^0.9.0 | ^0.10.0 |
+| @effected/glob | peerDependency | updated | ^0.5.0 | ^0.6.0 |
+| @effected/jsonc | peerDependency | updated | ^0.9.0 | ^0.11.0 |
+| @effected/npm | peerDependency | updated | ^0.13.0 | ^0.14.0 |
+| @effected/package-json | peerDependency | updated | ^0.14.0 | ^0.15.0 |
+| @effected/store | peerDependency | updated | ^0.7.0 | ^0.8.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.8.1 | ^0.9.0 |
+| @effected/walker | peerDependency | updated | ^0.7.0 | ^0.8.0 |
+| @effected/xdg | peerDependency | updated | ^0.4.1 | ^0.5.0 |
+| effect | peerDependency | updated | 4.0.0-rc.112 | 4.0.0-rc.115 |
+
+[#237][#237]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#237]: https://github.com/spencerbeggs/tsdoctor/pull/237
+
 ## 0.3.2
 
 ### Dependencies
@@ -49,10 +75,12 @@ Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contri
 ### Features
 
 - Adds `publishBundleAssets`, which copies a resolved bundle's bundle-relative
-  Open Graph images into a site's public directory and returns each one as a&#10;`PublishedOpenGraphImage` carrying an absolute (or root-relative) URL. An
+  Open Graph images into a site's public directory and returns each one as a
+  `PublishedOpenGraphImage` carrying an absolute (or root-relative) URL. An
   image already declared with an `url` passes through unchanged. Identical
   bytes are not rewritten, so a rebuild over an unchanged image leaves the
-  published file's mtime untouched, and a manifest that left `width`/`height`&#10;undeclared gets them measured from the file's own bytes.
+  published file's mtime untouched, and a manifest that left `width`/`height`
+  undeclared gets them measured from the file's own bytes.
 
 ```ts
 import { publishBundleAssets } from "@tsdoctor/bundle";
@@ -98,8 +126,13 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 | @tsdoctor/manifest | dependency | updated | 0.0.0 | 0.1.0 |
 | @tsdoctor/manifest | peerDependency | added | — | 0.1.0 |
 
-- The `tsdoctor.json` bundle manifest schema now lives in `@tsdoctor/manifest`;&#10;`@tsdoctor/bundle` depends on it and re-exports its full surface
-  (`BundleManifest`, `BundleManifestError`, `KNOWN_REGISTRY_TYPES`,&#10;`OpenGraphConfig`, `OpenGraphImage`, `ProjectIdentity`, `RegistryRef`,&#10;`SbomRef`, `decodeBundleManifest`, `isKnownRegistryType`, plus the new&#10;`MANIFEST_SPEC`, `ManifestSource`, `decodeManifestSource` and&#10;`encodeBundleManifest`), so no consumer import changes. [#213][#213]
+- The `tsdoctor.json` bundle manifest schema now lives in `@tsdoctor/manifest`;
+  `@tsdoctor/bundle` depends on it and re-exports its full surface
+  (`BundleManifest`, `BundleManifestError`, `KNOWN_REGISTRY_TYPES`,
+  `OpenGraphConfig`, `OpenGraphImage`, `ProjectIdentity`, `RegistryRef`,
+  `SbomRef`, `decodeBundleManifest`, `isKnownRegistryType`, plus the new
+  `MANIFEST_SPEC`, `ManifestSource`, `decodeManifestSource` and
+  `encodeBundleManifest`), so no consumer import changes. [#213][#213]
 
 ### Thanks
 
