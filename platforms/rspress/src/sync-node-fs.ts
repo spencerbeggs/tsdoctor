@@ -1,5 +1,5 @@
 import fsSync from "node:fs";
-import { Effect, FileSystem, Layer, Option, Path, PlatformError } from "effect";
+import { ByteSize, Effect, FileSystem, Layer, Option, Path, PlatformError } from "effect";
 
 /**
  * A synchronous, read-only `FileSystem` implementation over `node:fs`'s sync
@@ -44,8 +44,8 @@ const infoFromStats = (stats: fsSync.Stats): FileSystem.File.Info => ({
 	uid: Option.some(stats.uid),
 	gid: Option.some(stats.gid),
 	rdev: Option.some(stats.rdev),
-	size: FileSystem.Size(stats.size),
-	blksize: Option.some(FileSystem.Size(stats.blksize)),
+	size: ByteSize.bytes(stats.size),
+	blksize: Option.some(ByteSize.bytes(stats.blksize)),
 	blocks: Option.some(stats.blocks),
 });
 
