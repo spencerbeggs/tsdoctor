@@ -22,7 +22,7 @@
 		"build:vitepress-basic": "turbo run build --filter=@sites/vitepress-basic --ui=stream",
 		"ci:build": "CI=\"true\" turbo run build:dev build:prod --filter=!@sites/* --filter=!@modules/* --log-order=grouped --output-logs=full --log-prefix=none",
 		"ci:test": "CI=\"true\" vitest run --coverage",
-		"claude": "claude --plugin-dir=plugin --plugin-dir=../effected/plugin",
+		"claude": "claude --plugin-dir=plugin",
 		"dev": "turbo run dev --filter=@sites/basic",
 		"dev:basic": "turbo run dev --filter=@sites/basic",
 		"dev:effect": "turbo run dev --filter=@sites/effect",
@@ -51,8 +51,8 @@
 		"types:check": "tsc --noEmit"
 	},
 	"devDependencies": {
-		"@savvy-web/silk": "^3.15.2",
-		"@vitest-agent/plugin": "^3.0.2"
+		"@savvy-web/silk": "^3.15.3",
+		"@vitest-agent/plugin": "^3.0.3"
 	},
 	"packageManager": "pnpm@11.26.0+sha512.fc0e2bf890b9f983611f1ab68c0637bce914390653699f83c1a78b005ed25f2c81e77920c8fd8eee2ecf0b58b28cdcb00a84d97f69bcf7c56b2f344710238664",
 	"engines": {

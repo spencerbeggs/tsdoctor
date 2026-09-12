@@ -58,7 +58,7 @@
 		},
 		"effect": {
 			"url": "https://github.com/Effect-TS/effect",
-			"ref": "effect@4.0.0-rc.109",
+			"ref": "effect@4.0.0-rc.115",
 			"purpose": "Effect v4 authority: core source (packages/effect/src) and the v3-to-v4 migration notes (migration/); pinned to the installed effect version via the catalog:effect pin",
 			"sparse": [
 				"packages/effect/src",
