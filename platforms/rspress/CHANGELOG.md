@@ -1,5 +1,46 @@
 # rspress-plugin-api-extractor
 
+## 0.16.5
+
+### Bug Fixes
+
+- Ports the sync `FileSystem` bridge behind `ApiExtractorPlugin.api.fromDir` / `apis.fromDir` to Effect `4.0.0-rc.115`, where `FileSystem.Size` was removed in favour of the new `ByteSize` module. Bundle discovery at config-evaluation time works again on the new Effect. [#237][#237]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | 4.0.0-rc.112 | 4.0.0-rc.115 |
+| @effected/github | dependency | updated | ^0.9.0 | ^0.10.0 |
+| @effected/glob | dependency | updated | ^0.5.0 | ^0.6.0 |
+| @effected/jsonc | dependency | updated | ^0.9.0 | ^0.11.0 |
+| @effected/markdown | dependency | updated | ^0.9.1 | ^0.10.0 |
+| @effected/npm | dependency | updated | ^0.13.0 | ^0.14.0 |
+| @effected/package-json | dependency | updated | ^0.14.0 | ^0.15.0 |
+| @effected/semver | dependency | updated | ^0.6.0 | ^0.7.0 |
+| @effected/store | dependency | updated | ^0.7.0 | ^0.8.0 |
+| @effected/tsconfig-json | dependency | updated | ^0.8.1 | ^0.9.0 |
+| @effected/walker | dependency | updated | ^0.7.0 | ^0.8.0 |
+| @effected/xdg | dependency | updated | ^0.4.1 | ^0.5.0 |
+| @effected/yaml | dependency | updated | ^0.14.0 | ^0.15.0 |
+| @tsdoctor/bundle | dependency | updated | 0.3.2 | 0.3.3 |
+| @tsdoctor/manifest | dependency | updated | 0.1.1 | 0.1.2 |
+| @tsdoctor/model | dependency | updated | 0.6.5 | 0.6.6 |
+| @tsdoctor/pages | dependency | updated | 0.1.6 | 0.1.7 |
+| @tsdoctor/registry | dependency | updated | 0.3.5 | 0.3.6 |
+| @tsdoctor/seo | dependency | updated | 0.2.1 | 0.2.2 |
+| @tsdoctor/snapshot | dependency | updated | 0.2.5 | 0.2.6 |
+| @tsdoctor/vfs | dependency | updated | 0.2.3 | 0.2.4 |
+| effect | dependency | updated | 4.0.0-rc.112 | 4.0.0-rc.115 |
+
+[#237][#237]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#237]: https://github.com/spencerbeggs/tsdoctor/pull/237
+
 ## 0.16.4
 
 ### Dependencies

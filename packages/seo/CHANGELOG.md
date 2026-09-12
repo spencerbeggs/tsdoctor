@@ -1,5 +1,24 @@
 # @tsdoctor/seo
 
+## 0.2.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/package-json | peerDependency | updated | ^0.14.0 | ^0.15.0 |
+| @effected/schema-org | peerDependency | updated | ^0.2.0 | ^0.3.0 |
+| @effected/spdx | peerDependency | updated | ^0.6.0 | ^0.7.0 |
+| effect | peerDependency | updated | 4.0.0-rc.112 | 4.0.0-rc.115 |
+
+[#237][#237]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#237]: https://github.com/spencerbeggs/tsdoctor/pull/237
+
 ## 0.2.1
 
 ### Dependencies
@@ -23,14 +42,18 @@ Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contri
 
 ### Breaking Changes
 
-- `SeoPageInput.title` (and `OpenGraphMetadata.title`) is now a **required**&#10;field — every caller must supply the page title used for `og:title` and&#10;`twitter:title`. `siteName` is a new optional field for `og:site_name`. The&#10;`ogAltText` helper is removed; a caller now composes its own fallback alt
+- `SeoPageInput.title` (and `OpenGraphMetadata.title`) is now a **required**
+  field — every caller must supply the page title used for `og:title` and
+  `twitter:title`. `siteName` is a new optional field for `og:site_name`. The
+  `ogAltText` helper is removed; a caller now composes its own fallback alt
   text rather than relying on a package-supplied wording. This package is
   still on a 0.x line, so the break ships as a minor per semver's pre-1.0
   convention. [#215][#215]
 
 ### Features
 
-- `headTags` (and `createPageMetadata`) now emit `og:title`, `og:site_name`&#10;(when a site name is given) and `twitter:title` alongside the existing
+- `headTags` (and `createPageMetadata`) now emit `og:title`, `og:site_name`
+  (when a site name is given) and `twitter:title` alongside the existing
   Open Graph and Twitter tags:
 
 ```ts
