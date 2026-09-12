@@ -22,7 +22,7 @@
 		"build:vitepress-basic": "turbo run build --filter=@sites/vitepress-basic --ui=stream",
 		"ci:build": "CI=\"true\" turbo run build:dev build:prod --filter=!@sites/* --filter=!@modules/* --log-order=grouped --output-logs=full --log-prefix=none",
 		"ci:test": "CI=\"true\" vitest run --coverage",
-		"claude": "claude --plugin-dir=plugin --plugin-dir=../effected/plugin",
+		"claude": "claude --plugin-dir=plugin",
 		"dev": "turbo run dev --filter=@sites/basic",
 		"dev:basic": "turbo run dev --filter=@sites/basic",
 		"dev:effect": "turbo run dev --filter=@sites/effect",
