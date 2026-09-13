@@ -6,25 +6,25 @@ importers:
   .:
     configDependencies:
       '@effected/pnpm-plugin-effect':
-        specifier: 0.8.2
-        version: 0.8.2
+        specifier: 0.8.3
+        version: 0.8.3
       '@savvy-web/pnpm-plugin-silk':
-        specifier: 0.36.0
-        version: 0.36.0
+        specifier: 0.37.0
+        version: 0.37.0
 
 packages:
 
-  '@effected/pnpm-plugin-effect@0.8.2':
-    resolution: {integrity: sha512-i9FWW92WlVXDk9Mlbd2DJC1mtE4P56cH/v+z36N7d/OJsDLjwsnG+nI6WvALVlQmZ/uTMd7rytmAR9MCOIs/CQ==}
+  '@effected/pnpm-plugin-effect@0.8.3':
+    resolution: {integrity: sha512-o19ddEUsrlmDKzg7cobg31Q06RjKJH103DRKzoEGssIK4wt3e4D+eP5Aa0mQk0R4OHI/siCJybanksCvgWIHOQ==}
 
-  '@savvy-web/pnpm-plugin-silk@0.36.0':
-    resolution: {integrity: sha512-k5sHGnJ4SUk1iDzIUV6qWbJAquJl3LIEHKEKPQyrqge5h2Hr3xvCHGH3n0AcBNuGTp4cf4YESrOg0/YKXWhZ1w==}
+  '@savvy-web/pnpm-plugin-silk@0.37.0':
+    resolution: {integrity: sha512-PLAkQmkvC1A4x0/q66Bycb8fk8LgBgh9MLhd6rApPX/FINCyh8Py0HaiV3czTaw3xOM/ehdSN3ab1+X2YujUIw==}
 
 snapshots:
 
-  '@effected/pnpm-plugin-effect@0.8.2': {}
+  '@effected/pnpm-plugin-effect@0.8.3': {}
 
-  '@savvy-web/pnpm-plugin-silk@0.36.0': {}
+  '@savvy-web/pnpm-plugin-silk@0.37.0': {}
 
 ---
 lockfileVersion: '9.0'
@@ -87,8 +87,8 @@ catalogs:
       version: 4.0.0-rc.115
   effected:
     '@effected/github':
-      specifier: ^0.10.0
-      version: 0.10.0
+      specifier: ^0.10.1
+      version: 0.10.1
     '@effected/glob':
       specifier: ^0.6.0
       version: 0.6.0
@@ -136,7 +136,7 @@ overrides:
   '@effect/vitest>vitest': ^5.0.0
   '@microsoft/api-extractor>typescript': ^6.0.3
 
-pnpmfileChecksum: sha256-osqAsdrOh3ZBz2OcGDLqebz6hkLWGakYMZX6tdoAawk=
+pnpmfileChecksum: sha256-jWTSz96D8cxwXj3TQNavUvz/CF3LVOkPbLM/bD3w41A=
 
 importers:
 
@@ -224,7 +224,7 @@ importers:
         version: 4.0.0-rc.115(effect@4.0.0-rc.115)(vitest@5.0.0)
       '@effected/github':
         specifier: catalog:effected
-        version: 0.10.0(effect@4.0.0-rc.115)
+        version: 0.10.1(effect@4.0.0-rc.115)
       '@effected/glob':
         specifier: catalog:effected
         version: 0.6.0(effect@4.0.0-rc.115)
@@ -481,7 +481,7 @@ importers:
         version: 4.0.0-rc.115(effect@4.0.0-rc.115)(redis@6.2.1)
       '@effected/github':
         specifier: catalog:effected
-        version: 0.10.0(effect@4.0.0-rc.115)
+        version: 0.10.1(effect@4.0.0-rc.115)
       '@effected/glob':
         specifier: catalog:effected
         version: 0.6.0(effect@4.0.0-rc.115)
@@ -1207,8 +1207,8 @@ packages:
     peerDependencies:
       effect: 4.0.0-rc.115
 
-  '@effected/github@0.10.0':
-    resolution: {integrity: sha512-zWhkd6dYrfVKPfn775v/PlMEQVu0kfoIbR8KsYBLD3w0bya5sSeDa/XdEss5693rqBlZFnMMqqmueJqhj9gFqw==}
+  '@effected/github@0.10.1':
+    resolution: {integrity: sha512-9HPabIDVvILhJkI+cySoyARi8OkM3SF9K1npYdignbCFUqvoGBkBnGZigbmVnE9qwNZh/ik4AFtwqNcEj6fgGw==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       effect: 4.0.0-rc.115
@@ -5343,13 +5343,13 @@ snapshots:
     dependencies:
       effect: 4.0.0-rc.115
 
-  '@effected/github@0.10.0(effect@4.0.0-rc.115)':
+  '@effected/github@0.10.1(effect@4.0.0-rc.115)':
     dependencies:
       '@effected/github-references': 0.3.0(effect@4.0.0-rc.115)
       '@effected/semver': 0.7.0(effect@4.0.0-rc.115)
       '@octokit/core': 7.0.8
       '@octokit/plugin-paginate-rest': 15.0.0(@octokit/core@7.0.8)
-      '@octokit/types': 17.0.0
+      '@octokit/types': 18.0.0
       blakejs: 1.2.1
       effect: 4.0.0-rc.115
       tweetnacl: 1.0.3
