@@ -82,15 +82,15 @@ pnpm --filter @tsdoctor/vfs run build:dev
 pnpm vitest run packages/vfs/
 ```
 
-## Design Docs
+## Knowledge Bundle
 
-The two-workspace split and the compiler-options seam:
+Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
+bundle" section and `okf/index.md`). Concepts most relevant to this package,
+including the Twoslash result cache's keying scheme and measured effect:
 
-- @../../.claude/design/rspress-plugin-api-extractor/type-loading-vfs.md
-- @../../.claude/design/rspress-plugin-api-extractor/multi-entry-vfs.md
-- @../../.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
-
-The Twoslash result cache's keying scheme and measured effect — load when
-touching `TwoslashCache.ts`:
-
-- @../../.claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md
+- @../../okf/modules/tsdoctor-vfs.md
+- @../../okf/decisions/vfs-below-registry-and-model.md
+- @../../okf/conventions/compiler-options-decode-not-cast.md
+- @../../okf/decisions/persisted-twoslash-result-cache.md
+- @../../okf/limitations/twoslash-cache-invalidates-per-vfs.md
+- @../../okf/decisions/core-adapter-boundary.md

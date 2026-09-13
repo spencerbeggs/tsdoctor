@@ -3,10 +3,9 @@
 `@tsdoctor/bundle` (publishable, versioned via changesets) — the versioned
 bundle spec: layered bundle discovery, the `tsdoctor.json` sidecar manifest
 (spec 1), the six-tier provenance-carrying resolver and canonical input
-hashing. Phase-2 package; the settled spec lives in
-`.claude/design/rspress-plugin-api-extractor/bundle-spec.md` and is the
-authority for the ladder, tier ranking, manifest shape and change-detection
-model.
+hashing. Phase-2 package; the `@okf/modules/tsdoctor-bundle.md` module
+concept in the `okf/` bundle is the authority for the ladder, tier ranking,
+manifest shape and change-detection model.
 
 ## Key Facts
 
@@ -68,8 +67,14 @@ pnpm --filter @tsdoctor/bundle run build:dev
 pnpm vitest run packages/bundle/
 ```
 
-## Design Docs
+## Knowledge Bundle
 
-- @../../.claude/design/rspress-plugin-api-extractor/bundle-spec.md
-- @../../.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
-- @../../.claude/design/rspress-plugin-api-extractor/roadmap-1.0.md
+Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
+bundle" section and `okf/index.md`). Concepts most relevant to this package:
+
+- @../../okf/modules/tsdoctor-bundle.md
+- @../../okf/decisions/manifest-below-bundle.md
+- @../../okf/glossary/bundle.md
+- @../../okf/interfaces/tsdoctor-json-manifest.md
+- @../../okf/decisions/core-adapter-boundary.md
+- @../../okf/decisions/vitepress-alpha-gates-1-0.md

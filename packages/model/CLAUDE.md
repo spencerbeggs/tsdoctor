@@ -83,11 +83,15 @@ pnpm --filter @tsdoctor/model run build:dev
 pnpm vitest run packages/model/
 ```
 
-## Design Docs
+## Knowledge Bundle
 
-Consumption boundaries and the target architecture:
+Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
+bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
-- @../../.claude/design/rspress-plugin-api-extractor/build-architecture.md
-- @../../.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
-- @../../.claude/design/rspress-plugin-api-extractor/multi-entry-resolution.md
-- @../../.claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md
+- @../../okf/modules/tsdoctor-model.md
+- @../../okf/modules/rspress-plugin-api-extractor.md
+- @../../okf/decisions/route-collisions-fail-the-build.md
+- @../../okf/limitations/collision-detection-by-final-route.md
+- @../../okf/decisions/single-anchor-algorithm.md
+- @../../okf/decisions/linker-is-a-scope.md
+- @../../okf/decisions/deprecate-model-render.md

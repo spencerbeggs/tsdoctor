@@ -5,8 +5,8 @@ documentation page IR for static TypeScript API sites. A page is facts + an
 ordered list of typed doc blocks + its navigation entry; prose inside a block is
 `@effected/markdown` mdast. Adapters are EMITTERS over this IR (MDX with JSX
 components for RSPress, plain markdown with `ts twoslash` fences for VitePress).
-The phase-5 package; the settled design lives in
-`.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md`.
+The phase-5 package; the settled design lives in the
+`@okf/modules/tsdoctor-pages.md` module concept in the `okf/` bundle.
 
 Keep it pure: no filesystem, no network, no `shiki` / `hast` / `react` /
 `@rspress` / `vitepress` imports, typed errors only. Prettier is the one
@@ -83,16 +83,18 @@ pnpm --filter @tsdoctor/pages run build:dev
 pnpm vitest run packages/pages/
 ```
 
-## Design Docs
+## Knowledge Bundle
 
-The IR and the pipeline that runs it:
+Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
+bundle" section and `okf/index.md`). The IR, the pipeline that runs it, and
+the two emitters over it — load when a block change must render in both:
 
-- @../../.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md
-- @../../.claude/design/rspress-plugin-api-extractor/page-generation-system.md
-- @../../.claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md
-- @../../.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
-
-The two emitters over the IR — load when a block change must render in both:
-
-- @../../.claude/design/rspress-plugin-api-extractor/rspress-mdx-emitter.md
-- @../../.claude/design/rspress-plugin-api-extractor/vitepress-adapter.md
+- @../../okf/modules/tsdoctor-pages.md
+- @../../okf/decisions/blocks-are-schema-classes.md
+- @../../okf/glossary/display-and-source.md
+- @../../okf/decisions/page-ir-from-two-consumers.md
+- @../../okf/conventions/byte-parity-emitter-changes.md
+- @../../okf/decisions/per-node-mdx-serialization.md
+- @../../okf/modules/rspress-plugin-api-extractor.md
+- @../../okf/modules/vitepress-plugin-api-extractor.md
+- @../../okf/decisions/core-adapter-boundary.md

@@ -45,9 +45,13 @@ pnpm --filter @tsdoctor/registry run build:dev
 pnpm vitest run packages/registry/
 ```
 
-## Design Docs
+## Knowledge Bundle
 
-Registry/VFS/Twoslash integration in the plugin:
+Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
+bundle" section and `okf/index.md`). Concepts most relevant to this
+package's registry/VFS/Twoslash integration:
 
-- @../../.claude/design/rspress-plugin-api-extractor/type-loading-vfs.md
-- @../../.claude/design/rspress-plugin-api-extractor/multi-entry-vfs.md
+- @../../okf/modules/tsdoctor-registry.md
+- @../../okf/modules/tsdoctor-vfs.md
+- @../../okf/decisions/vfs-below-registry-and-model.md
+- @../../okf/decisions/caches-degrade-snapshot-store-fails.md

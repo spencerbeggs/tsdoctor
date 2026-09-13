@@ -53,7 +53,7 @@ invent additional exclusions:
 
 1. **AI context documents** — `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`, `.cursorrules`,
    or any file whose purpose is coaching an AI tool.
-2. **Internal design docs and specs** — markdown under `.claude/design/`, `.claude/plans/`,
+2. **Internal design docs and specs** — markdown under `okf/`, `.claude/plans/`,
    `docs/internal/`.
 3. **Trivial user-doc updates riding along with code** — when a code change also touches a
    related README snippet, the changeset describes the code change, not the README edit.
@@ -477,7 +477,7 @@ the reasoning only you have. Length is not the enemy here; irrelevance is.
 
 ### Two checks that apply to a PR body
 
-* **plan-leakage** — do not cite `.claude/plans/`, `.claude/design/`, or write "as decided
+* **plan-leakage** — do not cite `.claude/plans/`, `okf/`, or write "as decided
   in the plan". This repository is public and those documents are not something a reader
   can open. Restate the reasoning in the summary instead of pointing at a path.
 * **closes-trailer** — if the branch name encodes a ticket, the body should close it. Add

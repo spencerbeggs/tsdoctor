@@ -180,74 +180,76 @@ Effect-org packages and `catalog:effected` / `catalog:effected:peers` for
   This is the `/silk:dogfood` protocol; a repo hook blocks pushes while
   `file:` overrides are linked.
 
-## Design Documentation
+## Knowledge bundle (okf/)
 
-Design docs live in `.claude/design/rspress-plugin-api-extractor/`. Load the
-relevant doc for the area you touch:
+The design record now lives as an [OKF](https://okfspec.dev) knowledge bundle
+under `okf/`, not as standalone design docs. Start at `okf/index.md` for the
+full concept map; the groupings below point at the concepts most relevant to
+each area of the code, not an exhaustive list.
 
-**Build & infrastructure** — load when modifying services, layers,
-`Context.Reference`s, either `ManagedRuntime`, hook lifecycle, config
-resolution, or the build script:
+**Build & infrastructure** — services, layers, `Context.Reference`s, either
+`ManagedRuntime`, hook lifecycle, config resolution, the build script:
 
-- @./.claude/design/rspress-plugin-api-extractor/build-architecture.md
-- @./.claude/design/rspress-plugin-api-extractor/effect-service-layer.md
-- @./.claude/design/rspress-plugin-api-extractor/plugin-lifecycle.md
-- @./.claude/design/rspress-plugin-api-extractor/configuration-system.md
-- @./.claude/design/rspress-plugin-api-extractor/build-tooling.md
-- @./.claude/design/rspress-plugin-api-extractor/snapshot-tracking-system.md
+- @okf/modules/rspress-plugin-api-extractor.md
+- @okf/decisions/two-managed-runtimes.md
+- @okf/conventions/services-own-their-layers.md
+- @okf/decisions/generate-docs-in-config-hook.md
+- @okf/interfaces/rspress-plugin-options.md
 
-**Page generation & markdown** — load when modifying the Stream pipeline,
-Shiki transformers, or cross-linking:
+**Page generation & markdown** — the Stream pipeline, Shiki transformers,
+cross-linking:
 
-- @./.claude/design/rspress-plugin-api-extractor/page-generation-system.md
-- @./.claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md
-- @./.claude/design/rspress-plugin-api-extractor/import-generation-system.md
+- @okf/decisions/single-anchor-algorithm.md
+- @okf/decisions/linker-is-a-scope.md
+- @okf/decisions/import-namespace-root-not-leaf.md
 
-**Page IR & emitters** — load when modifying `@tsdoctor/pages` blocks or
-builders, either adapter's `src/emit/` emitters, or the golden-file gate:
+**Page IR & emitters** — `@tsdoctor/pages` blocks or builders, either
+adapter's `src/emit/` emitters, the byte-parity gate:
 
-- @./.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md
-- @./.claude/design/rspress-plugin-api-extractor/rspress-mdx-emitter.md
-- @./.claude/design/rspress-plugin-api-extractor/vitepress-adapter.md
+- @okf/modules/tsdoctor-pages.md
+- @okf/decisions/per-node-mdx-serialization.md
+- @okf/conventions/byte-parity-emitter-changes.md
+- @okf/modules/vitepress-plugin-api-extractor.md
 
-**Runtime components & SSG** — load when modifying React components or
-SSG-MD dual-mode rendering:
+**Runtime components & SSG** — React components, SSG-MD dual-mode rendering:
 
-- @./.claude/design/rspress-plugin-api-extractor/component-development.md
-- @./.claude/design/rspress-plugin-api-extractor/ssg-compatible-components.md
+- @okf/conventions/runtime-component-authoring.md
+- @okf/decisions/bundleless-per-file-runtime.md
 
-**Type loading, VFS & multi-entry points** — load when modifying Twoslash,
-external package types, VFS generation, or multi-entry resolution:
+**Type loading, VFS & multi-entry points** — Twoslash, external package
+types, VFS generation, multi-entry resolution:
 
-- @./.claude/design/rspress-plugin-api-extractor/type-loading-vfs.md
-- @./.claude/design/rspress-plugin-api-extractor/multi-entry-point-support.md
-- @./.claude/design/rspress-plugin-api-extractor/multi-entry-resolution.md
-- @./.claude/design/rspress-plugin-api-extractor/multi-entry-vfs.md
+- @okf/modules/tsdoctor-vfs.md
+- @okf/decisions/per-scope-typescript-environments.md
+- @okf/limitations/collision-detection-by-final-route.md
+- @okf/decisions/route-collisions-fail-the-build.md
 
-**SEO & head metadata** — load when modifying canonical URLs, Open Graph,
-Twitter cards, attribution, or schema.org JSON-LD:
+**SEO & head metadata** — canonical URLs, Open Graph, Twitter cards,
+attribution, schema.org JSON-LD:
 
-- @./.claude/design/rspress-plugin-api-extractor/structured-data-and-og.md
+- @okf/interfaces/seo-headtags.md
+- @okf/decisions/site-url-is-derived-not-configured.md
+- @okf/decisions/head-tags-built-in-generate-stage.md
 
-**LLMs integration** — load when modifying llms.txt post-processing,
-per-package file generation, or scope-aware UI components:
+**LLMs integration** — llms.txt post-processing, per-package file
+generation, scope-aware UI components:
 
-- @./.claude/design/rspress-plugin-api-extractor/llms-integration.md
+- @okf/decisions/llms-post-process-not-generate.md
 
-**Observability** — load when modifying Effect Metrics, logging, error
-tracking, the progress heartbeat, or the `issues.json` artifact:
+**Observability** — Effect Metrics, logging, error tracking, the progress
+heartbeat, the `issues.json` artifact:
 
-- @./.claude/design/rspress-plugin-api-extractor/performance-observability.md
-- @./.claude/design/rspress-plugin-api-extractor/error-observability.md
-- @./.claude/design/rspress-plugin-api-extractor/build-progress-and-issues.md
-- @./.claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md
+- @okf/conventions/observability-events-not-logs.md
+- @okf/decisions/synchronous-event-bus.md
+- @okf/models/issues-json-artifact.md
+- @okf/gotchas/undimensioned-metrics-are-process-wide.md
 
-**Roadmap & @tsdoctor consolidation** — load when working on the road to
-1.0.0 or the `@tsdoctor/*` package architecture:
+**Roadmap & @tsdoctor consolidation** — the road to 1.0.0, the
+`@tsdoctor/*` package architecture:
 
-- @./.claude/design/rspress-plugin-api-extractor/roadmap-1.0.md
-- @./.claude/design/rspress-plugin-api-extractor/tsdoctor-package-architecture.md
-- @./.claude/design/rspress-plugin-api-extractor/monorepo-consolidation.md
+- @okf/decisions/vitepress-alpha-gates-1-0.md
+- @okf/decisions/core-adapter-boundary.md
+- @okf/decisions/consolidate-into-one-monorepo.md
 
 ## Build Pipeline
 

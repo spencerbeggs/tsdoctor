@@ -1,0 +1,6 @@
+# Glossary
+
+* [Bundle](bundle.md) - In this repository a bundle is a folder or tarball describing one documented package — the api.json trio plus an optional tsdoctor.json sidecar, an og/ image directory and an optional SBOM pointer — never an Rspack/tsdown build output.
+* [Display and source](display-and-source.md) - Every code-bearing block in the @tsdoctor/pages IR carries a CodeText pair — display (Prettier-formatted, directive-stripped, what a reader sees and copies) and source (hidden imports plus a cut marker plus the code with Twoslash directives intact, the text a type-checker sees) — never the package's own source code.
+* [Plugin, the plugin, and platforms/](plugin-vs-platforms.md) - The repo-root plugin/ directory is the api-docs Claude Code plugin, not a pnpm workspace and not either RSPress or VitePress adapter; "the plugin" in RSPress-adapter conversation means platforms/rspress/, published as rspress-plugin-api-extractor.
+* [Sync island](sync-island.md) - A sync island is code that runs outside any Effect fiber — remark visitors, Shiki's preprocess hook, Prettier callbacks, the prepareWorkItems reporting wrapper — and reaches the event bus only through platforms/rspress/src/observability/sync-emitter.ts against the synchronously buildable emitter runtime; it is not Effect's own notion of a "sync" effect.

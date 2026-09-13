@@ -130,60 +130,24 @@ pnpm vitest run platforms/rspress/   # all plugin tests
 
 Prefer a service's own `makeTest`/`layerTest` double over a hand-written stub; read "0 tests passed" with exit 0 as an import-time throw — see @./CLAUDE.services.md.
 
-## Design Docs
+## Knowledge Bundle
 
-**Build & infrastructure** — load when modifying services, layers,
-`Context.Reference`s, either `ManagedRuntime`, hooks, config resolution,
-or `savvy.build.ts`:
+Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
+bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
-- @../../.claude/design/rspress-plugin-api-extractor/build-architecture.md
-- @../../.claude/design/rspress-plugin-api-extractor/effect-service-layer.md
-- @../../.claude/design/rspress-plugin-api-extractor/plugin-lifecycle.md
-- @../../.claude/design/rspress-plugin-api-extractor/configuration-system.md
-- @../../.claude/design/rspress-plugin-api-extractor/build-tooling.md
-- @../../.claude/design/rspress-plugin-api-extractor/snapshot-tracking-system.md
-
-**Page generation & markdown** — load when modifying the Stream pipeline
-or cross-linking:
-
-- @../../.claude/design/rspress-plugin-api-extractor/page-generation-system.md
-- @../../.claude/design/rspress-plugin-api-extractor/cross-linking-architecture.md
-- @../../.claude/design/rspress-plugin-api-extractor/import-generation-system.md
-
-**Page IR & emitters** — load when modifying `src/emit/` or how
-`build-stages.ts` feeds `@tsdoctor/pages`:
-
-- @../../.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md
-- @../../.claude/design/rspress-plugin-api-extractor/rspress-mdx-emitter.md
-
-**Runtime components & SSG** — load when modifying React components or
-SSG-MD rendering:
-
-- @../../.claude/design/rspress-plugin-api-extractor/component-development.md
-- @../../.claude/design/rspress-plugin-api-extractor/ssg-compatible-components.md
-
-**Type loading, VFS & multi-entry points** — load when modifying Twoslash,
-external types, VFS generation, or multi-entry resolution:
-
-- @../../.claude/design/rspress-plugin-api-extractor/type-loading-vfs.md
-- @../../.claude/design/rspress-plugin-api-extractor/multi-entry-point-support.md
-- @../../.claude/design/rspress-plugin-api-extractor/multi-entry-resolution.md
-- @../../.claude/design/rspress-plugin-api-extractor/multi-entry-vfs.md
-
-**LLMs integration** — load when modifying llms.txt post-processing,
-per-package files, or scope-aware UI:
-
-- @../../.claude/design/rspress-plugin-api-extractor/llms-integration.md
-
-**SEO & head metadata** — load when modifying canonical URLs, OG/Twitter
-tags, attribution, or JSON-LD:
-
-- @../../.claude/design/rspress-plugin-api-extractor/structured-data-and-og.md
-
-**Observability** — load when modifying metrics, logging, error tracking, the
-heartbeat, or `issues.json`:
-
-- @../../.claude/design/rspress-plugin-api-extractor/performance-observability.md
-- @../../.claude/design/rspress-plugin-api-extractor/error-observability.md
-- @../../.claude/design/rspress-plugin-api-extractor/build-progress-and-issues.md
-- @../../.claude/design/rspress-plugin-api-extractor/render-phase-instrumentation.md
+- @../../okf/modules/rspress-plugin-api-extractor.md
+- @../../okf/decisions/two-managed-runtimes.md
+- @../../okf/decisions/generate-docs-in-config-hook.md
+- @../../okf/decisions/single-anchor-algorithm.md
+- @../../okf/decisions/linker-is-a-scope.md
+- @../../okf/decisions/per-node-mdx-serialization.md
+- @../../okf/conventions/runtime-component-authoring.md
+- @../../okf/decisions/bundleless-per-file-runtime.md
+- @../../okf/modules/tsdoctor-vfs.md
+- @../../okf/decisions/per-scope-typescript-environments.md
+- @../../okf/decisions/llms-post-process-not-generate.md
+- @../../okf/interfaces/seo-headtags.md
+- @../../okf/decisions/site-url-is-derived-not-configured.md
+- @../../okf/conventions/observability-events-not-logs.md
+- @../../okf/decisions/synchronous-event-bus.md
+- @../../okf/models/issues-json-artifact.md

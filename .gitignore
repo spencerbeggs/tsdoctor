@@ -60,3 +60,4 @@ docs/superpowers
 # The leading `*/` keeps the root directory out of the match.
 */**/.claude/
 .claude/handoffs/
+.okfit-migration/

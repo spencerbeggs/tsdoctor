@@ -3,9 +3,10 @@
 `vitepress-plugin-api-extractor` (publishable, versioned via changesets) — the
 VitePress adapter over the `@tsdoctor/*` core, and the second live consumer of
 the `@tsdoctor/pages` IR that proves the core/adapter boundary (phase 5 alpha).
-Markdown-only: no Vue components. Design docs: `vitepress-adapter.md` (this
-adapter) and `doc-ir-and-pages.md` (the IR contract) under
-`.claude/design/rspress-plugin-api-extractor/`.
+Markdown-only: no Vue components. Design record: the
+`@okf/modules/vitepress-plugin-api-extractor.md` module concept (this
+adapter) and `@okf/modules/tsdoctor-pages.md` (the IR contract) in the
+`okf/` bundle.
 
 ## Key Facts
 
@@ -74,16 +75,15 @@ pnpm --filter @sites/vitepress-basic run build   # the fixture site
 pnpm vitest run platforms/vitepress/
 ```
 
-## Design Docs
+## Knowledge Bundle
 
-**Adapter & page IR** — load when modifying `src/Generate.ts`, the emitters,
-the Twoslash wiring, or the alpha scope:
+Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
+bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
-- @../../.claude/design/rspress-plugin-api-extractor/vitepress-adapter.md
-- @../../.claude/design/rspress-plugin-api-extractor/doc-ir-and-pages.md
-
-**Type loading & head tags** — load when modifying the VFS, compiler
-options, or `src/emit/frontmatter.ts`:
-
-- @../../.claude/design/rspress-plugin-api-extractor/type-loading-vfs.md
-- @../../.claude/design/rspress-plugin-api-extractor/structured-data-and-og.md
+- @../../okf/modules/vitepress-plugin-api-extractor.md
+- @../../okf/modules/tsdoctor-pages.md
+- @../../okf/interfaces/vitepress-api-extractor.md
+- @../../okf/gotchas/vitepress-buildend-never-fires-in-dev.md
+- @../../okf/limitations/vitepress-alpha-scope.md
+- @../../okf/modules/tsdoctor-vfs.md
+- @../../okf/interfaces/seo-headtags.md

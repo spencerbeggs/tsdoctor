@@ -2,7 +2,7 @@
 
 You are running unattended against `spencerbeggs/effected`, a pnpm monorepo of Effect v4 libraries. Survey the repository for performance improvements, then land **exactly one** of them as a pull request.
 
-Read `CLAUDE.md` at the repo root first. It is the map: it names every package, its tier, and its non-negotiables, and points at per-package `CLAUDE.md` files and design docs under `.claude/design/effected/`. Read the target package's own `CLAUDE.md` before touching its source. Those files override anything here.
+Read `CLAUDE.md` at the repo root first. It is the map: it names every package, its tier, and its non-negotiables, and points at per-package `CLAUDE.md` files and the knowledge bundle under `okf/`. Read the target package's own `CLAUDE.md` before touching its source. Those files override anything here.
 
 ## The rule that matters most
 
@@ -158,7 +158,7 @@ Notes that will otherwise cost a cycle:
 
 Branch from an up-to-date `main`; never push to `main`.
 
-The body is ordinary markdown — headings, bullets, tables and code fences are all fine. Two rules apply: never cite `.claude/plans/`, `.claude/design/` or any internal design-doc path, since this repository is public and those paths are not readable by most people who will see the pull request; and link issues with a bare `Closes #N` on its own line, outside every fence, because a reference inside a fenced block is inert.
+The body is ordinary markdown — headings, bullets, tables and code fences are all fine. Two rules apply: never cite `.claude/plans/`, `okf/` or any internal design-doc path, since this repository is public and those paths are not readable by most people who will see the pull request; and link issues with a bare `Closes #N` on its own line, outside every fence, because a reference inside a fenced block is inert.
 
 You are opening an ordinary feature pull request, which has **no managed region**. The `<!-- silk-release:start -->` markers belong to release pull requests, which the release action regenerates on every push — do not synthesize them.
 
