@@ -1,5 +1,21 @@
 # @tsdoctor/bundle
 
+## 0.3.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/github | peerDependency | updated | ^0.10.0 | ^0.10.1 |
+
+[#239][#239]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#239]: https://github.com/spencerbeggs/tsdoctor/pull/239
+
 ## 0.3.3
 
 ### Dependencies
