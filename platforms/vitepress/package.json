@@ -57,7 +57,7 @@
 		"@effect/vitest": "catalog:effect",
 		"@savvy-web/bundler": "^2.3.7",
 		"@types/node": "catalog:build",
-		"vitepress": "2.0.0-alpha.19"
+		"vitepress": "2.0.0-alpha.20"
 	},
 	"peerDependencies": {
 		"vitepress": "^2.0.0-alpha.19"
