@@ -49,7 +49,7 @@
 		"@tsdoctor/seo": "workspace:*",
 		"@tsdoctor/vfs": "workspace:*",
 		"effect": "catalog:effect",
-		"image-size": "^2.0.2",
+		"image-size": "^2.0.3",
 		"shiki": "^4.4.3",
 		"typescript": "^6.0.3"
 	},
