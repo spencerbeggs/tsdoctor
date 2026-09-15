@@ -48,7 +48,7 @@
 		"@tsdoctor/manifest": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
-		"image-size": "^2.0.2",
+		"image-size": "^2.0.3",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
