@@ -49,13 +49,13 @@
 		"@tsdoctor/seo": "workspace:*",
 		"@tsdoctor/vfs": "workspace:*",
 		"effect": "catalog:effect",
-		"image-size": "^2.0.3",
+		"image-size": "^2.0.4",
 		"shiki": "^4.4.3",
 		"typescript": "^6.0.3"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
-		"@savvy-web/bundler": "^2.3.8",
+		"@savvy-web/bundler": "^2.3.9",
 		"@types/node": "catalog:build",
 		"vitepress": "2.0.0-alpha.20"
 	},
