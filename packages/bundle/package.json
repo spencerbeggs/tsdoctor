@@ -44,11 +44,11 @@
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
-		"@savvy-web/bundler": "^2.3.8",
+		"@savvy-web/bundler": "^2.3.9",
 		"@tsdoctor/manifest": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
-		"image-size": "^2.0.3",
+		"image-size": "^2.0.4",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
