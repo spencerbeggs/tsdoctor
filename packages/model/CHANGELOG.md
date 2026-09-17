@@ -1,5 +1,21 @@
 # @tsdoctor/model
 
+## 0.6.7
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @microsoft/tsdoc | dependency | updated | ^0.16.0 | ^0.17.0 |
+
+[#255][#255]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#255]: https://github.com/spencerbeggs/tsdoctor/pull/255
+
 ## 0.6.6
 
 ### Dependencies
