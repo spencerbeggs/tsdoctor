@@ -59,7 +59,7 @@
 		"ioredis": "^5.7.0",
 		"mdast-util-to-hast": "^13.2.1",
 		"open": "^11.0.0",
-		"prettier": "^3.9.6",
+		"prettier": "^3.9.7",
 		"react-markdown": "^10.1.0",
 		"shiki": "^4.4.3",
 		"typescript": "^6.0.3",
@@ -68,7 +68,7 @@
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
 		"@effected/memfs": "catalog:effected",
-		"@microsoft/tsdoc": "^0.16.0",
+		"@microsoft/tsdoc": "^0.17.0",
 		"@rspress/core": "catalog:docs",
 		"@savvy-web/rspress-builder": "^1.2.10",
 		"@types/hast": "^3.0.5",
