@@ -9,8 +9,8 @@
 * [@tsdoctor/snapshot](tsdoctor-snapshot.md) - Incremental-build snapshot store and content-hashing helpers for static documentation pipelines.
 * [@tsdoctor/vfs](tsdoctor-vfs.md) - Virtual file system primitives, the compiler-options seam and the persisted Twoslash result cache both adapters share.
 * [Fixture modules](fixture-modules.md) - Private packages under modules/ built purely to produce API Extractor models (.api.json) for the adapters' test fixture sites.
-* [Fixture sites](fixture-sites.md) - Private RSPress and VitePress sites under sites/ that consume the adapters via workspace:* against one or more fixture modules, exercising every plugin configuration shape.
+* [Fixture sites](fixture-sites.md) - Private RSPress and VitePress sites under sites/ that consume the adapters via workspace:\* against one or more fixture modules, exercising every plugin configuration shape.
 * [The tsdoctor monorepo workspace](workspace.md) - pnpm workspace root — task orchestration, dependency catalogs, code-quality hooks, release tooling and vendored reference repos.
 * [api-docs Claude Code plugin](api-docs-claude-plugin.md) - Claude Code plugin (skills, an agent, commands, hooks, a monitor) for authoring and maintaining RSPress API documentation — not a pnpm workspace, not the RSPress plugin.
-* [rspress-plugin-api-extractor](rspress-plugin-api-extractor.md) - The RSPress adapter over the @tsdoctor/* core — hooks, Effect service layer, page pipeline, emitters, cross-linking, observability, and LLMs wiring.
-* [vitepress-plugin-api-extractor](vitepress-plugin-api-extractor.md) - The VitePress adapter over the @tsdoctor/* core — markdown-only alpha proving the core/adapter boundary with a second consumer of the @tsdoctor/pages IR.
+* [rspress-plugin-api-extractor](rspress-plugin-api-extractor.md) - The RSPress adapter over the @tsdoctor/\* core — hooks, Effect service layer, page pipeline, emitters, cross-linking, observability, and LLMs wiring.
+* [vitepress-plugin-api-extractor](vitepress-plugin-api-extractor.md) - The VitePress adapter over the @tsdoctor/\* core — markdown-only alpha proving the core/adapter boundary with a second consumer of the @tsdoctor/pages IR.
