@@ -1,5 +1,23 @@
 # @tsdoctor/bundle
 
+## 0.4.0
+
+### Bug Fixes
+
+- fixes pnpm 12 circular dependnecy issues [#260][#260]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/manifest | dependency | updated | 0.1.2 | 0.2.0 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#260]: https://github.com/spencerbeggs/tsdoctor/pull/260
+
 ## 0.3.5
 
 ### Dependencies
