@@ -1,5 +1,30 @@
 # rspress-plugin-api-extractor
 
+## 0.17.0
+
+### Bug Fixes
+
+- fixes pnpm 12 circular dependnecy issues [#260][#260]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/bundle | dependency | updated | 0.3.5 | 0.4.0 |
+| @tsdoctor/manifest | dependency | updated | 0.1.2 | 0.2.0 |
+| @tsdoctor/model | dependency | updated | 0.6.7 | 0.7.0 |
+| @tsdoctor/pages | dependency | updated | 0.1.8 | 0.2.0 |
+| @tsdoctor/registry | dependency | updated | 0.3.7 | 0.4.0 |
+| @tsdoctor/seo | dependency | updated | 0.2.2 | 0.3.0 |
+| @tsdoctor/snapshot | dependency | updated | 0.2.6 | 0.3.0 |
+| @tsdoctor/vfs | dependency | updated | 0.2.4 | 0.3.0 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#260]: https://github.com/spencerbeggs/tsdoctor/pull/260
+
 ## 0.16.10
 
 ### Dependencies

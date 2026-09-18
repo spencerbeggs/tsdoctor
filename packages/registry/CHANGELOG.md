@@ -1,5 +1,23 @@
 # @tsdoctor/registry
 
+## 0.4.0
+
+### Bug Fixes
+
+- fixes pnpm 12 circular dependnecy issues [#260][#260]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/vfs | dependency | updated | 0.2.4 | 0.3.0 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#260]: https://github.com/spencerbeggs/tsdoctor/pull/260
+
 ## 0.3.7
 
 ### Dependencies
