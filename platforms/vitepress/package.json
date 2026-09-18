@@ -57,10 +57,10 @@
 		"@effect/vitest": "catalog:effect",
 		"@savvy-web/bundler": "^2.3.10",
 		"@types/node": "catalog:build",
-		"vitepress": "2.0.0-alpha.20"
+		"vitepress": "catalog:docs"
 	},
 	"peerDependencies": {
-		"vitepress": "^2.0.0-alpha.19"
+		"vitepress": "catalog:docs"
 	},
 	"engines": {
 		"node": ">=24.11.0"
