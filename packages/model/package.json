@@ -33,13 +33,13 @@
 	},
 	"dependencies": {
 		"@microsoft/api-extractor-model": "^7.33.12",
-		"@microsoft/tsdoc": "^0.17.0",
+		"@microsoft/tsdoc": "~0.16.0",
 		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {
 		"@effected/markdown": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"@savvy-web/bundler": "^2.3.10",
+		"@savvy-web/bundler": "^2.4.1",
 		"@tsdoctor/snapshot": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
