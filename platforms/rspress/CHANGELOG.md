@@ -1,5 +1,24 @@
 # rspress-plugin-api-extractor
 
+## 0.17.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/npm | dependency | updated | ^0.14.1 | ^0.14.2 |
+| @tsdoctor/bundle | dependency | updated | 0.4.1 | 0.4.2 |
+| @tsdoctor/pages | dependency | updated | 0.2.1 | 0.2.2 |
+| prettier | dependency | updated | ^3.9.7 | ^3.9.8 |
+
+[#267][#267]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#267]: https://github.com/spencerbeggs/tsdoctor/pull/267
+
 ## 0.17.1
 
 ### Dependencies
