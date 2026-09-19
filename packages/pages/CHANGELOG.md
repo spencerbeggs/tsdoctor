@@ -1,5 +1,21 @@
 # @tsdoctor/pages
 
+## 0.2.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| prettier | dependency | updated | ^3.9.7 | ^3.9.8 |
+
+[#267][#267]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#267]: https://github.com/spencerbeggs/tsdoctor/pull/267
+
 ## 0.2.1
 
 ### Dependencies
