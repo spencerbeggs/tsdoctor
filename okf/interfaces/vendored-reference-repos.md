@@ -7,8 +7,8 @@ resource: ../../.repos/config.json
 tags: [dx, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: b05a047c54ff9b5904b4c3c9eb3f9d922b602f8e0a594b6d05db006b2030636e
+  at: 2026-09-20T01:38:38Z
+  body_sha256: d9d316e3261941175d3e639934043ffc0e67082c458821dd43762a413a31b7bd
 sources:
   - id: repos-config
     resource: ../../.repos/config.json
@@ -31,7 +31,7 @@ read instead of training-data memory.[^gitmodules][^repos-config]
   tracked to a branch tip.[^gitmodules]
 - **`.repos/config.json` is the orientation layer** on top of the bare
   submodule pointer: for each repo it records `url`, the pinned `ref`
-  (a tag such as `v2.0.17` or `effect@4.0.0-rc.115`), `purpose` (why this
+  (a tag such as `v2.0.17` or `effect@4.0.0-rc.116`), `purpose` (why this
   repo is vendored and what version it tracks), `sparse` (the paths checked
   out), and an `orientation` block (`layout`, `keyPaths`, `startHere`).
   `effect`'s entry additionally carries a `notes[]` array recording a
@@ -55,7 +55,7 @@ read instead of training-data memory.[^gitmodules][^repos-config]
 | `rspress` | `v2.0.17` | `packages/core/src`, `website/docs/en` | `packages/core/src/index.ts` |
 | `twoslash` | `v0.3.9` | `packages/twoslash/src`, `docs` | `packages/twoslash/src/index.ts` |
 | `rsbuild` | `v2.1.5` | `packages/core/src`, `website/docs/en` | `packages/core/src/index.ts` |
-| `effect` | `effect@4.0.0-rc.115` | `packages/effect/src`, `migration` | `packages/effect/src/index.ts` |
+| `effect` | `effect@4.0.0-rc.116` | `packages/effect/src`, `migration` | `packages/effect/src/index.ts` |
 | `vitepress` | `v2.0.0-alpha.19` | `src/node`, `src/client`, `src/shared`, `docs/en` | `src/node/siteConfig.ts` |
 | `shiki` | `v4.4.3` | `packages/twoslash`, `packages/shiki`, `packages/vitepress-twoslash` | `packages/twoslash/src/index.ts` |
 

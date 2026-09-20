@@ -146,7 +146,7 @@ manifest.
 
 ## Effect-TS Architecture
 
-Everything runs on **Effect v4** (`effect@4.0.0-rc.109`, pinned through the
+Everything runs on **Effect v4** (`effect@4.0.0-rc.116`, pinned through the
 `catalog:effect` catalog). Key patterns in the RSPress adapter:
 
 - **Services** declared as `Context.Service<Self, Shape>()("id")`, each
@@ -302,7 +302,7 @@ Upstream framework source is vendored under `.repos/` as sparse, shallow git sub
 | `.repos/twoslash` | v0.3.9 | Twoslash engine + notation semantics |
 | `.repos/shiki` | v4.4.3 | `@shikijs/twoslash` transformer, `@shikijs/vitepress-twoslash` + Shiki core |
 | `.repos/rsbuild` | v2.1.5 | `@rsbuild/core` (bundler under RSPress) + official docs |
-| `.repos/effect` | effect@4.0.0-rc.109 | Effect v4 core source + the `migration/` v3-to-v4 notes |
+| `.repos/effect` | effect@4.0.0-rc.116 | Effect v4 core source + the `migration/` v3-to-v4 notes |
 | `.repos/vitepress` | v2.0.0-alpha.19 | VitePress 2.x source (`src/node` hooks + `codeTransformers`) + `docs/en` |
 
 ## Commands
