@@ -39,7 +39,7 @@
 	"devDependencies": {
 		"@effected/markdown": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.6",
+		"@savvy-web/bundler": "^2.4.7",
 		"@tsdoctor/snapshot": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
