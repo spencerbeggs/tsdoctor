@@ -1,5 +1,31 @@
 # @tsdoctor/bundle
 
+## 0.4.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/manifest | dependency | updated | 0.2.1 | 0.2.2 |
+| @effected/github | peerDependency | updated | ^0.11.0 | ^0.12.0 |
+| @effected/glob | peerDependency | updated | ^0.7.0 | ^0.8.0 |
+| @effected/jsonc | peerDependency | updated | ^0.12.0 | ^0.13.0 |
+| @effected/npm | peerDependency | updated | ^0.15.0 | ^0.16.0 |
+| @effected/package-json | peerDependency | updated | ^0.16.0 | ^0.17.0 |
+| @effected/store | peerDependency | updated | ^0.9.0 | ^0.10.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.10.1 | ^0.11.0 |
+| @effected/walker | peerDependency | updated | ^0.11.0 | ^0.12.0 |
+| @effected/xdg | peerDependency | updated | ^0.6.1 | ^0.7.0 |
+| effect | peerDependency | updated | 4.0.0-rc.116 | 4.0.0-rc.117 |
+
+[#281][#281]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#281]: https://github.com/spencerbeggs/tsdoctor/pull/281
+
 ## 0.4.4
 
 ### Dependencies

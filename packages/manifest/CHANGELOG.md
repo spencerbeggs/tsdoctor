@@ -1,5 +1,21 @@
 # @tsdoctor/manifest
 
+## 0.2.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| effect | peerDependency | updated | 4.0.0-rc.116 | 4.0.0-rc.117 |
+
+[#281][#281]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#281]: https://github.com/spencerbeggs/tsdoctor/pull/281
+
 ## 0.2.1
 
 ### Dependencies
