@@ -1,5 +1,13 @@
 # @tsdoctor/model
 
+## 0.7.3
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/vfs | dependency | updated | 0.3.2 | 0.3.3 |
+
 ## 0.7.2
 
 ### Dependencies

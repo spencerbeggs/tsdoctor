@@ -1,5 +1,23 @@
 # @tsdoctor/bundle
 
+## 0.4.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/tsconfig-json | peerDependency | updated | ^0.10.0 | ^0.10.1 |
+| @effected/walker | peerDependency | updated | ^0.10.0 | ^0.11.0 |
+| @effected/xdg | peerDependency | updated | ^0.6.0 | ^0.6.1 |
+
+[#278][#278]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#278]: https://github.com/spencerbeggs/tsdoctor/pull/278
+
 ## 0.4.3
 
 ### Dependencies
