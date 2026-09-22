@@ -44,7 +44,7 @@
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.8",
+		"@savvy-web/bundler": "^2.4.9",
 		"@tsdoctor/manifest": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
