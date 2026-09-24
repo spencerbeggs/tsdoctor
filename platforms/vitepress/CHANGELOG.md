@@ -1,5 +1,25 @@
 # vitepress-plugin-api-extractor
 
+## 0.3.6
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/markdown | dependency | updated | ^0.12.0 | ^0.12.1 |
+| @microsoft/api-extractor-model | dependency | updated | ^7.33.12 | ^7.33.13 |
+| @tsdoctor/bundle | dependency | updated | 0.4.5 | 0.4.6 |
+| @tsdoctor/model | dependency | updated | 0.7.4 | 0.7.5 |
+| @tsdoctor/pages | dependency | updated | 0.2.5 | 0.2.6 |
+
+[#285][#285]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#285]: https://github.com/spencerbeggs/tsdoctor/pull/285
+
 ## 0.3.5
 
 ### Dependencies

@@ -1,5 +1,22 @@
 # @tsdoctor/model
 
+## 0.7.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @microsoft/api-extractor-model | dependency | updated | ^7.33.12 | ^7.33.13 |
+| @effected/markdown | peerDependency | updated | ^0.12.0 | ^0.12.1 |
+
+[#285][#285]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#285]: https://github.com/spencerbeggs/tsdoctor/pull/285
+
 ## 0.7.4
 
 ### Dependencies
