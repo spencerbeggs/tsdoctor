@@ -32,7 +32,7 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@microsoft/api-extractor-model": "^7.33.12",
+		"@microsoft/api-extractor-model": "^7.33.13",
 		"@microsoft/tsdoc": "~0.16.0",
 		"@tsdoctor/vfs": "workspace:*"
 	},
