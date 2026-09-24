@@ -1,5 +1,25 @@
 # @tsdoctor/model
 
+## 0.8.0
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/yaml | peerDependency | removed | ^0.17.0 | — |
+| @microsoft/tsdoc | dependency | updated | \~0.16.0 | \~0.17.0 |
+| @tsdoctor/vfs | dependency | updated | 0.3.4 | 0.4.0 |
+| @effected/yaml | dependency | added | — | ^0.17.0 |
+| @effected/tsconfig-json | peerDependency | added | — | ^0.11.0 |
+
+[#285][#285]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#285]: https://github.com/spencerbeggs/tsdoctor/pull/285
+
 ## 0.7.4
 
 ### Dependencies

@@ -1,5 +1,18 @@
 # @tsdoctor/seo
 
+## 0.4.0
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/spdx | peerDependency | removed | ^0.9.0 | — |
+| @effected/spdx | dependency | added | — | ^0.9.0 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.3.3
 
 ### Dependencies

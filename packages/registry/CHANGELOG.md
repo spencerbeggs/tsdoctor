@@ -1,5 +1,20 @@
 # @tsdoctor/registry
 
+## 0.5.0
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/semver | peerDependency | removed | ^0.9.0 | — |
+| @tsdoctor/vfs | dependency | updated | 0.3.4 | 0.4.0 |
+| @effected/semver | dependency | added | — | ^0.9.0 |
+| @effected/tsconfig-json | peerDependency | added | — | ^0.11.0 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.4.4
 
 ### Dependencies
