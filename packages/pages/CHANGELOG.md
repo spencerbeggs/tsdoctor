@@ -1,5 +1,23 @@
 # @tsdoctor/pages
 
+## 0.3.1
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @microsoft/api-extractor-model | dependency | updated | ^7.33.12 | ^7.33.13 |
+| @tsdoctor/model | dependency | updated | 0.7.4 | 0.8.1 |
+| @tsdoctor/seo | dependency | updated | 0.3.3 | 0.4.0 |
+
+[#288][#288]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#288]: https://github.com/spencerbeggs/tsdoctor/pull/288
+
 ## 0.3.0
 
 ### Dependencies
