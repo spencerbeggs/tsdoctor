@@ -9,6 +9,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-20T01:38:38Z
   body_sha256: ba18572c0a3aa0bdc7fbe7d4f5d4d22912363d3d821f10b5a198d939a04a0b38
+status: stable
 ---
 
 # The tsdoctor monorepo workspace

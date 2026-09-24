@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Effect v4 only
 description: The whole monorepo runs on Effect v4 exclusively, pinned through the catalog:effect pnpm catalog, with no v3-shaped code anywhere.
 generated:
@@ -15,6 +15,9 @@ sources:
     resource: ../../.repos/config.json
   - id: root-claude
     resource: ../../CLAUDE.md
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # The repository runs on Effect v4 only

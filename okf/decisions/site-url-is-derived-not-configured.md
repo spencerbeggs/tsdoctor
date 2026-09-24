@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: The canonical site URL is derived, never configured
 description: There is no siteUrl plugin option; deriveSiteUrl joins RSPress's own siteOrigin and base.
 tags: [architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: f1defaa3a669e984c678c39fa748d505019193fcfe6d53999645488ee7a0c1c8
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # The canonical site URL is derived, never a plugin option

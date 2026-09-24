@@ -13,6 +13,7 @@ sources:
     resource: ../../platforms/rspress/src/index.ts
   - id: vitepress-index
     resource: ../../platforms/vitepress/src/index.ts
+status: stable
 ---
 
 # No internal barrels

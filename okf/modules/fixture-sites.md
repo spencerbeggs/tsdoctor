@@ -9,6 +9,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 454d2acee3d56f38f05af8617d7adb954b6294ae295402410765dda8d5e12954
+status: stable
 ---
 
 # Fixture sites

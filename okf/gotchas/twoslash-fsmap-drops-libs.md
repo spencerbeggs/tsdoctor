@@ -9,6 +9,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: da2ea4dbe94492614f61dd04381ccad364685bf146a74037d4594ec96727e013
+status: stable
 ---
 
 # Passing the VFS as fsMap "works" and silently type-checks against nothing

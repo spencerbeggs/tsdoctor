@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: The build event bus fans out synchronously, in-process
 description: EventBus.emit fans out inline to every sink so build-end summaries and metrics read exact counts, and one sync-island bridge module reaches it from outside any Effect fiber.
 tags: [architecture, observability]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 335f21d3574f8a9804f3679e8607b9d131b7f95a2359f70bd03fcda22b1c8ab0
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # The build event bus fans out synchronously, in-process

@@ -22,6 +22,7 @@ sources:
     resource: ../../tsdoctor.json
   - id: kitchensink-build
     resource: ../../modules/kitchensink/savvy.build.ts
+status: stable
 ---
 
 # tsdoctor.json manifest

@@ -9,6 +9,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 32f290ad5ae4ef2b1e33f1843a68645dbbb17f0f092ef0a9f32c5d89022a0cfd
+status: stable
 ---
 
 # api-docs Claude Code plugin

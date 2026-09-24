@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Extract the page IR only once two adapters exist
 description: "@tsdoctor/pages was lifted from the RSPress generators with the VitePress adapter as its second live consumer, validated by a byte-identity gate rather than designed up front."
 tags: [architecture, testing]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: eddb91cb3b8dbe56df8856a2c428fe51adb81c1f34b0dc5a7d8191e950bd4102
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # Extract the page IR only once two adapters exist

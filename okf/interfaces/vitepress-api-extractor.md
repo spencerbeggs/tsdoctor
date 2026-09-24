@@ -1,6 +1,6 @@
 ---
 type: Interface
-status: draft
+status: stable
 kind: api
 resource: ../../platforms/vitepress/src/ApiExtractor.ts
 title: "vitepress-plugin-api-extractor: apiExtractor()"

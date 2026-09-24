@@ -1,6 +1,6 @@
 ---
 type: Interface
-status: draft
+status: stable
 kind: api
 resource: ../../platforms/rspress/package.json
 title: rspress-plugin-api-extractor package exports
@@ -8,8 +8,8 @@ description: Three entry points -- ".", "./runtime", "./tsconfig/rspress.json" -
 tags: [compat, release]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 25064406bf114454019823fcf18d821bb40da1a347f0d027d3fb34dd13f7513a
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 3167caca4af9c41add592bd526d97e04655b79e8e710fcba039cf38799a50b96
 ---
 
 # `rspress-plugin-api-extractor` package exports
@@ -61,7 +61,8 @@ than frozen at plugin-build time — see
 
 `@rspress/core`, `react`, and `react-dom` are the only three
 `peerDependencies`[^1]; every other runtime dependency the plugin needs
-(the full `@tsdoctor/*` core closure, `@effected/*`, `ioredis`, etc.) is
+(the full `@tsdoctor/*` core closure, the full `@effected/*` closure,
+`@effect/platform-node`, etc.) is
 declared directly in `dependencies` so a consumer's `pnpm autoInstallPeers`
 never has to guess a version for them.
 

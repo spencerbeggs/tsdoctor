@@ -19,6 +19,7 @@ sources:
     resource: ../../platforms/rspress/src/build-stages.ts
   - id: vitepress-generate
     resource: ../../platforms/vitepress/src/Generate.ts
+status: stable
 ---
 
 # SEO derivation degrades, never fails the build

@@ -1,10 +1,12 @@
 ---
-"@tsdoctor/model": patch
+"@tsdoctor/model": minor
 ---
 
 ## Dependencies
 
 | Dependency | Type | Action | From | To |
 | --- | --- | --- | --- | --- |
-| @microsoft/api-extractor-model | dependency | updated | ^7.33.12 | ^7.33.13 |
-| @effected/markdown | peerDependency | updated | ^0.12.0 | ^0.12.1 |
+| @effected/yaml | peerDependency | removed | ^0.17.0 | — |
+| @effected/yaml | dependency | added | — | ^0.17.0 |
+| @microsoft/tsdoc | dependency | updated | \~0.16.0 | \~0.17.0 |
+| @effected/tsconfig-json | peerDependency | added | — | ^0.11.0 |

@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: A linker is a scope — no mutable current-scope holder
 description: CrossLinker and ShikiCrossLinker are immutable per-API values, not module-level state a build swaps in and out.
 tags: [architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 489a276027d91627371b7420a4a9e9e4f920b49a88bfb6e7b37ef52bcfd18214
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # A linker is a scope — no mutable current-scope holder

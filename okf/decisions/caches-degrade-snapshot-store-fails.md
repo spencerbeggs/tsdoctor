@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: The type and Twoslash caches degrade; the snapshot store fails
 description: TwoslashCacheService and TypeRegistryService degrade to a cache miss on failure; SnapshotService.layer stays fatal with StoreError | StoreMigrationError, because a silently regenerated snapshot corrupts the timestamps a crawler reads as authoritative.
 tags: [architecture, performance]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 37e5025b2399c120e57a7ab696ea0c7be026fda55c24b9755151e9e4bc82dc15
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # The type and Twoslash caches degrade; the snapshot store fails

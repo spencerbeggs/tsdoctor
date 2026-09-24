@@ -1,13 +1,16 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: "@tsdoctor/vfs sits below the registry and the model"
 description: Extract VirtualPackage and TsEnvironment into a dependency-light substrate so the registry and the model share it without depending on each other.
 tags: [architecture]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: fe362fae14d0ffb490695df9e6becfc0013344450e92c3cb1f1a15048bb4aa5a
+  at: 2026-09-24T20:28:47Z
+  body_sha256: e65451ae8ee6c0fccb1d5c99c4e9a77d5054a63c784495ef5e2b44788f66f695
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # `@tsdoctor/vfs` sits below the registry and the model
@@ -33,9 +36,11 @@ below both: the `Vfs` currency type and its helpers (`mergeVfs`,
 `prefixVfs`, `isTypeDefinition`), `VirtualPackage`, `TsEnvironment`, the
 compiler-options seam (`parseTsConfig`, `decodeCompilerOptions`,
 `toProgrammaticCompilerOptions`) and the Twoslash result cache. The
-package depends on `effect` alone[^2], with `typescript`, `@typescript/vfs`,
-`@shikijs/twoslash` and `@effected/tsconfig-json` as optional peers — a
-constraint that holds nowhere else in the core package set. `@tsdoctor/registry`
+package depends on `effect` alone[^2], with `typescript`, `@typescript/vfs`
+and `@shikijs/twoslash` as optional peers — a constraint that holds nowhere
+else in the core package set. `@effected/tsconfig-json` is a required peer
+because its types are on the public surface (see
+[core-peers-follow-public-surface](core-peers-follow-public-surface.md)). `@tsdoctor/registry`
 sits on top of it for the fetch/cache/resolve stack; `@tsdoctor/model`
 sits on top of it independently for `VirtualPackage`, with no edge between
 the model and the registry in either direction.
@@ -57,9 +62,9 @@ the model and the registry in either direction.
 
 ## Consequences
 
-- `@tsdoctor/vfs`'s dependency-light shape (`effect` alone, everything
-  else an optional peer) makes it safe for either core consumer package
-  to depend on without pulling in TypeScript, `@typescript/vfs` or
+- `@tsdoctor/vfs`'s dependency-light shape (`effect` and
+  `@effected/tsconfig-json`, everything else an optional peer) makes it
+  safe for either core consumer package to depend on without pulling in TypeScript, `@typescript/vfs` or
   `@shikijs/twoslash` unless the consumer actually needs them at runtime.
 - Any future third consumer of the VFS or compiler-options seam has one
   package to depend on rather than choosing between the registry and the

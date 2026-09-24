@@ -8,6 +8,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 736cf28f5fd063db79273027f0c3c21a413deffe9c6ee3d43ef878ebd1ca8597
+status: stable
 ---
 
 # Collision detection sees only the final route

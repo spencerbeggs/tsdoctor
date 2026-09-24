@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: A working VitePress alpha gates every core package's 1.0
 description: Core @tsdoctor/* packages stay pre-1.0 until platforms/vitepress proves the core/adapter boundary as a second live consumer; rspress-plugin-api-extractor ships 1.0.0 on that same core.
 tags: [release, architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: bfd32dcf3dcd20e5912fe038d924f7ef4b8d3cf8c18214b50b24c0337106e7a4
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # A working VitePress alpha gates every core package's 1.0

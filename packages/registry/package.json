@@ -32,14 +32,15 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@effected/semver": "catalog:effected",
 		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:effect",
 		"@effect/vitest": "catalog:effect",
 		"@effected/memfs": "catalog:effected",
-		"@effected/semver": "catalog:effected",
 		"@effected/store": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.9",
 		"@types/node": "catalog:build",
@@ -48,9 +49,9 @@
 	},
 	"peerDependencies": {
 		"@effect/platform-node": "catalog:effect",
-		"@effected/semver": "catalog:effected",
-		"@effected/store": "catalog:effected",
-		"@effected/xdg": "catalog:effected",
+		"@effected/store": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
+		"@effected/xdg": "catalog:effected:peers",
 		"effect": "catalog:effect"
 	},
 	"peerDependenciesMeta": {

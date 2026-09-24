@@ -18,6 +18,7 @@ sources:
     resource: ../../platforms/rspress/src/markdown/helpers.ts
   - id: vitepress-frontmatter
     resource: ../../platforms/vitepress/src/emit/frontmatter.ts
+status: stable
 ---
 
 # `@tsdoctor/seo` headTags seam

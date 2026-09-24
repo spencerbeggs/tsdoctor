@@ -7,6 +7,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 07038367252ef36562c251e6c204473dc5773502ce21f6b27135c94823ea9f61
+status: stable
 ---
 
 # Display and source

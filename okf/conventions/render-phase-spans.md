@@ -13,6 +13,7 @@ sources:
     resource: ../../platforms/rspress/src/remark-api-codeblocks.ts
   - id: twoslash-timing-wrapper
     resource: ../../platforms/rspress/src/twoslash-timing-wrapper.ts
+status: stable
 ---
 
 # Never measure a code-block span across an await

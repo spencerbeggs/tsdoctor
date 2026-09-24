@@ -5,7 +5,7 @@ description: Framework-neutral analysis of Microsoft API Extractor models — lo
 kind: package
 layer: L2
 resource: ../../packages/model
-status: draft
+status: stable
 tags: [architecture]
 sources:
   - id: src
@@ -13,8 +13,8 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: c67de084fba0d2c6cd66b82089b58b042a0a7662bc126ccf70701139e00c7831
+  at: 2026-09-24T20:28:47Z
+  body_sha256: ffc0b5a8a9f6d20fd9dc6c23cb9efcdeb78fdceb59e8c2fea2c981a9324e98c1
 ---
 
 # @tsdoctor/model
@@ -41,8 +41,13 @@ not RSPress-specific.
 ## Layer cake
 
 Runtime dependency: `@tsdoctor/vfs` (`workspace:*`, for `VirtualPackage`,
-which `ApiExtractedPackage` extends). Peers: `effect`, `@effected/markdown`,
-`@effected/yaml`, `@effected/package-json` (all catalog-pinned).
+which `ApiExtractedPackage` extends) and `@effected/yaml`
+(`catalog:effected`, used internally for frontmatter and absent from the
+public surface). Peers: `effect`, `@effected/markdown` (public surface) and
+`@effected/tsconfig-json`, which is propagated from `@tsdoctor/vfs` and
+carried as a devDependency to satisfy it locally. Both `@effected` peers use
+`catalog:effected:peers`. See
+[core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
 `@tsdoctor/snapshot` is a **test-only** devDependency — the frontmatter
 characterization tests pin literal digests hashed through the real
 `hashFrontmatter`, so they need the real implementation rather than a

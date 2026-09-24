@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: One seam decides every head tag, adapters only render
 description: "@tsdoctor/seo's headTags(input) is the single source of truth for which head-element tags a page gets; adapters render a HeadTag into their framework's shape and never compose their own."
 tags: [architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 756431b8382fbbf7d5fef2622a609186bea8caa93c7a58aca751da0b09783c47
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # One seam decides every head tag, adapters only render

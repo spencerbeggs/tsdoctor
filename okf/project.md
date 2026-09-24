@@ -2,7 +2,7 @@
 type: Project
 title: tsdoctor
 description: Generates API documentation for static-site frameworks from TypeScript API Extractor models, via framework-neutral core packages and thin per-framework adapters.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z

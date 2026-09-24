@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: One anchor algorithm, never a second spelling
 description: Routes.sanitizeId is the single spelling for every member anchor and cross-link key; anchors are computed once and carried as data.
 tags: [architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 04e059000f1210bccbebf5cb43ccc82b05f35ba5638ba7aba61d7767803aec03
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # One anchor algorithm, never a second spelling

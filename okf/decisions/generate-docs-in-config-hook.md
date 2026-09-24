@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Doc generation runs inside RSPress's config() hook
 description: The RSPress adapter runs the whole doc generation program from config() rather than beforeBuild, because RSPress scans routes before beforeBuild runs.
 tags: [architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 4ad7d7a1f9965e72f040042496921588f5ef26bd11b8e2f308c60b9b2f572eb5
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # Doc generation runs inside RSPress's `config()` hook

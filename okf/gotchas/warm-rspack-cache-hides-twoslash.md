@@ -9,6 +9,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: fc986d4bec24ed0c7d4d49e53ba87bc8b11a3513c08896b31c10875cc518ed43
+status: stable
 ---
 
 # Zero Twoslash cache lookups can mean Rspack never recompiled, not that the cache is useless

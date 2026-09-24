@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: "@tsdoctor/manifest sits below @tsdoctor/bundle"
 description: Split the tsdoctor.json schema out of the bundle package so a writer can depend on encode/decode without the bundle's fetch, cache and discovery stack.
 tags: [architecture, compat]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 4642686e9a5a8edece258633d0e423855ac97eb6b0928f3c3daeadbb26b050b9
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # `@tsdoctor/manifest` sits below `@tsdoctor/bundle`

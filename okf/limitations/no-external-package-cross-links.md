@@ -8,6 +8,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: c5608cd0b080066bd9be463e1cb4f6045c8562a426dfc0f7372cbda59a7142fc
+status: stable
 ---
 
 # No external-package cross-links

@@ -13,6 +13,7 @@ sources:
     resource: ../../platforms/rspress/src/observability/sinks/issues-sink.ts
   - id: watch-issues-monitor
     resource: ../../plugin/monitors/watch-issues.mjs
+status: stable
 ---
 
 # `issues.json` artifact

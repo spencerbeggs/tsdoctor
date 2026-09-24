@@ -9,6 +9,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: cbd0c774bb4d3bceb3fedd088acbe177734feb7a98f50fea8151bb1d72978cf0
+status: stable
 ---
 
 # `ae-missing-release-tag` on a `_base` class names a synthesized base, not a real undocumented class

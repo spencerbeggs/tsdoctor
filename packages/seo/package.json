@@ -31,19 +31,20 @@
 		"prepare": "node savvy.build.ts --target dev",
 		"types:check": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@effected/spdx": "catalog:effected"
+	},
 	"devDependencies": {
 		"@effected/package-json": "catalog:effected",
 		"@effected/schema-org": "catalog:effected",
-		"@effected/spdx": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.9",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/package-json": "catalog:effected",
-		"@effected/schema-org": "catalog:effected",
-		"@effected/spdx": "catalog:effected",
+		"@effected/package-json": "catalog:effected:peers",
+		"@effected/schema-org": "catalog:effected:peers",
 		"effect": "catalog:effect"
 	},
 	"engines": {

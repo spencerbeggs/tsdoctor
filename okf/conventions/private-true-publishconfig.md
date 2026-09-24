@@ -1,6 +1,6 @@
 ---
 type: Convention
-status: draft
+status: stable
 title: Never set private:false in a publishable workspace's source package.json
 description: publishConfig controls publishing; the build rewrites the manifest.
 tags: [release]

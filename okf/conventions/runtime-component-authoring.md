@@ -15,6 +15,7 @@ sources:
     resource: ../../platforms/rspress/src/env.d.ts
   - id: api-example
     resource: ../../platforms/rspress/src/runtime/components/ApiExample/index.tsx
+status: stable
 ---
 
 # Runtime component authoring

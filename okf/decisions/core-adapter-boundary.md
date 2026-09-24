@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Core packages, thin adapters
 description: Frame-neutral logic lives in packages/; each platforms/* adapter is thin and owns only what a static-site framework forces it to own.
 tags: [architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 1a325a365d8cef075d95115c8bfe0de96ca4d76c531a2337696b2e235b3bd765
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # Core packages, thin adapters

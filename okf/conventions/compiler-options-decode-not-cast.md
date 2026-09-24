@@ -17,6 +17,7 @@ sources:
     resource: ../../packages/vfs/__test__/compiler-options-seam.test.ts
   - id: rspress-compiler-seam-test
     resource: ../../platforms/rspress/__test__/compiler-options-seam.test.ts
+status: stable
 ---
 
 # Decode compiler options at one seam, never cast

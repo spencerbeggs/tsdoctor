@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: A persisted Twoslash result cache is the render-phase performance fix
 description: Measurement showed nearly all render-phase code-block cost is Twoslash type-checking concentrated in example blocks, so a persisted, XDG-shared result cache — not per-scope environments — is the performance work.
 tags: [performance, architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 058c9611f91cf964ada1f0c506bb9f86542c5307034e6cb1a50bbc37db3f69fe
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # A persisted Twoslash result cache is the render-phase performance fix

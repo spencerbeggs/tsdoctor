@@ -7,6 +7,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 9ee6b722f648c9718bcaa42437108cab33d739596165c08bfd7e8324dad38cf7
+status: stable
 ---
 
 # Bundle

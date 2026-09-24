@@ -43,9 +43,9 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/tsconfig-json": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected:peers",
 		"@shikijs/twoslash": "^4.4.3",
-		"@typescript/vfs": "^1.6.4",
+		"@typescript/vfs": "^1.6.5",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
 	},

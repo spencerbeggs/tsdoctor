@@ -31,18 +31,20 @@
 		"prepare": "node savvy.build.ts --target dev",
 		"types:check": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@effected/glob": "catalog:effected",
+		"@effected/walker": "catalog:effected"
+	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:effect",
 		"@effect/vitest": "catalog:effect",
 		"@effected/github": "catalog:effected",
-		"@effected/glob": "catalog:effected",
 		"@effected/jsonc": "catalog:effected",
 		"@effected/memfs": "catalog:effected",
 		"@effected/npm": "catalog:effected",
 		"@effected/package-json": "catalog:effected",
 		"@effected/store": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
-		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.9",
 		"@tsdoctor/manifest": "workspace:*",
@@ -52,15 +54,13 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/github": "catalog:effected",
-		"@effected/glob": "catalog:effected",
-		"@effected/jsonc": "catalog:effected",
-		"@effected/npm": "catalog:effected",
-		"@effected/package-json": "catalog:effected",
-		"@effected/store": "catalog:effected",
-		"@effected/tsconfig-json": "catalog:effected",
-		"@effected/walker": "catalog:effected",
-		"@effected/xdg": "catalog:effected",
+		"@effected/github": "catalog:effected:peers",
+		"@effected/jsonc": "catalog:effected:peers",
+		"@effected/npm": "catalog:effected:peers",
+		"@effected/package-json": "catalog:effected:peers",
+		"@effected/store": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
+		"@effected/xdg": "catalog:effected:peers",
 		"@tsdoctor/manifest": "workspace:*",
 		"effect": "catalog:effect",
 		"image-size": "^2.0.2"

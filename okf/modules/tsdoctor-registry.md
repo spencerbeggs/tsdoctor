@@ -5,7 +5,7 @@ description: External package type loading — fetch, cache and resolve publishe
 kind: package
 layer: L2
 resource: ../../packages/registry
-status: draft
+status: stable
 tags: [architecture, compat]
 sources:
   - id: src
@@ -13,8 +13,8 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 4aa40e7084cb6f2313d9685efd048905edaf59fe5a587c11f890381e57197ad1
+  at: 2026-09-24T20:28:47Z
+  body_sha256: f3ba10ca55d4278aaa378e23920b06421bb6ffb8dbafd62bc621926074d24d37
 ---
 
 # @tsdoctor/registry
@@ -52,11 +52,14 @@ through them, feeds the resolved external-type VFS that
 `@tsdoctor/model`'s `ApiExtractedPackage`-produced declarations are merged
 alongside.
 
-Required peers: `effect`, `@effect/platform-node`, `@effected/semver`,
-`@effected/store`. One optional peer: `@effected/xdg`. `typescript`,
-`@typescript/vfs` and `@effected/tsconfig-json` stayed with
-`@tsdoctor/vfs`'s `TsEnvironment` when the split happened — do not add
-them back here.
+Required peers: `effect`, `@effect/platform-node`, `@effected/store`, and
+`@effected/tsconfig-json`, which is propagated from `@tsdoctor/vfs`'s public
+surface. One optional peer: `@effected/xdg`. `@effected/semver` is used
+internally only, so it is an ordinary `dependency` (`catalog:effected`), not
+a peer. See
+[core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
+`typescript` and `@typescript/vfs` stayed with `@tsdoctor/vfs`'s
+`TsEnvironment` when the split happened. Do not add them back here.
 
 ## Public surface
 
@@ -98,15 +101,18 @@ Flat module layout, all re-exported from `src/index.ts`:[^src]
 - `resolveVersions` must resolve to an **exact** version before
   `loadPackages` is called — the CDN this package fetches from does not
   serve ranges or tags.
-- Anything that peers on `effect` must remain a peer in this package's
-  `package.json`; a nested copy of `effect` strands service tags at
-  import.
+- `effect` must remain a peer in this package's `package.json`, because a
+  nested copy of `effect` strands service tags at import. An `@effected`
+  package is a peer here only when its types appear in the public `.d.ts`
+  surface. Otherwise it is a dependency, which is safe because it peers on
+  `effect` itself.
 - Diagnostics flow only through `RegistryObserver`; do not add a second
   logging path.
 
 ## Links
 
 - [Decision: consolidate into one monorepo](../decisions/consolidate-into-one-monorepo.md)
+- [Decision: core peers follow the public surface](../decisions/core-peers-follow-public-surface.md)
 - [Decision: vfs sits below the registry and the model](../decisions/vfs-below-registry-and-model.md)
 
 [^src]: `packages/registry/src/index.ts`, `packages/registry/src/TypeRegistry.ts`,

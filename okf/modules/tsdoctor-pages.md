@@ -7,11 +7,12 @@ resource: ../../packages/pages
 layer: L2
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-13T14:07:05Z
-  body_sha256: fdfe956d63b8c3ab6fa6baa9ac65caab4611016449432333a85016a9c575f5da
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 9b34bd231a804752c4c69f64dda8703fcfe81260b024029b764bb4356dd666db
 tags:
   - architecture
   - dx
+status: stable
 ---
 
 # @tsdoctor/pages
@@ -42,7 +43,12 @@ it needed to have, rather than designed up front for a hypothetical one — see
   the builders consume
 - `prettier` (dependency) — example formatting
 - `effect` (peer, `catalog:effect`)
-- `@effected/markdown` (peer, `catalog:effected`) — the mdast and MDX
+- `@effected/package-json`, `@effected/schema-org`, `@effected/tsconfig-json`
+  (peers, `catalog:effected:peers`): propagated from the public surfaces of
+  `@tsdoctor/seo` and `@tsdoctor/model`, and each also a devDependency so the
+  workspace satisfies it. See
+  [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
+- `@effected/markdown` (peer, `catalog:effected:peers`) — the mdast and MDX
   vocabulary the IR's prose and the plain-markdown emitter serialize through
 
 ## Public surface

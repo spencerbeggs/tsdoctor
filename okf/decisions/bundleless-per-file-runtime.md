@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Emit the runtime bundleless, per file
 description: The React runtime is transpiled 1:1 per component rather than bundled, so import.meta.env.SSG_MD resolves per site.
 tags: [architecture, dx]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 67fa171e3ee8d223de8cb25916fd869813ba0d2a88862e357c01cff2506dfb1c
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # Emit the runtime bundleless, per file

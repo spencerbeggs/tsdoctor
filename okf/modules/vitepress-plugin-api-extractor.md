@@ -7,11 +7,12 @@ resource: ../../platforms/vitepress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-13T14:07:05Z
-  body_sha256: a4f6c4dfebd40853198a8fc1b70b3907c54fa7978d09e960ba2a2185be952084
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 7b9fac70761a5db51e2b4e6342e906c8c88f8dba36a35df828beded3c2564528
 tags:
   - architecture
   - dx
+status: stable
 ---
 
 # vitepress-plugin-api-extractor
@@ -34,9 +35,16 @@ workspaces, even though the folder is `platforms/vitepress/` — `pnpm
 - `@tsdoctor/bundle`, `@tsdoctor/manifest`, `@tsdoctor/model`,
   `@tsdoctor/pages`, `@tsdoctor/registry`, `@tsdoctor/seo`, `@tsdoctor/vfs`
   (dependencies, `workspace:*`)
-- `@effect/platform-node`, `@effected/markdown`, `@effected/package-json`,
-  `@effected/store`, `@effected/tsconfig-json`, `@effected/xdg`
-  (dependencies, `catalog:effected`)
+- `@effect/platform-node` (dependency, `catalog:effect`)
+- The full `@effected` closure of the core packages it consumes:
+  `github`, `glob`, `jsonc`, `markdown`, `npm`, `package-json`,
+  `schema-org`, `semver`, `spdx`, `store`, `tsconfig-json`, `walker`,
+  `xdg` and `yaml` (dependencies, `catalog:effected`). Most are not
+  imported by adapter source. They are declared so that an application's
+  install never relies on `autoInstallPeers` for completeness (see
+  [rspress-dependency-closure](../conventions/rspress-dependency-closure.md),
+  which covers every `platforms/*` adapter, and
+  [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md))
 - `@shikijs/twoslash`, `@shikijs/vitepress-twoslash` (dependencies)
 - `effect` (dependency, `catalog:effect`)
 - `vitepress` (peer, `^2.0.0-alpha.19`)
@@ -210,3 +218,5 @@ stay in step or the adapters generate different routes from one bundle;
 - [vitepress-buildend-never-fires-in-dev](../gotchas/vitepress-buildend-never-fires-in-dev.md)
 - [persisted-twoslash-result-cache](../decisions/persisted-twoslash-result-cache.md)
 - [core-adapter-boundary](../decisions/core-adapter-boundary.md)
+- [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md)
+- [rspress-dependency-closure](../conventions/rspress-dependency-closure.md)

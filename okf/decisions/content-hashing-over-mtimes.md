@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Content hashing over mtimes
 description: The snapshot system compares canonical content hashes, not filesystem mtimes, to decide whether a generated page changed.
 generated:
@@ -13,6 +13,9 @@ sources:
     resource: ../../packages/snapshot/src/content-hash.ts
   - id: build-stages
     resource: ../../platforms/rspress/src/build-stages.ts
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # Content hashing over mtimes

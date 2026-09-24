@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Head tags are built in the generate stage
 description: Head tags are assembled before the frontmatter hash is taken, not in the later write stage, so a head-tag change is visible to change detection.
 tags: [architecture, testing]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 4d7f0ac3aa37b732354b40ffe730fb6798f0439e24ab5ec48800d5ad7ac245a1
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # Head tags are built in the generate stage

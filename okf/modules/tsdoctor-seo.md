@@ -7,11 +7,12 @@ resource: ../../packages/seo
 layer: L2
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 8ff6dcbaa8ce963fb0c779832937e4f216972818987f79db4178d368d046bc4b
+  at: 2026-09-24T20:28:47Z
+  body_sha256: c76d11f119a236c121dd039fb37cf501e04605e2d7ad797a470a072d88c58d8e
 tags:
   - architecture
   - dx
+status: stable
 ---
 
 # @tsdoctor/seo
@@ -35,14 +36,16 @@ rendering change rather than a second SEO implementation.
 
 ## Dependencies
 
-- `effect` (peer, `catalog:effect:peers`)
+- `effect` (peer, `catalog:effect`)
 - `@effected/package-json` (peer, `catalog:effected:peers`) — `PackageManifest`
   and the SPDX-aware license helpers used by `attributionFacts`
 - `@effected/schema-org` (peer, `catalog:effected:peers`) — `JsonLdDocument` /
   `JsonLdNode` / `NodeRef`, the schema.org vocabulary and its `./validate`
   conformance checker
-- `@effected/spdx` (peer, `catalog:effected:peers`) — the SPDX license
-  catalog and expression grammar
+- `@effected/spdx` (dependency, `catalog:effected`) — the SPDX license
+  catalog and expression grammar, used internally and absent from the
+  public `.d.ts` surface, so it is not a peer (see
+  [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md))
 
 No dependency on `@tsdoctor/model`, `@tsdoctor/pages`, `@tsdoctor/bundle` or
 any adapter package; consumers pass in already-resolved facts.

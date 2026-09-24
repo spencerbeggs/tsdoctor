@@ -195,6 +195,8 @@ each area of the code, not an exhaustive list.
 - @okf/conventions/services-own-their-layers.md
 - @okf/decisions/generate-docs-in-config-hook.md
 - @okf/interfaces/rspress-plugin-options.md
+- @okf/decisions/core-peers-follow-public-surface.md
+- @okf/conventions/rspress-dependency-closure.md
 
 **Page generation & markdown** — the Stream pipeline, Shiki transformers,
 cross-linking:

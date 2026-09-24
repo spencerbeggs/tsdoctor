@@ -32,20 +32,26 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@microsoft/api-extractor-model": "^7.33.13",
+		"@microsoft/api-extractor-model": "catalog:build",
 		"@tsdoctor/model": "workspace:*",
 		"@tsdoctor/seo": "workspace:*",
 		"prettier": "^3.9.9"
 	},
 	"devDependencies": {
 		"@effected/markdown": "catalog:effected",
+		"@effected/package-json": "catalog:effected",
+		"@effected/schema-org": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.9",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/markdown": "catalog:effected",
+		"@effected/markdown": "catalog:effected:peers",
+		"@effected/package-json": "catalog:effected:peers",
+		"@effected/schema-org": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
 		"effect": "catalog:effect"
 	},
 	"engines": {

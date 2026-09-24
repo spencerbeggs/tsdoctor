@@ -7,13 +7,14 @@ resource: ../../platforms/rspress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-13T14:07:05Z
-  body_sha256: f89f15ff184abdff0e2af655e53aee5418b1b944d7113152ccce8096b9ed3ac8
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 82f3a1dbe6dc3332b02bb226f1bb5d28c668bd995ef9e2b8ac4dc5ac3c5f7736
 tags:
   - architecture
   - observability
   - performance
   - dx
+status: stable
 ---
 
 # rspress-plugin-api-extractor
@@ -68,10 +69,12 @@ never spells a second one (`src/emit/mdx.ts` carries no `sanitizeId`
 equivalent).
 
 Non-`@tsdoctor` dependencies of note: `@effect/platform-node` (`NodeFileSystem`),
-the `@effected/*` closure (`github`, `glob`, `jsonc`, `markdown`, `npm`,
-`package-json`, `semver`, `store`, `tsconfig-json`, `walker`, `xdg`, `yaml` —
-all `catalog:effected`), `ioredis` (a non-optional peer of
-`@effect/platform-node`), `@typescript/vfs`, `@microsoft/api-extractor-model`,
+the full `@effected/*` closure (`github`, `glob`, `jsonc`, `markdown`, `npm`,
+`package-json`, `schema-org`, `semver`, `spdx`, `store`, `tsconfig-json`,
+`walker`, `xdg`, `yaml` — all `catalog:effected`, covering the core
+packages' public-surface peers and internal dependencies alike; see
+[core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md)),
+`@typescript/vfs`, `@microsoft/api-extractor-model`,
 `@shikijs/twoslash`, `shiki`, `mdast-util-to-hast` (runtime), `open`. These
 are declared in `dependencies`, not `peerDependencies` — see
 [rspress-dependency-closure](../conventions/rspress-dependency-closure.md).
@@ -596,6 +599,7 @@ RSPress's `Local:` address line.
 - [effected-is-the-foundation](../conventions/effected-is-the-foundation.md)
 - [services-own-their-layers](../conventions/services-own-their-layers.md)
 - [rspress-dependency-closure](../conventions/rspress-dependency-closure.md)
+- [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md)
 - [no-internal-barrels](../conventions/no-internal-barrels.md)
 - [runtime-component-authoring](../conventions/runtime-component-authoring.md)
 - [observability-events-not-logs](../conventions/observability-events-not-logs.md)

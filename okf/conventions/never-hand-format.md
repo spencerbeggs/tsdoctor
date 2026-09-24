@@ -1,6 +1,6 @@
 ---
 type: Convention
-status: draft
+status: stable
 title: Do not hand-format, hand-sort, or hand-chmod what the pre-commit hook already normalizes
 description: lint-staged (Biome, sort-package-json, markdownlint-cli2, yaml fmt) formats staged files at commit and strips the exec bit off *.sh; tsgo --noEmit is the only blocking step.
 tags: [dx]

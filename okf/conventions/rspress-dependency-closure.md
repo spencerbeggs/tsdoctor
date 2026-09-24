@@ -1,33 +1,90 @@
 ---
 type: Convention
-title: Keep the RSPress adapter's dependency closure whole
-description: Keep the full non-optional peer closure of the RSPress adapter in dependencies, not peerDependencies; never prune an entry as unused without checking.
+title: Keep every adapter's dependency closure whole
+description: "Every platforms/* adapter declares the full @effected closure and every @tsdoctor/* core package it consumes in dependencies, never as peers; never prune an entry as unused without checking."
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 6bf13c8b93f9ad6c355e46da4d557373f4ac546a5a71b6b3de88d06e6a578d91
-stale_after: 2026-12-12T00:00:00Z
-tags: [compat, release]
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 2c10b2652ec598245cf1ae38365c7188debe4a84f5cc6c311c1bfbe189120087
+stale_after: 2026-12-23T00:00:00Z
+tags: [compat, release, deps]
 sources:
   - id: package-json
     resource: ../../platforms/rspress/package.json
+  - id: vitepress-package-json
+    resource: ../../platforms/vitepress/package.json
+status: stable
 ---
 
-# Keep the RSPress adapter's non-optional peer closure in `dependencies`
+# Keep every adapter's full closure in `dependencies`
 
-`../../platforms/rspress/package.json` must list, as ordinary `dependencies` rather than `peerDependencies`, the full closure of every non-optional peer the adapter's own dependencies pull in: `ioredis` (a non-optional peer of `@effect/platform-node`), the complete `@effected/*` surface the eight `@tsdoctor/*` core workspaces ride on (each declared as `catalog:effected`, per `../conventions/effected-is-the-foundation.md`), and all eight `@tsdoctor/*` core workspaces themselves (`bundle`, `manifest`, `model`, `pages`, `registry`, `seo`, `snapshot`, `vfs`) as `workspace:*`. Only `@rspress/core`, `react`, and `react-dom` remain `peerDependencies` of the adapter.
+Every adapter under `platforms/*` is an application, not a library. The
+RSPress adapter (`../../platforms/rspress/package.json`[^package-json]) and
+the VitePress adapter
+(`../../platforms/vitepress/package.json`[^vitepress-package-json]) must each
+list the following as ordinary `dependencies`, never as `peerDependencies`:
 
-Do not prune an entry from this closure as "unused" without checking it is genuinely unreferenced. Some entries are imported directly from adapter source (`../../platforms/rspress/src/services/TypeRegistryService.ts`, `../../platforms/rspress/src/sync-node-fs.ts`, `../../platforms/rspress/src/twoslash-transformer.ts`), while the rest exist purely to keep the dependency graph closed even though no adapter source file imports them by name.
+- The complete `@effected/*` closure of the core packages the adapter
+  consumes, each as `catalog:effected`. That covers public-surface peers
+  and internal-only dependencies alike: `github`, `glob`, `jsonc`,
+  `markdown`, `npm`, `package-json`, `schema-org`, `semver`, `spdx`,
+  `store`, `tsconfig-json`, `walker`, `xdg` and `yaml`.
+- `effect` and `@effect/platform-node`.
+- Every `@tsdoctor/*` core workspace it consumes, as `workspace:*`. That is
+  all eight for RSPress (`bundle`, `manifest`, `model`, `pages`,
+  `registry`, `seo`, `snapshot`, `vfs`) and every one except `snapshot` for
+  VitePress.
 
-`mdast-util-from-markdown` stays a `devDependency` only — `../../platforms/rspress/src/twoslash-transformer.ts` parses through `@effected/markdown`'s `Markdown.parseResult` with `dialect: "commonmark"` rather than this package, so it is a test-time or build-time need, not a runtime one. `mdast-util-to-hast` stays a runtime dependency because `@effected/markdown` deliberately keeps markdown-to-HTML conversion out of its own scope.
+An adapter's only `peerDependencies` are its host framework:
+`@rspress/core`, `react` and `react-dom` for RSPress, and `vitepress` for
+VitePress. The core libraries follow the opposite rule, peering only on what
+their public `.d.ts` surface exposes (see
+`../decisions/core-peers-follow-public-surface.md`). The adapter is where
+those peers finally get satisfied.
+
+Do not prune an entry from this closure as "unused" without first checking
+that it is genuinely unreferenced. Some entries are imported directly from
+adapter source (`../../platforms/rspress/src/services/TypeRegistryService.ts`,
+`../../platforms/rspress/src/sync-node-fs.ts`,
+`../../platforms/rspress/src/twoslash-transformer.ts`). The rest exist
+only to keep the dependency graph closed, even though no adapter source
+file imports them by name.
+
+In the RSPress adapter, `mdast-util-from-markdown` stays a `devDependency`
+only. `../../platforms/rspress/src/twoslash-transformer.ts` parses through
+`@effected/markdown`'s `Markdown.parseResult` with `dialect: "commonmark"`,
+not through this package, so it is needed only at test or build time.
+`mdast-util-to-hast` stays a runtime dependency because `@effected/markdown`
+deliberately leaves markdown-to-HTML conversion out of its own scope.
 
 ## Why
 
-The plugin half of the adapter is built per file (`../../platforms/rspress/savvy.build.ts`), and a per-file build leaves `dependencies` external rather than bundling them. Any non-optional peer that is not itself declared in `dependencies` therefore escapes to whichever site consumes the plugin via `workspace:*`, where pnpm's `autoInstallPeers` behavior can bind an unpredictable version of that peer — a version the adapter was never built or tested against. Closing the loop in `platforms/rspress/package.json` is what makes the adapter's own dependency versions the ones every consuming site actually gets.
+A per-file build (`../../platforms/rspress/savvy.build.ts`) leaves
+`dependencies` external instead of bundling them. So does the VitePress
+adapter's `@savvy-web/bundler` build
+(`../../platforms/vitepress/savvy.build.ts`). A peer the adapter's manifest does not satisfy therefore
+escapes to the consuming site, and pnpm's `autoInstallPeers` can bind
+whatever version resolves first there, one the adapter was never built or
+tested against. Closing the loop in each adapter's `package.json` makes the
+adapter's own dependency versions the ones every consuming site actually
+gets.
 
 ## How to check
 
-- `pnpm ls --filter rspress-plugin-api-extractor --depth 0` (or the equivalent inside a fixture site under `sites/*`) shows what actually resolves; a peer warning at install time for a package this convention says should be a direct dependency is the failure signal.
-- `grep -c "workspace:\*" ../../platforms/rspress/package.json` — the count of `@tsdoctor/*` entries should be eight.
-- `grep '"ioredis"' ../../platforms/rspress/package.json` should find it under `dependencies`, not absent.
-- Before removing any dependency entry: `grep -rn "<package-name>" ../../platforms/rspress/src/` to confirm it is truly unreferenced by adapter source before assuming it is closure-only, and if it is closure-only, confirm the peer it closes is still a real transitive peer of something still in `dependencies`.
+- `pnpm peers check --json` should report zero missing, bad or conflicting
+  peers across every workspace. A peer warning at install time for a
+  package this convention says belongs in an adapter's `dependencies` is
+  the failure signal.
+- `jq -r '.dependencies | keys[]' platforms/*/package.json | grep @effected | sort | uniq -c`.
+  Every `@effected` package the core closure reaches should appear once
+  per adapter.
+- `grep -c "workspace:\*" ../../platforms/rspress/package.json` should
+  count eight `@tsdoctor/*` entries.
+- Before removing any dependency entry, run
+  `grep -rn "<package-name>" ../../platforms/<adapter>/src/` to confirm
+  adapter source never references it. If the entry exists only to close
+  the graph, also confirm that the peer it closes is still a real
+  transitive peer of something that remains in `dependencies`.
+
+[^package-json]: `../../platforms/rspress/package.json`
+[^vitepress-package-json]: `../../platforms/vitepress/package.json`

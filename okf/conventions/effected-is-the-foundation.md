@@ -4,8 +4,8 @@ title: "@effected is the foundation: check before hand-rolling"
 description: "Check @effected/* before hand-rolling any capability; expand the kit through the dogfood loop when it lacks one."
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 78da30760fd38618d9b58df709ac9e15b5212c099fc7e79696cdaa9fba4ade7b
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 71ae139d02171d91505295b7d9835085a6fea67309f50102333a597cb0d23b3b
 stale_after: 2026-12-12T00:00:00Z
 tags: [dx, architecture]
 sources:
@@ -13,13 +13,14 @@ sources:
     resource: ../../CLAUDE.md
   - id: workspace
     resource: ../../pnpm-workspace.yaml
+status: stable
 ---
 
 # Check @effected before hand-rolling any capability
 
 Before implementing a capability — parsing or editing JSONC/YAML/TOML/Markdown, semver math, SPDX license expressions, an in-memory filesystem for tests, package.json or tsconfig.json handling, XDG directory resolution, SQLite-backed state or caching, schema.org vocabulary, and so on — check whether an `@effected/*` package already ships it. When the kit genuinely lacks a capability this repo needs, close the gap by expanding `@effected` itself through the dogfood loop (see `../runbooks/dogfood-effected-overrides.md`) — never by reimplementing the capability locally as a one-off helper.
 
-Declare every `@effected/*` dependency as `"catalog:effected"` in `dependencies`, and `"catalog:effected:peers"` under `peerDependencies`. Never hand-pin an `@effected` package to a specific version range. Never manage the `@effected` dependency/peer graph by hand at all: upstream `effected` CI/CD bumps the `@effected/pnpm-plugin-effect` config dependency in `../../pnpm-workspace.yaml`, and a single plugin release carries the whole `@effected` graph forward together.
+Declare every `@effected/*` dependency as `"catalog:effected"` in `dependencies`, and `"catalog:effected:peers"` under `peerDependencies`. Never hand-pin an `@effected` package to a specific version range. Which of the two a core `@tsdoctor/*` library uses is decided by its public `.d.ts` surface, and every `platforms/*` adapter declares the whole closure in `dependencies`. See `../decisions/core-peers-follow-public-surface.md`. Never manage the `@effected` dependency/peer graph by hand at all: upstream `effected` CI/CD bumps the `@effected/pnpm-plugin-effect` config dependency in `../../pnpm-workspace.yaml`, and a single plugin release carries the whole `@effected` graph forward together.
 
 In tests, reach for `@effected/memfs` as the in-memory `FileSystem` implementation instead of hand-stubbing a filesystem layer.
 

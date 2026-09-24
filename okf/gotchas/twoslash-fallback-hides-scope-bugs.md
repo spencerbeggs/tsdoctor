@@ -9,6 +9,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: f48477b71c5fb82c54d31b31283ed5d386a160f43441b3ee17b7b8e09ac78e0c
+status: stable
 ---
 
 # A transformer coming back proves nothing about scope routing

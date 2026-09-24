@@ -31,8 +31,10 @@
 		"prepare": "node savvy.build.ts --target dev",
 		"types:check": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@effected/jsonc": "catalog:effected"
+	},
 	"devDependencies": {
-		"@effected/jsonc": "catalog:effected",
 		"@effected/store": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.9",
 		"@types/node": "catalog:build",
@@ -40,8 +42,7 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/jsonc": "catalog:effected:peers",
-		"@effected/store": "catalog:effected",
+		"@effected/store": "catalog:effected:peers",
 		"effect": "catalog:effect"
 	},
 	"engines": {

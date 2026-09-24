@@ -1,6 +1,6 @@
 ---
 type: Interface
-status: draft
+status: stable
 kind: config
 resource: ../../platforms/rspress/src/schemas/config.ts
 title: RSPress plugin options (PluginOptions)

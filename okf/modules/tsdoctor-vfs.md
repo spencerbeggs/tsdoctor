@@ -5,7 +5,7 @@ description: Virtual file system primitives, the compiler-options seam and the p
 kind: package
 layer: L1
 resource: ../../packages/vfs
-status: draft
+status: stable
 tags: [architecture, performance, compat]
 sources:
   - id: src
@@ -13,8 +13,8 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 64b287d9121beb7aebbc42ef486f79f0174c6c6139b7779e582c7dc694a3eac1
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 3e659a82cfcb1e6ab5c2cc5d5101f2979ab144900276bfe6452d29018d32717e
 ---
 
 # @tsdoctor/vfs
@@ -33,13 +33,14 @@ It depends on `effect` alone plus three optional peers reached only through
 lazy `import()` or type-only imports: `typescript`, `@typescript/vfs` (both
 lazy-imported in `TsEnvironment.ts`) and `@shikijs/twoslash` (a type-only
 import for `TwoslashTypesCache` in `TwoslashCache.ts`). `@effected/tsconfig-json`
-is declared optional in `package.json` but is not actually optional at
-runtime: `TypeResolutionOptions.ts` value-imports it and evaluates
-`CompilerOptions.schema.fields` at module load, so importing this package at
-all without it installed fails outright. That mismatch was copied from the
-registry (where only `TsEnvironment` reached the package, so laziness held)
-and stayed wrong once the compiler-option seam moved in; fixing it means
-making the schema construction genuinely lazy first.
+is a required peer (`catalog:effected:peers`), not an optional one: its
+`CompilerOptions` types appear in this package's public `.d.ts` surface, and
+`TypeResolutionOptions.ts` value-imports it and evaluates
+`CompilerOptions.schema.fields` at module load. Because it is a
+public-surface peer, it propagates. `@tsdoctor/model` and
+`@tsdoctor/registry` redeclare it as their own peer, and so does
+`@tsdoctor/pages` through the model (see
+[core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md)).
 
 ## Layer cake
 

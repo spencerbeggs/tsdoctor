@@ -7,6 +7,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: cf7a83dd98fb29f299474fce0776430e41518902e8edaaadb33b5039ae4e46db
+status: stable
 ---
 
 # "Plugin" versus "the plugin" versus `platforms/`

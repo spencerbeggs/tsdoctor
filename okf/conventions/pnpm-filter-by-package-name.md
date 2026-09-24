@@ -1,6 +1,6 @@
 ---
 type: Convention
-status: draft
+status: stable
 title: "pnpm --filter matches the package name, not the workspace folder"
 description: Filter by the name field in package.json (or a ./path), never by the directory name.
 tags: [dx]

@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: One TypeScript environment per distinct resolved compiler config
 description: Each documented API type-checks under its own resolved compiler options, deduplicated by a fingerprint of the encoded config, so one API's tsconfig no longer wins for every API on a multi-API site.
 tags: [architecture, compat]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: d2924a5cf9eb3c9ac4fa0cf83389f347690ae24caf9b5e3301d30565f5ee6de6
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # One TypeScript environment per distinct resolved compiler config

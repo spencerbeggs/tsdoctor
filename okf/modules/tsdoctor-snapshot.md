@@ -7,12 +7,13 @@ resource: ../../packages/snapshot
 layer: L2
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-13T14:07:05Z
-  body_sha256: febb0b8790e6c5566a7a4f09c1b3717e1ccda9fe7bf045c321fd10f2a02f6e83
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 8bd310727b68e0610e84cdb86ed60ee48a8453680d60a3a9ad7313595b1ed4a2
 tags:
   - architecture
   - observability
   - performance
+status: stable
 ---
 
 # @tsdoctor/snapshot
@@ -35,15 +36,17 @@ stages. See [rspress-plugin-api-extractor](rspress-plugin-api-extractor.md)
 ## Dependencies
 
 - `effect` (peer, `catalog:effect`)
-- `@effected/store` (peer, `catalog:effected`) — `Store.layerSqlite`, the
-  `Cache` primitive family
-- `@effected/jsonc` (peer, `catalog:effected:peers`) — `JsoncFingerprint`
-  (RFC 8785 / JCS canonicalization) for `hashFrontmatter`
+- `@effected/store` (peer, `catalog:effected:peers`) — `Store.layerSqlite`,
+  the `Cache` primitive family; on the public surface
+- `@effected/jsonc` (dependency, `catalog:effected`) — `JsoncFingerprint`
+  (RFC 8785 / JCS canonicalization) for `hashFrontmatter`, used internally
+  only
 
 No framework dependency, no filesystem beyond what `Store.layerSqlite` opens
-directly. `packages/snapshot/package.json` declares no `dependencies` at all —
-only `devDependencies` and `peerDependencies` — so nothing reaches this
-package that is not also declared by the consumer.
+directly. `@effected/jsonc` is the package's one `dependency`. It is not a
+peer because none of its types cross the public `.d.ts` surface, and it
+shares the consumer's single `effect` through its own peer (see
+[core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md)).
 
 ## Public surface
 

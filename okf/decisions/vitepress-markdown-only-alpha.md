@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: The VitePress adapter alpha is markdown-only, no Vue components
 description: platforms/vitepress renders every page as plain markdown over native @shikijs/vitepress-twoslash instead of shipping a Vue component layer, keeping the alpha scoped to proving the core seams.
 tags: [architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 0035e03c913e1f287124087584407b6d8a2d5ccfc6cd17c6d4484738695581de
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # The VitePress adapter alpha is markdown-only, no Vue components

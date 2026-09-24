@@ -5,7 +5,7 @@ description: "The tsdoctor.json sidecar manifest schema: spec, encode/decode bou
 kind: package
 layer: L1
 resource: ../../packages/manifest
-status: draft
+status: stable
 tags: [architecture, compat]
 sources:
   - id: src

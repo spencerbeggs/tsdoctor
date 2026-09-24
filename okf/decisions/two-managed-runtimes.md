@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: One layer-construction call produces both ManagedRuntimes
 description: makeAppLayers returns { app, emitter } from a single call so metrics.layer and the BuildEnv references are shared by reference; the emitter stack stays synchronously buildable for the sync-island bridge.
 tags: [architecture, observability]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 25271fb34792fa492154135a668941f29136eba1b67f0d95754d796e14660f4b
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # One layer-construction call produces both `ManagedRuntime`s

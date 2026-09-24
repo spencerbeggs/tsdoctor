@@ -19,6 +19,7 @@ sources:
     resource: ../../platforms/rspress/src/observability/sinks/metrics-sink.ts
   - id: render-sink
     resource: ../../platforms/rspress/src/observability/sinks/render-sink.ts
+status: stable
 ---
 
 # Report through events, not logs or direct metrics

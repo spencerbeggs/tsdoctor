@@ -13,6 +13,7 @@ sources:
     resource: ../../platforms/rspress/src/BuildEnv.ts
   - id: services-inventory
     resource: ../../platforms/rspress/CLAUDE.services.md
+status: stable
 ---
 
 # A service owns its layer as a static; no separate `*Live.ts` modules

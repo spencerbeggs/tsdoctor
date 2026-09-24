@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Page IR blocks are Schema.Class variants, not Data.TaggedEnum
 description: The page IR's block vocabulary is modeled as Schema.Class variants tagged on kind and unioned with Schema.Union, matching the mdast shape the IR is built alongside.
 tags: [architecture, compat]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 1e00a08ea615dad454e2ef528bd849754ad7b0310ae8ae528c60c71863d801cb
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # Page IR blocks are `Schema.Class` variants, not `Data.TaggedEnum`

@@ -14,6 +14,7 @@ sources:
     resource: ../../.repos/config.json
   - id: gitmodules
     resource: ../../.gitmodules
+status: stable
 ---
 
 # Vendored reference repos under `.repos/`

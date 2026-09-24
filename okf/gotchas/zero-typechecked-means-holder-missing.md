@@ -9,6 +9,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 16ad1cce13276e1f1c55760e1c8513a2de08c43bf58f1e9716af750602accb1c
+status: stable
 ---
 
 # A build summary reporting 0 typechecked means the holder never ran, not that Twoslash found nothing

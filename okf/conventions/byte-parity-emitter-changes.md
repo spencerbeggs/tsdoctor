@@ -17,6 +17,7 @@ sources:
     resource: ../../platforms/vitepress/src/emit/markdown.ts
   - id: build-page
     resource: ../../packages/pages/src/Build.ts
+status: stable
 ---
 
 # A behaviour change in an emitter ships as its own labelled commit

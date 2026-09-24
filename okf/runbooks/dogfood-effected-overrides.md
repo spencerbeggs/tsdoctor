@@ -8,6 +8,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: f14f76a34450012c34edea7def4fc27a6a0c151a8e1e3099a959bc0cbfd801a7
+status: stable
 ---
 
 # Dogfood an unreleased `@effected/*` capability

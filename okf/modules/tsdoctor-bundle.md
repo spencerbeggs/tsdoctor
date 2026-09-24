@@ -5,7 +5,7 @@ description: The versioned bundle spec — layered discovery, the tsdoctor.json 
 kind: package
 layer: L2
 resource: ../../packages/bundle
-status: draft
+status: stable
 tags: [architecture, compat]
 sources:
   - id: src
@@ -13,8 +13,8 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 87273206f11ba2682396cdbe7faf4ff93469662960db401c8c3b5f94b60a9656
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 2db1e8fe634f87b2b4dd192c0833f985ab50faf7f98a6d84f5968e70fbac0e99
 ---
 
 # @tsdoctor/bundle
@@ -42,6 +42,14 @@ channel, and callers compose the platform at the edge, the same posture
 `ConfigService.resolve`, `platforms/vitepress`'s `Generate.ts`) call
 `loadBundle` then `resolveBundleFrom` and publish the resolved Open Graph
 images through `publishBundleAssets`.
+
+Peers: `effect`, `image-size`, `@tsdoctor/manifest`, and the seven
+`@effected` packages whose types appear in this package's public `.d.ts`
+surface: `github`, `jsonc`, `npm`, `package-json`, `store`,
+`tsconfig-json` and `xdg`, each `catalog:effected:peers`. `@effected/glob`
+and `@effected/walker` are used internally only, so they are ordinary
+`dependencies` (`catalog:effected`). See
+[core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
 
 ## Public surface
 

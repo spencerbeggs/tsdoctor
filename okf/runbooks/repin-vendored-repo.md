@@ -8,6 +8,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: d630825b8a7998cea40fbdd3110ad875b8eb66518fa1123bcd17444d918663e8
+status: stable
 ---
 
 # Re-pin a vendored reference repo after a dependency bump

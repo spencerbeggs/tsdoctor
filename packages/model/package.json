@@ -32,13 +32,15 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@microsoft/api-extractor-model": "^7.33.13",
-		"@microsoft/tsdoc": "~0.16.0",
+		"@effected/yaml": "catalog:effected",
+		"@microsoft/api-extractor-model": "catalog:build",
+		"@microsoft/tsdoc": "~0.17.0",
 		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {
 		"@effected/markdown": "catalog:effected",
-		"@effected/yaml": "catalog:effected",
+		"@effected/store": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.9",
 		"@tsdoctor/snapshot": "workspace:*",
 		"@types/node": "catalog:build",
@@ -46,8 +48,8 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/markdown": "catalog:effected",
-		"@effected/yaml": "catalog:effected:peers",
+		"@effected/markdown": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
 		"effect": "catalog:effect"
 	},
 	"engines": {

@@ -1,13 +1,16 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Consolidate into one monorepo
 description: Move the type registry, the model library and the RSPress plugin into one monorepo under packages/ and platforms/.
 tags: [architecture, release]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 70460e18b62a915c1b7ee2d6e5e16a0324bbf2d0743164f6f6348b921a9ab4d3
+  at: 2026-09-24T20:28:47Z
+  body_sha256: 5bc538948ea7c5bb049651e72ae0461392453ff683c408d4548cf5f58742367c
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # Consolidate into one monorepo
@@ -30,6 +33,9 @@ workspace globs `modules/*`, `packages/*`, `platforms/*`, `sites/*`:
   `@tsdoctor/registry`[^1], with its peer-dependency closure preserved
   exactly, since those peer rules exist for Effect-version resolution
   safety and the move changed the repository, not the resolution model.
+  That clause alone is superseded: which `@effected` edges are peers is
+  now decided by
+  [core-peers-follow-public-surface](core-peers-follow-public-surface.md).
 - `api-extractor-llms` seeded `packages/model` as `@tsdoctor/model`[^2],
   dropping its template peers in favor of plain dependencies on
   `@microsoft/api-extractor-model` and `@microsoft/tsdoc`.

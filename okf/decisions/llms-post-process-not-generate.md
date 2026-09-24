@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Post-process llms.txt rather than generate it
 description: The RSPress adapter rewrites @rspress/plugin-llms' own output instead of generating llms.txt from scratch.
 generated:
@@ -13,6 +13,9 @@ sources:
     resource: ../../platforms/rspress/src/llms-program.ts
   - id: llms-transforms
     resource: ../../packages/pages/src/Llms.ts
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # Post-process llms.txt rather than generate it

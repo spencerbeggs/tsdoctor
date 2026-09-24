@@ -8,6 +8,7 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: 635875b8da91d000e4717847e0bb8d569a1f86611a0239598eb9409ad7413c9c
+status: stable
 ---
 
 # `with-api` scope inference never fires

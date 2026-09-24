@@ -13,6 +13,7 @@ sources:
     resource: ../../packages/snapshot/src/SnapshotService.ts
   - id: content-hash-src
     resource: ../../packages/snapshot/src/content-hash.ts
+status: stable
 ---
 
 # Snapshot database

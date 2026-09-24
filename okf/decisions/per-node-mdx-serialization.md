@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: MDX pages serialize each block node separately, joins owned by the emitter
 description: emitMdxBody serializes each block's mdast node as its own one-node Root and places the separators itself, because the kit's MDX-presence escaping is tree-wide.
 tags: [architecture]
@@ -8,6 +8,9 @@ generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
   body_sha256: c5982ae55dcf97c5135cd895bd7f6b07ed87405bf8029dea86a3b75dd78633b1
+verified:
+  - by: human:spencer
+    at: 2026-09-24T20:24:18Z
 ---
 
 # MDX pages serialize each block node separately, joins owned by the emitter
