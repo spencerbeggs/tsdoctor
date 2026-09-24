@@ -32,10 +32,10 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@microsoft/api-extractor-model": "^7.33.12",
+		"@microsoft/api-extractor-model": "^7.33.13",
 		"@tsdoctor/model": "workspace:*",
 		"@tsdoctor/seo": "workspace:*",
-		"prettier": "^3.9.8"
+		"prettier": "^3.9.9"
 	},
 	"devDependencies": {
 		"@effected/markdown": "catalog:effected",

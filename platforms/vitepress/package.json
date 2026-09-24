@@ -38,7 +38,7 @@
 		"@effected/store": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
-		"@microsoft/api-extractor-model": "^7.33.12",
+		"@microsoft/api-extractor-model": "^7.33.13",
 		"@shikijs/twoslash": "^4.4.3",
 		"@shikijs/vitepress-twoslash": "^4.4.3",
 		"@tsdoctor/bundle": "workspace:*",
