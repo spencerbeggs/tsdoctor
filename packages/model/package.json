@@ -34,7 +34,7 @@
 	"dependencies": {
 		"@effected/yaml": "catalog:effected",
 		"@microsoft/api-extractor-model": "catalog:build",
-		"@microsoft/tsdoc": "~0.17.0",
+		"@microsoft/tsdoc": "catalog:build",
 		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {
