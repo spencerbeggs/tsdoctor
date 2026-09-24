@@ -1,5 +1,21 @@
 # @tsdoctor/registry
 
+## 0.5.1
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/vfs | dependency | updated | 0.3.4 | 0.4.0 |
+
+[#288][#288]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#288]: https://github.com/spencerbeggs/tsdoctor/pull/288
+
 ## 0.5.0
 
 ### Dependencies
