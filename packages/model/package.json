@@ -34,14 +34,14 @@
 	"dependencies": {
 		"@effected/yaml": "catalog:effected",
 		"@microsoft/api-extractor-model": "catalog:build",
-		"@microsoft/tsdoc": "~0.17.0",
+		"@microsoft/tsdoc": "catalog:build",
 		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {
 		"@effected/markdown": "catalog:effected",
 		"@effected/store": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.9",
+		"@savvy-web/bundler": "^2.4.10",
 		"@tsdoctor/snapshot": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",

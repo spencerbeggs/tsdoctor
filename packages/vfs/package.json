@@ -35,10 +35,10 @@
 		"@effect/vitest": "catalog:effect",
 		"@effected/memfs": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.9",
+		"@savvy-web/bundler": "^2.4.10",
 		"@shikijs/twoslash": "^4.4.3",
 		"@types/node": "catalog:build",
-		"@typescript/vfs": "^1.6.4",
+		"@typescript/vfs": "^1.6.5",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
 	},
