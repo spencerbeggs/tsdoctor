@@ -1,5 +1,17 @@
 # @tsdoctor/vfs
 
+## 0.4.0
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @typescript/vfs | peerDependency | updated | ^1.6.4 | ^1.6.5 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.3.4
 
 ### Dependencies

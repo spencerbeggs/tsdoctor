@@ -1,5 +1,18 @@
 # @tsdoctor/snapshot
 
+## 0.4.0
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/jsonc | peerDependency | removed | ^0.13.0 | — |
+| @effected/jsonc | dependency | added | — | ^0.13.0 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.3.3
 
 ### Dependencies
