@@ -42,7 +42,7 @@
 		"@effected/package-json": "catalog:effected",
 		"@effected/schema-org": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.10",
+		"@savvy-web/bundler": "^2.4.11",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"
