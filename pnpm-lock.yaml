@@ -298,8 +298,8 @@ importers:
         specifier: ^4.2.9
         version: 4.2.9(@changesets/cli@3.0.3)(@commitlint/cli@21.2.3(@types/node@26.6.2)(conventional-commits-parser@7.1.2)(typescript@7.0.2))(@commitlint/config-conventional@21.2.3)(@effected/config-file@0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@types/bun@1.4.2)(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.1)(@vitest/coverage-v8@5.0.1)(@vitest/expect@5.0.1)(husky@9.1.7)(lint-staged@17.5.1)(markdownlint-cli2-formatter-codequality@0.0.8(markdownlint-cli2@0.23.3(supports-color@8.1.1)))(markdownlint-cli2@0.23.3(supports-color@8.1.1))(redis@6.2.1)(supports-color@8.1.1)(tsx@4.23.15)(turbo@2.11.3)(typescript@7.0.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))(vitest@5.0.1)
       '@vitest-agent/plugin':
-        specifier: ^4.1.7
-        version: 4.1.7(@types/react@19.3.0)(@vitest/coverage-istanbul@5.0.1)(@vitest/coverage-v8@5.0.1)(redis@6.2.1)(vitest@5.0.1)
+        specifier: ^5.0.0
+        version: 5.0.0(@effected/config-file@0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@types/react@19.3.0)(@vitest/coverage-istanbul@5.0.1)(@vitest/coverage-v8@5.0.1)(redis@6.2.1)(vitest@5.0.1)
 
   modules/effect-kit:
     devDependencies:
@@ -1065,13 +1065,13 @@ importers:
     devDependencies:
       '@shikijs/vitepress-twoslash':
         specifier: ^4.4.3
-        version: 4.4.3(supports-color@8.1.1)(typescript@7.0.2)
+        version: 4.4.3(supports-color@8.1.1)(typescript@6.0.3)
       '@types/node':
         specifier: catalog:docs
         version: 26.6.2
       vitepress:
         specifier: catalog:docs
-        version: 2.0.0-alpha.20(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(nprogress@0.2.0)(postcss@8.5.28)(tsx@4.23.15)(typescript@7.0.2)(yaml@2.9.1)
+        version: 2.0.0-alpha.20(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(nprogress@0.2.0)(postcss@8.5.28)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)
       vitepress-plugin-api-extractor:
         specifier: workspace:*
         version: link:../../platforms/vitepress/dist/dev/pkg
@@ -1378,6 +1378,16 @@ packages:
       '@effected/config-file':
         optional: true
 
+  '@effected/cli@0.9.0':
+    resolution: {integrity: sha512-P7uXn7rDjXdVpqnuD3fyhCXZXi1iaBZE2/6RZf1f8phBxLMtBi9Ixni5e+SHAxXQGm2pPdNSP5Zw4+9ZnVxAjA==}
+    engines: {node: '>=24.11.0'}
+    peerDependencies:
+      '@effected/config-file': ^0.12.0
+      effect: 4.0.0-rc.117
+    peerDependenciesMeta:
+      '@effected/config-file':
+        optional: true
+
   '@effected/commands@0.9.0':
     resolution: {integrity: sha512-2gHSTsV+3lQqRNv5Sbv3lv6Yv2GWGCIIZ35rv7f5BhCV3boaHwhDNT1EZAJLCw1i7V+WNX1tGE7wX+ag+n3r6A==}
     engines: {node: '>=24.11.0'}
@@ -1463,6 +1473,13 @@ packages:
       '@effected/engine': ^0.1.0
       effect: 4.0.0-rc.117
 
+  '@effected/mcp@0.2.0':
+    resolution: {integrity: sha512-I50cYBhG6SFilQOj9uWTYSPE0b619ueyuaRqsL7LNdHavleoSgBvgUqDIEveRSQ82tj2h3aO825658xm/8e2nw==}
+    engines: {node: '>=24.11.0'}
+    peerDependencies:
+      '@effected/engine': ^0.1.0
+      effect: 4.0.0-rc.117
+
   '@effected/memfs@0.9.0':
     resolution: {integrity: sha512-jJbtY+k02epj1w5ZQjn1UkJX+AcWJlTaG3W6zwrtZz/9t1tiV7LRD0WrgsGKD7KNOMAO15ZcmLiucwZ5AHTiTw==}
     engines: {node: '>=24.11.0'}
@@ -1541,6 +1558,12 @@ packages:
 
   '@effected/workspaces@0.26.0':
     resolution: {integrity: sha512-GNAvhtPaQM/IeKx/yJ8lcFsQdux9VWNtHc+G5upX1WKhWpnva4wMFRGA6SXEwUIMbYpCLQsbP/yDIZLWx9kK1g==}
+    engines: {node: '>=24.11.0'}
+    peerDependencies:
+      effect: 4.0.0-rc.117
+
+  '@effected/workspaces@0.27.0':
+    resolution: {integrity: sha512-ByNDLVqxiwLBBfMqwZVYKtRJxBDz/gj3DmmELdtHgw7r2ZvfiXWEicDqm62A21bSeM2NmlC6LDJqy7MexP8xdg==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       effect: 4.0.0-rc.117
@@ -2759,24 +2782,24 @@ packages:
       vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
       vue: ^3.2.25
 
-  '@vitest-agent/cli@3.1.6':
-    resolution: {integrity: sha512-IjonV6FInfdZpCXJPwFZalZ8L+A3L/zAgRgBkfgIQdE6UlowEme/DQVlmurSIGRJcspRakdEmRKOQC80bHhI5A==}
+  '@vitest-agent/cli@3.2.0':
+    resolution: {integrity: sha512-Q6+LoDCfxq91BsY2Zvlf+uSK1qykCyx8x+9oMF73eW8NZ2EQtqIqPvIre83p2Gad5ZSXoXwyB0DeUsVK8UsfJQ==}
     engines: {node: '>=24.11.0'}
     hasBin: true
 
-  '@vitest-agent/engine@0.2.6':
-    resolution: {integrity: sha512-fp04+sGfarcY8LzDczYnl9R/BMnaTfaOyBag+oz4ha5+Krqm9a+Essm32yOnfoN2hLbiVXWXAX8nTh7SAhao6g==}
+  '@vitest-agent/engine@0.2.7':
+    resolution: {integrity: sha512-vdMDsDQi3oXSUjXTQwBsJUWX7rMReb7MNIaWvUaYN4lWusm+e2WUZT24s5lgyzp9Di5GMK0pYWBp0E/SrHiemw==}
     engines: {node: '>=24.11.0'}
 
-  '@vitest-agent/mcp@4.3.2':
-    resolution: {integrity: sha512-1k7UU6fKqWmm9roDgDgi+xzd1jNdYgu10wjWAvKUVLzqXAW2yQFwsLruAnWmyNesI5KKA2rLTefkdQfhFyf15g==}
+  '@vitest-agent/mcp@5.0.0':
+    resolution: {integrity: sha512-Z+JISxzq2CTwV484dyUC6u45yc6G3S2oLclQ/oAQhS8g9UzdA6roQr1REzPm5a63jok4CsP+ZfkdXU3KGT0daw==}
     engines: {node: '>=24.11.0'}
     hasBin: true
     peerDependencies:
       vitest: ^5.0.0
 
-  '@vitest-agent/plugin@4.1.7':
-    resolution: {integrity: sha512-JzryHtTusRSqPcqD+mu6ksLI6VyFdT3Ya6pd4IO1Q7U44d//vHHTFIbFWcYwaSGmC7y8UVECTIzXuou5N8BFuA==}
+  '@vitest-agent/plugin@5.0.0':
+    resolution: {integrity: sha512-iCM7jWs8U+fDIH4HdoyE3dzUTbwCd9JrTUWZgOwun8scLjSc44vqUmecTzeEClfkaBPG86Z2JFkkEW0iIs1Vlw==}
     engines: {node: '>=24.11.0'}
     hasBin: true
     peerDependencies:
@@ -5548,6 +5571,12 @@ snapshots:
     optionalDependencies:
       '@effected/config-file': 0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
 
+  '@effected/cli@0.9.0(@effected/config-file@0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)':
+    dependencies:
+      effect: 4.0.0-rc.117
+    optionalDependencies:
+      '@effected/config-file': 0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
+
   '@effected/commands@0.9.0(effect@4.0.0-rc.117)':
     dependencies:
       effect: 4.0.0-rc.117
@@ -5613,6 +5642,11 @@ snapshots:
       '@effected/engine': 0.1.0(effect@4.0.0-rc.117)
       effect: 4.0.0-rc.117
 
+  '@effected/mcp@0.2.0(@effected/engine@0.1.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)':
+    dependencies:
+      '@effected/engine': 0.1.0(effect@4.0.0-rc.117)
+      effect: 4.0.0-rc.117
+
   '@effected/memfs@0.9.0(effect@4.0.0-rc.117)':
     dependencies:
       effect: 4.0.0-rc.117
@@ -5673,6 +5707,24 @@ snapshots:
       effect: 4.0.0-rc.117
 
   '@effected/workspaces@0.26.0(effect@4.0.0-rc.117)':
+    dependencies:
+      '@effected/commands': 0.9.0(effect@4.0.0-rc.117)
+      '@effected/git': 0.17.0(effect@4.0.0-rc.117)
+      '@effected/glob': 0.8.0(effect@4.0.0-rc.117)
+      '@effected/jsonc': 0.13.0(effect@4.0.0-rc.117)
+      '@effected/lockfiles': 0.11.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/npm@0.16.0(@effected/semver@0.9.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/semver@0.9.0(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
+      '@effected/npm': 0.16.0(@effected/semver@0.9.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
+      '@effected/package-json': 0.17.0(effect@4.0.0-rc.117)
+      '@effected/semver': 0.9.0(effect@4.0.0-rc.117)
+      '@effected/walker': 0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
+      '@effected/yaml': 0.17.0(effect@4.0.0-rc.117)
+      '@pnpm/catalogs.config': 1100.0.7
+      '@pnpm/catalogs.protocol-parser': 1100.0.1
+      '@pnpm/catalogs.resolver': 1100.1.0
+      '@pnpm/catalogs.types': 1100.0.1
+      effect: 4.0.0-rc.117
+
+  '@effected/workspaces@0.27.0(effect@4.0.0-rc.117)':
     dependencies:
       '@effected/commands': 0.9.0(effect@4.0.0-rc.117)
       '@effected/git': 0.17.0(effect@4.0.0-rc.117)
@@ -6783,15 +6835,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@shikijs/twoslash@4.4.3(supports-color@8.1.1)(typescript@7.0.2)':
-    dependencies:
-      '@shikijs/core': 4.4.3
-      '@shikijs/types': 4.4.3
-      twoslash: 0.3.9(supports-color@8.1.1)(typescript@7.0.2)
-      typescript: 7.0.2
-    transitivePeerDependencies:
-      - supports-color
-
   '@shikijs/types@4.4.3':
     dependencies:
       '@shikijs/vscode-textmate': 10.0.2
@@ -6812,26 +6855,6 @@ snapshots:
       twoslash: 0.3.9(supports-color@8.1.1)(typescript@6.0.3)
       twoslash-vue: 0.3.9(supports-color@8.1.1)(typescript@6.0.3)
       vue: 3.5.43(typescript@6.0.3)
-    transitivePeerDependencies:
-      - '@nuxt/kit'
-      - supports-color
-      - typescript
-
-  '@shikijs/vitepress-twoslash@4.4.3(supports-color@8.1.1)(typescript@7.0.2)':
-    dependencies:
-      '@shikijs/twoslash': 4.4.3(supports-color@8.1.1)(typescript@7.0.2)
-      floating-vue: 5.4.0(vue@3.5.43(typescript@7.0.2))
-      lz-string: 1.5.0
-      magic-string: 1.4.2
-      markdown-it: 14.3.2
-      mdast-util-from-markdown: 2.0.3(supports-color@8.1.1)
-      mdast-util-gfm: 3.1.0(supports-color@8.1.1)
-      mdast-util-to-hast: 13.2.1
-      ohash: 2.0.12
-      shiki: 4.4.3
-      twoslash: 0.3.9(supports-color@8.1.1)(typescript@7.0.2)
-      twoslash-vue: 0.3.9(supports-color@8.1.1)(typescript@7.0.2)
-      vue: 3.5.43(typescript@7.0.2)
     transitivePeerDependencies:
       - '@nuxt/kit'
       - supports-color
@@ -7044,13 +7067,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript/vfs@1.6.5(supports-color@8.1.1)(typescript@7.0.2)':
-    dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
-      typescript: 7.0.2
-    transitivePeerDependencies:
-      - supports-color
-
   '@ungap/structured-clone@1.4.0': {}
 
   '@unhead/react@2.1.17(react@19.3.0)':
@@ -7064,36 +7080,34 @@ snapshots:
       vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1)
       vue: 3.5.43(typescript@6.0.3)
 
-  '@vitejs/plugin-vue@6.0.9(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.43(typescript@7.0.2))':
-    dependencies:
-      '@rolldown/pluginutils': 1.0.1
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1)
-      vue: 3.5.43(typescript@7.0.2)
-
-  '@vitest-agent/cli@3.1.6(redis@6.2.1)':
+  '@vitest-agent/cli@3.2.0(@effected/config-file@0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(redis@6.2.1)':
     dependencies:
       '@effect/platform-node': 4.0.0-rc.117(effect@4.0.0-rc.117)(redis@6.2.1)
       '@effect/sql-sqlite-node': 4.0.0-rc.117(effect@4.0.0-rc.117)
-      '@effected/workspaces': 0.26.0(effect@4.0.0-rc.117)
-      '@vitest-agent/engine': 0.2.6(redis@6.2.1)
+      '@effected/cli': 0.9.0(@effected/config-file@0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
+      '@effected/engine': 0.1.0(effect@4.0.0-rc.117)
+      '@effected/workspaces': 0.27.0(effect@4.0.0-rc.117)
+      '@vitest-agent/engine': 0.2.7(redis@6.2.1)
       '@vitest-agent/sdk': 5.1.2
       '@vitest-agent/sidecar': 2.2.2
       effect: 4.0.0-rc.117
     transitivePeerDependencies:
+      - '@effected/config-file'
       - bufferutil
       - redis
       - utf-8-validate
 
-  '@vitest-agent/engine@0.2.6(redis@6.2.1)':
+  '@vitest-agent/engine@0.2.7(redis@6.2.1)':
     dependencies:
       '@effect/platform-node': 4.0.0-rc.117(effect@4.0.0-rc.117)(redis@6.2.1)
       '@effect/sql-sqlite-node': 4.0.0-rc.117(effect@4.0.0-rc.117)
       '@effected/config-file': 0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
+      '@effected/engine': 0.1.0(effect@4.0.0-rc.117)
       '@effected/glob': 0.8.0(effect@4.0.0-rc.117)
       '@effected/jsonc': 0.13.0(effect@4.0.0-rc.117)
       '@effected/toml': 0.9.0(effect@4.0.0-rc.117)
       '@effected/walker': 0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
-      '@effected/workspaces': 0.26.0(effect@4.0.0-rc.117)
+      '@effected/workspaces': 0.27.0(effect@4.0.0-rc.117)
       '@effected/xdg': 0.7.0(@effected/config-file@0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
       '@effected/yaml': 0.17.0(effect@4.0.0-rc.117)
       '@vitest-agent/sdk': 5.1.2
@@ -7104,11 +7118,13 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@vitest-agent/mcp@4.3.2(redis@6.2.1)(vitest@5.0.1)':
+  '@vitest-agent/mcp@5.0.0(redis@6.2.1)(vitest@5.0.1)':
     dependencies:
       '@effect/platform-node': 4.0.0-rc.117(effect@4.0.0-rc.117)(redis@6.2.1)
       '@effect/sql-sqlite-node': 4.0.0-rc.117(effect@4.0.0-rc.117)
-      '@vitest-agent/engine': 0.2.6(redis@6.2.1)
+      '@effected/engine': 0.1.0(effect@4.0.0-rc.117)
+      '@effected/mcp': 0.2.0(@effected/engine@0.1.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117)
+      '@vitest-agent/engine': 0.2.7(redis@6.2.1)
       '@vitest-agent/sdk': 5.1.2
       effect: 4.0.0-rc.117
       vitest: 5.0.1(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.1)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))
@@ -7117,14 +7133,14 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@vitest-agent/plugin@4.1.7(@types/react@19.3.0)(@vitest/coverage-istanbul@5.0.1)(@vitest/coverage-v8@5.0.1)(redis@6.2.1)(vitest@5.0.1)':
+  '@vitest-agent/plugin@5.0.0(@effected/config-file@0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@types/react@19.3.0)(@vitest/coverage-istanbul@5.0.1)(@vitest/coverage-v8@5.0.1)(redis@6.2.1)(vitest@5.0.1)':
     dependencies:
       '@effect/platform-node': 4.0.0-rc.117(effect@4.0.0-rc.117)(redis@6.2.1)
       '@effected/glob': 0.8.0(effect@4.0.0-rc.117)
-      '@effected/workspaces': 0.26.0(effect@4.0.0-rc.117)
-      '@vitest-agent/cli': 3.1.6(redis@6.2.1)
-      '@vitest-agent/engine': 0.2.6(redis@6.2.1)
-      '@vitest-agent/mcp': 4.3.2(redis@6.2.1)(vitest@5.0.1)
+      '@effected/workspaces': 0.27.0(effect@4.0.0-rc.117)
+      '@vitest-agent/cli': 3.2.0(@effected/config-file@0.12.0(@effected/jsonc@0.13.0(effect@4.0.0-rc.117))(@effected/toml@0.9.0(effect@4.0.0-rc.117))(@effected/walker@0.12.0(@effected/glob@0.8.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(@effected/yaml@0.17.0(effect@4.0.0-rc.117))(effect@4.0.0-rc.117))(redis@6.2.1)
+      '@vitest-agent/engine': 0.2.7(redis@6.2.1)
+      '@vitest-agent/mcp': 5.0.0(redis@6.2.1)(vitest@5.0.1)
       '@vitest-agent/reporter': 3.1.2(@types/react@19.3.0)(@vitest/coverage-istanbul@5.0.1)(@vitest/coverage-v8@5.0.1)(redis@6.2.1)(vitest@5.0.1)
       '@vitest-agent/sdk': 5.1.2
       '@vitest/coverage-istanbul': 5.0.1(vitest@5.0.1)
@@ -7133,6 +7149,7 @@ snapshots:
       magic-string: 1.4.2
       vitest: 5.0.1(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.1)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))
     transitivePeerDependencies:
+      - '@effected/config-file'
       - '@types/react'
       - bufferutil
       - react-devtools-core
@@ -7355,13 +7372,6 @@ snapshots:
       '@vueuse/shared': 14.4.0(vue@3.5.43(typescript@6.0.3))
       vue: 3.5.43(typescript@6.0.3)
 
-  '@vueuse/core@14.4.0(vue@3.5.43(typescript@7.0.2))':
-    dependencies:
-      '@types/web-bluetooth': 0.0.21
-      '@vueuse/metadata': 14.4.0
-      '@vueuse/shared': 14.4.0(vue@3.5.43(typescript@7.0.2))
-      vue: 3.5.43(typescript@7.0.2)
-
   '@vueuse/integrations@14.4.0(focus-trap@8.2.2)(nprogress@0.2.0)(vue@3.5.43(typescript@6.0.3))':
     dependencies:
       '@vueuse/core': 14.4.0(vue@3.5.43(typescript@6.0.3))
@@ -7371,24 +7381,11 @@ snapshots:
       focus-trap: 8.2.2
       nprogress: 0.2.0
 
-  '@vueuse/integrations@14.4.0(focus-trap@8.2.2)(nprogress@0.2.0)(vue@3.5.43(typescript@7.0.2))':
-    dependencies:
-      '@vueuse/core': 14.4.0(vue@3.5.43(typescript@7.0.2))
-      '@vueuse/shared': 14.4.0(vue@3.5.43(typescript@7.0.2))
-      vue: 3.5.43(typescript@7.0.2)
-    optionalDependencies:
-      focus-trap: 8.2.2
-      nprogress: 0.2.0
-
   '@vueuse/metadata@14.4.0': {}
 
   '@vueuse/shared@14.4.0(vue@3.5.43(typescript@6.0.3))':
     dependencies:
       vue: 3.5.43(typescript@6.0.3)
-
-  '@vueuse/shared@14.4.0(vue@3.5.43(typescript@7.0.2))':
-    dependencies:
-      vue: 3.5.43(typescript@7.0.2)
 
   '@yuku-codegen/binding-android-arm64@0.10.2':
     optional: true
@@ -7881,11 +7878,6 @@ snapshots:
     dependencies:
       '@floating-ui/dom': 1.8.0
       vue: 3.5.43(typescript@6.0.3)
-
-  floating-vue@5.4.0(vue@3.5.43(typescript@7.0.2)):
-    dependencies:
-      '@floating-ui/dom': 1.8.0
-      vue: 3.5.43(typescript@7.0.2)
 
   flru@1.0.2: {}
 
@@ -9535,28 +9527,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  twoslash-vue@0.3.9(supports-color@8.1.1)(typescript@7.0.2):
-    dependencies:
-      '@vue/language-core': 3.3.11
-      twoslash: 0.3.9(supports-color@8.1.1)(typescript@7.0.2)
-      twoslash-protocol: 0.3.9
-      typescript: 7.0.2
-    transitivePeerDependencies:
-      - supports-color
-
   twoslash@0.3.9(supports-color@8.1.1)(typescript@6.0.3):
     dependencies:
       '@typescript/vfs': 1.6.5(supports-color@8.1.1)(typescript@6.0.3)
       twoslash-protocol: 0.3.9
       typescript: 6.0.3
-    transitivePeerDependencies:
-      - supports-color
-
-  twoslash@0.3.9(supports-color@8.1.1)(typescript@7.0.2):
-    dependencies:
-      '@typescript/vfs': 1.6.5(supports-color@8.1.1)(typescript@7.0.2)
-      twoslash-protocol: 0.3.9
-      typescript: 7.0.2
     transitivePeerDependencies:
       - supports-color
 
@@ -9754,53 +9729,6 @@ snapshots:
       - universal-cookie
       - yaml
 
-  vitepress@2.0.0-alpha.20(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(nprogress@0.2.0)(postcss@8.5.28)(tsx@4.23.15)(typescript@7.0.2)(yaml@2.9.1):
-    dependencies:
-      '@docsearch/css': 4.7.0
-      '@docsearch/js': 4.7.0
-      '@docsearch/sidepanel-js': 4.7.0
-      '@iconify-json/simple-icons': 1.2.97
-      '@shikijs/transformers': 4.4.3
-      '@types/markdown-it': 14.2.0
-      '@vitejs/plugin-vue': 6.0.9(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.43(typescript@7.0.2))
-      '@vue/devtools-api': 8.2.1
-      '@vue/shared': 3.5.43
-      '@vueuse/core': 14.4.0(vue@3.5.43(typescript@7.0.2))
-      '@vueuse/integrations': 14.4.0(focus-trap@8.2.2)(nprogress@0.2.0)(vue@3.5.43(typescript@7.0.2))
-      focus-trap: 8.2.2
-      mark.js: 8.11.1
-      minisearch: 7.2.0
-      shiki: 4.4.3
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1)
-      vue: 3.5.43(typescript@7.0.2)
-    optionalDependencies:
-      postcss: 8.5.28
-    transitivePeerDependencies:
-      - '@types/node'
-      - '@vitejs/devtools'
-      - async-validator
-      - axios
-      - change-case
-      - drauu
-      - esbuild
-      - fuse.js
-      - idb-keyval
-      - jiti
-      - jwt-decode
-      - less
-      - nprogress
-      - qrcode
-      - sass
-      - sass-embedded
-      - sortablejs
-      - stylus
-      - sugarss
-      - terser
-      - tsx
-      - typescript
-      - universal-cookie
-      - yaml
-
   vitest@5.0.1(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.1)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
@@ -9846,16 +9774,6 @@ snapshots:
       '@vue/shared': 3.5.43
     optionalDependencies:
       typescript: 6.0.3
-
-  vue@3.5.43(typescript@7.0.2):
-    dependencies:
-      '@vue/compiler-dom': 3.5.43
-      '@vue/compiler-sfc': 3.5.43
-      '@vue/runtime-dom': 3.5.43
-      '@vue/server-renderer': 3.5.43
-      '@vue/shared': 3.5.43
-    optionalDependencies:
-      typescript: 7.0.2
 
   web-namespaces@2.0.1: {}
 
