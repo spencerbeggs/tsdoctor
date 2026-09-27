@@ -1,5 +1,13 @@
 # Log
 
+## 2026-09-27
+
+* Added Debug runtime component CSS in a live fixture site
+* Updated Services own their layers
+* Updated The tsdoctor monorepo workspace
+* Updated Vendored reference repos under .repos/
+* Updated rspress-plugin-api-extractor
+
 ## 2026-09-24
 
 * Updated @effected is the foundation: check before hand-rolling
