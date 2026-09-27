@@ -88,10 +88,10 @@ pnpm vitest run packages/model/
 Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
 bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
-- @../../okf/modules/tsdoctor-model.md
-- @../../okf/modules/rspress-plugin-api-extractor.md
-- @../../okf/decisions/route-collisions-fail-the-build.md
-- @../../okf/limitations/collision-detection-by-final-route.md
-- @../../okf/decisions/single-anchor-algorithm.md
-- @../../okf/decisions/linker-is-a-scope.md
-- @../../okf/decisions/deprecate-model-render.md
+- `../../okf/modules/tsdoctor-model.md`
+- `../../okf/modules/rspress-plugin-api-extractor.md`
+- `../../okf/decisions/route-collisions-fail-the-build.md`
+- `../../okf/limitations/collision-detection-by-final-route.md`
+- `../../okf/decisions/single-anchor-algorithm.md`
+- `../../okf/decisions/linker-is-a-scope.md`
+- `../../okf/decisions/deprecate-model-render.md`

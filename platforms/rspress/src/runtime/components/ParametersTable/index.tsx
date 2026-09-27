@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { stripTags } from "../../utils/strip-tags.js";
 import { MarkdownContent } from "../MarkdownContent/index.js";
 import styles from "./index.module.css";
 
@@ -47,7 +48,7 @@ export const ParametersTable = ({ parameters }: ParametersTableProps): ReactElem
 			const name = `\`${param.name}\``;
 			const type = param.type ? `\`${param.type}\`` : "";
 			// Strip HTML from description for markdown
-			const description = param.description.replace(/<[^>]*>/g, "").trim();
+			const description = stripTags(param.description).trim();
 			markdown += `| ${name} | ${type} | ${description} |\n`;
 		}
 

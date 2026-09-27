@@ -3,7 +3,7 @@ import { stripTwoslashDirectives } from "@tsdoctor/pages";
 import type { Code, Parent, Root } from "mdast";
 import type { MdxJsxFlowElement } from "mdast-util-mdx-jsx";
 import type { ShikiTransformer } from "shiki";
-import { codeToHast, hastToHtml } from "shiki";
+import { codeToHast } from "shiki";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
 import type { ShikiThemeConfig } from "./markdown/shiki-utils.js";
@@ -205,20 +205,16 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 					}),
 				);
 
+				// The code a reader sees and copies: Prettier-formatted, Twoslash
+				// directives and pre-cut lines stripped. SSG-MD output uses it too,
+				// because the HAST's text nodes also carry hover-popup text.
+				const displayCode = stripTwoslashDirectives(code);
+
 				// Replace the code block with appropriate output based on build target
 				if (parent && typeof index === "number") {
 					if (isSsgMd) {
 						// SSG-MD mode: Keep as plain markdown code block
-						// Convert HAST to HTML then extract clean code by removing all tags
-						const html = hastToHtml(hast);
-						const cleanCode = html
-							.replace(/<[^>]*>/g, "")
-							.replace(/&lt;/g, "<")
-							.replace(/&gt;/g, ">")
-							.replace(/&amp;/g, "&")
-							.replace(/&quot;/g, '"')
-							.replace(/&#39;/g, "'")
-							.trim();
+						const cleanCode = displayCode.trim();
 
 						// Replace with clean markdown code block
 						node.lang = "typescript";
@@ -227,8 +223,6 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 						// Don't replace the node, just modify it in place
 					} else {
 						// Regular mode: Use ApiExample component
-						// Strip Twoslash directives from code for copy functionality
-						const displayCode = stripTwoslashDirectives(code);
 						// Pass HAST as a JSON string - the component parses it
 						const hastJson = JSON.stringify(hast);
 						const mdxNode: MdxJsxFlowElement = {

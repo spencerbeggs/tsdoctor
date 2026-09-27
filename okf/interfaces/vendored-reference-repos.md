@@ -7,8 +7,8 @@ resource: ../../.repos/config.json
 tags: [dx, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-09-20T01:38:38Z
-  body_sha256: d9d316e3261941175d3e639934043ffc0e67082c458821dd43762a413a31b7bd
+  at: 2026-09-27T18:02:38Z
+  body_sha256: f7ed9f18ea298dce0d8cda775395d701a24d392ce0da00b61c5c4d25a7212835
 sources:
   - id: repos-config
     resource: ../../.repos/config.json
@@ -56,7 +56,7 @@ read instead of training-data memory.[^gitmodules][^repos-config]
 | `rspress` | `v2.0.17` | `packages/core/src`, `website/docs/en` | `packages/core/src/index.ts` |
 | `twoslash` | `v0.3.9` | `packages/twoslash/src`, `docs` | `packages/twoslash/src/index.ts` |
 | `rsbuild` | `v2.1.5` | `packages/core/src`, `website/docs/en` | `packages/core/src/index.ts` |
-| `effect` | `effect@4.0.0-rc.116` | `packages/effect/src`, `migration` | `packages/effect/src/index.ts` |
+| `effect` | `effect@4.0.0-rc.117` | `packages/effect/src`, `migration` | `packages/effect/src/index.ts` |
 | `vitepress` | `v2.0.0-alpha.19` | `src/node`, `src/client`, `src/shared`, `docs/en` | `src/node/siteConfig.ts` |
 | `shiki` | `v4.4.3` | `packages/twoslash`, `packages/shiki`, `packages/vitepress-twoslash` | `packages/twoslash/src/index.ts` |
 

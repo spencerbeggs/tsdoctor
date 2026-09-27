@@ -7,8 +7,8 @@ resource: ../../platforms/rspress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-24T20:28:47Z
-  body_sha256: 82f3a1dbe6dc3332b02bb226f1bb5d28c668bd995ef9e2b8ac4dc5ac3c5f7736
+  at: 2026-09-27T18:20:27Z
+  body_sha256: 2f0e953927e4a27e1d8d2199d9e6e816d2a930009f3c1f7761ef4a0cc6cc326a
 tags:
   - architecture
   - observability
@@ -90,25 +90,122 @@ Three export conditions (`platforms/rspress/package.json`):
   rendering, emitted bundleless per-file
 - `./tsconfig/rspress.json` → a published RSPress tsconfig sites extend from
 
-Key modules under `src/`:
+### Source layout
 
+Every file under `src/`, by concern. Model loading, route and anchor
+computation, `.d.ts` reconstruction, compiler-option parsing, content
+hashing, OG resolution and the page builders all live in core `@tsdoctor/*`
+packages — do not recreate a local copy here.
+
+Entry and lifecycle:
+
+- `src/index.ts` — the only barrel: `ApiExtractorPlugin`, the `serve`
+  surface, the config types and `DEFAULT_CATEGORIES`, plus the Open Graph
+  types re-exported from `@tsdoctor/seo`
 - `src/plugin.ts` — the RSPress adapter: `makeAppLayers` → both
   `ManagedRuntime`s, installs the sync-emitter and Twoslash-access holders,
   `isInert` lifecycle gating
-- `src/BuildEnv.ts` — the per-build `Context.Reference`s
-- `src/build-program.ts` — doc generation orchestration (the five-stage
-  pipeline); builds one `CrossLinker` per API
-- `src/build-stages.ts` — the Stream pipeline, page generation, file writes
-- `src/config-helpers.ts` / `src/config-utils.ts` — `fromDir` /
-  `fromParentDir` config builders and pure config classification
-- `src/emit/mdx.ts`, `src/emit/meta.ts` — the MDX body and `_meta.json` /
-  sidebar emitters
-- `src/markdown/helpers.ts` — `generateFrontmatter`, the one frontmatter
-  assembly helper left in that module
-- `src/services/`, `src/layers/` — Effect services and layer composition
-- `src/observability/` — the event bus, sinks, heartbeat, span helpers
-- `src/llms-program.ts` — llms.txt post-processing orchestration
-- `src/serve.ts` — the dev/preview runner
+- `src/BuildEnv.ts` — the per-build `Context.Reference`s: `BuildId`,
+  `Thresholds`, `PageConcurrency`, `SuppressExampleErrors`
+- `src/serve.ts` — `serve(options?)` plus `ServeOptions`, `ServeMode`,
+  `ResolvedServeConfig`, `isServerReady`, `resolveServeConfig`; used by the
+  sites' `lib/scripts/dev.mts` / `preview.mts`
+- `src/twoslash-access.ts` — module-level holder bridging RSPress's render
+  pass to `TwoslashEnvironments`; installed from inside a fiber, never bound
+  to a runtime
+
+Configuration:
+
+- `src/config-utils.ts` — pure helpers: `classifyApiConfig` (inert
+  detection), `mergeLlmsPluginConfig`, dependency extraction
+- `src/config-helpers.ts` — the `fromDir` / `fromParentDir` builders,
+  delegating discovery to `@tsdoctor/bundle`
+- `src/sync-node-fs.ts` — `SyncDiscoveryLayer`, a synchronous `FileSystem`
+  bridge so bundle discovery runs under the sync helper API
+- `src/model-loader.ts` — plain functions over `@tsdoctor/model`'s
+  `Model.load`, typed `ModelLoadError`
+- `src/category-resolver.ts` — category config merging across the
+  plugin/package/version chain (sidebar presentation and multiVersion
+  policy, deliberately adapter-local)
+- `src/path-derivation.ts` — `deriveOutputPaths` only, the
+  `docs/{locale}/{version}/…` layout; the scope helpers are imported from
+  `@tsdoctor/pages` directly
+- `src/schemas/` — `config.ts`, `observability.ts`, `performance.ts`; import
+  the concrete module
+- `src/internal-types.ts` — adapter-local `LoadedModel` and `PackageJson`,
+  plus re-exports of `@tsdoctor/vfs`'s compiler-options types
+- `src/errors.ts` — `ConfigValidationError` and `TypeRegistryError` only;
+  their `TaggedError` bases are not exported
+
+Generation and emission:
+
+- `src/build-program.ts` — per-API orchestration (the five-stage pipeline);
+  builds one `CrossLinker` per API and carries it in the pipeline context
+- `src/build-stages.ts` — the Stream pipeline: the `prepareWorkItems`
+  reporting wrapper, `generateSinglePage`, `writeSingleFile`,
+  `writeMetadata`, `cleanupAndCommit`
+- `src/emit/mdx.ts` — `emitMdxBody`, `escapeMdxGenerics`
+- `src/emit/meta.ts` — `renderRootMeta`, `renderCategoryMeta`,
+  `emitIndexPage`
+- `src/markdown/helpers.ts` — `generateFrontmatter` only;
+  `src/markdown/shiki-utils.ts`
+- `src/llms-program.ts` — llms.txt post-processing I/O
+
+Code blocks and Twoslash (render pass):
+
+- `src/remark-with-api.ts`, `src/remark-api-codeblocks.ts` — the remark
+  plugins that resolve a block's scope and render it
+- `src/vfs-registry.ts` — `VfsRegistry`, one `VfsConfig` per API scope
+- `src/shiki-transformer.ts` — `ShikiCrossLinker`, HAST post-processing
+- `src/twoslash-transformer.ts` — the Twoslash transformer per environment;
+  calls `@tsdoctor/vfs`'s `toProgrammaticCompilerOptions`, the single
+  tsconfig-to-programmatic seam
+- `src/twoslash-timing-wrapper.ts` — `createTwoslashTimingWrapper`, the
+  per-block `preprocess` timing wrapper
+- `src/hide-cut-transformer.ts` — `HideCutLinesTransformer`,
+  `MemberFormatTransformer`
+- `src/prettier-formatter.ts` — `formatCode` for code-block formatting
+
+Effect wiring:
+
+- `src/services/` — one file per `Context.Service`, each owning its layer
+  as a static (table under [Service layer](#service-layer))
+- `src/layers/AppLayer.ts` — `makeAppLayers(input)`, both stacks from one
+  call
+- `src/layers/config-resolution.ts` — `makeConfigService`, the effect
+  behind `ConfigService.layer`; split across `api-results.ts`,
+  `type-environment.ts` and `external-types.ts`
+- `src/layers/build-metrics.ts` — `BuildMetrics`, `MetricStore`,
+  `makeMetricStore`; the only import path for `BuildMetrics`
+- `src/layers/observability.ts` — `buildEventBus`, `BuiltSinks`,
+  `makeSummaryLoggerLayer`, `logBuildSummary`
+- `src/layers/xdg.ts` — `TSDOCTOR_NAMESPACE`, `PlatformLive`,
+  `AppDirsLive`: the one home both cache-backed layers share; never
+  re-declare the `"tsdoctor"` namespace literal
+
+Observability (`src/observability/`):
+
+- `events.ts` — the `PluginEvent` tagged enum, `EventLevel`,
+  `EventContext`, `levelOf`; read the file for the current variant list
+- `EventBus.ts` — the synchronous fan-out bus, `makeRuntimeEmitter`
+- `sync-emitter.ts` — the one sync-island bridge
+- `sinks/` — `console-sink.ts`, `trace-sink.ts`, `metrics-sink.ts`,
+  `issues-sink.ts`, `render-sink.ts`, `types.ts`
+- `metric-report.ts` — `seriesFor` / `codeBlockReport` over
+  `Metric.snapshot`
+- `heartbeat.ts` — the production-only progress heartbeat fiber
+- `spans.ts` — `withPhase`, `PHASE_THRESHOLD_KEY`
+
+Runtime (browser half):
+
+- `src/runtime/index.tsx` — the `./runtime` entry
+- `src/runtime/components/` — one directory per component; Twoslash popup
+  CSS is global in `shared/_twoslash.css`, theme variables in
+  `shared/variables.css`
+- `src/runtime/hooks/`, `src/runtime/utils/` — `useWrapToggle`, the HAST
+  decode/render helpers, `strip-tags.ts`
+- `src/env.d.ts` — the `*.module.css` and `ImportMetaEnv.SSG_MD`
+  declarations
 
 See the full interface contract at
 [rspress-plugin-options](../interfaces/rspress-plugin-options.md) and
@@ -254,7 +351,9 @@ gate), `CoreLayer` (`TypeRegistryService`, `TwoslashCacheService`,
 and need only the platform), and `BuildLayer` (`PluginConfig`,
 `HighlighterService.layer(themes)`, `TwoslashEnvironments`, `BuildEnvLayer` —
 scoped to this build's configuration). `app = ConfigService.layer` over
-`mergeAll(BuildLayer, CoreLayer, ObservabilityLayer, NodeFileSystem.layer)`;
+`mergeAll(BuildLayer, CoreLayer, ObservabilityLayer, NodeFileSystem.layer,
+Path.layer)` — `Path.layer` because `ConfigService.resolve` needs `Path.Path`
+to resolve each API's bundle;
 `emitter = mergeAll(ObservabilityLayer, BuildEnvLayer)`.
 
 Returning both stacks from one call is deliberate: the two runtimes must
@@ -322,6 +421,20 @@ absorbs interruption along with every other cause. `SnapshotService.layer`
 is the deliberate counter-example: its `StoreError | StoreMigrationError`
 channel stays in the error channel and stops the build
 (see [caches-degrade-snapshot-store-fails](../decisions/caches-degrade-snapshot-store-fails.md)).
+`TypeRegistryService` alone keeps a layer-level `Layer.catchCause`, because
+its construction can fail outside the cache; that catch re-raises
+interruption rebuilt from the original cause's interruptors —
+`Effect.interrupt` would name the current fiber and misattribute the
+cancellation. Both cache layers take their platform and XDG root from
+`src/layers/xdg.ts`.
+
+Write v4 idioms throughout: `Context.Service<Self, Shape>()("id")` tags;
+`Schema.Literals` / `Schema.Union` / `Schema.Record` with array arguments;
+`Schema.withDecodingDefault(Effect.succeed(v))` for defaults;
+`typeof X.Type` / `typeof X.Encoded` for extraction;
+`Metric.histogram(name, { boundaries })` with `Metric.update`;
+`Effect.result` (not `Effect.either`) and `Effect.catch` (not
+`Effect.catchAll`).
 
 ### Page pipeline
 
@@ -451,7 +564,9 @@ Every event carries an `EventContext` envelope (`buildId`, `apiScope`,
 `Context.Reference` whenever the caller left it empty. Levels rank `error`
 (0) through `trace` (4); a sink with `minLevel: "info"` admits ranks 0–2.
 
-Sinks: console (human-readable or JSON at `debug` level), issues
+Sinks: console (human-readable or JSON at `debug` level, filtered by
+`observability.logLevel` — the only spelling; there is no top-level
+`logLevel` or `performance` option), issues
 (accumulates diagnostics into `.api-docs/build/issues.json`, collection
 always on, write production-gated), trace (`minLevel: "trace"`, one
 synchronous `appendFileSync` per event), metrics (writes through
@@ -625,3 +740,4 @@ RSPress's `Local:` address line.
 - [sync-island](../glossary/sync-island.md)
 - [display-and-source](../glossary/display-and-source.md)
 - [measure-hover-parity](../runbooks/measure-hover-parity.md)
+- [debug-runtime-component-css](../runbooks/debug-runtime-component-css.md)

@@ -80,11 +80,11 @@ export function resolveUrl(siteUrl: string, url: string): string | undefined {
  * @public
  */
 export function deriveSiteUrl(siteOrigin: string | undefined, base: string | undefined): string {
-	const origin = (siteOrigin ?? "").trim().replace(/\/+$/, "");
+	const origin = trimSlashesEnd((siteOrigin ?? "").trim());
 	const path = (base ?? "/").trim();
 	// `base` is a path segment, not a URL: normalize it to a leading slash and
 	// no trailing slash so the join cannot double or drop one.
-	const normalizedBase = path === "" || path === "/" ? "" : `/${path.replace(/^\/+/, "").replace(/\/+$/, "")}`;
+	const normalizedBase = path === "" || path === "/" ? "" : `/${trimSlashesEnd(trimSlashesStart(path))}`;
 
 	return `${origin}${normalizedBase}`;
 }
@@ -103,4 +103,18 @@ export function deriveSiteUrl(siteOrigin: string | undefined, base: string | und
 export function canonicalUrl(siteUrl: string, pageRoute: string): string {
 	const prefix = siteUrl.endsWith("/") ? siteUrl.slice(0, -1) : siteUrl;
 	return `${prefix}${pageRoute}`;
+}
+
+/** Strip leading `/` characters with a linear scan rather than a backtracking regex. */
+function trimSlashesStart(text: string): string {
+	let start = 0;
+	while (start < text.length && text[start] === "/") start++;
+	return text.slice(start);
+}
+
+/** Strip trailing `/` characters with a linear scan rather than a backtracking regex. */
+function trimSlashesEnd(text: string): string {
+	let end = text.length;
+	while (end > 0 && text[end - 1] === "/") end--;
+	return text.slice(0, end);
 }

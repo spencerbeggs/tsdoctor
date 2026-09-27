@@ -72,9 +72,9 @@ pnpm vitest run packages/bundle/
 Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
 bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
-- @../../okf/modules/tsdoctor-bundle.md
-- @../../okf/decisions/manifest-below-bundle.md
-- @../../okf/glossary/bundle.md
-- @../../okf/interfaces/tsdoctor-json-manifest.md
-- @../../okf/decisions/core-adapter-boundary.md
-- @../../okf/decisions/vitepress-alpha-gates-1-0.md
+- `../../okf/modules/tsdoctor-bundle.md`
+- `../../okf/decisions/manifest-below-bundle.md`
+- `../../okf/glossary/bundle.md`
+- `../../okf/interfaces/tsdoctor-json-manifest.md`
+- `../../okf/decisions/core-adapter-boundary.md`
+- `../../okf/decisions/vitepress-alpha-gates-1-0.md`

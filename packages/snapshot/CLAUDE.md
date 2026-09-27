@@ -78,8 +78,8 @@ pnpm vitest run packages/snapshot/
 Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
 bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
-- @../../okf/modules/tsdoctor-snapshot.md
-- @../../okf/decisions/content-hashing-over-mtimes.md
-- @../../okf/decisions/caches-degrade-snapshot-store-fails.md
-- @../../okf/decisions/core-adapter-boundary.md
-- @../../okf/modules/tsdoctor-bundle.md
+- `../../okf/modules/tsdoctor-snapshot.md`
+- `../../okf/decisions/content-hashing-over-mtimes.md`
+- `../../okf/decisions/caches-degrade-snapshot-store-fails.md`
+- `../../okf/decisions/core-adapter-boundary.md`
+- `../../okf/modules/tsdoctor-bundle.md`

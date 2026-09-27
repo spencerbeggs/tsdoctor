@@ -23,7 +23,8 @@ The React runtime ships as per-file compiled JS under `runtime/` (mirroring `src
 Load when rewiring a service, layer, `Context.Reference`, sink or sync
 emitter:
 
-- @./CLAUDE.services.md
+- `../../okf/modules/rspress-plugin-api-extractor.md` ("Service layer" and
+  "Observability" sections)
 
 ### Inert configuration
 
@@ -114,9 +115,13 @@ files (the global rule would rewrite `.css` imports to `.js`).
 
 ## Source Structure
 
-Load when locating a module or iterating on runtime component styling:
+Load when locating a module:
 
-- @./CLAUDE.source-map.md
+- `../../okf/modules/rspress-plugin-api-extractor.md` ("Source layout")
+
+Load when iterating on runtime component styling in a live site:
+
+- `../../okf/runbooks/debug-runtime-component-css.md`
 
 ## Testing
 
@@ -128,26 +133,26 @@ pnpm vitest run platforms/rspress/   # all plugin tests
 
 `__test__/**/*.ts` is in the tsconfig `include`, so `pnpm typecheck` covers tests. Fixtures in `__test__/__fixtures__/`, regeneration scripts in `__test__/scripts/`.
 
-Prefer a service's own `makeTest`/`layerTest` double over a hand-written stub; read "0 tests passed" with exit 0 as an import-time throw — see @./CLAUDE.services.md.
+Prefer a service's own `makeTest`/`layerTest` double over a hand-written stub; read "0 tests passed" with exit 0 as an import-time throw — see `../../okf/conventions/services-own-their-layers.md`.
 
 ## Knowledge Bundle
 
 Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
 bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
-- @../../okf/modules/rspress-plugin-api-extractor.md
-- @../../okf/decisions/two-managed-runtimes.md
-- @../../okf/decisions/generate-docs-in-config-hook.md
-- @../../okf/decisions/single-anchor-algorithm.md
-- @../../okf/decisions/linker-is-a-scope.md
-- @../../okf/decisions/per-node-mdx-serialization.md
-- @../../okf/conventions/runtime-component-authoring.md
-- @../../okf/decisions/bundleless-per-file-runtime.md
-- @../../okf/modules/tsdoctor-vfs.md
-- @../../okf/decisions/per-scope-typescript-environments.md
-- @../../okf/decisions/llms-post-process-not-generate.md
-- @../../okf/interfaces/seo-headtags.md
-- @../../okf/decisions/site-url-is-derived-not-configured.md
-- @../../okf/conventions/observability-events-not-logs.md
-- @../../okf/decisions/synchronous-event-bus.md
-- @../../okf/models/issues-json-artifact.md
+- `../../okf/modules/rspress-plugin-api-extractor.md`
+- `../../okf/decisions/two-managed-runtimes.md`
+- `../../okf/decisions/generate-docs-in-config-hook.md`
+- `../../okf/decisions/single-anchor-algorithm.md`
+- `../../okf/decisions/linker-is-a-scope.md`
+- `../../okf/decisions/per-node-mdx-serialization.md`
+- `../../okf/conventions/runtime-component-authoring.md`
+- `../../okf/decisions/bundleless-per-file-runtime.md`
+- `../../okf/modules/tsdoctor-vfs.md`
+- `../../okf/decisions/per-scope-typescript-environments.md`
+- `../../okf/decisions/llms-post-process-not-generate.md`
+- `../../okf/interfaces/seo-headtags.md`
+- `../../okf/decisions/site-url-is-derived-not-configured.md`
+- `../../okf/conventions/observability-events-not-logs.md`
+- `../../okf/decisions/synchronous-event-bus.md`
+- `../../okf/models/issues-json-artifact.md`

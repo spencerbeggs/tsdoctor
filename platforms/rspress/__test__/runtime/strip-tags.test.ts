@@ -1,0 +1,23 @@
+import { describe, expect, it } from "vitest";
+import { stripTags } from "../../src/runtime/utils/strip-tags.js";
+
+describe("stripTags", () => {
+	it.each([
+		["plain text", "plain text"],
+		["a <b>bold</b> word", "a bold word"],
+		['<a href="x">link</a>', "link"],
+		["unclosed < tag", "unclosed < tag"],
+		["x < y and <b>z</b>", "x z"],
+		["<<<nested>>", ">"],
+		["trailing <open", "trailing <open"],
+		["<b>a</b> then <open", "a then <open"],
+		["", ""],
+	])("strips %j like the /<[^>]*>/g regex it replaces", (input, expected) => {
+		expect(stripTags(input)).toBe(expected);
+	});
+
+	it("stays linear on a long run of unclosed brackets", () => {
+		const input = "<".repeat(100_000);
+		expect(stripTags(input)).toBe(input);
+	});
+});

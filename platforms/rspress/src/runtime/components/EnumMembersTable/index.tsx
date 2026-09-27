@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { stripTags } from "../../utils/strip-tags.js";
 import { MarkdownContent } from "../MarkdownContent/index.js";
 import styles from "./index.module.css";
 
@@ -47,7 +48,7 @@ export const EnumMembersTable = ({ members }: EnumMembersTableProps): ReactEleme
 			const name = `\`${member.name}\``;
 			const value = member.value ? `\`${member.value}\`` : "";
 			// Strip HTML from description for markdown
-			const description = member.description.replace(/<[^>]*>/g, "").trim();
+			const description = stripTags(member.description).trim();
 			markdown += `| ${name} | ${value} | ${description} |\n`;
 		}
 
