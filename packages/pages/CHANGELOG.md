@@ -1,5 +1,24 @@
 # @tsdoctor/pages
 
+## 0.3.4
+
+### Bug Fixes
+
+- Replaced regular expressions that could backtrack polynomially on adversarial input with linear scans or non-overlapping patterns: `.d.ts` excerpt and code-fence trimming in `ApiExtractedPackage`, llms.txt link-line and `llms-full.txt` section parsing, `deriveSiteUrl`'s slash trimming, and HTML tag stripping in the `ParametersTable` and `EnumMembersTable` SSG-MD output. Output is unchanged. [#296][#296]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/model | dependency | updated | 0.8.2 | 0.8.3 |
+| @tsdoctor/seo | dependency | updated | 0.4.1 | 0.4.2 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#296]: https://github.com/spencerbeggs/tsdoctor/pull/296
+
 ## 0.3.3
 
 ### Dependencies

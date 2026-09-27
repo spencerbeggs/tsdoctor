@@ -1,5 +1,15 @@
 # vitepress-plugin-api-extractor
 
+## 0.4.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/model | dependency | updated | 0.8.2 | 0.8.3 |
+| @tsdoctor/pages | dependency | updated | 0.3.3 | 0.3.4 |
+| @tsdoctor/seo | dependency | updated | 0.4.1 | 0.4.2 |
+
 ## 0.4.3
 
 ### Dependencies
