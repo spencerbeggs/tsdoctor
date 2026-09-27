@@ -3,9 +3,10 @@ import { stripTwoslashDirectives } from "@tsdoctor/pages";
 import type { Code, Parent, Root } from "mdast";
 import type { MdxJsxFlowElement } from "mdast-util-mdx-jsx";
 import type { ShikiTransformer } from "shiki";
-import { codeToHast, hastToHtml } from "shiki";
+import { codeToHast } from "shiki";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
+import { hastText } from "./hast-text.js";
 import type { ShikiThemeConfig } from "./markdown/shiki-utils.js";
 import { DEFAULT_SHIKI_THEMES } from "./markdown/shiki-utils.js";
 import { PluginEvent as PE } from "./observability/events.js";
@@ -209,16 +210,9 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 				if (parent && typeof index === "number") {
 					if (isSsgMd) {
 						// SSG-MD mode: Keep as plain markdown code block
-						// Convert HAST to HTML then extract clean code by removing all tags
-						const html = hastToHtml(hast);
-						const cleanCode = html
-							.replace(/<[^>]*>/g, "")
-							.replace(/&lt;/g, "<")
-							.replace(/&gt;/g, ">")
-							.replace(/&amp;/g, "&")
-							.replace(/&quot;/g, '"')
-							.replace(/&#39;/g, "'")
-							.trim();
+						// Collect the HAST's text nodes, which already hold decoded characters,
+						// rather than serializing to HTML and stripping tags back out
+						const cleanCode = hastText(hast).trim();
 
 						// Replace with clean markdown code block
 						node.lang = "typescript";
