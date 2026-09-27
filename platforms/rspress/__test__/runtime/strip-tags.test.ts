@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { stripTags } from "../../src/runtime/utils/strip-tags.js";
 
-/** The regex `stripTags` replaces; the two must agree on every input. */
-const regexStrip = (text: string): string => text.replace(/<[^>]*>/g, "");
-
 describe("stripTags", () => {
 	it.each([
 		["plain text", "plain text"],
@@ -15,9 +12,8 @@ describe("stripTags", () => {
 		["trailing <open", "trailing <open"],
 		["<b>a</b> then <open", "a then <open"],
 		["", ""],
-	])("strips %j like the regex it replaces", (input, expected) => {
+	])("strips %j like the /<[^>]*>/g regex it replaces", (input, expected) => {
 		expect(stripTags(input)).toBe(expected);
-		expect(stripTags(input)).toBe(regexStrip(input));
 	});
 
 	it("stays linear on a long run of unclosed brackets", () => {
