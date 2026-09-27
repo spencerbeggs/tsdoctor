@@ -88,9 +88,9 @@ Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
 bundle" section and `okf/index.md`). Concepts most relevant to this package,
 including the Twoslash result cache's keying scheme and measured effect:
 
-- @../../okf/modules/tsdoctor-vfs.md
-- @../../okf/decisions/vfs-below-registry-and-model.md
-- @../../okf/conventions/compiler-options-decode-not-cast.md
-- @../../okf/decisions/persisted-twoslash-result-cache.md
-- @../../okf/limitations/twoslash-cache-invalidates-per-vfs.md
-- @../../okf/decisions/core-adapter-boundary.md
+- `../../okf/modules/tsdoctor-vfs.md`
+- `../../okf/decisions/vfs-below-registry-and-model.md`
+- `../../okf/conventions/compiler-options-decode-not-cast.md`
+- `../../okf/decisions/persisted-twoslash-result-cache.md`
+- `../../okf/limitations/twoslash-cache-invalidates-per-vfs.md`
+- `../../okf/decisions/core-adapter-boundary.md`

@@ -1,5 +1,22 @@
 # Log
 
+## 2026-09-24
+
+* Updated @effected is the foundation: check before hand-rolling
+* Updated @tsdoctor/bundle
+* Updated @tsdoctor/model
+* Updated @tsdoctor/pages
+* Updated @tsdoctor/registry
+* Updated @tsdoctor/seo
+* Updated @tsdoctor/snapshot
+* Updated @tsdoctor/vfs
+* Updated @tsdoctor/vfs sits below the registry and the model
+* Updated Consolidate into one monorepo
+* Added Core @effected peers follow the public .d.ts surface
+* Updated Keep every adapter's dependency closure whole
+* Updated rspress-plugin-api-extractor package exports
+* Updated vitepress-plugin-api-extractor
+
 ## 2026-09-20
 
 * Updated The tsdoctor monorepo workspace

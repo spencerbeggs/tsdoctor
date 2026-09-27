@@ -80,10 +80,10 @@ pnpm vitest run platforms/vitepress/
 Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
 bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
-- @../../okf/modules/vitepress-plugin-api-extractor.md
-- @../../okf/modules/tsdoctor-pages.md
-- @../../okf/interfaces/vitepress-api-extractor.md
-- @../../okf/gotchas/vitepress-buildend-never-fires-in-dev.md
-- @../../okf/limitations/vitepress-alpha-scope.md
-- @../../okf/modules/tsdoctor-vfs.md
-- @../../okf/interfaces/seo-headtags.md
+- `../../okf/modules/vitepress-plugin-api-extractor.md`
+- `../../okf/modules/tsdoctor-pages.md`
+- `../../okf/interfaces/vitepress-api-extractor.md`
+- `../../okf/gotchas/vitepress-buildend-never-fires-in-dev.md`
+- `../../okf/limitations/vitepress-alpha-scope.md`
+- `../../okf/modules/tsdoctor-vfs.md`
+- `../../okf/interfaces/seo-headtags.md`

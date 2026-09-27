@@ -4,21 +4,21 @@ title: Services own their layers
 description: A service declares its live layer as a static on the class itself; no separate *Live.ts modules.
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 358204e008f1cbfef2d1531a68e3f656db8f5bdfda14ce53a29cf49c58dda36d
+  at: 2026-09-27T18:03:13Z
+  body_sha256: 5faaf0a876a0586f97d4089c0663ad3d3694fedb00cf191cabe8dc54371904c2
 stale_after: 2026-12-12T00:00:00Z
 tags: [architecture, dx, testing]
 sources:
   - id: build-env
     resource: ../../platforms/rspress/src/BuildEnv.ts
   - id: services-inventory
-    resource: ../../platforms/rspress/CLAUDE.services.md
+    resource: ../modules/rspress-plugin-api-extractor.md
 status: stable
 ---
 
 # A service owns its layer as a static; no separate `*Live.ts` modules
 
-Declare a service as `class X extends Context.Service<X, XShape>()("rspress-plugin-api-extractor/X")` and put its live layer on the class itself as a static (`X.layer`). Do not create a separate `XServiceLive.ts` module — `../../platforms/rspress/src/services/` holds one file per service, tag and layer together, matching the pattern the core `@tsdoctor/*` packages use; `../../platforms/rspress/CLAUDE.services.md` is the current inventory.
+Declare a service as `class X extends Context.Service<X, XShape>()("rspress-plugin-api-extractor/X")` and put its live layer on the class itself as a static (`X.layer`). Do not create a separate `XServiceLive.ts` module — `../../platforms/rspress/src/services/` holds one file per service, tag and layer together, matching the pattern the core `@tsdoctor/*` packages use; the services table in [rspress-plugin-api-extractor](../modules/rspress-plugin-api-extractor.md#service-layer) is the current inventory.
 
 Use `Layer.suspend(() => …)` for a layer composition, or `Effect.suspend(() => make())` for an effect body, whenever a service's static layer names a `const` declared further down the same module, or names a binding imported from a module that imports this one back. A static initializer runs while the module body is still being evaluated, so referencing something not yet defined throws at import time — and the only symptom is a test run reporting zero tests passed with exit code 0, not a stack trace pointing at the real cause. `TypeRegistryService.layer`, `TwoslashCacheService.layer`, `ConfigService.layer`, and `OgService.layer` all need this treatment because they name something defined after them.
 

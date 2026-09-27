@@ -146,12 +146,12 @@ manifest.
 
 ## Effect-TS Architecture
 
-Everything runs on **Effect v4** (`effect@4.0.0-rc.116`, pinned through the
+Everything runs on **Effect v4** (`effect@4.0.0-rc.117`, pinned through the
 `catalog:effect` catalog). Key patterns in the RSPress adapter:
 
 - **Services** declared as `Context.Service<Self, Shape>()("id")`, each
   owning its layer as a static (inventory in
-  `platforms/rspress/CLAUDE.services.md`)
+  `okf/modules/rspress-plugin-api-extractor.md`)
 - **Per-build `Context.Reference`s** in `src/BuildEnv.ts`
 - **Two `ManagedRuntime`s**: the main (async-to-build) one, plus a
   `Layer.succeed`-only one for the sync-island event emitters
@@ -185,73 +185,74 @@ Effect-org packages and `catalog:effected` / `catalog:effected:peers` for
 The design record now lives as an [OKF](https://okfspec.dev) knowledge bundle
 under `okf/`, not as standalone design docs. Start at `okf/index.md` for the
 full concept map; the groupings below point at the concepts most relevant to
-each area of the code, not an exhaustive list.
+each area of the code, not an exhaustive list. They are pointers, not imports:
+read one when the task touches its area.
 
 **Build & infrastructure** — services, layers, `Context.Reference`s, either
 `ManagedRuntime`, hook lifecycle, config resolution, the build script:
 
-- @okf/modules/rspress-plugin-api-extractor.md
-- @okf/decisions/two-managed-runtimes.md
-- @okf/conventions/services-own-their-layers.md
-- @okf/decisions/generate-docs-in-config-hook.md
-- @okf/interfaces/rspress-plugin-options.md
-- @okf/decisions/core-peers-follow-public-surface.md
-- @okf/conventions/rspress-dependency-closure.md
+- `okf/modules/rspress-plugin-api-extractor.md`
+- `okf/decisions/two-managed-runtimes.md`
+- `okf/conventions/services-own-their-layers.md`
+- `okf/decisions/generate-docs-in-config-hook.md`
+- `okf/interfaces/rspress-plugin-options.md`
+- `okf/decisions/core-peers-follow-public-surface.md`
+- `okf/conventions/rspress-dependency-closure.md`
 
 **Page generation & markdown** — the Stream pipeline, Shiki transformers,
 cross-linking:
 
-- @okf/decisions/single-anchor-algorithm.md
-- @okf/decisions/linker-is-a-scope.md
-- @okf/decisions/import-namespace-root-not-leaf.md
+- `okf/decisions/single-anchor-algorithm.md`
+- `okf/decisions/linker-is-a-scope.md`
+- `okf/decisions/import-namespace-root-not-leaf.md`
 
 **Page IR & emitters** — `@tsdoctor/pages` blocks or builders, either
 adapter's `src/emit/` emitters, the byte-parity gate:
 
-- @okf/modules/tsdoctor-pages.md
-- @okf/decisions/per-node-mdx-serialization.md
-- @okf/conventions/byte-parity-emitter-changes.md
-- @okf/modules/vitepress-plugin-api-extractor.md
+- `okf/modules/tsdoctor-pages.md`
+- `okf/decisions/per-node-mdx-serialization.md`
+- `okf/conventions/byte-parity-emitter-changes.md`
+- `okf/modules/vitepress-plugin-api-extractor.md`
 
 **Runtime components & SSG** — React components, SSG-MD dual-mode rendering:
 
-- @okf/conventions/runtime-component-authoring.md
-- @okf/decisions/bundleless-per-file-runtime.md
+- `okf/conventions/runtime-component-authoring.md`
+- `okf/decisions/bundleless-per-file-runtime.md`
 
 **Type loading, VFS & multi-entry points** — Twoslash, external package
 types, VFS generation, multi-entry resolution:
 
-- @okf/modules/tsdoctor-vfs.md
-- @okf/decisions/per-scope-typescript-environments.md
-- @okf/limitations/collision-detection-by-final-route.md
-- @okf/decisions/route-collisions-fail-the-build.md
+- `okf/modules/tsdoctor-vfs.md`
+- `okf/decisions/per-scope-typescript-environments.md`
+- `okf/limitations/collision-detection-by-final-route.md`
+- `okf/decisions/route-collisions-fail-the-build.md`
 
 **SEO & head metadata** — canonical URLs, Open Graph, Twitter cards,
 attribution, schema.org JSON-LD:
 
-- @okf/interfaces/seo-headtags.md
-- @okf/decisions/site-url-is-derived-not-configured.md
-- @okf/decisions/head-tags-built-in-generate-stage.md
+- `okf/interfaces/seo-headtags.md`
+- `okf/decisions/site-url-is-derived-not-configured.md`
+- `okf/decisions/head-tags-built-in-generate-stage.md`
 
 **LLMs integration** — llms.txt post-processing, per-package file
 generation, scope-aware UI components:
 
-- @okf/decisions/llms-post-process-not-generate.md
+- `okf/decisions/llms-post-process-not-generate.md`
 
 **Observability** — Effect Metrics, logging, error tracking, the progress
 heartbeat, the `issues.json` artifact:
 
-- @okf/conventions/observability-events-not-logs.md
-- @okf/decisions/synchronous-event-bus.md
-- @okf/models/issues-json-artifact.md
-- @okf/gotchas/undimensioned-metrics-are-process-wide.md
+- `okf/conventions/observability-events-not-logs.md`
+- `okf/decisions/synchronous-event-bus.md`
+- `okf/models/issues-json-artifact.md`
+- `okf/gotchas/undimensioned-metrics-are-process-wide.md`
 
 **Roadmap & @tsdoctor consolidation** — the road to 1.0.0, the
 `@tsdoctor/*` package architecture:
 
-- @okf/decisions/vitepress-alpha-gates-1-0.md
-- @okf/decisions/core-adapter-boundary.md
-- @okf/decisions/consolidate-into-one-monorepo.md
+- `okf/decisions/vitepress-alpha-gates-1-0.md`
+- `okf/decisions/core-adapter-boundary.md`
+- `okf/decisions/consolidate-into-one-monorepo.md`
 
 ## Build Pipeline
 
@@ -304,7 +305,7 @@ Upstream framework source is vendored under `.repos/` as sparse, shallow git sub
 | `.repos/twoslash` | v0.3.9 | Twoslash engine + notation semantics |
 | `.repos/shiki` | v4.4.3 | `@shikijs/twoslash` transformer, `@shikijs/vitepress-twoslash` + Shiki core |
 | `.repos/rsbuild` | v2.1.5 | `@rsbuild/core` (bundler under RSPress) + official docs |
-| `.repos/effect` | effect@4.0.0-rc.116 | Effect v4 core source + the `migration/` v3-to-v4 notes |
+| `.repos/effect` | effect@4.0.0-rc.117 | Effect v4 core source + the `migration/` v3-to-v4 notes |
 | `.repos/vitepress` | v2.0.0-alpha.19 | VitePress 2.x source (`src/node` hooks + `codeTransformers`) + `docs/en` |
 
 ## Commands

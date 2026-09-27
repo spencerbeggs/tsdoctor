@@ -79,9 +79,9 @@ pnpm vitest run packages/seo/
 Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
 bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
-- @../../okf/interfaces/seo-headtags.md
-- @../../okf/decisions/single-headtags-seam.md
-- @../../okf/conventions/seo-degrades-never-fails.md
-- @../../okf/decisions/core-adapter-boundary.md
-- @../../okf/decisions/content-hashing-over-mtimes.md
-- @../../okf/decisions/head-tags-built-in-generate-stage.md
+- `../../okf/interfaces/seo-headtags.md`
+- `../../okf/decisions/single-headtags-seam.md`
+- `../../okf/conventions/seo-degrades-never-fails.md`
+- `../../okf/decisions/core-adapter-boundary.md`
+- `../../okf/decisions/content-hashing-over-mtimes.md`
+- `../../okf/decisions/head-tags-built-in-generate-stage.md`

@@ -89,12 +89,12 @@ Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
 bundle" section and `okf/index.md`). The IR, the pipeline that runs it, and
 the two emitters over it — load when a block change must render in both:
 
-- @../../okf/modules/tsdoctor-pages.md
-- @../../okf/decisions/blocks-are-schema-classes.md
-- @../../okf/glossary/display-and-source.md
-- @../../okf/decisions/page-ir-from-two-consumers.md
-- @../../okf/conventions/byte-parity-emitter-changes.md
-- @../../okf/decisions/per-node-mdx-serialization.md
-- @../../okf/modules/rspress-plugin-api-extractor.md
-- @../../okf/modules/vitepress-plugin-api-extractor.md
-- @../../okf/decisions/core-adapter-boundary.md
+- `../../okf/modules/tsdoctor-pages.md`
+- `../../okf/decisions/blocks-are-schema-classes.md`
+- `../../okf/glossary/display-and-source.md`
+- `../../okf/decisions/page-ir-from-two-consumers.md`
+- `../../okf/conventions/byte-parity-emitter-changes.md`
+- `../../okf/decisions/per-node-mdx-serialization.md`
+- `../../okf/modules/rspress-plugin-api-extractor.md`
+- `../../okf/modules/vitepress-plugin-api-extractor.md`
+- `../../okf/decisions/core-adapter-boundary.md`
