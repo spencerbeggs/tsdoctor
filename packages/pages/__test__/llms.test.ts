@@ -480,3 +480,20 @@ describe("filterLlmsTxt with real RSPress llms.txt format", () => {
 		expect(result).toContain("[Pipeline]");
 	});
 });
+
+describe("llms.txt parsing stays linear on adversarial input", () => {
+	it("rejects a link line whose description is empty", () => {
+		expect(parseLlmsTxtLine("- [Title](/url):")).toBeNull();
+	});
+
+	it("parses a link line with a long run of spaces before a failing tail", () => {
+		const line = `- [a](b):${" ".repeat(50_000)}x\n`;
+		expect(parseLlmsTxtLine(line)?.description).toBe("x");
+	});
+
+	it("filters llms-full.txt sections whose url line is padded with spaces", () => {
+		const content = `---\nurl:${" ".repeat(50_000)}/api/foo\n---\n\nAPI\n---\nurl: /guide\n---\n\nGuide\n`;
+		expect(filterLlmsFullTxt(content, new Set(["/api/foo"]))).toContain("Guide");
+		expect(filterLlmsFullTxt(content, new Set(["/api/foo"]))).not.toContain("API\n");
+	});
+});

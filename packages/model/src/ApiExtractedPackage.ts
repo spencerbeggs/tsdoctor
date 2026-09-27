@@ -537,11 +537,8 @@ export class ApiExtractedPackage extends VirtualPackage {
 	 * Clean an excerpt text: strip export/declare keywords and trailing semicolons/whitespace.
 	 */
 	private cleanExcerpt(text: string): string {
-		return text
-			.replace(/^export\s+/, "")
-			.replace(/^declare\s+/, "")
-			.replace(/;+\s*$/, "")
-			.trim();
+		const stripped = text.replace(/^export\s+/, "").replace(/^declare\s+/, "");
+		return trimTrailing(stripped.trimEnd(), ";").trim();
 	}
 
 	private formatTypeParameters(typeParameters: readonly TypeParameter[]): string {
@@ -738,7 +735,7 @@ export class ApiExtractedPackage extends VirtualPackage {
 		// Fenced code blocks (inside @example)
 		if (n.kind === "FencedCode") {
 			const language = n.language || "";
-			const code = (n.code || "").replace(/\n+$/, "");
+			const code = trimTrailing(n.code || "", "\n");
 			return `\`\`\`${language}\n${code}\n\`\`\``;
 		}
 
@@ -789,4 +786,15 @@ export class ApiExtractedPackage extends VirtualPackage {
 		if (entryPoint.displayName === "") return undefined;
 		return entryPoint.displayName;
 	}
+}
+
+/**
+ * Strip every trailing occurrence of `char` from `text`. A linear scan, where
+ * the equivalent `/char+$/` regex backtracks quadratically on a long run of
+ * `char` that is not at the end of the string.
+ */
+function trimTrailing(text: string, char: string): string {
+	let end = text.length;
+	while (end > 0 && text[end - 1] === char) end--;
+	return text.slice(0, end);
 }

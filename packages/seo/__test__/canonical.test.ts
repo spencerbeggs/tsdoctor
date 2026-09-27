@@ -142,3 +142,14 @@ describe("canonicalUrl", () => {
 		expect(canonicalUrl("https://x.test/", "/api/class/pipeline")).toBe("https://x.test/api/class/pipeline");
 	});
 });
+
+describe("deriveSiteUrl slash trimming", () => {
+	it("trims runs of slashes on both the origin and the base", () => {
+		expect(deriveSiteUrl("https://x.dev///", "///docs///")).toBe("https://x.dev/docs");
+	});
+
+	it("stays linear on a long run of slashes followed by a non-slash", () => {
+		const slashes = "/".repeat(100_000);
+		expect(deriveSiteUrl(`https://x.dev${slashes}a`, `${slashes}b`)).toBe(`https://x.dev${slashes}a/b`);
+	});
+});

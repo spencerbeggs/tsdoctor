@@ -55,7 +55,7 @@ export interface PageContent {
 }
 
 /** Pre-compiled regex for parsing llms.txt link lines. */
-const LLMS_TXT_LINE_RE = /^-\s+\[([^\]]+)\]\(([^)]+)\)(?::\s*(.+))?$/;
+const LLMS_TXT_LINE_RE = /^-\s+\[([^\]]+)\]\(([^)]+)\)(?::\s*(\S.*))?$/;
 
 /**
  * Parse a single line from llms.txt format.
@@ -283,7 +283,7 @@ function parseSections(content: string): Array<{ url: string; raw: string }> {
 
 	const sections: Array<{ url: string; raw: string }> = [];
 	// Split on frontmatter boundaries: ---\nurl: ...\n---
-	const frontmatterPattern = /^---\nurl:\s*(.+)\n---$/gm;
+	const frontmatterPattern = /^---\nurl:\s*(\S.*)\n---$/gm;
 	let match = frontmatterPattern.exec(content);
 
 	// Collect all frontmatter positions
