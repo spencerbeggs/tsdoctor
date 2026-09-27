@@ -7,8 +7,8 @@ resource: ../../platforms/rspress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-27T18:03:13Z
-  body_sha256: 2e69e4fc1dd38be6a1cbff01cf8ad49b94a4075f2205fc4ceefba9788d8fb75b
+  at: 2026-09-27T18:20:27Z
+  body_sha256: 2f0e953927e4a27e1d8d2199d9e6e816d2a930009f3c1f7761ef4a0cc6cc326a
 tags:
   - architecture
   - observability
@@ -155,9 +155,6 @@ Code blocks and Twoslash (render pass):
 
 - `src/remark-with-api.ts`, `src/remark-api-codeblocks.ts` — the remark
   plugins that resolve a block's scope and render it
-- `src/hast-text.ts` — `hastText`, concatenating HAST text nodes;
-  `remark-with-api.ts`'s SSG-MD branch uses it to recover code without an
-  HTML round-trip
 - `src/vfs-registry.ts` — `VfsRegistry`, one `VfsConfig` per API scope
 - `src/shiki-transformer.ts` — `ShikiCrossLinker`, HAST post-processing
 - `src/twoslash-transformer.ts` — the Twoslash transformer per environment;

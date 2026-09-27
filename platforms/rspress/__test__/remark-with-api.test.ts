@@ -45,3 +45,22 @@ describe("remarkWithApi cross-linker lookup", () => {
 		expect(source).not.toContain("shikiCrossLinker");
 	});
 });
+
+// Structural pins for the SSG-MD branch, for the same reason as above: no
+// fixture renders a `with-api` fence under SSG-MD, so nothing behavioural
+// would fail. The rendered HAST carries Twoslash hover-popup text (types,
+// JSDoc) in real text nodes, so any extraction from it garbles llms.txt.
+describe("remarkWithApi SSG-MD code", () => {
+	// FORBIDS: deriving llms.txt code from the rendered HAST, via an HTML
+	// round-trip (which also leaked `&#x3C;`) or a text-node walk.
+	it("does not recover SSG-MD code from the rendered HAST", () => {
+		expect(source).not.toContain("hastToHtml");
+		expect(source).not.toContain("hastText");
+	});
+
+	// FORBIDS: SSG-MD and the browser component showing different code.
+	it("uses the same display code as the ApiExample component", () => {
+		expect(source).toContain("const displayCode = stripTwoslashDirectives(code);");
+		expect(source).toContain("const cleanCode = displayCode.trim();");
+	});
+});

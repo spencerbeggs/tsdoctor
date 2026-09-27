@@ -6,7 +6,6 @@ import type { ShikiTransformer } from "shiki";
 import { codeToHast } from "shiki";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
-import { hastText } from "./hast-text.js";
 import type { ShikiThemeConfig } from "./markdown/shiki-utils.js";
 import { DEFAULT_SHIKI_THEMES } from "./markdown/shiki-utils.js";
 import { PluginEvent as PE } from "./observability/events.js";
@@ -206,13 +205,16 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 					}),
 				);
 
+				// The code a reader sees and copies: Prettier-formatted, Twoslash
+				// directives and pre-cut lines stripped. SSG-MD output uses it too,
+				// because the HAST's text nodes also carry hover-popup text.
+				const displayCode = stripTwoslashDirectives(code);
+
 				// Replace the code block with appropriate output based on build target
 				if (parent && typeof index === "number") {
 					if (isSsgMd) {
 						// SSG-MD mode: Keep as plain markdown code block
-						// Collect the HAST's text nodes, which already hold decoded characters,
-						// rather than serializing to HTML and stripping tags back out
-						const cleanCode = hastText(hast).trim();
+						const cleanCode = displayCode.trim();
 
 						// Replace with clean markdown code block
 						node.lang = "typescript";
@@ -221,8 +223,6 @@ export const remarkWithApi: Plugin<[RemarkWithApiOptions], Root> = (options: Rem
 						// Don't replace the node, just modify it in place
 					} else {
 						// Regular mode: Use ApiExample component
-						// Strip Twoslash directives from code for copy functionality
-						const displayCode = stripTwoslashDirectives(code);
 						// Pass HAST as a JSON string - the component parses it
 						const hastJson = JSON.stringify(hast);
 						const mdxNode: MdxJsxFlowElement = {
