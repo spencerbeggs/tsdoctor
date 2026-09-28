@@ -7,8 +7,8 @@ resource: ../../packages/snapshot
 layer: L2
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-24T20:28:47Z
-  body_sha256: 8bd310727b68e0610e84cdb86ed60ee48a8453680d60a3a9ad7313595b1ed4a2
+  at: 2026-09-28T19:00:27Z
+  body_sha256: 117279133e57741e28c9142303db3734f999eacee0023d3f728967025af83dc5
 tags:
   - architecture
   - observability
@@ -79,7 +79,7 @@ per database path and bind the result to a `const`, since layers memoize by
 reference and a second call opens a second connection to the same file.
 
 Every query and the transactional batch upsert runs through `store.client`,
-the full `effect/unstable/sql` `SqlClient`, not a hand-rolled query builder.
+the full `effect/sql` `SqlClient`, not a hand-rolled query builder.
 The layer's error channel carries Store's typed `StoreError |
 StoreMigrationError` — a snapshot database that cannot be opened or migrated
 fails the layer construction rather than degrading silently. A consumer
@@ -128,7 +128,7 @@ throws rather than hashing a lie.
 ### Migration-ledger caveat
 
 `@effected/store`'s migration ledger differs from the one an earlier
-hand-wired `effect/unstable/sql` Migrator kept, so a database committed
+hand-wired `effect/sql` Migrator kept, so a database committed
 before the Store-backed layer re-applies migration 1 on its first run under
 the new layer. This is harmless because the migration's SQL is `CREATE TABLE
 IF NOT EXISTS`; there is no migration 2 defined in this package today.

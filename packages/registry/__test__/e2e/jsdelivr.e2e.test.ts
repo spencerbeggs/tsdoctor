@@ -11,7 +11,7 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { assert, describe, it } from "@effect/vitest";
 import { Cache } from "@effected/store";
 import { Effect, Layer, Option, Path } from "effect";
-import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { PackageFetcher, PackageSpec, TypeCache, TypeRegistry } from "../../src/index.js";
 
 const LiveLayer = TypeRegistry.layer.pipe(

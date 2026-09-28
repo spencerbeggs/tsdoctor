@@ -35,7 +35,7 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
 ## Key Dependencies
 
 - `effect` (v4, `catalog:effect`) — core runtime plus the merged-in `FileSystem`
-  and `effect/unstable/sql` modules; do not add `@effect/platform` or
+  and `effect/sql` modules; do not add `@effect/platform` or
   `@effect/sql` back.
 - `@effect/platform-node` — `NodeFileSystem`. `@effect/sql-sqlite-node` and
   `gray-matter` are **gone** (`@tsdoctor/snapshot` / `@tsdoctor/model`)
