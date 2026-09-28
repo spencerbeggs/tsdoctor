@@ -1,5 +1,24 @@
 # @tsdoctor/seo
 
+## 0.4.3
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/spdx | dependency | updated | ^0.9.0 | ^0.10.0 |
+| @effected/package-json | peerDependency | updated | ^0.18.0 | ^0.19.0 |
+| @effected/schema-org | peerDependency | updated | ^0.5.0 | ^0.6.0 |
+| effect | peerDependency | updated | 4.0.0-rc.117 | 4.0.0-rc.118 |
+
+[#299][#299]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#299]: https://github.com/spencerbeggs/tsdoctor/pull/299
+
 ## 0.4.2
 
 ### Bug Fixes

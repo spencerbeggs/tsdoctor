@@ -5,8 +5,8 @@ title: Effect v4 only
 description: The whole monorepo runs on Effect v4 exclusively, pinned through the catalog:effect pnpm catalog, with no v3-shaped code anywhere.
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 69f208422541945e8b6de229e721adc61072cc5cafb91b799034fd72f1ae3b6f
+  at: 2026-09-28T19:00:27Z
+  body_sha256: 6ed0a5130cbe7dd01f58a6a7dd8c868034663117b7568532dae8f47993263451
 tags: [compat, architecture]
 sources:
   - id: workspace
@@ -24,7 +24,7 @@ verified:
 
 ## Context
 
-Effect v4 is a ground-up redesign, not an incremental release on v3: modules such as `@effect/platform`'s `FileSystem` and `@effect/sql` merged into the `effect` core package itself (as the top-level `FileSystem` module and `effect/unstable/sql` respectively), and construction idioms for services, schemas, and error handling changed. A codebase, or even a single module, that mixes v3-shaped code with v4-shaped code invites peer-resolution hazards and produces call sites that type-check individually but disagree about which API generation they belong to.
+Effect v4 is a ground-up redesign, not an incremental release on v3: modules such as `@effect/platform`'s `FileSystem` and `@effect/sql` merged into the `effect` core package itself (as the top-level `FileSystem` module and `effect/sql` respectively), and construction idioms for services, schemas, and error handling changed. A codebase, or even a single module, that mixes v3-shaped code with v4-shaped code invites peer-resolution hazards and produces call sites that type-check individually but disagree about which API generation they belong to.
 
 ## Decision
 

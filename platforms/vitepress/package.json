@@ -1,6 +1,6 @@
 {
 	"name": "vitepress-plugin-api-extractor",
-	"version": "0.4.4",
+	"version": "0.4.5",
 	"private": true,
 	"description": "VitePress adapter for generating API documentation from TypeScript API Extractor models: markdown pages over the @tsdoctor/pages IR, a sidebar from its navigation tree, and Twoslash type-checking over the same virtual file system the RSPress plugin resolves.",
 	"keywords": ["vitepress", "plugin", "api-extractor", "documentation", "typescript", "twoslash"],
@@ -64,6 +64,8 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
+		"@effected/config-file": "catalog:effected",
+		"@effected/toml": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.13",
 		"@types/node": "catalog:build",
 		"vitepress": "catalog:docs"

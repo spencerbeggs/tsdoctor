@@ -1,6 +1,6 @@
 {
 	"name": "rspress-plugin-api-extractor",
-	"version": "0.18.4",
+	"version": "0.18.5",
 	"private": true,
 	"description": "RSPress plugin for generating API documentation from TypeScript API Extractor models",
 	"keywords": ["rspress", "plugin", "api-extractor", "documentation", "typescript"],
@@ -68,7 +68,9 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
+		"@effected/config-file": "catalog:effected",
 		"@effected/memfs": "catalog:effected",
+		"@effected/toml": "catalog:effected",
 		"@microsoft/tsdoc": "~0.17.0",
 		"@rspress/core": "catalog:docs",
 		"@savvy-web/rspress-builder": "^1.3.13",
