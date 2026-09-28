@@ -1,9 +1,9 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Duration, Effect, Fiber, Layer } from "effect";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientError from "effect/http/HttpClientError";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { TestClock } from "effect/testing";
-import * as HttpClient from "effect/unstable/http/HttpClient";
-import * as HttpClientError from "effect/unstable/http/HttpClientError";
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
 import type { RegistryEvent } from "../src/index.js";
 import { FetchError, PackageFetcher, PackageNotFoundError, PackageSpec, RegistryObserver } from "../src/index.js";
 import { TYPE_FILE_PATTERN, fileUrl } from "../src/internal/jsdelivr.js";

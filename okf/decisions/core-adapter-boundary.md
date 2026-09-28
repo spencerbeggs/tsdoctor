@@ -6,8 +6,8 @@ description: Frame-neutral logic lives in packages/; each platforms/* adapter is
 tags: [architecture]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 1a325a365d8cef075d95115c8bfe0de96ca4d76c531a2337696b2e235b3bd765
+  at: 2026-09-28T19:00:27Z
+  body_sha256: 278c8b8369f4405f1310605088f6eeb957a2eaf0996b50d6d73874f0a205ce28
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
@@ -101,7 +101,7 @@ hand-matches `// ---cut---` instead of using `@tsdoctor/pages`'s directive
 helpers. None of these has a destination package yet.
 
 An unscheduled idea sits beside this list: a `@tsdoctor/cli` scaffolding
-binary on `effect/unstable/cli` — no phase, no gate, not committed to.
+binary on `effect/cli` — no phase, no gate, not committed to.
 
 ## Alternatives rejected
 

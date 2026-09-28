@@ -22,7 +22,7 @@ Nothing is a bundled dependency. Each `@effected/*` package pins an exact `effec
 
 | Package | Required | Why |
 | --- | --- | --- |
-| `effect` | Yes | Core runtime, plus `FileSystem`, `Path` and `HttpClient` from `effect/unstable`. |
+| `effect` | Yes | Core runtime, plus `FileSystem`, `Path` and `effect/http`'s `HttpClient`. |
 | `@effect/platform-node` | Yes | `NodeFileSystem`, the Node implementation you provide at the edge. |
 | `@effected/store` | Yes | The `Cache` service backing the metadata plane, in the requirements of both `TypeCache` layers. |
 | `@effected/semver` | Yes | Range parsing and `maxSatisfying` behind `TypeRegistry.resolveVersion`. Used internally rather than in a signature, but a peer so it resolves against your `effect`. |
@@ -59,7 +59,7 @@ import { join } from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Cache } from "@effected/store";
 import { Effect, Layer, Path } from "effect";
-import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { PackageFetcher, PackageSpec, TypeCache, TypeRegistry } from "@tsdoctor/registry";
 
 const RegistryLayer = TypeRegistry.layer.pipe(
@@ -91,7 +91,7 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { Cache } from "@effected/store";
 import { AppDirs, Xdg } from "@effected/xdg";
 import { Effect, Layer, Path } from "effect";
-import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { PackageFetcher, PackageSpec, TypeCache, TypeRegistry } from "@tsdoctor/registry";
 
 const PlatformLayer = Layer.mergeAll(NodeFileSystem.layer, Path.layer, FetchHttpClient.layer);

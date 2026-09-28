@@ -43,7 +43,7 @@ import { join } from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Cache } from "@effected/store";
 import { Effect, Layer, Path } from "effect";
-import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { PackageFetcher, PackageSpec, TypeCache, TypeRegistry } from "@tsdoctor/registry";
 
 const RegistryLayer = TypeRegistry.layer.pipe(

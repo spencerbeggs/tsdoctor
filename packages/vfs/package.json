@@ -33,8 +33,11 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
+		"@effected/glob": "catalog:effected",
+		"@effected/jsonc": "catalog:effected",
 		"@effected/memfs": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
+		"@effected/walker": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.13",
 		"@shikijs/twoslash": "^4.4.3",
 		"@types/node": "catalog:build",

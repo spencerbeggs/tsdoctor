@@ -38,10 +38,13 @@
 		"prettier": "^3.9.9"
 	},
 	"devDependencies": {
+		"@effected/glob": "catalog:effected",
+		"@effected/jsonc": "catalog:effected",
 		"@effected/markdown": "catalog:effected",
 		"@effected/package-json": "catalog:effected",
 		"@effected/schema-org": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
+		"@effected/walker": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.13",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",

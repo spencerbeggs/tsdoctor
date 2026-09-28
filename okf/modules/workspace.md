@@ -7,8 +7,8 @@ resource: ../..
 tags: [architecture, dx, ci, release, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-09-27T18:02:38Z
-  body_sha256: fd4aa8c303f63b4d7cfa999e8ae4ca753b4a50798126c95fe00e33e60430a148
+  at: 2026-09-28T19:00:27Z
+  body_sha256: 2dd3393bfd910f2d8cf5d57f1ae8b99f7382fece470bc9e0f910563c5e14a9c8
 status: stable
 ---
 
@@ -54,7 +54,7 @@ site coverage.
 ## Effect-TS foundation and the `@effected` catalogs
 
 Everything in `packages/*` and `platforms/*` runs on Effect v4
-(`effect@4.0.0-rc.117` per `.repos/config.json`'s pin), never Effect v3 —
+(`effect@4.0.0-rc.118` per `.repos/config.json`'s pin), never Effect v3 —
 see [`../decisions/effect-v4-only.md`](../decisions/effect-v4-only.md).
 
 `@effected/*` packages are distributed through the

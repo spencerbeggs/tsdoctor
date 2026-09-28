@@ -51,7 +51,7 @@ Extracted from the plugin in phase 2 of the consolidation and rebuilt on
   `@effected/jsonc` (both `catalog:effected:peers`) — never hand-pin
   `@effected` ranges.
 - All queries and the transactional batch upsert run through `store.client`
-  (the full `effect/unstable/sql` `SqlClient`). Layer errors carry Store's
+  (the full `effect/sql` `SqlClient`). Layer errors carry Store's
   typed `StoreError | StoreMigrationError`.
 - Migration-ledger caveat: Store's `_store_migrations` ledger differs from
   the old Migrator's, so a pre-existing `api-docs.db` re-applies migration 1

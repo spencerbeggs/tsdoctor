@@ -38,9 +38,12 @@
 		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {
+		"@effected/glob": "catalog:effected",
+		"@effected/jsonc": "catalog:effected",
 		"@effected/markdown": "catalog:effected",
 		"@effected/store": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
+		"@effected/walker": "catalog:effected",
 		"@savvy-web/bundler": "^2.4.13",
 		"@tsdoctor/snapshot": "workspace:*",
 		"@types/node": "catalog:build",
