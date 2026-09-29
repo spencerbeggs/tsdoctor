@@ -307,7 +307,7 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0(@changesets/cli@3.0.3)(@commitlint/cli@21.2.3(@types/node@26.6.3)(conventional-commits-parser@7.1.2)(typescript@7.0.2))(@commitlint/config-conventional@21.2.3)(@effected/config-file@0.13.1(@effected/jsonc@0.14.0(effect@4.0.0-rc.118))(@effected/toml@0.10.0(effect@4.0.0-rc.118))(@effected/walker@0.14.0(@effected/glob@0.9.0(effect@4.0.0-rc.118))(effect@4.0.0-rc.118))(@effected/yaml@0.18.0(effect@4.0.0-rc.118))(effect@4.0.0-rc.118))(@types/bun@1.4.2)(@types/node@26.6.3)(@vitest/coverage-istanbul@5.0.2)(@vitest/coverage-v8@5.0.2)(@vitest/expect@5.0.2)(husky@9.1.7)(lint-staged@17.6.0)(markdownlint-cli2-formatter-codequality@0.0.8(markdownlint-cli2@0.23.3(supports-color@8.1.1)))(markdownlint-cli2@0.23.3(supports-color@8.1.1))(redis@6.2.1)(supports-color@8.1.1)(tsx@4.23.15)(turbo@2.11.5)(typescript@7.0.2)(vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))(vitest@5.0.2)
       '@vitest-agent/plugin':
-        specifier: ^5.0.4
+        specifier: ^5.1.0
         version: 5.1.0(@effected/jsonc@0.14.0(effect@4.0.0-rc.118))(@effected/toml@0.10.0(effect@4.0.0-rc.118))(@effected/yaml@0.18.0(effect@4.0.0-rc.118))(@types/react@19.3.0)(@vitest/coverage-istanbul@5.0.2)(@vitest/coverage-v8@5.0.2)(redis@6.2.1)(vitest@5.0.2)
 
   modules/effect-kit:
