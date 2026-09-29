@@ -9,10 +9,6 @@
 		"preview": "node lib/scripts/preview.mts",
 		"types:check": "tsc --noEmit"
 	},
-	"dependencies": {
-		"@modules/effect-kit": "workspace:*",
-		"@modules/kitchensink": "workspace:*"
-	},
 	"devDependencies": {
 		"@rspress/core": "catalog:docs",
 		"@types/node": "catalog:docs",

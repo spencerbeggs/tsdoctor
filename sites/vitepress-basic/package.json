@@ -9,9 +9,6 @@
 		"preview": "vitepress preview docs",
 		"types:check": "tsc --noEmit"
 	},
-	"dependencies": {
-		"@modules/kitchensink": "workspace:*"
-	},
 	"devDependencies": {
 		"@shikijs/vitepress-twoslash": "^4.4.3",
 		"@types/node": "catalog:docs",

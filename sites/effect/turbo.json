@@ -4,13 +4,13 @@
 	"tasks": {
 		"build": {
 			"cache": false,
-			"dependsOn": ["^build:prod"],
+			"dependsOn": ["@modules/effect-kit#build:prod"],
 			"outputLogs": "full",
 			"outputs": ["dist/**"]
 		},
 		"dev": {
 			"cache": false,
-			"dependsOn": ["^build:prod"],
+			"dependsOn": ["buil"],
 			"persistent": true
 		},
 		"preview": {

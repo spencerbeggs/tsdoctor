@@ -9,10 +9,6 @@
 		"preview": "node lib/scripts/preview.mts",
 		"types:check": "tsc --noEmit"
 	},
-	"dependencies": {
-		"@modules/versioned-v1": "workspace:*",
-		"@modules/versioned-v2": "workspace:*"
-	},
 	"devDependencies": {
 		"@rspress/core": "catalog:docs",
 		"@types/node": "catalog:docs",

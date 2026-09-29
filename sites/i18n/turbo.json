@@ -4,13 +4,13 @@
 	"tasks": {
 		"build": {
 			"cache": false,
-			"dependsOn": ["^build:prod"],
+			"dependsOn": ["@modules/kitchensink#build:prod"],
 			"outputLogs": "full",
 			"outputs": ["dist/**"]
 		},
 		"dev": {
 			"cache": false,
-			"dependsOn": ["^build:prod"],
+			"dependsOn": ["build"],
 			"persistent": true
 		},
 		"preview": {

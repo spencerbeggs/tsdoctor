@@ -4,13 +4,13 @@
 	"tasks": {
 		"build": {
 			"cache": false,
-			"dependsOn": ["^build:prod"],
+			"dependsOn": ["@modules/versioned-v1#build:prod", "@modules/versioned-v2#build:prod"],
 			"outputLogs": "full",
 			"outputs": ["dist/**"]
 		},
 		"dev": {
 			"cache": false,
-			"dependsOn": ["^build:prod"],
+			"dependsOn": ["build"],
 			"persistent": true
 		},
 		"preview": {
