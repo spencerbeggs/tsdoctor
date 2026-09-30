@@ -1,17 +1,19 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { NodeFileSystem } from "@effect/platform-node";
 import { assert, describe, it, layer } from "@effect/vitest";
+import { MemoryFileSystem } from "@effected/memfs";
 import { Cache } from "@effected/store";
 import { DateTime, Duration, Effect, Exit, FileSystem, Layer, Option, Path, PlatformError } from "effect";
 import { TestClock } from "effect/testing";
 import { PackageSpec, TypeCache, TypeCacheError, TypeCacheMetadata } from "../src/index.js";
 
-const cacheDir = mkdtempSync(join(tmpdir(), "ts-vfs-cache-"));
+// Every layer here runs over an in-memory volume (`@effected/memfs`): the
+// cache goes through the `FileSystem` service only, so no test touches the
+// host disk and no temp directory outlives the run. `layer(TestLayer)` builds
+// ONE volume for its group, so `fs` read inside a test is the cache's own.
+const cacheDir = "/cache";
 
 const TestLayer = TypeCache.layer({ cacheDir }).pipe(
-	Layer.provideMerge(Layer.mergeAll(Cache.layerTest(), NodeFileSystem.layer, Path.layer)),
+	Layer.provideMerge(Layer.mergeAll(Cache.layerTest(), MemoryFileSystem.layer, Path.layer)),
 );
 
 const epoch = DateTime.makeUnsafe(0);
@@ -33,29 +35,26 @@ const writeError = (target: string) =>
 	});
 
 /**
- * A FileSystem wrapping NodeFileSystem whose `writeFileString` fails once
- * `armed()` is true and at least one write in the armed window has already
- * succeeded — i.e. it fails partway through a `writePackage` staging pass,
- * exercising the "crash after the first file write" regression.
+ * An in-memory FileSystem whose `writeFileString` fails once `armed()` is true
+ * and at least one write in the armed window has already succeeded — i.e. it
+ * fails partway through a `writePackage` staging pass, exercising the "crash
+ * after the first file write" regression. A declining handler (`undefined`)
+ * delegates to the real volume; the factory runs once per layer build, so the
+ * counter is per build exactly as the hand-rolled wrapper's was.
  */
 const stagingFailFs = (armed: () => boolean): Layer.Layer<FileSystem.FileSystem> =>
-	Layer.effect(
-		FileSystem.FileSystem,
-		Effect.gen(function* () {
-			const base = yield* FileSystem.FileSystem;
+	MemoryFileSystem.layerWith(undefined, {
+		faults: () => {
 			let writesWhileArmed = 0;
-			const wrapped: FileSystem.FileSystem = {
-				...base,
-				writeFileString: (path, data, options) =>
-					Effect.suspend(() => {
-						if (!armed()) return base.writeFileString(path, data, options);
-						writesWhileArmed += 1;
-						return writesWhileArmed > 1 ? Effect.fail(writeError(path)) : base.writeFileString(path, data, options);
-					}),
+			return {
+				writeFileString: (path) => {
+					if (!armed()) return undefined;
+					writesWhileArmed += 1;
+					return writesWhileArmed > 1 ? Effect.fail(writeError(path)) : undefined;
+				},
 			};
-			return wrapped;
-		}),
-	).pipe(Layer.provide(NodeFileSystem.layer));
+		},
+	});
 
 describe("TypeCache", () => {
 	layer(TestLayer)((it) => {
@@ -265,7 +264,7 @@ describe("TypeCache", () => {
 
 	it.effect("writePackage aborts staging on a mid-write failure: a fresh package leaves no live dir", () =>
 		Effect.gen(function* () {
-			const dir = mkdtempSync(join(tmpdir(), "ts-vfs-writepkg-fresh-"));
+			const dir = "/cache-fresh";
 			const FailingLayer = TypeCache.layer({ cacheDir: dir }).pipe(
 				Layer.provide(
 					Layer.mergeAll(
@@ -295,7 +294,7 @@ describe("TypeCache", () => {
 
 	it.effect("writePackage refresh failure keeps the prior complete file set intact", () =>
 		Effect.gen(function* () {
-			const dir = mkdtempSync(join(tmpdir(), "ts-vfs-writepkg-refresh-"));
+			const dir = "/cache-refresh";
 			let failMode = false;
 			const ControlledLayer = TypeCache.layer({ cacheDir: dir }).pipe(
 				Layer.provide(
@@ -343,12 +342,20 @@ describe("TypeCache", () => {
 
 	it.effect("prune reports only directories that were actually deleted", () =>
 		Effect.gen(function* () {
-			// A stub FileSystem whose remove fails for one package: the metadata
+			// An in-memory FileSystem whose remove fails for one package: the metadata
 			// eviction stays best-effort, but the failed directory must not be
 			// claimed in `removed`.
-			const stubFs = FileSystem.layerNoop({
-				remove: (target) => (target.includes("undeletable") ? Effect.fail(undeletableError(target)) : Effect.void),
-			});
+			const stubFs = MemoryFileSystem.layerWith(
+				{
+					"/stub-cache/undeletable/1.0.0": MemoryFileSystem.directory(),
+					"/stub-cache/deletable/1.0.0": MemoryFileSystem.directory(),
+				},
+				{
+					faults: {
+						remove: (target) => (target.includes("undeletable") ? Effect.fail(undeletableError(target)) : undefined),
+					},
+				},
+			);
 			const StubbedLayer = TypeCache.layer({ cacheDir: "/stub-cache" }).pipe(
 				Layer.provide(Layer.mergeAll(Cache.layerTest(), stubFs, Path.layer)),
 			);
@@ -376,7 +383,7 @@ describe("TypeCache", () => {
 				Effect.scoped(
 					Layer.build(
 						TypeCache.layer({ cacheDir: "relative/dir" }).pipe(
-							Layer.provide(Layer.mergeAll(Cache.layerTest(), NodeFileSystem.layer, Path.layer)),
+							Layer.provide(Layer.mergeAll(Cache.layerTest(), MemoryFileSystem.layer, Path.layer)),
 						),
 					),
 				),

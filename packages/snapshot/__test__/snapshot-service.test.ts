@@ -1,8 +1,5 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 import { Effect, Option } from "effect";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { FileSnapshot } from "../src/SnapshotService.js";
 import { SnapshotService } from "../src/SnapshotService.js";
 
@@ -19,19 +16,12 @@ function makeSnapshot(overrides: Partial<FileSnapshot> = {}): FileSnapshot {
 	};
 }
 
-describe("SnapshotService.layer", () => {
-	let tmpDir: string;
-	let dbPath: string;
-
-	beforeEach(() => {
-		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "snapshot-test-"));
-		dbPath = path.join(tmpDir, "test-snapshot.db");
-	});
-
-	afterEach(() => {
-		fs.rmSync(tmpDir, { recursive: true, force: true });
-	});
-
+// The query semantics run against the real SQL over an in-memory database:
+// each `layerMemory()` call is a fresh, empty `:memory:` store, so no test sees
+// another's rows and none needs a temp directory. The file-backed constructor
+// (WAL, checkpoint-on-close) keeps its own coverage in
+// `snapshot-service-layer.test.ts`.
+describe("SnapshotService queries", () => {
 	test("upsert + getSnapshot: insert new, retrieve it", async () => {
 		const snapshot = makeSnapshot();
 
@@ -42,7 +32,7 @@ describe("SnapshotService.layer", () => {
 			return result;
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layerMemory())));
 
 		expect(Option.isSome(result)).toBe(true);
 		const value = Option.getOrThrow(result);
@@ -60,7 +50,7 @@ describe("SnapshotService.layer", () => {
 			return yield* svc.getSnapshot("/nonexistent", "missing.mdx");
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layerMemory())));
 
 		expect(Option.isNone(result)).toBe(true);
 	});
@@ -79,7 +69,7 @@ describe("SnapshotService.layer", () => {
 			return { count, all };
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layerMemory())));
 
 		expect(result.count).toBe(3);
 		expect(result.all).toHaveLength(3);
@@ -105,7 +95,7 @@ describe("SnapshotService.layer", () => {
 			return { stale, remaining };
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layerMemory())));
 
 		expect([...result.stale].sort()).toEqual(["api/class/AlsoRemove.mdx", "api/class/Remove.mdx"]);
 		expect(result.remaining).toHaveLength(1);
@@ -126,7 +116,7 @@ describe("SnapshotService.layer", () => {
 			return { before, after };
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layerMemory())));
 
 		expect(Option.isSome(result.before)).toBe(true);
 		expect(Option.isNone(result.after)).toBe(true);
@@ -146,7 +136,7 @@ describe("SnapshotService.layer", () => {
 			return paths;
 		}).pipe(Effect.scoped);
 
-		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layer(dbPath))));
+		const result = await Effect.runPromise(program.pipe(Effect.provide(SnapshotService.layerMemory())));
 
 		expect([...result].sort()).toEqual(["api/class/A.mdx", "api/enum/B.mdx"]);
 	});

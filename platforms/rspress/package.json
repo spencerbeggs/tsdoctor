@@ -33,6 +33,7 @@
 		"@effected/glob": "catalog:effected",
 		"@effected/jsonc": "catalog:effected",
 		"@effected/markdown": "catalog:effected",
+		"@effected/memfs": "catalog:effected",
 		"@effected/npm": "catalog:effected",
 		"@effected/package-json": "catalog:effected",
 		"@effected/schema-org": "catalog:effected",
@@ -69,7 +70,6 @@
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
 		"@effected/config-file": "catalog:effected",
-		"@effected/memfs": "catalog:effected",
 		"@effected/toml": "catalog:effected",
 		"@microsoft/tsdoc": "~0.17.0",
 		"@rspress/core": "catalog:docs",

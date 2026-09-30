@@ -78,11 +78,11 @@ export const MockTwoslashCacheServiceLayer = TwoslashCacheService.layerTest();
  * The real `OgService` over the Node platform.
  *
  * @remarks
- * Not a stub. `writeSingleFile` only calls it when `siteUrl` and `packageName`
- * are both set, which the build-stages fixtures do not set, so a stub that
- * returned `Option.none` would pass whether or not the wiring was right. The
- * real layer over the real filesystem is both simpler and honest — the
- * behaviour it would stub out is covered directly in
- * `__test__/layers/og-service.test.ts`.
+ * Not a stub. Used by `build-program.integration.test.ts`, which writes to a
+ * real temp directory, so `OgService` reads the same real filesystem the
+ * program writes to. Unit suites (`build-stages.test.ts`,
+ * `bugs/prose-linker-race.test.ts`) build `OgService.layer` over an in-memory
+ * volume they share with the page writer instead. The behaviour itself is
+ * covered directly in `__test__/layers/og-service.test.ts`.
  */
 export const TestOgServiceLayer = Layer.provide(OgService.layer, Layer.mergeAll(NodeFileSystem.layer, Path.layer));

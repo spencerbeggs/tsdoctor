@@ -1,10 +1,8 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { NodeFileSystem } from "@effect/platform-node";
 import { assert, describe, layer } from "@effect/vitest";
+import { MemoryFileSystem } from "@effected/memfs";
 import { Cache } from "@effected/store";
-import { Duration, Effect, Layer, Option, Path, Schema } from "effect";
+import { Duration, Effect, FileSystem, Layer, Option, Path, Schema } from "effect";
 import { TestClock } from "effect/testing";
 import type { PackageFetcherShape, RegistryEvent } from "../src/index.js";
 import {
@@ -56,19 +54,23 @@ const mockFetcher = (known: ReadonlySet<string>): PackageFetcherShape => {
 	};
 };
 
-const registryLayer = (
-	known: ReadonlySet<string>,
-	cacheDir: string = mkdtempSync(join(tmpdir(), "ts-vfs-registry-")),
-) =>
+/**
+ * The registry over an in-memory volume (`@effected/memfs`). The file plane
+ * goes through the `FileSystem` service only, so each `layer(...)` group gets
+ * its own isolated volume and nothing touches the host disk. `FileSystem` is
+ * exposed (`provideMerge`) so a test can reach under the cache — the SAME
+ * volume, since the group builds the layer once.
+ */
+const registryLayer = (known: ReadonlySet<string>, cacheDir = "/cache") =>
 	TypeRegistry.layer.pipe(
 		Layer.provideMerge(
 			Layer.mergeAll(TypeCache.layer({ cacheDir }), Layer.succeed(PackageFetcher, mockFetcher(known))),
 		),
-		Layer.provide(Layer.mergeAll(Cache.layerTest(), NodeFileSystem.layer, Path.layer)),
+		Layer.provideMerge(Layer.mergeAll(Cache.layerTest(), MemoryFileSystem.layer, Path.layer)),
 	);
 
 /** The single-package group's cache root, so tests can reach under the layer. */
-const singleGroupDir = mkdtempSync(join(tmpdir(), "ts-vfs-registry-single-"));
+const singleGroupDir = "/cache-single";
 
 const recording = (events: Array<RegistryEvent>): Layer.Layer<RegistryObserver> =>
 	RegistryObserver.layerCallback((event) => events.push(event));
@@ -185,11 +187,12 @@ describe("TypeRegistry", () => {
 				Effect.gen(function* () {
 					const registry = yield* TypeRegistry;
 					const cache = yield* TypeCache;
+					const fs = yield* FileSystem.FileSystem;
 					const pkg = PackageSpec.make({ name: "zod", version: "4.4.4" });
 					yield* registry.fetchAndCache(pkg);
 					// Simulate the file plane vanishing under live metadata (an
 					// external deletion — in-process interleavings are serialized).
-					rmSync(join(singleGroupDir, "zod", "4.4.4"), { recursive: true, force: true });
+					yield* fs.remove(join(singleGroupDir, "zod", "4.4.4"), { recursive: true });
 					assert.isTrue(Option.isSome(yield* cache.readMetadata(pkg)));
 					assert.isFalse(yield* cache.exists(pkg));
 

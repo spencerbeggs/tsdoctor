@@ -1,8 +1,6 @@
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { NodeFileSystem } from "@effect/platform-node";
-import { Effect } from "effect";
+import { MemoryFileSystem } from "@effected/memfs";
+import { Effect, FileSystem } from "effect";
 import { describe, expect, it } from "vitest";
 import type { CodeBlockComponent } from "../../../src/observability/events.js";
 import { PluginEvent } from "../../../src/observability/events.js";
@@ -148,20 +146,25 @@ describe("makeRenderSink", () => {
 });
 
 describe("writeRenderPhaseJson", () => {
+	// Each test writes and reads back inside ONE provide of an in-memory
+	// volume, so the assertion sees the volume the writer wrote to.
 	it("combines metric rollups with per-file samples", async () => {
-		const cwd = mkdtempSync(join(tmpdir(), "render-phase-"));
+		const cwd = "/site";
 		const sink = makeRenderSink();
 		sink.handle(block({ apiScope: "pkg", file: "a.mdx", twoslashMs: 120, shikiMs: 30, totalMs: 160 }));
 
-		await Effect.runPromise(
-			writeRenderPhaseJson(report(1, 160), sink.snapshot(), {
-				cwd,
-				packageName: "@sites/x",
-				generatedAt: "2026-08-25T00:00:00.000Z",
-			}).pipe(Effect.provide(NodeFileSystem.layer)),
+		const doc = await Effect.runPromise(
+			Effect.gen(function* () {
+				yield* writeRenderPhaseJson(report(1, 160), sink.snapshot(), {
+					cwd,
+					packageName: "@sites/x",
+					generatedAt: "2026-08-25T00:00:00.000Z",
+				});
+				const fs = yield* FileSystem.FileSystem;
+				return JSON.parse(yield* fs.readFileString(join(cwd, ".api-docs", "build", "render-phase.json")));
+			}).pipe(Effect.provide(MemoryFileSystem.layer)),
 		);
 
-		const doc = JSON.parse(readFileSync(join(cwd, ".api-docs", "build", "render-phase.json"), "utf-8"));
 		expect(doc.package).toBe("@sites/x");
 		expect(doc.overall.blocks).toBe(1);
 		expect(doc.byScope.pkg.twoslashMs).toBe(160);
@@ -170,16 +173,25 @@ describe("writeRenderPhaseJson", () => {
 	});
 
 	it("writes no artifact when no code block was processed", async () => {
-		const cwd = mkdtempSync(join(tmpdir(), "render-phase-empty-"));
+		const cwd = "/site";
 
-		await Effect.runPromise(
-			writeRenderPhaseJson(report(0, 0), makeRenderSink().snapshot(), {
-				cwd,
-				packageName: "@sites/x",
-				generatedAt: "2026-08-25T00:00:00.000Z",
-			}).pipe(Effect.provide(NodeFileSystem.layer)),
+		const { artifact, buildDir } = await Effect.runPromise(
+			Effect.gen(function* () {
+				yield* writeRenderPhaseJson(report(0, 0), makeRenderSink().snapshot(), {
+					cwd,
+					packageName: "@sites/x",
+					generatedAt: "2026-08-25T00:00:00.000Z",
+				});
+				const fs = yield* FileSystem.FileSystem;
+				return {
+					artifact: yield* fs.exists(join(cwd, ".api-docs", "build", "render-phase.json")),
+					buildDir: yield* fs.exists(join(cwd, ".api-docs", "build")),
+				};
+			}).pipe(Effect.provide(MemoryFileSystem.layer)),
 		);
 
-		expect(existsSync(join(cwd, ".api-docs", "build", "render-phase.json"))).toBe(false);
+		expect(artifact).toBe(false);
+		// The early return runs before `makeDirectory`: not even the build dir.
+		expect(buildDir).toBe(false);
 	});
 });

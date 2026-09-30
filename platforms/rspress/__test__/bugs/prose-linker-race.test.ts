@@ -18,15 +18,23 @@
  */
 
 import path from "node:path";
-import { NodeFileSystem } from "@effect/platform-node";
+import { MemoryFileSystem } from "@effected/memfs";
 import { CrossLinker } from "@tsdoctor/model";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Path } from "effect";
 import { describe, expect, it } from "vitest";
 import type { GenerateSinglePageContext, WorkItem } from "../../src/build-stages.js";
 import { generateSinglePage, prepareWorkItems } from "../../src/build-stages.js";
 import { loadApiModel } from "../../src/model-loader.js";
 import { DEFAULT_CATEGORIES } from "../../src/schemas/config.js";
-import { TestOgServiceLayer } from "../utils/layers.js";
+import { OgService } from "../../src/services/OgService.js";
+
+/**
+ * `generateSinglePage` needs a `FileSystem` only to ask whether its output file
+ * already exists, and `OgService` shares it. An empty in-memory volume makes
+ * "nothing exists yet" a fact of the test rather than of the host's `/tmp`.
+ * (The model itself is loaded outside this layer, from the repo fixture.)
+ */
+const PageLayer = Layer.provideMerge(OgService.layer, Layer.mergeAll(MemoryFileSystem.layer, Path.layer));
 
 const fixture = path.join(import.meta.dirname, "..", "__fixtures__", "kitchensink", "kitchensink.api.json");
 
@@ -73,7 +81,7 @@ describe("Bug: prose cross-links leaked across concurrently generated APIs", () 
 		const [pageV2, pageV1] = await Effect.runPromise(
 			Effect.all([generateSinglePage(v2.workItem, v2.ctx), generateSinglePage(v1.workItem, v1.ctx)], {
 				concurrency: 2,
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+			}).pipe(Effect.provide(PageLayer)),
 		);
 		if (!pageV2 || !pageV1) throw new Error("expected both pages");
 
@@ -100,7 +108,7 @@ describe("Bug: prose cross-links leaked across concurrently generated APIs", () 
 				{
 					concurrency: 2,
 				},
-			).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+			).pipe(Effect.provide(PageLayer)),
 		);
 		if (!linked || !unlinked) throw new Error("expected both pages");
 		expect(linked.bodyContent).toContain("[Pipeline](/kitchensink/api/class/pipeline)");

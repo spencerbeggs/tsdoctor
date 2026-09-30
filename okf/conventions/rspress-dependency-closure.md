@@ -4,8 +4,8 @@ title: Keep every adapter's dependency closure whole
 description: "Every platforms/* adapter declares the full @effected closure and every @tsdoctor/* core package it consumes in dependencies, never as peers; never prune an entry as unused without checking."
 generated:
   by: okfit/claude-code
-  at: 2026-09-24T20:28:47Z
-  body_sha256: 2c10b2652ec598245cf1ae38365c7188debe4a84f5cc6c311c1bfbe189120087
+  at: 2026-09-30T15:44:29Z
+  body_sha256: a81d15f17fee156e16acd7c65b6d2aead945a8f7af3010d3950b72eca554d5b3
 stale_after: 2026-12-23T00:00:00Z
 tags: [compat, release, deps]
 sources:
@@ -28,7 +28,9 @@ list the following as ordinary `dependencies`, never as `peerDependencies`:
   consumes, each as `catalog:effected`. That covers public-surface peers
   and internal-only dependencies alike: `github`, `glob`, `jsonc`,
   `markdown`, `npm`, `package-json`, `schema-org`, `semver`, `spdx`,
-  `store`, `tsconfig-json`, `walker`, `xdg` and `yaml`.
+  `store`, `tsconfig-json`, `walker`, `xdg` and `yaml`. The RSPress adapter
+  also carries `memfs` as a runtime dependency: its `node-sync` subpath is
+  the synchronous `FileSystem` the config helpers run bundle discovery on.
 - `effect` and `@effect/platform-node`.
 - Every `@tsdoctor/*` core workspace it consumes, as `workspace:*`. That is
   all eight for RSPress (`bundle`, `manifest`, `model`, `pages`,
@@ -45,7 +47,7 @@ those peers finally get satisfied.
 Do not prune an entry from this closure as "unused" without first checking
 that it is genuinely unreferenced. Some entries are imported directly from
 adapter source (`../../platforms/rspress/src/services/TypeRegistryService.ts`,
-`../../platforms/rspress/src/sync-node-fs.ts`,
+`../../platforms/rspress/src/config-helpers.ts`,
 `../../platforms/rspress/src/twoslash-transformer.ts`). The rest exist
 only to keep the dependency graph closed, even though no adapter source
 file imports them by name.
