@@ -116,6 +116,27 @@ export class SnapshotService extends Context.Service<SnapshotService, SnapshotSe
 		make(dbPath);
 
 	/**
+	 * The live {@link SnapshotService} implementation over an in-memory
+	 * (`:memory:`) SQLite database.
+	 *
+	 * @remarks
+	 * The same SQL, migrations and upsert semantics as
+	 * {@link SnapshotService.layer}, backed by `@effected/store`'s
+	 * `Store.layerTest` instead of a file — so a test exercises the real queries
+	 * without a temp directory. What it cannot cover is file-backed behaviour:
+	 * WAL mode, `checkpointOnClose`, and persistence across a reopen. Unlike
+	 * {@link SnapshotService.layerTest}, nothing is stubbed.
+	 *
+	 * This is a layer FACTORY: each call mints a fresh layer and so a fresh,
+	 * empty database. Bind the result to a `const` and provide it once when the
+	 * steps of one test must see each other's rows.
+	 *
+	 * @returns A layer providing {@link SnapshotService}
+	 * @public
+	 */
+	static readonly layerMemory = (): Layer.Layer<SnapshotService, StoreError | StoreMigrationError> => makeMemory();
+
+	/**
 	 * An in-memory double: no SQLite file, no migrations, no WAL.
 	 *
 	 * @remarks
@@ -198,10 +219,15 @@ const migrations: ReadonlyArray<StoreMigration> = [
 	},
 ];
 
-const make = (dbPath: string): Layer.Layer<SnapshotService, StoreError | StoreMigrationError> => {
-	const StoreLive = Store.layerSqlite({ filename: dbPath, migrations, checkpointOnClose: true });
+const make = (dbPath: string): Layer.Layer<SnapshotService, StoreError | StoreMigrationError> =>
+	Layer.provide(serviceImpl(), Store.layerSqlite({ filename: dbPath, migrations, checkpointOnClose: true }));
 
-	const ServiceImpl = Layer.effect(
+const makeMemory = (): Layer.Layer<SnapshotService, StoreError | StoreMigrationError> =>
+	Layer.provide(serviceImpl(), Store.layerTest({ migrations }));
+
+/** The SQL implementation, over whichever `Store` the caller provides. */
+const serviceImpl = (): Layer.Layer<SnapshotService, never, Store> =>
+	Layer.effect(
 		SnapshotService,
 		Effect.gen(function* () {
 			const store = yield* Store;
@@ -303,6 +329,3 @@ const make = (dbPath: string): Layer.Layer<SnapshotService, StoreError | StoreMi
 			};
 		}),
 	);
-
-	return Layer.provide(ServiceImpl, StoreLive);
-};

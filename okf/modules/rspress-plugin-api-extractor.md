@@ -7,8 +7,8 @@ resource: ../../platforms/rspress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-27T18:20:27Z
-  body_sha256: 2f0e953927e4a27e1d8d2199d9e6e816d2a930009f3c1f7761ef4a0cc6cc326a
+  at: 2026-09-30T15:44:29Z
+  body_sha256: e0b8976954d97803ebc61b2f1905b43c1644d2e04648a32ec4483f57b55f36bc
 tags:
   - architecture
   - observability
@@ -119,9 +119,9 @@ Configuration:
 - `src/config-utils.ts` — pure helpers: `classifyApiConfig` (inert
   detection), `mergeLlmsPluginConfig`, dependency extraction
 - `src/config-helpers.ts` — the `fromDir` / `fromParentDir` builders,
-  delegating discovery to `@tsdoctor/bundle`
-- `src/sync-node-fs.ts` — `SyncDiscoveryLayer`, a synchronous `FileSystem`
-  bridge so bundle discovery runs under the sync helper API
+  delegating discovery to `@tsdoctor/bundle` under `Effect.runSync` over
+  `@effected/memfs/node-sync`'s `NodeSyncFileSystem.layer` (a read-only
+  synchronous `FileSystem` over `node:fs`) plus `Path.layer`
 - `src/model-loader.ts` — plain functions over `@tsdoctor/model`'s
   `Model.load`, typed `ModelLoadError`
 - `src/category-resolver.ts` — category config merging across the

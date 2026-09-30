@@ -1,8 +1,6 @@
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { NodeFileSystem } from "@effect/platform-node";
-import { Effect } from "effect";
+import { MemoryFileSystem } from "@effected/memfs";
+import { Effect, FileSystem } from "effect";
 import { describe, expect, it } from "vitest";
 import { PluginEvent } from "../../../src/observability/events.js";
 import { eventToIssue, makeIssuesSink, writeIssuesJson } from "../../../src/observability/sinks/issues-sink.js";
@@ -89,18 +87,25 @@ describe("makeIssuesSink", () => {
 
 describe("writeIssuesJson", () => {
 	it("writes the bundler-compatible schema to .api-docs/build/issues.json", async () => {
-		const dir = mkdtempSync(join(tmpdir(), "issues-"));
-		await Effect.runPromise(
-			writeIssuesJson(
-				{
-					warnings: [{ source: "twoslash", level: "warn", text: "x", code: "TS1", file: "f.mdx", line: 1, column: 2 }],
-					errors: [],
-					suppressed: [],
-				},
-				{ cwd: dir, packageName: "@site/x", generatedAt: "2026-07-22T00:00:00.000Z" },
-			).pipe(Effect.provide(NodeFileSystem.layer)),
+		// An in-memory volume: the write and the read-back share ONE provide, so
+		// the assertion inspects the volume the writer actually wrote to.
+		const dir = "/site";
+		const doc = await Effect.runPromise(
+			Effect.gen(function* () {
+				yield* writeIssuesJson(
+					{
+						warnings: [
+							{ source: "twoslash", level: "warn", text: "x", code: "TS1", file: "f.mdx", line: 1, column: 2 },
+						],
+						errors: [],
+						suppressed: [],
+					},
+					{ cwd: dir, packageName: "@site/x", generatedAt: "2026-07-22T00:00:00.000Z" },
+				);
+				const fs = yield* FileSystem.FileSystem;
+				return JSON.parse(yield* fs.readFileString(join(dir, ".api-docs", "build", "issues.json")));
+			}).pipe(Effect.provide(MemoryFileSystem.layer)),
 		);
-		const doc = JSON.parse(readFileSync(join(dir, ".api-docs", "build", "issues.json"), "utf8"));
 		expect(doc).toEqual({
 			generatedAt: "2026-07-22T00:00:00.000Z",
 			package: "@site/x",

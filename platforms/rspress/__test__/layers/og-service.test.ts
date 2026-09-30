@@ -15,7 +15,7 @@
  */
 
 import { MemoryFileSystem } from "@effected/memfs";
-import { Effect, FileSystem, Layer, Option, Path, References } from "effect";
+import { Effect, Layer, Option, Path, References } from "effect";
 import { describe, expect, it } from "vitest";
 import { makeEventBusLayer } from "../../src/observability/EventBus.js";
 import type { PluginEvent } from "../../src/observability/events.js";
@@ -215,20 +215,19 @@ describe("OgService.resolveImage", () => {
 		// see it — the output is identical either way.
 		it("reads a given image file once, however many pages ask for it", async () => {
 			let reads = 0;
-			const volume = MemoryFileSystem.layerWith({ [`${DOCS_ROOT}/public/og.png`]: PNG_1X1 });
-			const counting = Layer.effect(
-				FileSystem.FileSystem,
-				Effect.gen(function* () {
-					const fs = yield* FileSystem.FileSystem;
-					return {
-						...fs,
-						readFile: (p: string) => {
+			// A spy: the handler records the call and declines (`undefined`), so
+			// the read still reaches the real volume.
+			const counting = MemoryFileSystem.layerWith(
+				{ [`${DOCS_ROOT}/public/og.png`]: PNG_1X1 },
+				{
+					faults: {
+						readFile: () => {
 							reads++;
-							return fs.readFile(p);
+							return undefined;
 						},
-					} as typeof fs;
-				}),
-			).pipe(Layer.provide(volume));
+					},
+				},
+			);
 
 			const layer = Layer.provide(OgService.layer, Layer.mergeAll(counting, Path.layer));
 			const program = Effect.gen(function* () {

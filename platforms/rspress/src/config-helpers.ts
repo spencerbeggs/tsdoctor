@@ -1,11 +1,21 @@
 import fs from "node:fs";
 import path from "node:path";
+import { NodeSyncFileSystem } from "@effected/memfs/node-sync";
 import type { BundleDescriptor } from "@tsdoctor/bundle";
 import { discoverBundle } from "@tsdoctor/bundle";
 import { normalizeBaseRoute } from "@tsdoctor/pages";
-import { Effect, Result } from "effect";
+import { Effect, Layer, Path, Result } from "effect";
 import type { MultiApiConfig } from "./schemas/config.js";
-import { SyncDiscoveryLayer } from "./sync-node-fs.js";
+
+/**
+ * The sync environment bundle discovery runs under from the config helpers:
+ * `@effected/memfs`'s read-only synchronous `FileSystem` over `node:fs` plus
+ * the (already sync) `Path` service. `@effect/platform-node`'s
+ * `NodeFileSystem` is promise-backed, so it cannot serve `Effect.runSync`;
+ * `NodeSyncFileSystem` matches its errors tag-for-tag and makes every write
+ * member a defect, so a new discovery dependency on a write fails loudly.
+ */
+const SyncDiscoveryLayer = Layer.mergeAll(NodeSyncFileSystem.layer, Path.layer);
 
 /**
  * Metadata discovered from a single rslib-builder localPaths package folder.
@@ -88,8 +98,8 @@ function requirePackageJson(dir: string): { name: string; version?: string } {
 }
 
 /**
- * Run `@tsdoctor/bundle`'s `discoverBundle` synchronously (over the sync
- * `FileSystem` bridge — see `sync-node-fs.ts`) and translate its typed
+ * Run `@tsdoctor/bundle`'s `discoverBundle` synchronously (over
+ * `SyncDiscoveryLayer` above) and translate its typed
  * failures into the plugin's historical error messages.
  */
 function discoverDescriptor(dir: string, name: string, version: string | undefined): BundleDescriptor {

@@ -1,11 +1,9 @@
-import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
-import { NodeFileSystem } from "@effect/platform-node";
+import { MemoryFileSystem } from "@effected/memfs";
 import { ApiModel } from "@microsoft/api-extractor-model";
 import { CrossLinker, parseFrontmatter } from "@tsdoctor/model";
 import { SnapshotService } from "@tsdoctor/snapshot";
-import { Effect, Layer, References } from "effect";
+import { Effect, FileSystem, Layer, Path, References } from "effect";
 import { describe, expect, it } from "vitest";
 import type {
 	FileWriteResult,
@@ -29,9 +27,27 @@ import type { PluginEvent } from "../src/observability/events.js";
 import { installSyncEmitterUnsafe } from "../src/observability/sync-emitter.js";
 import type { CategoryConfig } from "../src/schemas/config.js";
 import { DEFAULT_CATEGORIES } from "../src/schemas/config.js";
-import { TestOgServiceLayer } from "./utils/layers.js";
+import { OgService } from "../src/services/OgService.js";
 
 const TEST_BUILD_ID = "test-build";
+
+/**
+ * Every stage under test here reaches the disk only through the `FileSystem`
+ * service, so the suite runs over an in-memory volume (`@effected/memfs`) and
+ * the snapshot DB over in-memory SQLite (`SnapshotService.layerMemory`) — the
+ * real SQL, no temp directory. `OgService` shares the page writer's volume.
+ *
+ * Each `Effect.provide` builds a FRESH volume and a fresh database, so a test
+ * that reads back what it wrote, or runs two builds that must see each other's
+ * output, does all of it inside ONE provided program.
+ */
+const OUT = "/out";
+
+/** The page-writer environment: `OgService` over one empty volume, which it exposes. */
+const PageLayer = Layer.provideMerge(OgService.layer, Layer.mergeAll(MemoryFileSystem.layer, Path.layer));
+
+/** The output directory exists before a build, as it would on disk. */
+const outputDir = { [OUT]: MemoryFileSystem.directory() };
 
 describe("build-stages types", () => {
 	it("WorkItem has required fields", () => {
@@ -231,83 +247,77 @@ describe("prepareWorkItems", () => {
 });
 
 describe("writeMetadata", () => {
+	const classes: Record<string, CategoryConfig> = {
+		classes: {
+			folderName: "class",
+			displayName: "Classes",
+			singularName: "Class",
+			collapsible: true,
+			collapsed: true,
+			overviewHeaders: [2],
+		},
+	};
+
+	const fileResult = (
+		file: string,
+		label: string,
+		status: FileWriteResult["status"],
+		snapshot: Partial<FileWriteResult["snapshot"]> = {},
+	): FileWriteResult => ({
+		relativePathWithExt: file,
+		absolutePath: path.join(OUT, file),
+		status,
+		snapshot: {
+			outputDir: OUT,
+			filePath: file,
+			publishedTime: "",
+			modifiedTime: "",
+			contentHash: "a",
+			frontmatterHash: "b",
+			buildTime: "",
+			...snapshot,
+		},
+		categoryKey: "classes",
+		label,
+		routePath: `/api/${file.replace(/\.mdx$/, "")}`,
+	});
+
 	it("writes _meta.json files for categories with items", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "meta-test-"));
-		const dbPath = path.join(tmpDir, "test.db");
 		const generatedFiles = new Set<string>();
 
-		const categories: Record<string, CategoryConfig> = {
-			classes: {
-				folderName: "class",
-				displayName: "Classes",
-				singularName: "Class",
-				collapsible: true,
-				collapsed: true,
-				overviewHeaders: [2],
-			},
-		};
-
 		const results: FileWriteResult[] = [
-			{
-				relativePathWithExt: "class/foo.mdx",
-				absolutePath: path.join(tmpDir, "class/foo.mdx"),
-				status: "new",
-				snapshot: {
-					outputDir: tmpDir,
-					filePath: "class/foo.mdx",
-					publishedTime: "",
-					modifiedTime: "",
-					contentHash: "a",
-					frontmatterHash: "b",
-					buildTime: "",
-				},
-				categoryKey: "classes",
-				label: "Foo",
-				routePath: "/api/class/foo",
-			},
-			{
-				relativePathWithExt: "class/bar.mdx",
-				absolutePath: path.join(tmpDir, "class/bar.mdx"),
-				status: "new",
-				snapshot: {
-					outputDir: tmpDir,
-					filePath: "class/bar.mdx",
-					publishedTime: "",
-					modifiedTime: "",
-					contentHash: "c",
-					frontmatterHash: "d",
-					buildTime: "",
-				},
-				categoryKey: "classes",
-				label: "Bar",
-				routePath: "/api/class/bar",
-			},
+			fileResult("class/foo.mdx", "Foo", "new", { contentHash: "a", frontmatterHash: "b" }),
+			fileResult("class/bar.mdx", "Bar", "new", { contentHash: "c", frontmatterHash: "d" }),
 		];
 
-		await Effect.runPromise(
-			writeMetadata({
-				buildId: TEST_BUILD_ID,
-				fileResults: results,
-				categories,
-				resolvedOutputDir: tmpDir,
-				existingSnapshots: new Map(),
-				buildTime: new Date().toISOString(),
-				baseRoute: "/api",
-				packageName: "test-package",
-				generatedFiles,
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, SnapshotService.layer(dbPath)))),
+		const { metaContent, rootMeta, indexExists } = await Effect.runPromise(
+			Effect.gen(function* () {
+				yield* writeMetadata({
+					buildId: TEST_BUILD_ID,
+					fileResults: results,
+					categories: classes,
+					resolvedOutputDir: OUT,
+					existingSnapshots: new Map(),
+					buildTime: new Date().toISOString(),
+					baseRoute: "/api",
+					packageName: "test-package",
+					generatedFiles,
+				});
+				const fs = yield* FileSystem.FileSystem;
+				return {
+					metaContent: JSON.parse(yield* fs.readFileString(path.join(OUT, "class/_meta.json"))),
+					rootMeta: JSON.parse(yield* fs.readFileString(path.join(OUT, "_meta.json"))),
+					indexExists: yield* fs.exists(path.join(OUT, "index.mdx")),
+				};
+			}).pipe(Effect.provide(Layer.mergeAll(MemoryFileSystem.layerWith(outputDir), SnapshotService.layerMemory()))),
 		);
 
 		// Category _meta.json should exist with sorted entries
-		const metaPath = path.join(tmpDir, "class/_meta.json");
-		const metaContent = JSON.parse(await fs.promises.readFile(metaPath, "utf-8"));
 		expect(metaContent).toHaveLength(2);
 		expect(metaContent[0].label).toBe("Bar");
 		expect(metaContent[1].label).toBe("Foo");
 
 		// Root _meta.json should exist with category dir entry
-		const rootMetaPath = path.join(tmpDir, "_meta.json");
-		const rootMeta = JSON.parse(await fs.promises.readFile(rootMetaPath, "utf-8"));
 		expect(rootMeta).toHaveLength(1);
 		expect(rootMeta[0].type).toBe("dir");
 		expect(rootMeta[0].name).toBe("class");
@@ -319,119 +329,69 @@ describe("writeMetadata", () => {
 		expect(generatedFiles.has("index.mdx")).toBe(true);
 
 		// index.mdx should have been written
-		const indexPath = path.join(tmpDir, "index.mdx");
-		const indexExists = await fs.promises
-			.access(indexPath)
-			.then(() => true)
-			.catch(() => false);
 		expect(indexExists).toBe(true);
-
-		await fs.promises.rm(tmpDir, { recursive: true });
 	});
 
 	it("skips writing _meta.json when content is unchanged (snapshot match)", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "meta-unchanged-"));
-		const dbPath = path.join(tmpDir, "test.db");
-		const snapshotLayer = SnapshotService.layer(dbPath);
-
-		const categories: Record<string, CategoryConfig> = {
-			classes: {
-				folderName: "class",
-				displayName: "Classes",
-				singularName: "Class",
-				collapsible: true,
-				collapsed: true,
-				overviewHeaders: [2],
-			},
-		};
-
+		const metaPath = path.join(OUT, "class/_meta.json");
 		const results: FileWriteResult[] = [
-			{
-				relativePathWithExt: "class/foo.mdx",
-				absolutePath: path.join(tmpDir, "class/foo.mdx"),
-				status: "unchanged",
-				snapshot: {
-					outputDir: tmpDir,
-					filePath: "class/foo.mdx",
-					publishedTime: "2024-01-01T00:00:00.000Z",
-					modifiedTime: "2024-01-01T00:00:00.000Z",
-					contentHash: "a",
-					frontmatterHash: "b",
-					buildTime: "2024-01-01T00:00:00.000Z",
-				},
-				categoryKey: "classes",
-				label: "Foo",
-				routePath: "/api/class/foo",
-			},
+			fileResult("class/foo.mdx", "Foo", "unchanged", {
+				publishedTime: "2024-01-01T00:00:00.000Z",
+				modifiedTime: "2024-01-01T00:00:00.000Z",
+				buildTime: "2024-01-01T00:00:00.000Z",
+			}),
 		];
 
-		const testLayer = Layer.mergeAll(NodeFileSystem.layer, snapshotLayer);
+		// A spy, not a stub: the handler records each write and declines, so the
+		// write still lands. Counting writes discriminates directly where the
+		// on-disk version compared mtimes.
+		const writes: string[] = [];
+		const volume = MemoryFileSystem.layerWith(outputDir, {
+			faults: {
+				writeFileString: (target) => {
+					writes.push(target);
+					return undefined;
+				},
+			},
+		});
+		const metaWrites = () => writes.filter((target) => target === metaPath).length;
 
-		// First write — creates the files
-		const generatedFiles1 = new Set<string>();
-		await Effect.runPromise(
-			writeMetadata({
-				buildId: TEST_BUILD_ID,
-				fileResults: results,
-				categories,
-				resolvedOutputDir: tmpDir,
-				existingSnapshots: new Map(),
-				buildTime: new Date().toISOString(),
-				baseRoute: "/api",
-				packageName: "test-package",
-				generatedFiles: generatedFiles1,
-			}).pipe(Effect.provide(testLayer)),
-		);
-
-		const metaPath = path.join(tmpDir, "class/_meta.json");
-		const statBefore = await fs.promises.stat(metaPath);
-
-		// Build the existingSnapshots by reading the snapshot DB via SnapshotService
-		const existingSnapshots = await Effect.runPromise(
+		const { firstBuild, secondBuild } = await Effect.runPromise(
 			Effect.gen(function* () {
+				const run = (existingSnapshots: Parameters<typeof writeMetadata>[0]["existingSnapshots"]) =>
+					writeMetadata({
+						buildId: TEST_BUILD_ID,
+						fileResults: results,
+						categories: classes,
+						resolvedOutputDir: OUT,
+						existingSnapshots,
+						buildTime: new Date().toISOString(),
+						baseRoute: "/api",
+						packageName: "test-package",
+						generatedFiles: new Set<string>(),
+					});
+
+				// First write — creates the files
+				yield* run(new Map());
+				const firstBuild = metaWrites();
+
+				// Build the existingSnapshots by reading the snapshot DB via SnapshotService
 				const svc = yield* SnapshotService;
-				const all = yield* svc.getAllForDirectory(tmpDir);
-				return new Map(all.map((s) => [s.filePath, s]));
-			}).pipe(Effect.provide(snapshotLayer)),
+				const all = yield* svc.getAllForDirectory(OUT);
+
+				// Second write — should be unchanged, so _meta.json is not rewritten
+				yield* run(new Map(all.map((snapshot) => [snapshot.filePath, snapshot])));
+				return { firstBuild, secondBuild: metaWrites() - firstBuild };
+			}).pipe(Effect.provide(Layer.mergeAll(volume, SnapshotService.layerMemory()))),
 		);
 
-		// Second write — should be unchanged, file mtime should not change
-		const generatedFiles2 = new Set<string>();
-		await Effect.runPromise(
-			writeMetadata({
-				buildId: TEST_BUILD_ID,
-				fileResults: results,
-				categories,
-				resolvedOutputDir: tmpDir,
-				existingSnapshots,
-				buildTime: new Date().toISOString(),
-				baseRoute: "/api",
-				packageName: "test-package",
-				generatedFiles: generatedFiles2,
-			}).pipe(Effect.provide(testLayer)),
-		);
-
-		const statAfter = await fs.promises.stat(metaPath);
-		// File should not have been rewritten (mtime unchanged)
-		expect(statAfter.mtimeMs).toBe(statBefore.mtimeMs);
-
-		await fs.promises.rm(tmpDir, { recursive: true });
+		expect(firstBuild).toBe(1);
+		expect(secondBuild).toBe(0);
 	});
 
 	it("excludes categories with no items from root _meta.json", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "meta-empty-cat-"));
-		const dbPath = path.join(tmpDir, "test.db");
-		const generatedFiles = new Set<string>();
-
 		const categories: Record<string, CategoryConfig> = {
-			classes: {
-				folderName: "class",
-				displayName: "Classes",
-				singularName: "Class",
-				collapsible: true,
-				collapsed: true,
-				overviewHeaders: [2],
-			},
+			...classes,
 			interfaces: {
 				folderName: "interface",
 				displayName: "Interfaces",
@@ -443,215 +403,152 @@ describe("writeMetadata", () => {
 		};
 
 		// Only classes have results — interfaces category is empty
-		const results: FileWriteResult[] = [
-			{
-				relativePathWithExt: "class/foo.mdx",
-				absolutePath: path.join(tmpDir, "class/foo.mdx"),
-				status: "new",
-				snapshot: {
-					outputDir: tmpDir,
-					filePath: "class/foo.mdx",
-					publishedTime: "",
-					modifiedTime: "",
-					contentHash: "a",
-					frontmatterHash: "b",
-					buildTime: "",
-				},
-				categoryKey: "classes",
-				label: "Foo",
-				routePath: "/api/class/foo",
-			},
-		];
+		const results: FileWriteResult[] = [fileResult("class/foo.mdx", "Foo", "new")];
 
-		await Effect.runPromise(
-			writeMetadata({
-				buildId: TEST_BUILD_ID,
-				fileResults: results,
-				categories,
-				resolvedOutputDir: tmpDir,
-				existingSnapshots: new Map(),
-				buildTime: new Date().toISOString(),
-				baseRoute: "/api",
-				packageName: "test-package",
-				generatedFiles,
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, SnapshotService.layer(dbPath)))),
+		const rootMeta = await Effect.runPromise(
+			Effect.gen(function* () {
+				yield* writeMetadata({
+					buildId: TEST_BUILD_ID,
+					fileResults: results,
+					categories,
+					resolvedOutputDir: OUT,
+					existingSnapshots: new Map(),
+					buildTime: new Date().toISOString(),
+					baseRoute: "/api",
+					packageName: "test-package",
+					generatedFiles: new Set<string>(),
+				});
+				const fs = yield* FileSystem.FileSystem;
+				return JSON.parse(yield* fs.readFileString(path.join(OUT, "_meta.json")));
+			}).pipe(Effect.provide(Layer.mergeAll(MemoryFileSystem.layerWith(outputDir), SnapshotService.layerMemory()))),
 		);
 
-		const rootMeta = JSON.parse(await fs.promises.readFile(path.join(tmpDir, "_meta.json"), "utf-8"));
 		// Only "class" should appear — "interface" has no items
 		expect(rootMeta).toHaveLength(1);
 		expect(rootMeta[0].name).toBe("class");
-
-		await fs.promises.rm(tmpDir, { recursive: true });
 	});
 });
 
 describe("cleanupAndCommit", () => {
-	it("batch upserts snapshots for written files only", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "cleanup-test-"));
-		const dbPath = path.join(tmpDir, "test.db");
-		const snapshotLayer = SnapshotService.layer(dbPath);
+	const written = (file: string, status: FileWriteResult["status"], hashes: [string, string], buildTime: string) =>
+		({
+			relativePathWithExt: file,
+			absolutePath: path.join(OUT, file),
+			status,
+			snapshot: {
+				outputDir: OUT,
+				filePath: file,
+				publishedTime: buildTime,
+				modifiedTime: buildTime,
+				contentHash: hashes[0],
+				frontmatterHash: hashes[1],
+				buildTime,
+			},
+			categoryKey: "classes",
+			label: path.basename(file, ".mdx"),
+			routePath: `/api/${file.replace(/\.mdx$/, "")}`,
+		}) satisfies FileWriteResult;
 
+	it("batch upserts snapshots for written files only", async () => {
 		const buildTime = new Date().toISOString();
 		const results: FileWriteResult[] = [
-			{
-				relativePathWithExt: "class/foo.mdx",
-				absolutePath: path.join(tmpDir, "class/foo.mdx"),
-				status: "new",
-				snapshot: {
-					outputDir: tmpDir,
-					filePath: "class/foo.mdx",
-					publishedTime: buildTime,
-					modifiedTime: buildTime,
-					contentHash: "abc",
-					frontmatterHash: "def",
-					buildTime,
-				},
-				categoryKey: "classes",
-				label: "Foo",
-				routePath: "/api/class/foo",
-			},
-			{
-				relativePathWithExt: "class/bar.mdx",
-				absolutePath: path.join(tmpDir, "class/bar.mdx"),
-				status: "unchanged",
-				snapshot: {
-					outputDir: tmpDir,
-					filePath: "class/bar.mdx",
-					publishedTime: buildTime,
-					modifiedTime: buildTime,
-					contentHash: "ghi",
-					frontmatterHash: "jkl",
-					buildTime,
-				},
-				categoryKey: "classes",
-				label: "Bar",
-				routePath: "/api/class/bar",
-			},
+			written("class/foo.mdx", "new", ["abc", "def"], buildTime),
+			written("class/bar.mdx", "unchanged", ["ghi", "jkl"], buildTime),
 		];
 
-		const testLayer = Layer.mergeAll(NodeFileSystem.layer, snapshotLayer);
-
-		await Effect.runPromise(
-			cleanupAndCommit({
-				buildId: TEST_BUILD_ID,
-				fileResults: results,
-				resolvedOutputDir: tmpDir,
-				generatedFiles: new Set(["class/foo.mdx", "class/bar.mdx"]),
-			}).pipe(Effect.provide(testLayer)),
+		const snapshots = await Effect.runPromise(
+			Effect.gen(function* () {
+				yield* cleanupAndCommit({
+					buildId: TEST_BUILD_ID,
+					fileResults: results,
+					resolvedOutputDir: OUT,
+					generatedFiles: new Set(["class/foo.mdx", "class/bar.mdx"]),
+				});
+				const svc = yield* SnapshotService;
+				return yield* svc.getAllForDirectory(OUT);
+			}).pipe(Effect.provide(Layer.mergeAll(MemoryFileSystem.layerWith(outputDir), SnapshotService.layerMemory()))),
 		);
 
 		// Only written file should have a snapshot (not unchanged)
-		const snapshots = await Effect.runPromise(
-			Effect.gen(function* () {
-				const svc = yield* SnapshotService;
-				return yield* svc.getAllForDirectory(tmpDir);
-			}).pipe(Effect.provide(snapshotLayer)),
-		);
 		expect(snapshots.length).toBe(1);
 		expect(snapshots[0].filePath).toBe("class/foo.mdx");
-
-		await fs.promises.rm(tmpDir, { recursive: true });
 	});
 
 	it("deletes orphaned files not in generatedFiles set", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "orphan-test-"));
-		const dbPath = path.join(tmpDir, "test.db");
+		const orphan = path.join(OUT, "class", "orphan.mdx");
 
-		const orphanDir = path.join(tmpDir, "class");
-		await fs.promises.mkdir(orphanDir, { recursive: true });
-		await fs.promises.writeFile(path.join(orphanDir, "orphan.mdx"), "old content");
-
-		await Effect.runPromise(
-			cleanupAndCommit({
-				buildId: TEST_BUILD_ID,
-				fileResults: [],
-				resolvedOutputDir: tmpDir,
-				generatedFiles: new Set(),
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, SnapshotService.layer(dbPath)))),
+		const exists = await Effect.runPromise(
+			Effect.gen(function* () {
+				yield* cleanupAndCommit({
+					buildId: TEST_BUILD_ID,
+					fileResults: [],
+					resolvedOutputDir: OUT,
+					generatedFiles: new Set(),
+				});
+				const fs = yield* FileSystem.FileSystem;
+				return yield* fs.exists(orphan);
+			}).pipe(
+				Effect.provide(
+					Layer.mergeAll(MemoryFileSystem.layerWith({ [orphan]: "old content" }), SnapshotService.layerMemory()),
+				),
+			),
 		);
 
-		const exists = await fs.promises
-			.access(path.join(orphanDir, "orphan.mdx"))
-			.then(() => true)
-			.catch(() => false);
 		expect(exists).toBe(false);
-
-		await fs.promises.rm(tmpDir, { recursive: true });
 	});
 
 	it("removes directories emptied by stale-file cleanup, including emptied ancestors", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "stale-dir-test-"));
-		const dbPath = path.join(tmpDir, "test.db");
-		const snapshotLayer = SnapshotService.layer(dbPath);
-		const testLayer = Layer.mergeAll(NodeFileSystem.layer, snapshotLayer);
-
 		// Nested layout whose only page goes stale: deleting it empties both levels
 		const staleRel = "compileroptions.type/nested/type.mdx";
-		await fs.promises.mkdir(path.join(tmpDir, "compileroptions.type/nested"), { recursive: true });
-		await fs.promises.writeFile(path.join(tmpDir, staleRel), "old content");
-
 		const buildTime = new Date().toISOString();
 		const seed: FileWriteResult[] = [
 			{
-				relativePathWithExt: staleRel,
-				absolutePath: path.join(tmpDir, staleRel),
-				status: "new",
-				snapshot: {
-					outputDir: tmpDir,
-					filePath: staleRel,
-					publishedTime: buildTime,
-					modifiedTime: buildTime,
-					contentHash: "abc",
-					frontmatterHash: "def",
-					buildTime,
-				},
+				...written(staleRel, "new", ["abc", "def"], buildTime),
 				categoryKey: "types",
 				label: "CompilerOptions.Type",
 				routePath: "/api/compileroptions.type/nested/type",
 			},
 		];
 
-		// First build tracks the file in the snapshot DB
-		await Effect.runPromise(
-			cleanupAndCommit({
-				buildId: TEST_BUILD_ID,
-				fileResults: seed,
-				resolvedOutputDir: tmpDir,
-				generatedFiles: new Set([staleRel]),
-			}).pipe(Effect.provide(testLayer)),
+		const { nestedExists, parentExists, rootExists } = await Effect.runPromise(
+			Effect.gen(function* () {
+				// First build tracks the file in the snapshot DB
+				yield* cleanupAndCommit({
+					buildId: TEST_BUILD_ID,
+					fileResults: seed,
+					resolvedOutputDir: OUT,
+					generatedFiles: new Set([staleRel]),
+				});
+
+				// Next build no longer generates it: stale cleanup deletes the file
+				// before the orphan scan runs, so only the stale path knows the dir
+				yield* cleanupAndCommit({
+					buildId: TEST_BUILD_ID,
+					fileResults: [],
+					resolvedOutputDir: OUT,
+					generatedFiles: new Set(),
+				});
+
+				const fs = yield* FileSystem.FileSystem;
+				return {
+					nestedExists: yield* fs.exists(path.join(OUT, "compileroptions.type/nested")),
+					parentExists: yield* fs.exists(path.join(OUT, "compileroptions.type")),
+					rootExists: yield* fs.exists(OUT),
+				};
+			}).pipe(
+				Effect.provide(
+					Layer.mergeAll(
+						MemoryFileSystem.layerWith({ [path.join(OUT, staleRel)]: "old content" }),
+						SnapshotService.layerMemory(),
+					),
+				),
+			),
 		);
 
-		// Next build no longer generates it: stale cleanup deletes the file
-		// before the orphan scan runs, so only the stale path knows the dir
-		await Effect.runPromise(
-			cleanupAndCommit({
-				buildId: TEST_BUILD_ID,
-				fileResults: [],
-				resolvedOutputDir: tmpDir,
-				generatedFiles: new Set(),
-			}).pipe(Effect.provide(testLayer)),
-		);
-
-		const nestedExists = await fs.promises
-			.access(path.join(tmpDir, "compileroptions.type/nested"))
-			.then(() => true)
-			.catch(() => false);
-		const parentExists = await fs.promises
-			.access(path.join(tmpDir, "compileroptions.type"))
-			.then(() => true)
-			.catch(() => false);
 		expect(nestedExists).toBe(false);
 		expect(parentExists).toBe(false);
-
 		// The output root itself must survive the sweep
-		const rootExists = await fs.promises
-			.access(tmpDir)
-			.then(() => true)
-			.catch(() => false);
 		expect(rootExists).toBe(true);
-
-		await fs.promises.rm(tmpDir, { recursive: true });
 	});
 });
 
@@ -678,11 +575,7 @@ describe("generateSinglePage", () => {
 			resolvedOutputDir: "/tmp/nonexistent-dir",
 		};
 
-		const result = await Effect.runPromise(
-			generateSinglePage(workItems[0], ctx).pipe(
-				Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer)),
-			),
-		);
+		const result = await Effect.runPromise(generateSinglePage(workItems[0], ctx).pipe(Effect.provide(PageLayer)));
 		expect(result).not.toBeNull();
 		if (!result) return;
 		expect(result.contentHash).toMatch(/^[a-f0-9]{64}$/);
@@ -716,9 +609,7 @@ describe("generateSinglePage", () => {
 
 		const result = await Effect.runPromise(
 			generateSinglePage(workItem, ctx).pipe(
-				Effect.provide(
-					Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer, Layer.succeed(References.MinimumLogLevel, "None")),
-				),
+				Effect.provide(Layer.mergeAll(PageLayer, Layer.succeed(References.MinimumLogLevel, "None"))),
 			),
 		);
 		expect(result).toBeNull();
@@ -747,11 +638,7 @@ describe("generateSinglePage", () => {
 			resolvedOutputDir: "/tmp/nonexistent-dir",
 		};
 
-		const first = await Effect.runPromise(
-			generateSinglePage(workItems[0], ctx).pipe(
-				Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer)),
-			),
-		);
+		const first = await Effect.runPromise(generateSinglePage(workItems[0], ctx).pipe(Effect.provide(PageLayer)));
 		if (!first) throw new Error("Expected result");
 
 		const snapshots = new Map();
@@ -769,7 +656,7 @@ describe("generateSinglePage", () => {
 			generateSinglePage(workItems[0], {
 				...ctx,
 				existingSnapshots: snapshots,
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+			}).pipe(Effect.provide(PageLayer)),
 		);
 		expect(second).not.toBeNull();
 		if (!second) throw new Error("Expected second result to be non-null");
@@ -803,20 +690,14 @@ describe("generateSinglePage", () => {
 			resolvedOutputDir: "/tmp/nonexistent-dir",
 		};
 
-		const typeResult = await Effect.runPromise(
-			generateSinglePage(typeItem, ctx).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
-		);
+		const typeResult = await Effect.runPromise(generateSinglePage(typeItem, ctx).pipe(Effect.provide(PageLayer)));
 		if (!typeResult) throw new Error("Expected page result for CompilerOptions.Type");
 		expect(typeResult.routePath).toBe("/tsconfig-json/api/type/compileroptions.type");
 		expect(typeResult.relativePathWithExt).toBe("type/compileroptions.type.mdx");
 		// The generated page must land on the same route prepareWorkItems registered for cross-links
 		expect(crossLinkData.routes.get("CompilerOptions.Type")).toBe(typeResult.routePath);
 
-		const encodedResult = await Effect.runPromise(
-			generateSinglePage(encodedItem, ctx).pipe(
-				Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer)),
-			),
-		);
+		const encodedResult = await Effect.runPromise(generateSinglePage(encodedItem, ctx).pipe(Effect.provide(PageLayer)));
 		if (!encodedResult) throw new Error("Expected page result for CompilerOptions.Encoded");
 		expect(encodedResult.routePath).toBe("/tsconfig-json/api/type/compileroptions.encoded");
 		expect(encodedResult.relativePathWithExt).toBe("type/compileroptions.encoded.mdx");
@@ -873,8 +754,7 @@ describe("writeSingleFile", () => {
 			generateSinglePage(workItem, ctx).pipe(
 				Effect.provide(
 					Layer.mergeAll(
-						NodeFileSystem.layer,
-						TestOgServiceLayer,
+						PageLayer,
 						bus as unknown as Layer.Layer<never>,
 						Layer.succeed(References.MinimumLogLevel, "None"),
 					),
@@ -969,8 +849,7 @@ describe("writeSingleFile", () => {
 				generateSinglePage(workItem, ctx).pipe(
 					Effect.provide(
 						Layer.mergeAll(
-							NodeFileSystem.layer,
-							TestOgServiceLayer,
+							PageLayer,
 							bus as unknown as Layer.Layer<never>,
 							Layer.succeed(References.MinimumLogLevel, "None"),
 						),
@@ -996,8 +875,6 @@ describe("writeSingleFile", () => {
 	});
 
 	it("writes a changed file to disk and returns correct result", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "write-single-"));
-
 		const page: GeneratedPageResult = {
 			workItem: {
 				item: { displayName: "Foo" } as GeneratedPageResult["workItem"]["item"],
@@ -1022,12 +899,17 @@ describe("writeSingleFile", () => {
 
 		const ctx: WriteSingleFileContext = {
 			buildId: TEST_BUILD_ID,
-			resolvedOutputDir: tmpDir,
+			resolvedOutputDir: OUT,
 			buildTime: new Date().toISOString(),
 		};
 
-		const result = await Effect.runPromise(
-			writeSingleFile(page, ctx).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+		// Write and read back inside ONE provide: the volume is the one written to.
+		const { result, exists } = await Effect.runPromise(
+			Effect.gen(function* () {
+				const result = yield* writeSingleFile(page, ctx);
+				const fs = yield* FileSystem.FileSystem;
+				return { result, exists: yield* fs.exists(result.absolutePath) };
+			}).pipe(Effect.provide(PageLayer)),
 		);
 		expect(result.status).toBe("new");
 		expect(result.snapshot.contentHash).toBe("abc123");
@@ -1035,19 +917,10 @@ describe("writeSingleFile", () => {
 		expect(result.snapshot.filePath).toBe("class/foo.mdx");
 		expect(result.label).toBe("Foo");
 		expect(result.categoryKey).toBe("classes");
-
-		const exists = await fs.promises
-			.access(result.absolutePath)
-			.then(() => true)
-			.catch(() => false);
 		expect(exists).toBe(true);
-
-		await fs.promises.rm(tmpDir, { recursive: true });
 	});
 
 	it("skips write for unchanged files", async () => {
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "write-single-"));
-
 		const page: GeneratedPageResult = {
 			workItem: {
 				item: { displayName: "Bar" } as GeneratedPageResult["workItem"]["item"],
@@ -1072,22 +945,19 @@ describe("writeSingleFile", () => {
 
 		const ctx: WriteSingleFileContext = {
 			buildId: TEST_BUILD_ID,
-			resolvedOutputDir: tmpDir,
+			resolvedOutputDir: OUT,
 			buildTime: new Date().toISOString(),
 		};
 
-		const result = await Effect.runPromise(
-			writeSingleFile(page, ctx).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+		const { result, exists } = await Effect.runPromise(
+			Effect.gen(function* () {
+				const result = yield* writeSingleFile(page, ctx);
+				const fs = yield* FileSystem.FileSystem;
+				return { result, exists: yield* fs.exists(result.absolutePath) };
+			}).pipe(Effect.provide(PageLayer)),
 		);
 		expect(result.status).toBe("unchanged");
-
-		const exists = await fs.promises
-			.access(result.absolutePath)
-			.then(() => true)
-			.catch(() => false);
 		expect(exists).toBe(false);
-
-		await fs.promises.rm(tmpDir, { recursive: true });
 	});
 });
 
@@ -1103,8 +973,6 @@ describe("Stream pipeline (native)", () => {
 			baseRoute: "/example-module",
 		});
 
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "native-stream-"));
-
 		const program = buildPipelineForApi({
 			buildId: TEST_BUILD_ID,
 			workItems,
@@ -1113,28 +981,28 @@ describe("Stream pipeline (native)", () => {
 			apiScope: "example-module",
 			linker: CrossLinker.empty,
 			buildTime: new Date().toISOString(),
-			resolvedOutputDir: tmpDir,
+			resolvedOutputDir: OUT,
 			pageConcurrency: 2,
 			existingSnapshots: new Map(),
 		});
 
-		const results = await Effect.runPromise(
-			program.pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+		// Build and check the written files inside ONE provide.
+		const { results, missing } = await Effect.runPromise(
+			Effect.gen(function* () {
+				const results = yield* program;
+				const fs = yield* FileSystem.FileSystem;
+				const missing: string[] = [];
+				for (const r of results.filter((r) => r.status !== "unchanged")) {
+					if (!(yield* fs.exists(r.absolutePath))) missing.push(r.absolutePath);
+				}
+				return { results, missing };
+			}).pipe(Effect.provide(PageLayer)),
 		);
 
 		expect(results.length).toBe(workItems.length);
 		const written = results.filter((r) => r.status !== "unchanged");
 		expect(written.length).toBeGreaterThan(0);
-
-		for (const r of written) {
-			const exists = await fs.promises
-				.access(r.absolutePath)
-				.then(() => true)
-				.catch(() => false);
-			expect(exists).toBe(true);
-		}
-
-		await fs.promises.rm(tmpDir, { recursive: true });
+		expect(missing).toEqual([]);
 	});
 
 	it("includes unchanged files in results when snapshots match", async () => {
@@ -1148,11 +1016,8 @@ describe("Stream pipeline (native)", () => {
 			baseRoute: "/example-module",
 		});
 
-		const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "native-stream-2-"));
 		const buildTime = new Date().toISOString();
-
-		// First run: all new
-		const firstResults = await Effect.runPromise(
+		const build = (existingSnapshots: Parameters<typeof buildPipelineForApi>[0]["existingSnapshots"]) =>
 			buildPipelineForApi({
 				buildId: TEST_BUILD_ID,
 				workItems,
@@ -1161,39 +1026,31 @@ describe("Stream pipeline (native)", () => {
 				apiScope: "example-module",
 				linker: CrossLinker.empty,
 				buildTime,
-				resolvedOutputDir: tmpDir,
+				resolvedOutputDir: OUT,
 				pageConcurrency: 2,
-				existingSnapshots: new Map(),
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
-		);
+				existingSnapshots,
+			});
 
-		// Build snapshot map
-		const snapshots = new Map<string, (typeof firstResults)[number]["snapshot"]>();
-		for (const r of firstResults) {
-			snapshots.set(r.snapshot.filePath, r.snapshot);
-		}
-
-		// Second run: all unchanged
+		// Both builds share ONE volume, as two builds share one output dir.
 		const secondResults = await Effect.runPromise(
-			buildPipelineForApi({
-				buildId: TEST_BUILD_ID,
-				workItems,
-				baseRoute: "/example-module",
-				packageName: "example-module",
-				apiScope: "example-module",
-				linker: CrossLinker.empty,
-				buildTime,
-				resolvedOutputDir: tmpDir,
-				pageConcurrency: 2,
-				existingSnapshots: snapshots,
-			}).pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, TestOgServiceLayer))),
+			Effect.gen(function* () {
+				// First run: all new
+				const firstResults = yield* build(new Map());
+
+				// Build snapshot map
+				const snapshots = new Map<string, (typeof firstResults)[number]["snapshot"]>();
+				for (const r of firstResults) {
+					snapshots.set(r.snapshot.filePath, r.snapshot);
+				}
+
+				// Second run: all unchanged
+				return yield* build(snapshots);
+			}).pipe(Effect.provide(PageLayer)),
 		);
 
 		// ALL items must still appear (not filtered)
 		expect(secondResults.length).toBe(workItems.length);
 		const unchanged = secondResults.filter((r) => r.status === "unchanged");
 		expect(unchanged.length).toBe(workItems.length);
-
-		await fs.promises.rm(tmpDir, { recursive: true });
 	});
 });

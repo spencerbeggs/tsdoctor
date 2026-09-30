@@ -41,8 +41,8 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
   `gray-matter` are **gone** (`@tsdoctor/snapshot` / `@tsdoctor/model`)
 - `ioredis` + the `@effected/*` closure (`semver`/`store`/`tsconfig-json`/
   `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
-  `markdown`) + `@typescript/vfs` — peer-closure deps, some imported directly
-  (`services/TypeRegistryService.ts`, `sync-node-fs.ts`).
+  `markdown`/`memfs`) + `@typescript/vfs` — peer-closure deps, some imported directly
+  (`services/TypeRegistryService.ts`, `config-helpers.ts`).
   Do NOT prune as "unused" — see `effect-service-layer.md` (dependency
   closure). Declare `@effected/*` as `catalog:effected`; never
   hand-pin a version range.
@@ -105,8 +105,12 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
   out of `@effected/markdown`'s scope); `mdast-util-from-markdown` is dev-only.
   Parse with `dialect: "commonmark"` (the kit defaults to GFM).
 - `open` — best-effort browser launch for `serve()`
-- Dev only: `@effect/vitest`; `@effected/memfs` is the in-memory `FileSystem`
-  for tests (`TypeCache.test.ts`'s `layerNoop` is fault injection — keep it).
+- `@effected/memfs` — a **runtime** dep: `config-helpers.ts` runs bundle
+  discovery under `Effect.runSync` over its `node-sync` subpath
+  (`NodeSyncFileSystem.layer`, read-only, writes are defects). Its main entry
+  is also the in-memory `FileSystem` for tests (`TypeCache.test.ts`'s
+  `layerNoop` is fault injection — keep it).
+- Dev only: `@effect/vitest`
 
 ## Biome Override
 

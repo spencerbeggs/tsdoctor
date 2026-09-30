@@ -12,22 +12,23 @@ const onePixelPng = Uint8Array.from(
 
 const testLayer = (seed: MemoryFileSystemSeed) => Layer.mergeAll(MemoryFileSystem.layerWith(seed), Path.layer);
 
-/** Counts `writeFile` calls against the real FileSystem, so a no-op rebuild can be asserted directly. */
+/**
+ * Counts `writeFile` calls against the real volume, so a no-op rebuild can be
+ * asserted directly. A spy: the handler records the call and declines
+ * (`undefined`), so the write still lands.
+ */
 const countingWrites = (seed: MemoryFileSystemSeed, counter: { writes: number }) =>
-	Layer.effect(
-		FileSystem.FileSystem,
-		Effect.gen(function* () {
-			const base = yield* FileSystem.FileSystem;
-			return {
-				...base,
-				writeFile: (...args: Parameters<typeof base.writeFile>) =>
-					Effect.suspend(() => {
-						counter.writes += 1;
-						return base.writeFile(...args);
-					}),
-			} satisfies FileSystem.FileSystem;
+	Layer.mergeAll(
+		MemoryFileSystem.layerWith(seed, {
+			faults: {
+				writeFile: () => {
+					counter.writes += 1;
+					return undefined;
+				},
+			},
 		}),
-	).pipe(Layer.provideMerge(Layer.mergeAll(MemoryFileSystem.layerWith(seed), Path.layer)));
+		Path.layer,
+	);
 
 const pathImage = (overrides: Partial<ResolvedOpenGraphImage> = {}): ResolvedOpenGraphImage => ({
 	path: "og/kitchensink.png",
