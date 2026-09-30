@@ -1,5 +1,31 @@
 # rspress-plugin-api-extractor
 
+## 0.18.9
+
+### Bug Fixes
+
+- Bundle discovery under `fromDir` / `fromParentDir` now reports filesystem errors with full errno fidelity: `EISDIR`, `ENOTDIR` and `ELOOP` surface as `BadResource` instead of `Unknown`, matching `@effect/platform-node`
+
+### Refactoring
+
+- Replaced the hand-rolled synchronous Node filesystem with `NodeSyncFileSystem.layer` from `@effected/memfs/node-sync`
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/model | dependency | updated | 0.8.4 | 0.8.4 |
+| @tsdoctor/snapshot | dependency | updated | 0.4.1 | 0.5.0 |
+| @effected/memfs | dependency | added | — | ^0.13.0 |
+
+- `@effected/memfs` is now a runtime dependency, as the plugin uses it directly. [#316][#316]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#316]: https://github.com/spencerbeggs/tsdoctor/pull/316
+
 ## 0.18.8
 
 ### Dependencies
