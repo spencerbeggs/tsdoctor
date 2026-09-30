@@ -1,5 +1,21 @@
 # vitepress-plugin-api-extractor
 
+## 0.4.8
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/xdg | dependency | updated | ^0.8.1 | ^0.8.2 |
+
+[#312][#312]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#312]: https://github.com/spencerbeggs/tsdoctor/pull/312
+
 ## 0.4.7
 
 ### Dependencies
