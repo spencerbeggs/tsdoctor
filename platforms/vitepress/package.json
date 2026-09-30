@@ -66,7 +66,7 @@
 		"@effect/vitest": "catalog:effect",
 		"@effected/config-file": "catalog:effected",
 		"@effected/toml": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.17",
+		"@savvy-web/bundler": "^2.4.18",
 		"@types/node": "catalog:build",
 		"vitepress": "catalog:docs"
 	},
