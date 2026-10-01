@@ -1,5 +1,25 @@
 # @tsdoctor/model
 
+## 0.8.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/yaml | dependency | updated | ^0.18.0 | ^0.19.0 |
+| @tsdoctor/vfs | dependency | updated | 0.4.1 | 0.4.2 |
+| @effected/markdown | peerDependency | updated | ^0.14.0 | ^0.15.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.12.0 | ^0.13.0 |
+| effect | peerDependency | updated | 4.0.0-rc.118 | ^4.0.0 |
+
+[#318][#318]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#318]: https://github.com/spencerbeggs/tsdoctor/pull/318
+
 ## 0.8.4
 
 ### Dependencies
@@ -39,7 +59,7 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 | Dependency | Type | Action | From | To |
 | --- | --- | --- | --- | --- |
 | @microsoft/api-extractor-model | dependency | updated | ^7.33.13 | 7.33.12 |
-| @microsoft/tsdoc | dependency | updated | \~0.17.0 | \~0.16.0 |
+| @microsoft/tsdoc | dependency | updated | ~0.17.0 | ~0.16.0 |
 
 [#290][#290]
 
@@ -73,7 +93,7 @@ Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contri
 | Dependency | Type | Action | From | To |
 | --- | --- | --- | --- | --- |
 | @effected/yaml | peerDependency | removed | ^0.17.0 | — |
-| @microsoft/tsdoc | dependency | updated | \~0.16.0 | \~0.17.0 |
+| @microsoft/tsdoc | dependency | updated | ~0.16.0 | ~0.17.0 |
 | @tsdoctor/vfs | dependency | updated | 0.3.4 | 0.4.0 |
 | @effected/yaml | dependency | added | — | ^0.17.0 |
 | @effected/tsconfig-json | peerDependency | added | — | ^0.11.0 |
