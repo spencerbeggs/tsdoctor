@@ -48,7 +48,7 @@
 		"@effected/xdg": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
 		"@microsoft/api-extractor-model": "catalog:build",
-		"@shikijs/twoslash": "^4.4.3",
+		"@shikijs/twoslash": "^4.5.0",
 		"@shikijs/vitepress-twoslash": "^4.4.3",
 		"@tsdoctor/bundle": "workspace:*",
 		"@tsdoctor/manifest": "workspace:*",
@@ -59,14 +59,14 @@
 		"@tsdoctor/vfs": "workspace:*",
 		"effect": "catalog:effect",
 		"image-size": "^2.0.4",
-		"shiki": "^4.4.3",
+		"shiki": "^4.5.0",
 		"typescript": "^6.0.3"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
 		"@effected/config-file": "catalog:effected",
 		"@effected/toml": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.18",
+		"@savvy-web/bundler": "^2.4.20",
 		"@types/node": "catalog:build",
 		"vitepress": "catalog:docs"
 	},
