@@ -38,7 +38,7 @@
 		"@effected/memfs": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/walker": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.21",
+		"@savvy-web/bundler": "^2.4.23",
 		"@shikijs/twoslash": "^4.5.0",
 		"@types/node": "catalog:build",
 		"@typescript/vfs": "^1.6.5",
