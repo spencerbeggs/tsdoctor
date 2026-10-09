@@ -13,8 +13,8 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-24T20:28:47Z
-  body_sha256: 2db1e8fe634f87b2b4dd192c0833f985ab50faf7f98a6d84f5968e70fbac0e99
+  at: 2026-10-09T17:59:46Z
+  body_sha256: f1070c1d46b9137de9032422f1dfb98d7efcf496268190ff7ee8eb6cc813e6be
 ---
 
 # @tsdoctor/bundle
@@ -43,11 +43,12 @@ channel, and callers compose the platform at the edge, the same posture
 `loadBundle` then `resolveBundleFrom` and publish the resolved Open Graph
 images through `publishBundleAssets`.
 
-Peers: `effect`, `image-size`, `@tsdoctor/manifest`, and the seven
+Peers: `effect`, `@tsdoctor/manifest`, and the seven
 `@effected` packages whose types appear in this package's public `.d.ts`
 surface: `github`, `jsonc`, `npm`, `package-json`, `store`,
-`tsconfig-json` and `xdg`, each `catalog:effected:peers`. `@effected/glob`
-and `@effected/walker` are used internally only, so they are ordinary
+`tsconfig-json` and `xdg`, each `catalog:effected:peers`. `@effected/glob`,
+`@effected/walker` and `@effected/images` (image dimensions for published
+Open Graph assets) are used internally only, so they are ordinary
 `dependencies` (`catalog:effected`). See
 [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
 

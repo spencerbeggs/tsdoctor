@@ -14,10 +14,10 @@
  * @packageDocumentation
  */
 
+import { ImageFacts } from "@effected/images";
 import type { OpenGraphImageConfig, OpenGraphImageMetadata } from "@tsdoctor/seo";
-import { imageMimeType, resolveUrl } from "@tsdoctor/seo";
+import { resolveUrl } from "@tsdoctor/seo";
 import { Context, Data, Effect, FileSystem, Layer, Option, Path } from "effect";
-import { imageSize } from "image-size";
 import { emit } from "../observability/EventBus.js";
 import { PluginEvent } from "../observability/events.js";
 
@@ -37,8 +37,8 @@ const OgImageErrorBase = Data.TaggedError("OgImageError");
  * A configured OG image that could not be resolved.
  *
  * @remarks
- * `cause` carries the original failure (an `image-size` parse error, a
- * filesystem error) rather than a stringified copy of it.
+ * `cause` carries the original failure (an `@effected/images`
+ * `ImageParseError`, a filesystem error) rather than a stringified copy of it.
  */
 export class OgImageError extends OgImageErrorBase<{
 	readonly code: OgImageErrorCode;
@@ -126,8 +126,10 @@ export class OgService extends Context.Service<OgService, OgServiceShape>()("rsp
 	 * phase 4 starts GENERATING images, which are expensive and content-addressed,
 	 * the XDG cache is the right home for them.
 	 *
-	 * `imageSize` over the read bytes replaces `imageSizeFromFile`, which took a
-	 * path and therefore required real `node:fs`. Same parser, same output.
+	 * `ImageFacts.fromBytes` over the read bytes replaces `imageSizeFromFile`,
+	 * which took a path and therefore required real `node:fs`. It reads PNG,
+	 * JPEG, GIF, WebP and AVIF; anything else (SVG included) is an unreadable
+	 * image, which warns and drops the dimensions.
 	 *
 	 * `Effect.suspend(() => make())` rather than a bare `make`: a static
 	 * initializer runs while the module body is still evaluating, so naming a
@@ -165,7 +167,7 @@ const unstubbed = (member: string): never => {
 };
 
 /** Dimensions and MIME type read off a local image file. */
-interface ImageFacts {
+interface OgImageFacts {
 	readonly width?: number;
 	readonly height?: number;
 	readonly type?: string;
@@ -177,7 +179,7 @@ const make = () =>
 		const path = yield* Path.Path;
 
 		/** Absolute path → facts, or `null` for "looked, could not use it". */
-		const factsByPath = new Map<string, ImageFacts | null>();
+		const factsByPath = new Map<string, OgImageFacts | null>();
 
 		/** Locate a root-relative image under the docs `public/` directory. */
 		const findLocalImage = (imagePath: string, docsRoot: string | undefined): Effect.Effect<Option.Option<string>> => {
@@ -194,14 +196,12 @@ const make = () =>
 		 * yields nothing — the page still gets its `og:image`, just without
 		 * dimensions, which is what the class this replaced did.
 		 */
-		const readImageFacts = (filePath: string): Effect.Effect<ImageFacts | null> =>
+		const readImageFacts = (filePath: string): Effect.Effect<OgImageFacts | null> =>
 			Effect.gen(function* () {
 				const memoed = factsByPath.get(filePath);
 				if (memoed !== undefined) return memoed;
 
-				const result = yield* Effect.result(
-					fileSystem.readFile(filePath).pipe(Effect.flatMap((bytes) => Effect.try(() => imageSize(bytes)))),
-				);
+				const result = yield* Effect.result(fileSystem.readFile(filePath).pipe(Effect.flatMap(ImageFacts.fromBytes)));
 
 				if (result._tag === "Failure") {
 					const error = new OgImageError({
@@ -223,13 +223,8 @@ const make = () =>
 					return null;
 				}
 
-				const size = result.success;
-				const mimeType = imageMimeType(size.type);
-				const facts: ImageFacts = {
-					...(size.width != null ? { width: size.width } : {}),
-					...(size.height != null ? { height: size.height } : {}),
-					...(mimeType != null ? { type: mimeType } : {}),
-				};
+				const { width, height, mimeType } = result.success;
+				const facts: OgImageFacts = { width, height, type: mimeType };
 				factsByPath.set(filePath, facts);
 				return facts;
 			});

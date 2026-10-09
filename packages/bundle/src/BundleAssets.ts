@@ -12,8 +12,8 @@
  * @packageDocumentation
  */
 
-import { Effect, FileSystem, Path, Schema } from "effect";
-import { imageSize } from "image-size";
+import { ImageFacts } from "@effected/images";
+import { Effect, FileSystem, Path, Result, Schema } from "effect";
 import type { ResolvedOpenGraphImage } from "./BundleResolver.js";
 import { isSafeAssetPath } from "./internal/asset-path.js";
 
@@ -86,17 +86,10 @@ interface MeasuredSize {
 	readonly height?: number;
 }
 
-/** `imageSize` throws on bytes it cannot parse; that degrades to no measurement, never a failure. */
+/** Bytes that are not a readable image header degrade to no measurement, never a failure. */
 function safeSize(bytes: Uint8Array): MeasuredSize | undefined {
-	try {
-		const size = imageSize(bytes);
-		return {
-			...(size.width !== undefined ? { width: size.width } : {}),
-			...(size.height !== undefined ? { height: size.height } : {}),
-		};
-	} catch {
-		return undefined;
-	}
+	const facts = ImageFacts.fromBytesResult(bytes);
+	return Result.isSuccess(facts) ? { width: facts.success.width, height: facts.success.height } : undefined;
 }
 
 /**
