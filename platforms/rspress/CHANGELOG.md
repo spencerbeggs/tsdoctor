@@ -1,5 +1,33 @@
 # rspress-plugin-api-extractor
 
+## 0.19.0
+
+### Breaking Changes
+
+- SVG and other unsupported image formats now emit the existing `unreadable-image` config warning and omit `width`, `height` and `type` from the generated metadata. `image-size` previously measured SVG files. Use a PNG, JPEG, GIF, WebP or AVIF image for Open Graph metadata. [#331][#331]
+
+### Features
+
+#### Image measurement via `@effected/images`
+
+- Configured local Open Graph images are now measured, and their MIME type detected, with `@effected/images` instead of `image-size`. The `unreadable-image` warning now names the precise parse failure, such as a truncated header.
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| image-size | dependency | removed | ^2.0.4 | — |
+| @tsdoctor/bundle | dependency | updated | 0.5.5 | 0.6.0 |
+| @effected/images | dependency | added | — | ^0.1.0 |
+
+[#331][#331]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#331]: https://github.com/spencerbeggs/tsdoctor/pull/331
+
 ## 0.18.12
 
 ### Dependencies
