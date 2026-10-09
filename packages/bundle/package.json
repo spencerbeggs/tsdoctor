@@ -33,6 +33,7 @@
 	},
 	"dependencies": {
 		"@effected/glob": "catalog:effected",
+		"@effected/images": "catalog:effected",
 		"@effected/walker": "catalog:effected"
 	},
 	"devDependencies": {
@@ -53,7 +54,6 @@
 		"@tsdoctor/manifest": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
-		"image-size": "^2.0.4",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
@@ -65,8 +65,7 @@
 		"@effected/tsconfig-json": "catalog:effected:peers",
 		"@effected/xdg": "catalog:effected:peers",
 		"@tsdoctor/manifest": "workspace:*",
-		"effect": "catalog:effect",
-		"image-size": "^2.0.2"
+		"effect": "catalog:effect"
 	},
 	"engines": {
 		"node": ">=24.11.0"
