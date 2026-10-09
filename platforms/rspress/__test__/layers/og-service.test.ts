@@ -22,7 +22,7 @@ import type { PluginEvent } from "../../src/observability/events.js";
 import type { OgImageRequest } from "../../src/services/OgService.js";
 import { OgService } from "../../src/services/OgService.js";
 
-/** A 1x1 PNG, so `imageSize` has something real to parse. */
+/** A 1x1 PNG, so `ImageFacts.fromBytes` has something real to parse. */
 const PNG_1X1 = Uint8Array.from(
 	Buffer.from(
 		"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",

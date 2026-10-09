@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/manifest",
-	"version": "0.2.4",
+	"version": "0.2.5",
 	"private": true,
 	"description": "The tsdoctor.json bundle manifest: the spec-1 schema, encode/decode boundaries and the authoring-file shape shared by bundlers that write it and readers that consume it.",
 	"keywords": ["tsdoctor", "manifest", "api-extractor", "effect"],
@@ -33,7 +33,7 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
-		"@savvy-web/bundler": "^2.4.21",
+		"@savvy-web/bundler": "^2.4.24",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"

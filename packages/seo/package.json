@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/seo",
-	"version": "0.4.4",
+	"version": "0.4.5",
 	"private": true,
 	"description": "Framework-neutral head metadata for static TypeScript API documentation: schema.org JSON-LD, Open Graph and Twitter card vocabulary, canonical URLs, and package attribution derived from an api.json model plus its manifest.",
 	"keywords": ["seo", "schema.org", "json-ld", "open-graph", "documentation", "effect"],
@@ -37,7 +37,7 @@
 	"devDependencies": {
 		"@effected/package-json": "catalog:effected",
 		"@effected/schema-org": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.21",
+		"@savvy-web/bundler": "^2.4.24",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
 		"typescript": "^6.0.3"

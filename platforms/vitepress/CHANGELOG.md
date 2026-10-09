@@ -1,5 +1,54 @@
 # vitepress-plugin-api-extractor
 
+## 0.4.12
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| image-size | dependency | removed | ^2.0.4 | — |
+| @tsdoctor/bundle | dependency | updated | 0.5.5 | 0.6.0 |
+| @effected/images | dependency | added | — | ^0.1.0 |
+
+[#331][#331]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#331]: https://github.com/spencerbeggs/tsdoctor/pull/331
+
+## 0.4.11
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | ^4.0.0 | ^4.0.2 |
+| @effected/github | dependency | updated | ^0.15.0 | ^0.15.1 |
+| @effected/jsonc | dependency | updated | ^0.15.0 | ^0.15.1 |
+| @effected/markdown | dependency | updated | ^0.15.0 | ^0.15.1 |
+| @effected/package-json | dependency | updated | ^0.20.0 | ^0.20.1 |
+| @effected/spdx | dependency | updated | ^0.11.0 | ^0.12.0 |
+| @effected/store | dependency | updated | ^0.12.0 | ^0.13.1 |
+| @effected/yaml | dependency | updated | ^0.19.0 | ^0.19.1 |
+| @tsdoctor/bundle | dependency | updated | 0.5.4 | 0.5.5 |
+| @tsdoctor/manifest | dependency | updated | 0.2.4 | 0.2.5 |
+| @tsdoctor/model | dependency | updated | 0.8.5 | 0.8.6 |
+| @tsdoctor/pages | dependency | updated | 0.3.6 | 0.3.7 |
+| @tsdoctor/registry | dependency | updated | 0.5.4 | 0.5.5 |
+| @tsdoctor/seo | dependency | updated | 0.4.4 | 0.4.5 |
+| @tsdoctor/vfs | dependency | updated | 0.4.2 | 0.4.3 |
+| effect | dependency | updated | ^4.0.0 | ^4.0.2 |
+
+[#326][#326]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#326]: https://github.com/spencerbeggs/tsdoctor/pull/326
+
 ## 0.4.10
 
 ### Dependencies

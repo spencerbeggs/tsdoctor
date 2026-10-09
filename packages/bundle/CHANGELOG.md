@@ -1,5 +1,50 @@
 # @tsdoctor/bundle
 
+## 0.6.0
+
+### Breaking Changes
+
+- Only PNG, JPEG, GIF, WebP and AVIF assets are measured. SVG (and other formats such as BMP, ICO and TIFF) now publish without `width` and `height`; `image-size` previously reported the SVG viewport size. Supply raster OG images if you rely on published dimensions. [#331][#331]
+
+### Features
+
+#### Image measurement via `@effected/images`
+
+- `publishBundleAssets` now measures Open Graph image width and height with `@effected/images` instead of `image-size`. The replacement is an ordinary dependency, so consumers no longer need to supply an `image-size` peer dependency.
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| image-size | peerDependency | removed | ^2.0.2 | — |
+| @effected/images | dependency | added | — | ^0.1.0 |
+
+[#331][#331]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#331]: https://github.com/spencerbeggs/tsdoctor/pull/331
+
+## 0.5.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/manifest | dependency | updated | 0.2.4 | 0.2.5 |
+| @effected/store | peerDependency | updated | ^0.12.0 | ^0.13.0 |
+| effect | peerDependency | updated | ^4.0.0 | ^4.0.2 |
+
+[#326][#326]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#326]: https://github.com/spencerbeggs/tsdoctor/pull/326
+
 ## 0.5.4
 
 ### Dependencies

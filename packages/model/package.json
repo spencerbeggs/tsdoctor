@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/model",
-	"version": "0.8.5",
+	"version": "0.8.6",
 	"private": true,
 	"description": "Render Microsoft API Extractor models into LLM-lean markdown. Pure model loading, TSDoc extraction, type-signature formatting, and per-item markdown rendering.",
 	"keywords": ["api-extractor", "tsdoc", "llms", "documentation", "markdown", "typescript", "esm"],
@@ -44,7 +44,7 @@
 		"@effected/store": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/walker": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.21",
+		"@savvy-web/bundler": "^2.4.24",
 		"@tsdoctor/snapshot": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",

@@ -1,5 +1,65 @@
 # rspress-plugin-api-extractor
 
+## 0.19.0
+
+### Breaking Changes
+
+- SVG and other unsupported image formats now emit the existing `unreadable-image` config warning and omit `width`, `height` and `type` from the generated metadata. `image-size` previously measured SVG files. Use a PNG, JPEG, GIF, WebP or AVIF image for Open Graph metadata. [#331][#331]
+
+### Features
+
+#### Image measurement via `@effected/images`
+
+- Configured local Open Graph images are now measured, and their MIME type detected, with `@effected/images` instead of `image-size`. The `unreadable-image` warning now names the precise parse failure, such as a truncated header.
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| image-size | dependency | removed | ^2.0.4 | — |
+| @tsdoctor/bundle | dependency | updated | 0.5.5 | 0.6.0 |
+| @effected/images | dependency | added | — | ^0.1.0 |
+
+[#331][#331]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#331]: https://github.com/spencerbeggs/tsdoctor/pull/331
+
+## 0.18.12
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | ^4.0.0 | ^4.0.2 |
+| @effected/github | dependency | updated | ^0.15.0 | ^0.15.1 |
+| @effected/jsonc | dependency | updated | ^0.15.0 | ^0.15.1 |
+| @effected/markdown | dependency | updated | ^0.15.0 | ^0.15.1 |
+| @effected/package-json | dependency | updated | ^0.20.0 | ^0.20.1 |
+| @effected/spdx | dependency | updated | ^0.11.0 | ^0.12.0 |
+| @effected/store | dependency | updated | ^0.12.0 | ^0.13.1 |
+| @effected/yaml | dependency | updated | ^0.19.0 | ^0.19.1 |
+| @tsdoctor/bundle | dependency | updated | 0.5.4 | 0.5.5 |
+| @tsdoctor/manifest | dependency | updated | 0.2.4 | 0.2.5 |
+| @tsdoctor/model | dependency | updated | 0.8.5 | 0.8.6 |
+| @tsdoctor/pages | dependency | updated | 0.3.6 | 0.3.7 |
+| @tsdoctor/registry | dependency | updated | 0.5.4 | 0.5.5 |
+| @tsdoctor/seo | dependency | updated | 0.4.4 | 0.4.5 |
+| @tsdoctor/snapshot | dependency | updated | 0.5.1 | 0.5.2 |
+| @tsdoctor/vfs | dependency | updated | 0.4.2 | 0.4.3 |
+| effect | dependency | updated | ^4.0.0 | ^4.0.2 |
+
+[#326][#326]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#326]: https://github.com/spencerbeggs/tsdoctor/pull/326
+
 ## 0.18.11
 
 ### Dependencies

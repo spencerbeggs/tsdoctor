@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/vfs",
-	"version": "0.4.2",
+	"version": "0.4.3",
 	"private": true,
 	"description": "Virtual TypeScript projects for documentation tooling: the Vfs currency type, declaration-backed virtual packages, @typescript/vfs environments, and the compiler-option resolution that configures them.",
 	"keywords": ["typescript", "vfs", "twoslash", "declarations", "virtual-package", "effect"],
@@ -38,7 +38,7 @@
 		"@effected/memfs": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/walker": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.21",
+		"@savvy-web/bundler": "^2.4.24",
 		"@shikijs/twoslash": "^4.5.0",
 		"@types/node": "catalog:build",
 		"@typescript/vfs": "^1.6.5",

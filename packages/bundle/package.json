@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/bundle",
-	"version": "0.5.4",
+	"version": "0.6.0",
 	"private": true,
 	"description": "The tsdoctor bundle spec: layered bundle discovery, the versioned tsdoctor.json sidecar manifest, provenance-carrying resolution and canonical input hashing for API documentation bundles.",
 	"keywords": ["api-extractor", "bundle", "manifest", "documentation", "provenance", "typescript", "effect", "esm"],
@@ -33,6 +33,7 @@
 	},
 	"dependencies": {
 		"@effected/glob": "catalog:effected",
+		"@effected/images": "catalog:effected",
 		"@effected/walker": "catalog:effected"
 	},
 	"devDependencies": {
@@ -49,11 +50,10 @@
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"@savvy-web/bundler": "^2.4.21",
+		"@savvy-web/bundler": "^2.4.24",
 		"@tsdoctor/manifest": "workspace:*",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effect",
-		"image-size": "^2.0.4",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
@@ -65,8 +65,7 @@
 		"@effected/tsconfig-json": "catalog:effected:peers",
 		"@effected/xdg": "catalog:effected:peers",
 		"@tsdoctor/manifest": "workspace:*",
-		"effect": "catalog:effect",
-		"image-size": "^2.0.2"
+		"effect": "catalog:effect"
 	},
 	"engines": {
 		"node": ">=24.11.0"
