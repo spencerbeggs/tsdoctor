@@ -7,8 +7,8 @@ resource: ../../platforms/rspress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-30T15:44:29Z
-  body_sha256: e0b8976954d97803ebc61b2f1905b43c1644d2e04648a32ec4483f57b55f36bc
+  at: 2026-10-10T00:56:05Z
+  body_sha256: d873949fc3e85dbe6b215b270fad83c4ceae83ebb3b716a5dfd3fb115c05c3f2
 tags:
   - architecture
   - observability
@@ -31,8 +31,9 @@ orchestrates generation; `src/plugin.ts` wires RSPress lifecycle hooks to
 that layer and delegates every step of doc generation to
 `src/build-program.ts` and `src/build-stages.ts`.
 
-The repo-root `plugin/` directory is the unrelated api-docs Claude Code
-plugin — not a pnpm workspace, not this package.
+The repo-root `plugin/` directory is the unrelated api-docs agent plugin
+(`@tsdoctor/ai-plugins`, a private workspace built for Claude Code and
+GitHub Copilot) — not this package.
 
 What stays adapter-side, framework-coupled, and never moves to a core
 package: the React runtime components (SSG-MD dual-mode rendering, Twoslash

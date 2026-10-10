@@ -1,0 +1,16 @@
+{
+	"name": "@tsdoctor/ai-plugins",
+	"version": "0.19.0",
+	"private": true,
+	"description": "The api-docs agent plugin, built by pluginfinity from one source into Claude Code and GitHub Copilot formats. Does not publish to npm.",
+	"license": "MIT",
+	"type": "module",
+	"scripts": {
+		"build:dev": "pluginfinity build",
+		"build:prod": "pluginfinity build",
+		"validate": "pluginfinity validate"
+	},
+	"devDependencies": {
+		"pluginfinity": "^0.3.1"
+	}
+}

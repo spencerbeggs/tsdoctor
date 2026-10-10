@@ -7,8 +7,8 @@ resource: ../../modules
 tags: [testing, ci]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: f293c4bea4b4a0506b89bc7f31827968e00d0eefdf35971115af09b591fbf81a
+  at: 2026-10-10T00:56:05Z
+  body_sha256: 73df4903cd557953c1e6c4cb38b9f1935752bca567dcaf0587fb3620911e45c0
 status: stable
 ---
 
@@ -54,9 +54,9 @@ any published Open Graph image. This is how a site gets a model to
 document without a real npm dependency.
 
 `dist/<mode>/meta/issues.json` (written by the bundler's own API Extractor
-pass) is the artifact the api-docs Claude Code plugin's `doc-build-issues`
+pass) is the artifact the api-docs agent plugin's `doc-build-issues`
 monitor polls for — see
-[`api-docs-claude-plugin.md`](api-docs-claude-plugin.md).
+[`api-docs-agent-plugin.md`](api-docs-agent-plugin.md).
 
 ## Build and test commands
 
@@ -75,7 +75,7 @@ of the unattended CI build path and participate in CI only through
 ## Related concepts
 
 - [`fixture-sites.md`](fixture-sites.md) — the consumers these models feed.
-- [`api-docs-claude-plugin.md`](api-docs-claude-plugin.md) — the monitor
+- [`api-docs-agent-plugin.md`](api-docs-agent-plugin.md) — the monitor
   that reads the bundler's `issues.json` artifact.
 - [`workspace.md`](workspace.md) — the Turbo task graph and `ci:build`
   filter these fixtures are excluded from.

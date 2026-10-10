@@ -1,5 +1,20 @@
 # Log
 
+## 2026-10-09
+
+* Updated @tsdoctor/bundle
+
+## 2026-09-30
+
+* Updated Keep every adapter's dependency closure whole
+
+## 2026-09-28
+
+* Updated @tsdoctor/snapshot
+* Updated Core packages, thin adapters
+* Updated Effect v4 only
+* Updated Vendored reference repos under .repos/
+
 ## 2026-09-27
 
 * Added Debug runtime component CSS in a live fixture site

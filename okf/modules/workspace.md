@@ -7,8 +7,8 @@ resource: ../..
 tags: [architecture, dx, ci, release, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-09-28T19:00:27Z
-  body_sha256: 2dd3393bfd910f2d8cf5d57f1ae8b99f7382fece470bc9e0f910563c5e14a9c8
+  at: 2026-10-10T00:56:05Z
+  body_sha256: dfa634be538887030eb6751b9fb987536a040f884a3c3f0024e347bdf547e1c2
 status: stable
 ---
 
@@ -19,15 +19,15 @@ machinery every other Module in this bundle runs inside.
 
 ## Workspace layout
 
-`pnpm-workspace.yaml` globs four package roots — `modules/*`, `packages/*`,
-`platforms/*`, `sites/*`. `pnpm --filter` matches the package **name**, not
+`pnpm-workspace.yaml` lists five package roots — `modules/*`, `packages/*`,
+`platforms/*`, `plugin`, `sites/*`. `pnpm --filter` matches the package **name**, not
 the folder path (see [`../conventions/pnpm-filter-by-package-name.md`](../conventions/pnpm-filter-by-package-name.md)).
 The root itself (`package.json`) is `tsdoctor-monorepo`, private, and owns no
 publishable surface of its own.
 
-`pnpm install` then `pnpm run build` (builds packages, the `plugin/` Claude
-Code plugin's dependents, and fixture modules — sites are excluded from the
-root build) get a checkout working.
+`pnpm install` then `pnpm run build` (builds packages, the adapters, the
+`plugin/` agent plugin's committed Claude Code and Copilot builds, and
+fixture modules — sites are excluded from the root build) get a checkout working.
 
 ## Turbo task graph
 
@@ -114,6 +114,11 @@ workflow and [`savvy-web/silk-release-action`](https://github.com/savvy-web/silk
 Every publishable workspace's source `package.json` is `"private": true` —
 `publishConfig` controls actual publishing — see
 [`../conventions/private-true-publishconfig.md`](../conventions/private-true-publishconfig.md).
+The private `@tsdoctor/ai-plugins` workspace (`plugin/`) also versions on its
+own changeset line, without publishing to npm; the release workflow's
+on-build gate runs `pnpm plugin:check` so its committed builds cannot lag
+their source — see
+[`../decisions/agent-plugin-own-release-line.md`](../decisions/agent-plugin-own-release-line.md).
 
 ## TypeScript configuration per workspace type
 
@@ -129,9 +134,9 @@ Every publishable workspace's source `package.json` is `"private": true` —
 Vitest (v8 coverage, `forks` pool) is configured through
 `vitest.config.ts`'s `VitestConfig.create()` from `@savvy-web/vitest`;
 `--project` filters by workspace. `pnpm run ci:test` sets `CI=true` and
-enables coverage. The `plugin/` Claude Code plugin is covered by `bats`, not
-Vitest — `bats plugin/__test__` (see
-[`api-docs-claude-plugin.md`](api-docs-claude-plugin.md)).
+enables coverage. The `plugin/` agent plugin is covered by `bats`, not
+Vitest — `pnpm test:bats` runs `bats --recursive plugin/__test__` (see
+[`api-docs-agent-plugin.md`](api-docs-agent-plugin.md)).
 
 ## Related concepts
 

@@ -6,8 +6,8 @@ resource: ../../platforms/rspress/src/observability/sinks/issues-sink.ts
 tags: [observability, ci]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 0d1aed55cc14d0126d9d673b79745bfe87d8cf84f3836bd119268dd2868957fc
+  at: 2026-10-10T00:56:05Z
+  body_sha256: 71bdfe836b89fa04e66a0af721487f85f8be242eb11a76c415261abb1b0343b0
 sources:
   - id: issues-sink-src
     resource: ../../platforms/rspress/src/observability/sinks/issues-sink.ts
@@ -122,5 +122,5 @@ fix loop: read the artifact, then act on the affected package.
 [^watch-issues-monitor]: `plugin/monitors/watch-issues.mjs`
 
 See also [rspress-plugin-api-extractor module](../modules/rspress-plugin-api-extractor.md),
-[api-docs-claude-plugin module](../modules/api-docs-claude-plugin.md) and the
+[api-docs-agent-plugin module](../modules/api-docs-agent-plugin.md) and the
 [synchronous-event-bus decision](../decisions/synchronous-event-bus.md).

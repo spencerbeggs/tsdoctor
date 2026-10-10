@@ -13,9 +13,10 @@ Roadmap phases 1–4 have landed; phase 5's `@tsdoctor/pages` IR and the
 VitePress adapter alpha landed on `feat/phase-5`. The npm package name
 `rspress-plugin-api-extractor` is unchanged.
 
-**Naming caution:** the repo-root `plugin/` folder is the **api-docs Claude
-Code plugin** — not a pnpm workspace, not the RSPress plugin (that is
-`platforms/rspress/`). See [plugin/](#plugin-claude-code-plugin).
+**Naming caution:** the repo-root `plugin/` folder is the **api-docs agent
+plugin** (`@tsdoctor/ai-plugins`, built for Claude Code and GitHub Copilot) —
+not the RSPress plugin (that is `platforms/rspress/`). See
+[plugin/](#plugin-agent-plugin).
 
 ## Getting Started
 
@@ -28,7 +29,7 @@ pnpm dev                  # Start basic site dev server
 ## Workspaces
 
 Workspace globs (`pnpm-workspace.yaml`): `modules/*`, `packages/*`,
-`platforms/*`, `sites/*`.
+`platforms/*`, `plugin`, `sites/*`.
 
 | Workspace | Package Name | Private | Purpose |
 | --------- | ------------ | ------- | ------- |
@@ -42,6 +43,7 @@ Workspace globs (`pnpm-workspace.yaml`): `modules/*`, `packages/*`,
 | `packages/snapshot/` | `@tsdoctor/snapshot` | Publishable | Incremental-build snapshot store (SQLite via `@effected/store`) + content hashing |
 | `packages/seo/` | `@tsdoctor/seo` | Publishable | Framework-neutral `<head>` metadata: `HeadTag`, canonical, OG/Twitter, attribution, JSON-LD |
 | `packages/pages/` | `@tsdoctor/pages` | Publishable | Framework-neutral page IR: block vocabulary, `ApiItem` → `Page` builders, navigation tree, example preparation, plain-markdown emitter, llms.txt text transforms |
+| `plugin/` | `@tsdoctor/ai-plugins` | Yes (not on npm) | The api-docs agent plugin: one pluginfinity source built into `builds/claude/` and `builds/copilot/` |
 | `modules/kitchensink/` | `@modules/kitchensink` | Yes | Full API Extractor feature coverage |
 | `modules/effect-kit/` | `@modules/effect-kit` | Yes | Effect-TS API patterns (Schema.Class, synthetic bases) |
 | `modules/versioned-v1/` | `@modules/versioned-v1` | Yes | Version testing — v1 baseline |
@@ -115,11 +117,16 @@ collisions returned as data); `buildPage` lifts an `ApiItem` into a `Page`
 sidebar tree. Emitters (`platforms/*/src/emit/`) render — never recompute
 anchors, routes or display/source code.
 
-### plugin/ (Claude Code plugin)
+### plugin/ (agent plugin)
 
-The **api-docs Claude Code plugin** — not a pnpm workspace, not part of the
-build. Ships skills, the `rspress-docs` agent, commands, hooks and monitors;
-bats tests in `plugin/__test__/`. Load with `pnpm claude`. See
+The **api-docs agent plugin** (`@tsdoctor/ai-plugins`), authored once with
+[pluginfinity](https://github.com/spencerbeggs/pluginfinity) and built by
+Turbo into `plugin/builds/claude/` and `plugin/builds/copilot/` (committed;
+never edit `builds/` by hand — rebuild). Ships skills, the `rspress-docs`
+agent, a SessionStart hook and a Claude-only monitor; bats tests in
+`plugin/__test__/`. Versioned on its own changeset line; the version files
+are the two built manifests. Load with `pnpm claude` / `pnpm copilot`;
+`pnpm plugin:check` fails when `builds/` lags the source. See
 `plugin/CLAUDE.md`.
 
 ### modules/
@@ -345,10 +352,11 @@ pnpm --filter @sites/basic run dev                        # one site's dev serve
 pnpm vitest run platforms/rspress/__test__/build-stages.test.ts
 ```
 
-The `plugin/` Claude Code plugin is covered by bats, not Vitest:
+The `plugin/` agent plugin is covered by bats, not Vitest:
 
 ```bash
-bats plugin/__test__
+pnpm test:bats
+pnpm plugin:check       # builds/ current with the pluginfinity source
 ```
 
 ## Code Quality and Hooks
