@@ -1,5 +1,22 @@
 # @tsdoctor/bundle
 
+## 0.6.1
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/images | dependency | updated | ^0.1.0 | ^0.1.1 |
+| @effected/github | peerDependency | updated | ^0.15.0 | ^0.17.0 |
+
+[#335][#335]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#335]: https://github.com/spencerbeggs/tsdoctor/pull/335
+
 ## 0.6.0
 
 ### Breaking Changes
