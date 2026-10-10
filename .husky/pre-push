@@ -9,9 +9,18 @@ in_ci() { [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; }
 # The committed plugin builds are what the marketplaces install, so a skill,
 # agent or hook edit pushed without a rebuild would ship stale content. The
 # check takes under a second, so it runs on every push; CI repeats it through
-# `pnpm plugin:check` in release.yml's on-build gate.
-if ! in_ci && ! (cd "$ROOT/plugin" && pnpm exec pluginfinity build --check >/dev/null 2>&1); then
-	echo "plugin: plugin/builds is out of date with its source - push blocked." >&2
-	echo "  Rebuild and commit: pnpm --filter @tsdoctor/ai-plugins run build:dev" >&2
-	exit 1
+# `pnpm plugin:check` in release.yml's on-build gate. build --check compares the
+# source with the builds on disk, so the second check blocks a push whose
+# rebuilt files were never committed.
+if ! in_ci; then
+	if ! (cd "$ROOT/plugin" && pnpm exec pluginfinity build --check >/dev/null); then
+		echo "plugin: plugin/builds is out of date with its source - push blocked." >&2
+		echo "  Rebuild and commit: pnpm --filter @tsdoctor/ai-plugins run build:dev" >&2
+		exit 1
+	fi
+	if [ -n "$(git -C "$ROOT" status --porcelain -- plugin/builds)" ]; then
+		echo "plugin: plugin/builds has uncommitted changes - push blocked." >&2
+		echo "  Commit the rebuilt files under plugin/builds." >&2
+		exit 1
+	fi
 fi

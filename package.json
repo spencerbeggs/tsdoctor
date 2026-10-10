@@ -36,7 +36,7 @@
 		"lint:fix:unsafe": "biome check --write --unsafe --max-diagnostics=none",
 		"lint:md": "markdownlint-cli2 '**/*.{md,mdx}' --config './lib/configs/.markdownlint-cli2.jsonc'",
 		"lint:md:fix": "markdownlint-cli2  --config './lib/configs/.markdownlint-cli2.jsonc' --fix",
-		"plugin:check": "pnpm --filter @tsdoctor/ai-plugins exec pluginfinity build --check && git diff --exit-code --stat -- plugin/builds",
+		"plugin:check": "pnpm --filter @tsdoctor/ai-plugins exec pluginfinity build --check && git status --short -- plugin/builds && test -z \"$(git status --porcelain -- plugin/builds)\"",
 		"prepare": "husky",
 		"preview": "turbo run preview --filter=@sites/basic",
 		"preview:basic": "turbo run preview --filter=@sites/basic",
