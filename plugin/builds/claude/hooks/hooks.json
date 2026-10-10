@@ -1,0 +1,20 @@
+{
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "env",
+						"args": [
+							"PLUGINFINITY_EVENT=SessionStart",
+							"bash",
+							"${CLAUDE_PLUGIN_ROOT}/hooks/session-start/announce.sh"
+						],
+						"timeout": 10
+					}
+				]
+			}
+		]
+	}
+}

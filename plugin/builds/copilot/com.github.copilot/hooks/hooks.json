@@ -1,0 +1,15 @@
+{
+	"version": 1,
+	"hooks": {
+		"SessionStart": [
+			{
+				"type": "command",
+				"bash": "bash \"${PLUGIN_ROOT}/hooks/session-start/announce.sh\"",
+				"timeoutSec": 10,
+				"env": {
+					"PLUGINFINITY_EVENT": "SessionStart"
+				}
+			}
+		]
+	}
+}

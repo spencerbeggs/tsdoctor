@@ -1,52 +1,103 @@
 #!/usr/bin/env bats
-# __test__/session-start-announce.bats — coverage for the api-docs plugin's
-# hooks/session-start/announce.sh orientation hook.
+# session-start-announce.bats: covers hooks/session-start/announce.sh, the
+# plugin's SessionStart orientation hook, on BOTH hosts.
+#
+# One source script serves Claude Code and Copilot through the pluginfinity hook
+# library, so every test runs the BUILT copy under builds/<host>/ with run_hook,
+# the way each host runs it. Run `pluginfinity build` first;
+# `pluginfinity build --check` proves the builds match the source.
 
-setup() {
-	PLUGIN_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
-	SCRIPT="$PLUGIN_ROOT/hooks/session-start/announce.sh"
-	FIXTURE="$PLUGIN_ROOT/hooks/fixtures/sessionstart.startup.json"
+load "$BATS_TEST_DIRNAME/../node_modules/pluginfinity/bats/pluginfinity.bash"
 
-	# Redirect $HOME so the producer-pattern env-file write lands in a
-	# throwaway dir instead of the real ~/.claude/session-env/.
-	export HOME="$BATS_TEST_TMPDIR/home"
-	mkdir -p "$HOME"
+HOOK="hooks/session-start/announce.sh"
+BUILDS="$BATS_TEST_DIRNAME/../builds"
+
+# _ctx_of <host>: the context text in $output, read from <host>'s shape only, so
+# a response in the other host's shape reads as empty.
+_ctx_of() {
+	case "$1" in
+	claude) jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$output" 2>/dev/null ;;
+	copilot) jq -r 'if has("hookSpecificOutput") then empty else .additionalContext // empty end' <<<"$output" 2>/dev/null ;;
+	esac
 }
 
-@test "announce.sh emits a SessionStart additionalContext message on the happy path" {
-	run bash "$SCRIPT" < "$FIXTURE"
-
-	[ "$status" -eq 0 ]
-	[ "$(jq -r '.hookSpecificOutput.hookEventName' <<< "$output")" = "SessionStart" ]
-
-	local ctx
-	ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<< "$output")"
-	[[ "$ctx" == *"api-docs"* ]]
+@test "claude: one nested hookSpecificOutput object for SessionStart" {
+	run_hook claude "$HOOK" sessionstart.startup.json
+	assert_hook_exit 0
+	[ "$(jq -s 'length' <<<"$output")" -eq 1 ]
+	assert_hook_json '.hookSpecificOutput.hookEventName' SessionStart
+	jq -e 'has("additionalContext") | not' <<<"$output" >/dev/null
+	[[ "$(_ctx_of claude)" == *"api-docs"* ]]
 }
 
-@test "announce.sh persists the namespaced session-env producer vars" {
-	run bash "$SCRIPT" < "$FIXTURE"
-
-	[ "$status" -eq 0 ]
-
-	local env_file="$HOME/.claude/session-env/test-session-startup/api-docs-hook.sh"
-	[ -f "$env_file" ]
-	grep -q "^export API_DOCS_PROJECT_DIR=" "$env_file"
-	grep -q "^export API_DOCS_DATA_DIR=" "$env_file"
-	grep -q "^export API_DOCS_PLUGIN_ROOT=" "$env_file"
+@test "copilot: one flat additionalContext object, not Claude Code's shape" {
+	run_hook copilot "$HOOK" sessionstart.startup.json
+	assert_hook_exit 0
+	[ "$(jq -s 'length' <<<"$output")" -eq 1 ]
+	jq -e 'has("hookSpecificOutput") | not' <<<"$output" >/dev/null
+	[[ "$(_ctx_of copilot)" == *"api-docs"* ]]
 }
 
-@test "announce.sh fails open with a plain no-op when jq is unavailable" {
-	local no_jq_bin="$BATS_TEST_TMPDIR/no-jq-bin"
-	mkdir -p "$no_jq_bin"
-	ln -sf "$(command -v dirname)" "$no_jq_bin/dirname"
-	local bash_bin
-	bash_bin="$(command -v bash)"
+@test "both hosts: the same message, naming the agent by its namespaced id" {
+	local claude_ctx copilot_ctx
+	run_hook claude "$HOOK" sessionstart.startup.json
+	claude_ctx=$(_ctx_of claude)
+	run_hook copilot "$HOOK" sessionstart.startup.json
+	copilot_ctx=$(_ctx_of copilot)
+	[ -n "$claude_ctx" ]
+	[ "$claude_ctx" = "$copilot_ctx" ]
+	[[ "$claude_ctx" == *"api-docs:rspress-docs"* ]]
+	for skill in twoslash plugin-config doc-writer rspress-core; do
+		[[ "$claude_ctx" == *"$skill"* ]]
+	done
+	[[ "$claude_ctx" == *"/api-docs:review"* ]]
+	[[ "$claude_ctx" == *"/api-docs:sync"* ]]
+}
 
-	PATH="$no_jq_bin" run "$bash_bin" "$SCRIPT" < "$FIXTURE"
+@test "both hosts: briefs on resume and compact too (no matcher)" {
+	local host src fixture
+	for host in claude copilot; do
+		for src in resume compact; do
+			fixture=$(hook_fixture SessionStart "{\"source\":\"$src\"}")
+			run_hook "$host" "$HOOK" "$fixture"
+			assert_hook_exit 0
+			[[ "$(_ctx_of "$host")" == *"api-docs:rspress-docs"* ]]
+		done
+	done
+}
 
-	[ "$status" -eq 0 ]
-	# hook-output.sh warns on stderr at source time when jq is missing, and
-	# `run` folds stderr into $output — assert on the last line, not $output.
-	[ "${lines[-1]}" = "{}" ]
+@test "both hosts: no longer writes a hand-rolled session env" {
+	local host
+	for host in claude copilot; do
+		run_hook "$host" "$HOOK" sessionstart.startup.json HOME="$BATS_TEST_TMPDIR/home"
+		assert_hook_exit 0
+		[ ! -e "$BATS_TEST_TMPDIR/home/.claude/session-env" ]
+	done
+}
+
+@test "both hosts: no jq is a silent no-op" {
+	local host bin tool
+	bin="$BATS_TEST_TMPDIR/no-jq-bin"
+	mkdir -p "$bin"
+	for tool in bash cat mktemp rm date mkdir basename dirname grep env; do
+		ln -sf "$(command -v "$tool")" "$bin/$tool"
+	done
+	for host in claude copilot; do
+		run_hook "$host" "$HOOK" sessionstart.startup.json PATH="$bin"
+		assert_hook_noop
+	done
+	# Positive control: the same PATH plus jq briefs.
+	ln -sf "$(command -v jq)" "$bin/jq"
+	for host in claude copilot; do
+		run_hook "$host" "$HOOK" sessionstart.startup.json PATH="$bin"
+		[[ "$(_ctx_of "$host")" == *"api-docs:rspress-docs"* ]]
+	done
+}
+
+@test "the hooks files register SessionStart with no matcher and a 10s timeout" {
+	jq -e '.hooks.SessionStart | length == 1' "$BUILDS/claude/hooks/hooks.json" >/dev/null
+	jq -e '.hooks.SessionStart[0] | has("matcher") | not' "$BUILDS/claude/hooks/hooks.json" >/dev/null
+	jq -e '.hooks.SessionStart[0].hooks[0].timeout == 10' "$BUILDS/claude/hooks/hooks.json" >/dev/null
+	jq -e '.hooks.SessionStart | length == 1' "$BUILDS/copilot/com.github.copilot/hooks/hooks.json" >/dev/null
+	jq -e '.hooks.SessionStart[0].timeoutSec == 10' "$BUILDS/copilot/com.github.copilot/hooks/hooks.json" >/dev/null
 }

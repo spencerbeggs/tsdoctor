@@ -1,12 +1,12 @@
 # api-docs Roadmap
 
-Long-term plan for the api-docs Claude Code plugin — the documentation-craft
+Long-term plan for the api-docs agent plugin (Claude Code and GitHub Copilot) — the documentation-craft
 companion to `rspress-plugin-api-extractor`. The design spec behind this
 roadmap lives in the monorepo at
 `docs/superpowers/specs/2026-07-14-api-docs-plugin-design.md`.
 
-The plugin is versioned in lockstep with the npm package; a change here ships
-with the package release train.
+The plugin is versioned on its own changeset line as `@tsdoctor/ai-plugins`,
+independent of the npm package's release train.
 
 ## Phase 1 — Foundations
 
@@ -33,9 +33,9 @@ with the package release train.
 
 ## Phase 2 — Workflows
 
-- [x] `/api-docs:review [path]` — thin command delegating to the doc-writer
-      review rubric
-- [x] `/api-docs:sync` — thin command front-door handing off to the agent
+- [x] `/api-docs:review [path]` — thin user-invoked skill delegating to the
+      doc-writer review rubric
+- [x] `/api-docs:sync [path]` — thin user-invoked skill handing off to the agent
 - [ ] Site scaffolding — agent-invoked (needs the orient step); standalone
       command only if a fast path is wanted later
 - [ ] Dogfood pass over the first consumer sites as validation

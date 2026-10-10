@@ -90,7 +90,8 @@
 		"**/.git",
 		"**/__test__/**/fixtures/**",
 		"**/__fixtures__/**",
-		"**/.repos"
+		"**/.repos",
+		"plugin/builds/**"
 	],
 	"noBanner": true
 }
