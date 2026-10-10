@@ -1,6 +1,6 @@
 {
 	"name": "api-docs",
-	"version": "0.19.0",
+	"version": "0.20.0",
 	"description": "Build and maintain RSPress API-documentation sites with rspress-plugin-api-extractor: four documentation-craft skills, the rspress-docs agent, review and sync skills, a session orientation hook, and a doc-build issues monitor.",
 	"author": {
 		"name": "C. Spencer Beggs",
