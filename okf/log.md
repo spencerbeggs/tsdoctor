@@ -1,5 +1,15 @@
 # Log
 
+## 2026-10-10
+
+* Updated Fixture modules
+* Updated Plugin, the plugin, and platforms/
+* Added The agent plugin versions on its own release line, built for both hosts by pluginfinity
+* Updated The tsdoctor monorepo workspace
+* Added api-docs agent plugin
+* Updated issues.json artifact
+* Updated rspress-plugin-api-extractor
+
 ## 2026-10-09
 
 * Updated @tsdoctor/bundle
