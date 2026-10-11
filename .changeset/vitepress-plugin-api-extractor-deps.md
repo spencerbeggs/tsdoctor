@@ -1,0 +1,25 @@
+---
+"vitepress-plugin-api-extractor": patch
+---
+
+## Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | ^4.0.2 | 4.0.2 |
+| @effected/github | dependency | updated | ^0.17.0 | ^0.18.0 |
+| @effected/glob | dependency | updated | ^0.10.0 | ^0.10.1 |
+| @effected/images | dependency | updated | ^0.1.1 | ^0.1.2 |
+| @effected/jsonc | dependency | updated | ^0.15.1 | ^0.15.2 |
+| @effected/markdown | dependency | updated | ^0.15.1 | ^0.15.2 |
+| @effected/npm | dependency | updated | ^0.20.0 | ^0.20.1 |
+| @effected/package-json | dependency | updated | ^0.20.1 | ^0.20.2 |
+| @effected/schema-org | dependency | updated | ^0.7.0 | ^0.7.1 |
+| @effected/semver | dependency | updated | ^0.11.0 | ^0.11.1 |
+| @effected/spdx | dependency | updated | ^0.12.0 | ^0.12.1 |
+| @effected/store | dependency | updated | ^0.13.1 | ^0.13.2 |
+| @effected/tsconfig-json | dependency | updated | ^0.13.0 | ^0.13.1 |
+| @effected/walker | dependency | updated | ^0.15.0 | ^0.15.1 |
+| @effected/xdg | dependency | updated | ^0.9.0 | ^0.9.1 |
+| @effected/yaml | dependency | updated | ^0.19.1 | ^0.19.2 |
+| effect | dependency | updated | ^4.0.2 | 4.0.2 |
