@@ -1,5 +1,23 @@
 # @tsdoctor/snapshot
 
+## 0.5.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/jsonc | dependency | updated | ^0.15.2 | ^0.16.0 |
+| @effected/store | peerDependency | updated | ^0.13.0 | ^0.14.0 |
+| effect | peerDependency | updated | 4.0.2 | ^4.0.3 |
+
+[#340][#340]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#340]: https://github.com/spencerbeggs/tsdoctor/pull/340
+
 ## 0.5.3
 
 ### Dependencies
