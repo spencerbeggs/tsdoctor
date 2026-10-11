@@ -61,7 +61,7 @@
 		"hast-util-to-jsx-runtime": "^2.3.6",
 		"mdast-util-to-hast": "^13.2.1",
 		"open": "^11.0.0",
-		"prettier": "^3.9.9",
+		"prettier": "^3.9.10",
 		"react-markdown": "^10.1.0",
 		"shiki": "^4.5.0",
 		"typescript": "^6.0.3",
