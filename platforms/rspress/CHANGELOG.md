@@ -1,5 +1,46 @@
 # rspress-plugin-api-extractor
 
+## 0.19.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | ^4.0.2 | 4.0.2 |
+| @effected/github | dependency | updated | ^0.17.0 | ^0.18.0 |
+| @effected/glob | dependency | updated | ^0.10.0 | ^0.10.1 |
+| @effected/images | dependency | updated | ^0.1.1 | ^0.1.2 |
+| @effected/jsonc | dependency | updated | ^0.15.1 | ^0.15.2 |
+| @effected/markdown | dependency | updated | ^0.15.1 | ^0.15.2 |
+| @effected/memfs | dependency | updated | ^0.14.0 | ^0.14.1 |
+| @effected/npm | dependency | updated | ^0.20.0 | ^0.20.1 |
+| @effected/package-json | dependency | updated | ^0.20.1 | ^0.20.2 |
+| @effected/schema-org | dependency | updated | ^0.7.0 | ^0.7.1 |
+| @effected/semver | dependency | updated | ^0.11.0 | ^0.11.1 |
+| @effected/spdx | dependency | updated | ^0.12.0 | ^0.12.1 |
+| @effected/store | dependency | updated | ^0.13.1 | ^0.13.2 |
+| @effected/tsconfig-json | dependency | updated | ^0.13.0 | ^0.13.1 |
+| @effected/walker | dependency | updated | ^0.15.0 | ^0.15.1 |
+| @effected/xdg | dependency | updated | ^0.9.0 | ^0.9.1 |
+| @effected/yaml | dependency | updated | ^0.19.1 | ^0.19.2 |
+| @tsdoctor/bundle | dependency | updated | 0.6.1 | 0.6.2 |
+| @tsdoctor/manifest | dependency | updated | 0.2.5 | 0.2.6 |
+| @tsdoctor/model | dependency | updated | 0.8.6 | 0.8.7 |
+| @tsdoctor/pages | dependency | updated | 0.3.7 | 0.3.8 |
+| @tsdoctor/registry | dependency | updated | 0.5.5 | 0.5.6 |
+| @tsdoctor/seo | dependency | updated | 0.4.5 | 0.4.6 |
+| @tsdoctor/snapshot | dependency | updated | 0.5.2 | 0.5.3 |
+| @tsdoctor/vfs | dependency | updated | 0.4.3 | 0.4.4 |
+| effect | dependency | updated | ^4.0.2 | 4.0.2 |
+
+[#338][#338]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#338]: https://github.com/spencerbeggs/tsdoctor/pull/338
+
 ## 0.19.1
 
 ### Dependencies
