@@ -29,7 +29,7 @@
 		"@resvg/resvg-js": "^2.6.2",
 		"@savvy-web/bundler": "^2.5.3",
 		"@types/node": "catalog:build",
-		"satori": "^0.33.4",
+		"satori": "^0.47.1",
 		"typescript": "catalog:build"
 	},
 	"publishConfig": {
