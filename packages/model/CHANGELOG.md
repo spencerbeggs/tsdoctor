@@ -1,5 +1,22 @@
 # @tsdoctor/model
 
+## 0.8.13
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/yaml | dependency | updated | ^0.23.0 | ^0.25.0 |
+| @effected/markdown | peerDependency | updated | ^0.20.0 | ^0.22.0 |
+
+[#363][#363]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#363]: https://github.com/spencerbeggs/tsdoctor/pull/363
+
 ## 0.8.12
 
 ### Dependencies
