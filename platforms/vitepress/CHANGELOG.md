@@ -1,5 +1,35 @@
 # vitepress-plugin-api-extractor
 
+## 0.4.21
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/github | dependency | updated | ^0.24.0 | ^0.25.0 |
+| @effected/markdown | dependency | updated | ^0.22.0 | ^0.23.0 |
+| @effected/npm | dependency | updated | ^0.26.1 | ^0.26.2 |
+| @effected/package-json | dependency | updated | ^0.25.1 | ^0.25.2 |
+| @effected/semver | dependency | updated | ^0.17.0 | ^0.18.0 |
+| @effected/store | dependency | updated | ^0.18.0 | ^0.19.0 |
+| @effected/tsconfig-json | dependency | updated | ^0.17.1 | ^0.17.2 |
+| @effected/walker | dependency | updated | ^0.19.0 | ^0.20.0 |
+| @effected/xdg | dependency | updated | ^0.14.1 | ^0.15.0 |
+| @effected/yaml | dependency | updated | ^0.25.0 | ^0.25.1 |
+| @microsoft/api-extractor-model | dependency | updated | 7.33.12 | ^7.33.15 |
+| @tsdoctor/bundle | dependency | updated | 0.6.7 | 0.6.8 |
+| @tsdoctor/model | dependency | updated | 0.8.13 | 0.8.14 |
+| @tsdoctor/pages | dependency | updated | 0.3.14 | 0.3.15 |
+| @tsdoctor/registry | dependency | updated | 0.5.11 | 0.5.12 |
+
+[#366][#366]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#366]: https://github.com/spencerbeggs/tsdoctor/pull/366
+
 ## 0.4.20
 
 ### Dependencies
