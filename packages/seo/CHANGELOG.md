@@ -1,5 +1,22 @@
 # @tsdoctor/seo
 
+## 0.4.12
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/spdx | dependency | updated | ^0.16.0 | ^0.16.1 |
+| @effected/package-json | peerDependency | updated | ^0.25.0 | ^0.26.0 |
+
+[#368][#368]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#368]: https://github.com/spencerbeggs/tsdoctor/pull/368
+
 ## 0.4.11
 
 ### Dependencies
