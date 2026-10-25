@@ -364,8 +364,8 @@ function findHighestVersion(versions: string[]): string {
 
 	// Sort by version using @effected/semver comparison (descending)
 	parsedVersions.sort((a, b) => {
-		if (SemVer.gt(a.version, b.version)) return -1;
-		if (SemVer.lt(a.version, b.version)) return 1;
+		if (a.version.gt(b.version)) return -1;
+		if (a.version.lt(b.version)) return 1;
 		return 0;
 	});
 
