@@ -1,5 +1,21 @@
 # rspress-plugin-api-extractor
 
+## 0.19.11
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| unist-util-visit | dependency | updated | ^5.1.0 | ^5.2.0 |
+
+[#376][#376]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#376]: https://github.com/spencerbeggs/tsdoctor/pull/376
+
 ## 0.19.10
 
 ### Dependencies
