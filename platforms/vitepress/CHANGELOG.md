@@ -1,5 +1,21 @@
 # vitepress-plugin-api-extractor
 
+## 0.4.23
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| vitepress | peerDependency | updated | ^2.0.0-alpha.20 | ^2.0.0-alpha.21 |
+
+[#376][#376]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#376]: https://github.com/spencerbeggs/tsdoctor/pull/376
+
 ## 0.4.22
 
 ### Dependencies
