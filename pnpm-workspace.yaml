@@ -1,3 +1,9 @@
+packages:
+  - modules/*
+  - packages/*
+  - platforms/*
+  - plugin
+  - sites/*
 autoInstallPeers: true
 configDependencies:
   "@effected/pnpm-plugin-effect": 0.18.8
@@ -5,12 +11,6 @@ configDependencies:
 minimumReleaseAgeExclude:
   - "@effected/pnpm-plugin-effect"
   - "@savvy-web/pnpm-plugin-silk"
-packages:
-  - modules/*
-  - packages/*
-  - platforms/*
-  - plugin
-  - sites/*
 peerDependencyRules:
   allowedVersions:
     "@savvy-web/rspress-builder>typescript": "6"
