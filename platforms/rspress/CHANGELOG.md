@@ -1,5 +1,35 @@
 # rspress-plugin-api-extractor
 
+## 0.19.12
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/github | dependency | updated | ^0.25.0 | ^0.25.1 |
+| @effected/glob | dependency | updated | ^0.14.0 | ^0.15.0 |
+| @effected/images | dependency | updated | ^0.6.1 | ^0.6.2 |
+| @effected/jsonc | dependency | updated | ^0.20.0 | ^0.20.1 |
+| @effected/memfs | dependency | updated | ^0.19.0 | ^0.20.0 |
+| @effected/npm | dependency | updated | ^0.27.0 | ^0.27.1 |
+| @effected/package-json | dependency | updated | ^0.26.0 | ^0.26.1 |
+| @effected/store | dependency | updated | ^0.19.0 | ^0.20.0 |
+| @effected/tsconfig-json | dependency | updated | ^0.17.3 | ^0.17.4 |
+| @effected/walker | dependency | updated | ^0.20.1 | ^0.21.0 |
+| @effected/xdg | dependency | updated | ^0.15.1 | ^0.16.0 |
+| @tsdoctor/bundle | dependency | updated | 0.6.9 | 0.6.10 |
+| @tsdoctor/model | dependency | updated | 0.8.14 | 0.8.14 |
+| @tsdoctor/registry | dependency | updated | 0.5.12 | 0.5.13 |
+| @tsdoctor/snapshot | dependency | updated | 0.5.9 | 0.5.10 |
+
+[#378][#378]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#378]: https://github.com/spencerbeggs/tsdoctor/pull/378
+
 ## 0.19.11
 
 ### Dependencies
@@ -1184,8 +1214,7 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   the remaining thresholds are unchanged.
 
 - The `LogLevel` type export — no plugin option was typed by it. Type
-  `observability.logLevel` against its own values (`"none" | "error" |
-  "warn" | "info" | "debug" | "trace" | "verbose"`) instead.
+  `observability.logLevel` against its own values (`"none" | "error" | "warn" | "info" | "debug" | "trace" | "verbose"`) instead.
 
 ### Bug Fixes
 
@@ -1626,8 +1655,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | @microsoft/api-extractor-model | dependency | updated | ^7.33.10 | ^7.33.11 | [#148][#148] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#148]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/148
 
 ## 0.8.7
@@ -1648,8 +1675,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | type-registry-effect | dependency | updated | ^2.3.3 | ^2.3.4 | [#139][#139] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#139]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/139
 
 ## 0.8.5
@@ -1660,8 +1685,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | @effected/store | dependency | updated | ^0.2.0 | ^0.3.0 |  |
   | @effected/xdg | dependency | updated | ^0.2.0 | ^0.2.1 | [#137][#137] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#137]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/137
 
@@ -1682,8 +1705,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | shiki | dependency | updated | ^4.4.1 | ^4.4.3 |  |
   | type-registry-effect | dependency | updated | ^2.3.2 | ^2.3.3 | [#131][#131] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#131]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/131
 
 ## 0.8.3
@@ -1697,8 +1718,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @effected/tsconfig-json | dependency | updated | ^0.4.0 | ^0.4.1 |  |
   | @effected/xdg | dependency | updated | ^0.1.9 | ^0.1.10 | [#126][#126] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#126]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/126
 
 ## 0.8.2
@@ -1711,8 +1730,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @shikijs/twoslash | dependency | updated | ^4.3.1 | ^4.4.1 |  |
   | shiki | dependency | updated | ^4.3.1 | ^4.4.1 |  |
   | @rspress/core | peerDependency | updated | 2.0.18 | 2.0.19 | [#124][#124] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#124]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/124
 
@@ -1765,8 +1782,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | @effected/tsconfig-json | dependency | updated | ^0.3.3 | ^0.4.0 | [#116][#116] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#116]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/116
 
 ## 0.7.4
@@ -1778,8 +1793,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @effected/tsconfig-json | dependency | updated | ^0.3.2 | ^0.3.3 |  |
   | @effected/xdg | dependency | updated | ^0.1.8 | ^0.1.9 | [#113][#113] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#113]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/113
 
 ## 0.7.3
@@ -1789,8 +1802,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 - | Dependency | Type | Action | From | To |  |
   | --- | --- | --- | --- | --- | --- |
   | @effected/tsconfig-json | dependency | updated | ^0.3.1 | ^0.3.2 | [#110][#110] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#110]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/110
 
@@ -1808,8 +1819,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @effected/xdg | dependency | updated | ^0.1.7 | ^0.1.8 |  |
   | effect | dependency | updated | 4.0.0-beta.99 | 4.0.0-beta.101 | [#108][#108] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#108]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/108
 
 ## 0.7.1
@@ -1819,8 +1828,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 - | Dependency | Type | Action | From | To |  |
   | --- | --- | --- | --- | --- | --- |
   | type-registry-effect | dependency | updated | ^2.2.0 | ^2.3.0 | [#106][#106] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#106]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/106
 
@@ -1896,8 +1903,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | prettier | dependency | updated | ^3.9.5 | ^3.9.6 | [#100][#100] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#100]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/100
 
 ## 0.6.3
@@ -1908,8 +1913,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | @effected/tsconfig-json | dependency | updated | ^0.2.7 | ^0.3.0 |  |
   | type-registry-effect | dependency | updated | ^2.1.2 | ^2.2.0 | [#98][#98] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#98]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/98
 
@@ -1957,8 +1960,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | effect | dependency | updated | 4.0.0-beta.98 | 4.0.0-beta.99 |  |
   | prettier | dependency | updated | ^3.9.5 | ^3.9.6 |  |
   | type-registry-effect | dependency | updated | ^2.0.0 | ^2.1.1 | [#92][#92] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#92]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/92
 
@@ -2088,8 +2089,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @effect/experimental | dependency | added | — | 0.60.0 |  |
   | @effect/rpc | dependency | added | — | 0.75.1 |  |
   | @effect/workflow | dependency | added | — | 0.18.2 | [#71][#71] Thanks [@spencerbeggs](https://github.com/spencerbeggs)! |
-
-### Patch Changes
 
 [#71]: https://github.com/spencerbeggs/rspress-plugin-api-extractor/pull/71
 
