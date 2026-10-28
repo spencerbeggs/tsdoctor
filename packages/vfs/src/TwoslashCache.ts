@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
+import type { JsoncDigest } from "@effected/jsonc";
+import { JsoncCanonicalizeOptions, JsoncFingerprint } from "@effected/jsonc";
 import type { TwoslashTypesCache } from "@shikijs/twoslash";
+import { Result } from "effect";
 
 /**
  * Persisted Twoslash result cache.
@@ -63,7 +66,7 @@ import type { TwoslashTypesCache } from "@shikijs/twoslash";
  *
  * @public
  */
-export const TWOSLASH_CACHE_FORMAT = 1;
+export const TWOSLASH_CACHE_FORMAT = 2;
 
 /**
  * The subset of a Twoslash run that Shiki consumes, and all this cache stores.
@@ -100,9 +103,13 @@ export interface TwoslashResultCache extends TwoslashTypesCache {
 	readonly entries: () => ReadonlyMap<string, TwoslashCacheValue>;
 }
 
-function sha256(input: string): string {
-	return createHash("sha256").update(input).digest("hex");
-}
+const digest: JsoncDigest = (bytes) => createHash("sha256").update(bytes).digest();
+
+/**
+ * Compiler options are TypeScript's own plain JSON shape, but a member may be
+ * present and `undefined`; those are omitted, as `JSON.stringify` would.
+ */
+const COMPILER_OPTIONS_CANONICALIZATION = JsoncCanonicalizeOptions.make({ undefined: "omit", nonFinite: "null" });
 
 /**
  * Fingerprint the type environment a generation is checked against.
@@ -135,26 +142,31 @@ export function twoslashEnvHash(vfs: ReadonlyMap<string, string>, toolchain: str
 	return hash.digest("hex");
 }
 
-/** JSON with object keys sorted, so equivalent options hash identically. */
-function stableStringify(value: unknown): string {
-	if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-	if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
-	const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-	return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
-}
-
 /**
  * Per-entry key: the code, its language, and the compiler configuration it is
  * checked under.
  *
  * The configuration matters because two APIs on one site may be documented
  * under different `tsconfig`s — the same source checked under different options
- * can produce different types, so it must not share a cache entry.
+ * can produce different types, so it must not share a cache entry. The options
+ * are folded in through their RFC 8785 canonical form, so key order does not
+ * matter.
+ *
+ * Returns `undefined` when the options cannot be canonicalized (a function or a
+ * non-plain object among them): such a block is not cached, rather than keyed
+ * on a spelling that could collide with different options.
  *
  * @public
  */
-export function twoslashEntryKey(code: string, lang: string | undefined, compilerOptions?: unknown): string {
-	return sha256(`${lang ?? "ts"}\0${stableStringify(compilerOptions ?? {})}\0${code}`);
+export function twoslashEntryKey(
+	code: string,
+	lang: string | undefined,
+	compilerOptions?: unknown,
+): string | undefined {
+	const options = JsoncFingerprint.canonicalizeResult(compilerOptions ?? {}, COMPILER_OPTIONS_CANONICALIZATION);
+	if (Result.isFailure(options)) return undefined;
+	const key = JsoncFingerprint.hashTextResult(`${lang ?? "ts"}\0${options.success}\0${code}`, digest);
+	return Result.isSuccess(key) ? key.success : undefined;
 }
 
 /**
@@ -184,7 +196,8 @@ export function makeTwoslashCache(initial?: ReadonlyMap<string, TwoslashCacheVal
 		// environment's compilerOptions — so the cache is configuration-aware
 		// without the call sites having to thread anything through.
 		read: (code, lang, options) => {
-			const found = map.get(twoslashEntryKey(code, lang, options?.compilerOptions));
+			const key = twoslashEntryKey(code, lang, options?.compilerOptions);
+			const found = key === undefined ? undefined : map.get(key);
 			if (found === undefined) {
 				misses += 1;
 				return null;
@@ -194,12 +207,14 @@ export function makeTwoslashCache(initial?: ReadonlyMap<string, TwoslashCacheVal
 			return found as never;
 		},
 		write: (code, data, lang, options) => {
+			const key = twoslashEntryKey(code, lang, options?.compilerOptions);
+			if (key === undefined) return;
 			const value: TwoslashCacheValue = {
 				nodes: (data as { nodes: unknown }).nodes,
 				code: data.code,
 				...(data.meta?.extension != null ? { meta: { extension: data.meta.extension } } : {}),
 			};
-			map.set(twoslashEntryKey(code, lang, options?.compilerOptions), value);
+			map.set(key, value);
 			dirty = true;
 		},
 		stats: () => ({ hits, misses, entries: map.size, dirty }),

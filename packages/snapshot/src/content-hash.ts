@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
+import type { JsoncDigest } from "@effected/jsonc";
 import { JsoncFingerprint } from "@effected/jsonc";
 import { Result } from "effect";
+
+const digest: JsoncDigest = (bytes) => createHash("sha256").update(bytes).digest();
 
 /**
  * Normalizes content string for consistent hashing.
@@ -57,8 +60,7 @@ export function normalizeContent(content: string): string {
  * @public
  */
 export function hashContent(content: string): string {
-	const normalized = normalizeContent(content);
-	return createHash("sha256").update(normalized).digest("hex");
+	return Result.getOrThrow(JsoncFingerprint.hashTextResult(normalizeContent(content), digest));
 }
 
 const TIMESTAMP_KEYS = new Set(["publishedTime", "modifiedTime", "article:published_time", "article:modified_time"]);
@@ -181,9 +183,9 @@ export function hashFrontmatter(frontmatter: Record<string, unknown>): string {
 	// string escaping are not JCS's. A fingerprint of a silently altered
 	// document is a lie, so a value that cannot be canonicalized fails loudly
 	// here rather than hashing something the document did not say.
-	const canonical = JsoncFingerprint.canonicalizeResult(filtered);
-	if (Result.isFailure(canonical)) {
-		throw new Error(`Frontmatter cannot be canonicalized for hashing: ${canonical.failure.message}`);
+	const hash = JsoncFingerprint.hashResult(filtered, digest);
+	if (Result.isFailure(hash)) {
+		throw new Error(`Frontmatter cannot be canonicalized for hashing: ${hash.failure.message}`);
 	}
-	return createHash("sha256").update(canonical.success).digest("hex");
+	return hash.success;
 }

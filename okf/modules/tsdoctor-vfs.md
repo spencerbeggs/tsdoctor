@@ -13,8 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-24T20:28:47Z
-  body_sha256: 3e659a82cfcb1e6ab5c2cc5d5101f2979ab144900276bfe6452d29018d32717e
+  at: 2026-10-28T21:54:56Z
+integrity:
+  generated:
+    body: 97bd1a7006c2bd8b
 ---
 
 # @tsdoctor/vfs
@@ -131,9 +133,12 @@ carries the installed TypeScript version — load-bearing, because
 it a warm cache would keep serving a previous compiler's hovers until the
 documented API's own declarations happened to change first.
 `twoslashEntryKey(code, lang, compilerOptions)` names one cached result
-within a generation; `twoslashBlobKey(envHash)` names the storage key for
-the whole generation, namespaced by `TWOSLASH_CACHE_FORMAT` (currently
-`1`). `makeTwoslashCache` returns the synchronous `TwoslashTypesCache`
+within a generation, folding the options in through
+`@effected/jsonc`'s `JsoncFingerprint` (RFC 8785, `undefined` members
+omitted); it answers `undefined` for options that cannot be canonicalized,
+and such a block is neither cached nor served. `twoslashBlobKey(envHash)`
+names the storage key for the whole generation, namespaced by
+`TWOSLASH_CACHE_FORMAT` (currently `2`). `makeTwoslashCache` returns the synchronous `TwoslashTypesCache`
 `@shikijs/twoslash` reads through — persistence (load-once before render,
 save-once after) is each caller's job: RSPress's `TwoslashCacheService`
 and VitePress's `TwoslashCacheStore` each store one gzipped generation blob

@@ -104,11 +104,32 @@ describe("twoslashEntryKey", () => {
 	it("treats absent options as an empty configuration", () => {
 		assert.strictEqual(twoslashEntryKey("c", "ts"), twoslashEntryKey("c", "ts", {}));
 	});
+
+	it("treats an undefined-valued option as absent", () => {
+		assert.strictEqual(
+			twoslashEntryKey("c", "ts", { strict: true, lib: undefined }),
+			twoslashEntryKey("c", "ts", { strict: true }),
+		);
+	});
+
+	it("answers no key for options that cannot be canonicalized", () => {
+		assert.isUndefined(twoslashEntryKey("c", "ts", { plugin: () => undefined }));
+	});
+});
+
+describe("makeTwoslashCache with uncanonicalizable options", () => {
+	it("neither caches nor serves the block", () => {
+		const cache = makeTwoslashCache();
+		const options = { compilerOptions: { plugin: () => undefined } } as never;
+		cache.write?.("const a = 1", result("const a = 1"), "ts", options);
+		assert.isNull(cache.read("const a = 1", "ts", options));
+		assert.deepStrictEqual(cache.stats(), { hits: 0, misses: 1, entries: 0, dirty: false });
+	});
 });
 
 describe("twoslashBlobKey", () => {
 	it("namespaces by format version so an older blob is never read back", () => {
-		assert.strictEqual(twoslashBlobKey("abc"), "twoslash/v1/abc");
+		assert.strictEqual(twoslashBlobKey("abc"), "twoslash/v2/abc");
 	});
 });
 
@@ -181,7 +202,9 @@ describe("encode/decode round trip", () => {
 		const restored = decodeTwoslashCache(encodeTwoslashCache(cache.entries()));
 
 		assert.strictEqual(restored.size, 2);
-		assert.deepInclude(restored.get(twoslashEntryKey("const a = 1", "ts")), { code: "const a = 1" });
+		const key = twoslashEntryKey("const a = 1", "ts");
+		assert.isDefined(key);
+		assert.deepInclude(restored.get(key), { code: "const a = 1" });
 	});
 
 	it("compresses, so a large generation does not bloat the store", () => {

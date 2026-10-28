@@ -4,6 +4,7 @@
 
 * Updated The tsdoctor monorepo workspace
 * Updated Vendored reference repos under .repos/
+* Updated @tsdoctor/vfs
 
 ## 2026-10-10
 
