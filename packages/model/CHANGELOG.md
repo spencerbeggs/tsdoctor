@@ -1,5 +1,30 @@
 # @tsdoctor/model
 
+## 0.8.15
+
+### Bug Fixes
+
+- Non-`Error` values thrown during model handling now render their message or JSON in error text instead of `[object Object]`. Output for `Error` and string values is unchanged. [#384][#384]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/yaml | dependency | updated | ^0.25.1 | ^0.26.0 |
+| @tsdoctor/vfs | dependency | updated | 0.4.8 | 0.5.0 |
+| @effected/markdown | peerDependency | updated | ^0.23.0 | ^0.24.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.17.0 | ^0.18.0 |
+| effect | peerDependency | updated | ^4.0.6 | ^4.0.7 |
+| @effected/engine | dependency | added | — | ^0.10.0 |
+
+[#384][#384]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#384]: https://github.com/spencerbeggs/tsdoctor/pull/384
+
 ## 0.8.14
 
 ### Dependencies
