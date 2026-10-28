@@ -1,5 +1,10 @@
 # Log
 
+## 2026-10-28
+
+* Updated The tsdoctor monorepo workspace
+* Updated Vendored reference repos under .repos/
+
 ## 2026-10-10
 
 * Updated Fixture modules

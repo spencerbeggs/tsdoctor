@@ -7,9 +7,11 @@ resource: ../..
 tags: [architecture, dx, ci, release, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-10-10T00:56:05Z
-  body_sha256: dfa634be538887030eb6751b9fb987536a040f884a3c3f0024e347bdf547e1c2
+  at: 2026-10-28T21:46:42Z
 status: stable
+integrity:
+  generated:
+    body: 5aa67f015139d145
 ---
 
 # The tsdoctor monorepo workspace
@@ -54,7 +56,7 @@ site coverage.
 ## Effect-TS foundation and the `@effected` catalogs
 
 Everything in `packages/*` and `platforms/*` runs on Effect v4
-(`effect@4.0.0-rc.118` per `.repos/config.json`'s pin), never Effect v3 —
+(`effect@4.0.7` per `.repos/config.json`'s pin), never Effect v3 —
 see [`../decisions/effect-v4-only.md`](../decisions/effect-v4-only.md).
 
 `@effected/*` packages are distributed through the
