@@ -69,7 +69,8 @@ export const compileWildcard = (pattern: string): RegExp | null => {
  */
 export const substituteWildcard = (value: unknown, captured: string, depth = 0): unknown => {
 	if (depth > MAX_NESTING_DEPTH) return null;
-	if (typeof value === "string") return value.replace(/\*/g, captured);
+	// split/join, not replace: a captured `$&` must stay literal, not expand.
+	if (typeof value === "string") return value.split("*").join(captured);
 	if (Array.isArray(value)) {
 		return value.map((entry) => substituteWildcard(entry, captured, depth + 1));
 	}

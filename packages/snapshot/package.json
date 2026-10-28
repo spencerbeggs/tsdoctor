@@ -32,6 +32,7 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@effected/engine": "catalog:effected",
 		"@effected/jsonc": "catalog:effected"
 	},
 	"devDependencies": {

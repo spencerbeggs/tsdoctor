@@ -1,4 +1,6 @@
 /* v8 ignore start -- Prettier integration wrapper, tested via page generator integration tests */
+
+import { ErrorText } from "@effected/engine";
 import { formatExampleCode } from "@tsdoctor/pages";
 import { Effect, Result } from "effect";
 import { PluginEvent as PE } from "./observability/events.js";
@@ -40,7 +42,7 @@ export async function formatCode(code: string, language: string): Promise<Format
 	}
 
 	const cause = result.failure.cause;
-	const errorMsg = cause instanceof Error ? cause.message : String(cause);
+	const errorMsg = ErrorText.describe(cause);
 
 	// Metric derived from PrettierError event in MetricsSink
 	emitSync(PE.PrettierError({ ctx: { buildId: syncBuildId() }, file: "unknown", reason: errorMsg, level: "warn" }));

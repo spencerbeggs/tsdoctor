@@ -1,5 +1,6 @@
 /* v8 ignore start -- Shiki/Twoslash integration, requires full highlighter setup for testing */
 
+import { ErrorText } from "@effected/engine";
 import { Markdown, Mdast } from "@effected/markdown";
 import type { ProgrammaticCompilerOptions } from "@effected/tsconfig-json";
 import { rendererRich, transformerTwoslash } from "@shikijs/twoslash";
@@ -515,7 +516,7 @@ export class TwoslashEnvironmentRegistry {
 
 	private handleTwoslashError(error: unknown, _code: string, file: string): void {
 		// Metrics derived from TwoslashDiagnostic event in MetricsSink
-		const message = error instanceof Error ? error.message : String(error);
+		const message = ErrorText.describe(error);
 		const match = /TS(\d+)/.exec(message);
 		const tsCode = match ? Number(match[1]) : 0;
 

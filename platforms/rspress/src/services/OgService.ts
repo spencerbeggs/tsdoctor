@@ -14,6 +14,7 @@
  * @packageDocumentation
  */
 
+import { ErrorText } from "@effected/engine";
 import { ImageFacts } from "@effected/images";
 import type { OpenGraphImageConfig, OpenGraphImageMetadata } from "@tsdoctor/seo";
 import { resolveUrl } from "@tsdoctor/seo";
@@ -55,7 +56,7 @@ export class OgImageError extends OgImageErrorBase<{
 		if (this.code === "invalid-secure-url") {
 			return `Invalid Open Graph secure URL in '${this.field}': ${this.value} — secureUrl must be an absolute https URL`;
 		}
-		const cause = this.cause instanceof Error ? this.cause.message : String(this.cause);
+		const cause = ErrorText.describe(this.cause);
 		return `Could not read Open Graph image '${this.value}': ${cause}`;
 	}
 }

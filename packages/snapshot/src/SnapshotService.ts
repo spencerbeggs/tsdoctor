@@ -1,3 +1,4 @@
+import { ErrorText } from "@effected/engine";
 import type { StoreError, StoreMigration, StoreMigrationError } from "@effected/store";
 import { Store } from "@effected/store";
 import { Context, Data, Effect, Layer, Option } from "effect";
@@ -187,7 +188,7 @@ function toSnapshotDbError(error: unknown): SnapshotDbError {
 	return new SnapshotDbError({
 		operation: "query",
 		dbPath: "snapshot-db",
-		reason: error instanceof Error ? error.message : String(error),
+		reason: ErrorText.describe(error),
 	});
 }
 
