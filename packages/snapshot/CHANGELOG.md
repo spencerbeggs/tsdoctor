@@ -1,5 +1,28 @@
 # @tsdoctor/snapshot
 
+## 0.5.11
+
+### Bug Fixes
+
+- Non-`Error` values thrown during snapshot operations now render their message or JSON in error text instead of `[object Object]`. Output for `Error` and string values is unchanged. [#384][#384]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/jsonc | dependency | updated | ^0.20.1 | ^0.21.0 |
+| @effected/store | peerDependency | updated | ^0.20.0 | ^0.21.0 |
+| effect | peerDependency | updated | ^4.0.6 | ^4.0.7 |
+| @effected/engine | dependency | added | — | ^0.10.0 |
+
+[#384][#384]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#384]: https://github.com/spencerbeggs/tsdoctor/pull/384
+
 ## 0.5.10
 
 ### Dependencies
