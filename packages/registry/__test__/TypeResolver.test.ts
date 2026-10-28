@@ -55,6 +55,17 @@ describe("TypeResolver", () => {
 			}
 		});
 
+		it("substitutes a captured segment literally, never as a replacement pattern", () => {
+			const wild = manifest({
+				exports: { "./*": { types: "./dist/*.d.ts" } },
+			});
+			const result = TypeResolver.resolveImport("pkg/a$&b", wild, PackageSpec.make({ name: "pkg", version: "1.0.0" }));
+			assert.isTrue(Option.isSome(result));
+			if (Option.isSome(result)) {
+				assert.strictEqual(result.value.filePath, "dist/a$&b.d.ts");
+			}
+		});
+
 		it("resolves subpaths through typesVersions exact and wildcard entries", () => {
 			const pkg = PackageSpec.make({ name: "pkg", version: "1.0.0" });
 			const tv = manifest({
