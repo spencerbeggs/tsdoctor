@@ -240,6 +240,9 @@ catalogs:
     '@effected/config-file':
       specifier: ^0.22.0
       version: 0.22.0
+    '@effected/engine':
+      specifier: ^0.10.0
+      version: 0.10.0
     '@effected/github':
       specifier: ^0.26.0
       version: 0.26.0
@@ -491,6 +494,9 @@ importers:
 
   packages/model:
     dependencies:
+      '@effected/engine':
+        specifier: catalog:effected
+        version: 0.10.0(effect@4.0.7)
       '@effected/yaml':
         specifier: catalog:effected
         version: 0.26.0(effect@4.0.7)
@@ -676,6 +682,9 @@ importers:
 
   packages/snapshot:
     dependencies:
+      '@effected/engine':
+        specifier: catalog:effected
+        version: 0.10.0(effect@4.0.7)
       '@effected/jsonc':
         specifier: catalog:effected
         version: 0.21.0(effect@4.0.7)
@@ -698,6 +707,13 @@ importers:
     publishDirectory: dist/dev/pkg
 
   packages/vfs:
+    dependencies:
+      '@effected/engine':
+        specifier: catalog:effected
+        version: 0.10.0(effect@4.0.7)
+      '@effected/jsonc':
+        specifier: catalog:effected
+        version: 0.21.0(effect@4.0.7)
     devDependencies:
       '@effect/vitest':
         specifier: catalog:effect
@@ -705,9 +721,6 @@ importers:
       '@effected/glob':
         specifier: catalog:effected
         version: 0.16.0(effect@4.0.7)
-      '@effected/jsonc':
-        specifier: catalog:effected
-        version: 0.21.0(effect@4.0.7)
       '@effected/memfs':
         specifier: catalog:effected
         version: 0.21.0(effect@4.0.7)
@@ -742,6 +755,9 @@ importers:
       '@effect/platform-node':
         specifier: catalog:effect
         version: 4.0.7(effect@4.0.7)(redis@6.3.0)
+      '@effected/engine':
+        specifier: catalog:effected
+        version: 0.10.0(effect@4.0.7)
       '@effected/github':
         specifier: catalog:effected
         version: 0.26.0(effect@4.0.7)
@@ -912,6 +928,9 @@ importers:
       '@effect/platform-node':
         specifier: catalog:effect
         version: 4.0.7(effect@4.0.7)(redis@6.3.0)
+      '@effected/engine':
+        specifier: catalog:effected
+        version: 0.10.0(effect@4.0.7)
       '@effected/github':
         specifier: catalog:effected
         version: 0.26.0(effect@4.0.7)
@@ -1537,6 +1556,12 @@ packages:
 
   '@effected/crypto@0.3.0':
     resolution: {integrity: sha512-k5Z7rZ568r8Cscfp90Zp6/jOcl4AE4l9BFy/zBIWaXBC/JyV+6ZcnN+vGoteZ9m2WusLtWIhF1eRwm7AGEgoxQ==}
+    engines: {node: '>=24.11.0'}
+    peerDependencies:
+      effect: 4.0.7
+
+  '@effected/engine@0.10.0':
+    resolution: {integrity: sha512-sriRrGOOYcks23WKlHlEQhuBk0U3n3aZbHimp2UgZE6g8BOeG0YqeBlnbLrCJTH879ahWJauoElYaIVb+Xg7YQ==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       effect: 4.0.7
@@ -5844,6 +5869,10 @@ snapshots:
       '@effected/yaml': 0.26.0(effect@4.0.7)
 
   '@effected/crypto@0.3.0(effect@4.0.7)':
+    dependencies:
+      effect: 4.0.7
+
+  '@effected/engine@0.10.0(effect@4.0.7)':
     dependencies:
       effect: 4.0.7
 

@@ -1,4 +1,5 @@
 import { NodeHttpClient } from "@effect/platform-node";
+import { ErrorText } from "@effected/engine";
 import { Cache } from "@effected/store";
 import { AppDirs } from "@effected/xdg";
 import { PackageFetcher, PackageSpec, RegistryObserver, TypeCache, TypeRegistry } from "@tsdoctor/registry";
@@ -174,7 +175,7 @@ const RegistryObserverLayer = Layer.succeed(RegistryObserver, {
 						ctx: { packageName: event.package, version: event.version },
 						level: "warn",
 						kind: "PackageLoadFailed",
-						detail: `[${event.kind}] ${event.error instanceof Error ? event.error.message : String(event.error)}`,
+						detail: `[${event.kind}] ${ErrorText.describe(event.error)}`,
 					}),
 				);
 			case "BatchStart":
@@ -260,7 +261,7 @@ const RegistryBackedLive = Layer.effect(
 									new PluginTypeRegistryError({
 										packageName: packages.map((p) => p.name).join(", "),
 										version: packages.map((p) => p.version).join(", "),
-										reason: error instanceof Error ? (error.message ?? String(error)) : String(error),
+										reason: ErrorText.describe(error),
 									}),
 								),
 							),

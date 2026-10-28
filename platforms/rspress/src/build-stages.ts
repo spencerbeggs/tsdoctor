@@ -1,4 +1,5 @@
 import path from "node:path";
+import { ErrorText } from "@effected/engine";
 import type { ApiPackage } from "@microsoft/api-extractor-model";
 import type { PublishedOpenGraphImage } from "@tsdoctor/bundle";
 import type { CrossLinker } from "@tsdoctor/model";
@@ -243,7 +244,7 @@ export function generateSinglePage(
 					PluginEvent.PrettierError({
 						ctx: { buildId, packageName, apiScope },
 						file: "unknown",
-						reason: cause instanceof Error ? cause.message : String(cause),
+						reason: ErrorText.describe(cause),
 						level: "warn",
 					}),
 				);

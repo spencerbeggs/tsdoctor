@@ -10,6 +10,7 @@
  * @packageDocumentation
  */
 
+import { ErrorText } from "@effected/engine";
 import { resolveTypeScriptConfig, twoslashEnvHash } from "@tsdoctor/vfs";
 import { Effect } from "effect";
 import ts from "typescript";
@@ -45,7 +46,7 @@ export const resolveTsConfigTyped = (
 		catch: (cause) =>
 			new ConfigValidationError({
 				field: "tsconfig",
-				reason: cause instanceof Error ? cause.message : String(cause),
+				reason: ErrorText.describe(cause),
 				cause,
 			}),
 	});

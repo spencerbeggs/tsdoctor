@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ErrorText } from "@effected/engine";
 import type { RspressPlugin, UserConfig } from "@rspress/core";
 import { normalizeBaseRoute, unscopedName } from "@tsdoctor/pages";
 import { Effect, FileSystem, ManagedRuntime, Option, Ref, Schema } from "effect";
@@ -388,7 +389,7 @@ function ApiExtractorPluginImpl(rawOptions: PluginOptions): RspressPlugin {
 						}).pipe(Effect.scoped),
 					);
 				} catch (error) {
-					const message = error instanceof Error ? error.message : String(error);
+					const message = ErrorText.describe(error);
 					emitSync(PluginEvent.BuildFailed({ ctx: { buildId }, level: "error", phase: "generate", error: message }));
 					if (traceSink) traceSink.flush();
 

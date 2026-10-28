@@ -33,6 +33,7 @@
 	},
 	"dependencies": {
 		"@effect/platform-node": "catalog:effect",
+		"@effected/engine": "catalog:effected",
 		"@effected/github": "catalog:effected",
 		"@effected/glob": "catalog:effected",
 		"@effected/images": "catalog:effected",

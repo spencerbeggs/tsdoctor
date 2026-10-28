@@ -14,6 +14,7 @@
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { ErrorText } from "@effected/engine";
 
 import type { ApiPackage } from "@microsoft/api-extractor-model";
 import { ApiModel as MsApiModel } from "@microsoft/api-extractor-model";
@@ -76,7 +77,7 @@ export const load = (modelPath: string): Effect.Effect<ApiPackage, ModelNotFound
 			catch: (cause) =>
 				new ModelParseError({
 					modelPath: resolved,
-					reason: cause instanceof Error ? cause.message : String(cause),
+					reason: ErrorText.describe(cause),
 				}),
 		});
 	});

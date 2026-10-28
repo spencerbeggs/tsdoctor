@@ -31,6 +31,10 @@
 		"prepare": "node savvy.build.ts --target dev",
 		"types:check": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@effected/engine": "catalog:effected",
+		"@effected/jsonc": "catalog:effected"
+	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
 		"@effected/glob": "catalog:effected",

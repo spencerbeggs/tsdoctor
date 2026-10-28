@@ -1,5 +1,6 @@
 import type { PathLike } from "node:fs";
 import path from "node:path";
+import { ErrorText } from "@effected/engine";
 import { PackageManifest } from "@effected/package-json";
 import type { ApiEntryPoint, ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
 import type { PlatformOverrides, PublishedOpenGraphImage, ResolvedBundle } from "@tsdoctor/bundle";
@@ -474,7 +475,7 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 											catch: (cause) =>
 												new ConfigValidationError({
 													field: "packageJson",
-													reason: cause instanceof Error ? cause.message : String(cause),
+													reason: ErrorText.describe(cause),
 													cause,
 												}),
 										})
@@ -489,7 +490,7 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 									catch: (cause) =>
 										new ConfigValidationError({
 											field: "externalPackages",
-											reason: cause instanceof Error ? cause.message : String(cause),
+											reason: ErrorText.describe(cause),
 											cause,
 										}),
 								});
@@ -643,7 +644,7 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 																	catch: (cause) =>
 																		new ConfigValidationError({
 																			field: "packageJson",
-																			reason: cause instanceof Error ? cause.message : String(cause),
+																			reason: ErrorText.describe(cause),
 																			cause,
 																		}),
 																})
@@ -658,7 +659,7 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 														catch: (cause) =>
 															new ConfigValidationError({
 																field: "externalPackages",
-																reason: cause instanceof Error ? cause.message : String(cause),
+																reason: ErrorText.describe(cause),
 																cause,
 															}),
 													});

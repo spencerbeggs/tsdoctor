@@ -1,4 +1,5 @@
 import type { PathLike } from "node:fs";
+import { ErrorText } from "@effected/engine";
 import { TsConfigParseError, parseTsConfig } from "./TsconfigParser.js";
 import type { TypeResolutionCompilerOptions } from "./TypeResolutionOptions.js";
 import { decodeCompilerOptions } from "./TypeResolutionOptions.js";
@@ -191,7 +192,7 @@ export function resolveTypeScriptConfigSingle(
 				// Re-throw with clear context
 				throw error;
 			}
-			throw new TsConfigParseError(tsconfigPath, error instanceof Error ? error.message : String(error), error);
+			throw new TsConfigParseError(tsconfigPath, ErrorText.describe(error), error);
 		}
 	}
 
@@ -258,7 +259,7 @@ export async function resolveTypeScriptConfigSingleAsync(
 				if (error instanceof TsConfigParseError) {
 					throw error;
 				}
-				throw new TsConfigParseError(tsconfigPath, error instanceof Error ? error.message : String(error), error);
+				throw new TsConfigParseError(tsconfigPath, ErrorText.describe(error), error);
 			}
 		}
 	}
