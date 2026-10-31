@@ -24,11 +24,13 @@ sources:
     resource: ../../platforms/vitepress/package.json
 generated:
   by: okfit/claude-code
-  at: 2026-09-24T20:28:47Z
-  body_sha256: c6596f170f0da3e9fc8b8f6ca60c8c8ba1cebfe4956b25ac6da04efdf0b205b6
+  at: 2026-10-31T20:58:34Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+integrity:
+  generated:
+    body: cacbf1fd09011dd6
 ---
 
 # Core `@effected` peers follow the public `.d.ts` surface
@@ -71,8 +73,8 @@ The repository owner approved this policy on 2026-09-24.[^owner]
    application's install is complete without relying on
    `autoInstallPeers`.[^rspress-pkg] [^vitepress-pkg] See the
    [adapter dependency-closure convention](../conventions/rspress-dependency-closure.md).
-4. **`@effected/*` peers are spelled `catalog:effected:peers`**, and
-   `@effected/*` dependencies are spelled `catalog:effected`.
+4. **Every `@effected/*` edge is spelled `catalog:effected`**, peer and
+   dependency alike: the catalog plugin serves one catalog.
 
 The resulting split, public-surface peers first, then the packages that
 became internal-only dependencies:
@@ -83,13 +85,13 @@ became internal-only dependencies:
 | `@tsdoctor/snapshot` | `store` | `jsonc` |
 | `@tsdoctor/seo` | `package-json`, `schema-org` | `spdx` |
 | `@tsdoctor/model` | `markdown`, plus `tsconfig-json` propagated from vfs | `yaml` |
-| `@tsdoctor/registry` | `store`, `xdg`, plus `tsconfig-json` propagated from vfs | `semver` |
+| `@tsdoctor/registry` | `store`, `xdg`, plus `tsconfig-json` propagated from vfs | `semver`, `package-json` |
 | `@tsdoctor/bundle` | `github`, `jsonc`, `npm`, `package-json`, `store`, `tsconfig-json`, `xdg` | `glob`, `walker` |
 | `@tsdoctor/pages` | `markdown`, plus `package-json`, `schema-org`, `tsconfig-json` propagated | none |
 | `@tsdoctor/manifest` | none (`effect` only) | none |
 
 `@tsdoctor/bundle`'s own manifest shows the split in one file:[^bundle-pkg]
-seven `catalog:effected:peers` entries, plus `glob` and `walker` under
+seven `catalog:effected` peer entries, plus `glob` and `walker` under
 `dependencies`. `@tsdoctor/vfs` keeps
 `@effected/tsconfig-json` as a required peer, not an optional one,
 because `CompilerOptions` is part of its exported types.[^vfs-pkg]

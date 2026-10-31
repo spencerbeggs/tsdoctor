@@ -72,7 +72,7 @@ await Effect.runPromise(program.pipe(Effect.provide(RegistryLayer)));
 - `TypeRegistry` — the facade over cache, fetcher and resolver: `getVfs`, `getPackageVfs`, `fetchAndCache`, `resolveVersion`, `resolveImport`, `getTypeEntries`, `hasCached`, `clearCache`, `pruneCache`.
 - `TypeCache` — a two-plane cache: declaration files on disk, per-package metadata in an `@effected/store` `Cache` with native TTL expiry and pruning.
 - `PackageFetcher` — the jsDelivr-backed CDN client, requiring only an `HttpClient`.
-- `TypeResolver` — static resolution of import specifiers and type entry points against a package manifest, covering `exports`, `typesVersions` and legacy fields.
+- `TypeResolver` — static resolution of import specifiers and type entry points against a package manifest, covering `exports`, `typesVersions` and legacy fields as TypeScript reads them (via `@effected/package-json`'s `PackageExports`).
 - `RegistryEvent` and `RegistryObserver` — an opt-in, zero-cost progress channel; the library logs nothing on its own.
 - Typed errors throughout: `FetchError`, `PackageNotFoundError`, `VersionNotFoundError`, `TypeCacheError`, `BatchLoadError`.
 

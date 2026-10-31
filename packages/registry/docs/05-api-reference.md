@@ -108,9 +108,11 @@ Pure static resolution over a manifest. No service, no layer, no error channel.
 | `resolveTypeEntries` | `(manifest, pkg) => ReadonlyArray<ResolvedModule>` |
 | `findTypeDefinition` | `(jsFilePath, pkg) => Option<ResolvedModule>` |
 
-`resolveImport` consults the `exports` map first (the `types` condition, then `import`/`default`, then fallback arrays in order), then `typesVersions["*"]`, then — for the root specifier only — the top-level `types` and `typings` fields. It returns `Option.none()` when the manifest offers no evidence, leaving fallback policy to you rather than guessing a path.
+Resolution is TypeScript's reading of the manifest, delegated to `@effected/package-json`'s `PackageExports`. `resolveImport` resolves through `exports` when it is present, walking conditions (`types`, `import`, `default`) in the manifest's own key order, as TypeScript does. When `exports` is absent it reads `typesVersions["*"]`, then, for the root specifier only, `types`/`typings` and `main`. Every target goes through TypeScript's extension substitution, so a JS target such as `./dist/index.mjs` resolves to `dist/index.d.mts`. It returns `Option.none()` when the manifest offers no evidence, leaving fallback policy to you rather than guessing a path.
 
-`resolveMainEntry` is total, falling back through `types`/`typings`, the root export's types condition, a declaration-extension swap of `main`, and finally the `index.d.ts` convention.
+`resolveMainEntry` resolves the root the same way and is total, falling back to the `index.d.ts` convention.
+
+`resolveTypeEntries` returns the main entry plus every non-pattern `exports` subpath whose resolved path is a declaration file. An `exports` map holding an invalid target yields only the main entry.
 
 `findTypeDefinition` maps a JavaScript path to its conventional declaration path: `.js` to `.d.ts`, `.mjs` to `.d.mts`, `.cjs` to `.d.cts`.
 

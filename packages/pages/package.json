@@ -47,15 +47,15 @@
 		"@effected/walker": "catalog:effected",
 		"@savvy-web/bundler": "^2.7.1",
 		"@types/node": "catalog:build",
-		"effect": "catalog:effect",
+		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/markdown": "catalog:effected:peers",
-		"@effected/package-json": "catalog:effected:peers",
-		"@effected/schema-org": "catalog:effected:peers",
-		"@effected/tsconfig-json": "catalog:effected:peers",
-		"effect": "catalog:effect"
+		"@effected/markdown": "catalog:effected",
+		"@effected/package-json": "catalog:effected",
+		"@effected/schema-org": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected",
+		"effect": "catalog:effected"
 	},
 	"engines": {
 		"node": ">=24.11.0"

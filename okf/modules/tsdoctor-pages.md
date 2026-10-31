@@ -7,12 +7,14 @@ resource: ../../packages/pages
 layer: L2
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-24T20:28:47Z
-  body_sha256: 9b34bd231a804752c4c69f64dda8703fcfe81260b024029b764bb4356dd666db
+  at: 2026-10-31T20:38:59Z
 tags:
   - architecture
   - dx
 status: stable
+integrity:
+  generated:
+    body: 4518b783a81312cf
 ---
 
 # @tsdoctor/pages
@@ -42,13 +44,13 @@ it needed to have, rather than designed up front for a hypothetical one — see
 - `@microsoft/api-extractor-model` (dependency) — the `ApiItem` vocabulary
   the builders consume
 - `prettier` (dependency) — example formatting
-- `effect` (peer, `catalog:effect`)
+- `effect` (peer, `catalog:effected`)
 - `@effected/package-json`, `@effected/schema-org`, `@effected/tsconfig-json`
-  (peers, `catalog:effected:peers`): propagated from the public surfaces of
+  (peers, `catalog:effected`): propagated from the public surfaces of
   `@tsdoctor/seo` and `@tsdoctor/model`, and each also a devDependency so the
   workspace satisfies it. See
   [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
-- `@effected/markdown` (peer, `catalog:effected:peers`) — the mdast and MDX
+- `@effected/markdown` (peer, `catalog:effected`) — the mdast and MDX
   vocabulary the IR's prose and the plain-markdown emitter serialize through
 
 ## Public surface

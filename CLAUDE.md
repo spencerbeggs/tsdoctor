@@ -153,8 +153,8 @@ manifest.
 
 ## Effect-TS Architecture
 
-Everything runs on **Effect v4** (`effect@4.0.7`, pinned through the
-`catalog:effect` catalog). Key patterns in the RSPress adapter:
+Everything runs on **Effect v4** (`effect@4.1.1`, pinned through the
+`catalog:effected` catalog). Key patterns in the RSPress adapter:
 
 - **Services** declared as `Context.Service<Self, Shape>()("id")`, each
   owning its layer as a static (inventory in
@@ -169,16 +169,19 @@ Everything runs on **Effect v4** (`effect@4.0.7`, pinned through the
 
 ### @effected Distribution and Dogfooding
 
-`@effected/*` packages are distributed through the `@effected/pnpm-plugin-effect`
+`@effected/*` packages are distributed through the `@effected/pnpm-plugin-effected`
 config dependency in `pnpm-workspace.yaml` (`configDependencies:`), which
-supplies the pnpm catalogs: `catalog:effect` / `catalog:effect:peers` for
-Effect-org packages and `catalog:effected` / `catalog:effected:peers` for
-`@effected/*`.
+supplies one pnpm catalog, `catalog:effected`, holding both the Effect
+family (held to one Effect minor, `~4.1.1`) and the `@effected/*` kit.
 
-- Declare every `@effected/*` dependency in this repo as `"catalog:effected"`
-  (`"catalog:effected:peers"` under `peerDependencies`). Never hand-pin an
-  `@effected` version range.
-- Upstream effected CI/CD bumps `@effected/pnpm-plugin-effect`; a plugin
+- Declare every `effect`, `@effect/*` and `@effected/*` dependency in this
+  repo as `"catalog:effected"` — in `dependencies`, `devDependencies` and
+  `peerDependencies` alike. Never hand-pin an `@effected` version range.
+- A temporary root `.pnpmfile.cjs` bridges the build toolchain
+  (`@savvy-web/*`, okfit, vitest-agent, pluginfinity) onto `effect@4.0.7`
+  until those tools republish on an Effect 4.1 `@effected` release; remove it
+  then.
+- Upstream effected CI/CD bumps `@effected/pnpm-plugin-effected`; a plugin
   release carries the whole `@effected` dependency/peer graph — never manage
   that graph by hand.
 - To dogfood unreleased `@effected` work: add `overrides:` in
@@ -312,7 +315,7 @@ Upstream framework source is vendored under `.repos/` as sparse, shallow git sub
 | `.repos/twoslash` | v0.3.9 | Twoslash engine + notation semantics |
 | `.repos/shiki` | v4.4.3 | `@shikijs/twoslash` transformer, `@shikijs/vitepress-twoslash` + Shiki core |
 | `.repos/rsbuild` | v2.1.5 | `@rsbuild/core` (bundler under RSPress) + official docs |
-| `.repos/effect` | effect@4.0.7 | Effect v4 core source + the `migration/` v3-to-v4 notes |
+| `.repos/effect` | effect@4.1.1 | Effect v4 core source + the `migration/` v3-to-v4 notes |
 | `.repos/vitepress` | v2.0.0-alpha.19 | VitePress 2.x source (`src/node` hooks + `codeTransformers`) + `docs/en` |
 
 ## Commands

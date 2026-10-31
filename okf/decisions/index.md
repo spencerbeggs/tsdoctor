@@ -12,7 +12,7 @@
 * [Core packages, thin adapters](core-adapter-boundary.md) - Frame-neutral logic lives in packages/; each platforms/\* adapter is thin and owns only what a static-site framework forces it to own.
 * [Deprecate the model's Render module in favour of @tsdoctor/pages](deprecate-model-render.md) - Mark Render.tree / Render.item / Render.docs @deprecated in packages/model, pointing consumers at renderMarkdown in @tsdoctor/pages, with deletion planned a minor after the deprecation ships.
 * [Doc generation runs inside RSPress's config() hook](generate-docs-in-config-hook.md) - The RSPress adapter runs the whole doc generation program from config() rather than beforeBuild, because RSPress scans routes before beforeBuild runs.
-* [Effect v4 only](effect-v4-only.md) - The whole monorepo runs on Effect v4 exclusively, pinned through the catalog:effect pnpm catalog, with no v3-shaped code anywhere.
+* [Effect v4 only](effect-v4-only.md) - The whole monorepo runs on Effect v4 exclusively, pinned through the catalog:effected pnpm catalog, with no v3-shaped code anywhere.
 * [Emit the runtime bundleless, per file](bundleless-per-file-runtime.md) - The React runtime is transpiled 1:1 per component rather than bundled, so import.meta.env.SSG\_MD resolves per site.
 * [Extract the page IR only once two adapters exist](page-ir-from-two-consumers.md) - @tsdoctor/pages was lifted from the RSPress generators with the VitePress adapter as its second live consumer, validated by a byte-identity gate rather than designed up front.
 * [Head tags are built in the generate stage](head-tags-built-in-generate-stage.md) - Head tags are assembled before the frontmatter hash is taken, not in the later write stage, so a head-tag change is visible to change detection.

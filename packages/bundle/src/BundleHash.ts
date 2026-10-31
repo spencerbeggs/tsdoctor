@@ -1,7 +1,7 @@
 import type { JsoncCanonicalizeError } from "@effected/jsonc";
 import { JsoncFingerprint } from "@effected/jsonc";
-import type { Crypto, PlatformError } from "effect";
 import { Effect } from "effect";
+import type { Digest } from "effect/crypto";
 import type { ResolvedBundle } from "./BundleResolver.js";
 
 /**
@@ -25,14 +25,15 @@ export function normalizeText(text: string): string {
  * Hash text content: {@link normalizeText} then SHA-256 (lowercase hex).
  *
  * @remarks
- * Digesting runs through core's `Crypto` service (`JsoncFingerprint`), so
+ * Digesting runs through core's `Digest` service (`JsoncFingerprint`), so
  * consumers provide a backend — `@effect/platform-node`'s
- * `NodeCrypto.layer` — at the edge, the same posture as this package's
- * `FileSystem | Path` requirements.
+ * `NodeCrypto.layerDigest` or core's `Digest.layerWebCrypto` — at the
+ * edge, the same posture as this package's `FileSystem | Path`
+ * requirements.
  *
  * @public
  */
-export function hashText(text: string): Effect.Effect<string, PlatformError.PlatformError, Crypto.Crypto> {
+export function hashText(text: string): Effect.Effect<string, never, Digest.Digest> {
 	return JsoncFingerprint.hashText(normalizeText(text));
 }
 
@@ -48,9 +49,7 @@ export function hashText(text: string): Effect.Effect<string, PlatformError.Plat
  *
  * @public
  */
-export function hashJsonValue(
-	value: unknown,
-): Effect.Effect<string, JsoncCanonicalizeError | PlatformError.PlatformError, Crypto.Crypto> {
+export function hashJsonValue(value: unknown): Effect.Effect<string, JsoncCanonicalizeError, Digest.Digest> {
 	return JsoncFingerprint.hash(value);
 }
 
@@ -69,7 +68,7 @@ export function hashJsonValue(
  *
  * @public
  */
-export function hashLayerText(text: string): Effect.Effect<string, PlatformError.PlatformError, Crypto.Crypto> {
+export function hashLayerText(text: string): Effect.Effect<string, never, Digest.Digest> {
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(text);
@@ -99,7 +98,7 @@ export function hashLayerText(text: string): Effect.Effect<string, PlatformError
  */
 export function fingerprintResolvedBundle(
 	resolved: ResolvedBundle,
-): Effect.Effect<Readonly<Record<string, string>>, PlatformError.PlatformError, Crypto.Crypto> {
+): Effect.Effect<Readonly<Record<string, string>>, never, Digest.Digest> {
 	const fields: Readonly<Record<string, unknown>> = { ...resolved };
 	const present = Object.keys(fields)
 		.sort()

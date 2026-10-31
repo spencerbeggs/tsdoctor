@@ -7,12 +7,14 @@ resource: ../../platforms/vitepress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-24T20:28:47Z
-  body_sha256: 7b9fac70761a5db51e2b4e6342e906c8c88f8dba36a35df828beded3c2564528
+  at: 2026-10-31T20:38:59Z
 tags:
   - architecture
   - dx
 status: stable
+integrity:
+  generated:
+    body: d041ca14c5d5e9d3
 ---
 
 # vitepress-plugin-api-extractor
@@ -35,7 +37,7 @@ workspaces, even though the folder is `platforms/vitepress/` — `pnpm
 - `@tsdoctor/bundle`, `@tsdoctor/manifest`, `@tsdoctor/model`,
   `@tsdoctor/pages`, `@tsdoctor/registry`, `@tsdoctor/seo`, `@tsdoctor/vfs`
   (dependencies, `workspace:*`)
-- `@effect/platform-node` (dependency, `catalog:effect`)
+- `@effect/platform-node` (dependency, `catalog:effected`)
 - The full `@effected` closure of the core packages it consumes:
   `github`, `glob`, `jsonc`, `markdown`, `npm`, `package-json`,
   `schema-org`, `semver`, `spdx`, `store`, `tsconfig-json`, `walker`,
@@ -46,7 +48,7 @@ workspaces, even though the folder is `platforms/vitepress/` — `pnpm
   which covers every `platforms/*` adapter, and
   [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md))
 - `@shikijs/twoslash`, `@shikijs/vitepress-twoslash` (dependencies)
-- `effect` (dependency, `catalog:effect`)
+- `effect` (dependency, `catalog:effected`)
 - `vitepress` (peer, `^2.0.0-alpha.19`)
 
 No `@tsdoctor/snapshot` dependency — this adapter does not track snapshots;

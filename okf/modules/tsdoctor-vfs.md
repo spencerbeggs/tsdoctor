@@ -13,10 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-10-28T21:54:56Z
+  at: 2026-10-31T20:38:59Z
 integrity:
   generated:
-    body: 97bd1a7006c2bd8b
+    body: dec44036175800eb
 ---
 
 # @tsdoctor/vfs
@@ -35,7 +35,7 @@ It depends on `effect` alone plus three optional peers reached only through
 lazy `import()` or type-only imports: `typescript`, `@typescript/vfs` (both
 lazy-imported in `TsEnvironment.ts`) and `@shikijs/twoslash` (a type-only
 import for `TwoslashTypesCache` in `TwoslashCache.ts`). `@effected/tsconfig-json`
-is a required peer (`catalog:effected:peers`), not an optional one: its
+is a required peer (`catalog:effected`), not an optional one: its
 `CompilerOptions` types appear in this package's public `.d.ts` surface, and
 `TypeResolutionOptions.ts` value-imports it and evaluates
 `CompilerOptions.schema.fields` at module load. Because it is a

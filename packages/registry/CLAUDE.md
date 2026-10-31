@@ -29,11 +29,15 @@ external package types into a `Vfs`. Do not re-add a VFS primitive here —
   which owns its layer as a static; there is no `*ServiceLive.ts`).
 - Emits no logs; the `RegistryObserver` tag is the only diagnostic surface.
 - **Peer closure is deliberate**: required peers `effect`,
-  `@effect/platform-node`, `@effected/semver`, `@effected/store`; one optional
-  peer, `@effected/xdg`. `typescript`, `@typescript/vfs` and
+  `@effect/platform-node`, `@effected/store`; one optional peer,
+  `@effected/xdg`. `@effected/semver` and `@effected/package-json` are
+  internal dependencies.
+- `TypeResolver` delegates manifest resolution to `@effected/package-json`'s
+  `PackageExports` (TypeScript's reading); do not reintroduce a local
+  exports/typesVersions walker. `typescript`, `@typescript/vfs` and
   `@effected/tsconfig-json` left with `TsEnvironment` — do not add them back.
   Anything that peers on `effect` must remain a peer — a nested `effect` copy
-  strands artifacts at import. `@tsdoctor/vfs` is the one plain dependency.
+  strands artifacts at import.
 - Builds with `defineBuild()` (`savvy.build.ts`, `@savvy-web/bundler`);
   tsconfig extends `@savvy-web/bundler/tsconfig/ecma.json`. Source
   `package.json` stays `"private": true`; `publishConfig` drives publishing.

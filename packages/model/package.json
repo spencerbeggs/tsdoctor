@@ -48,13 +48,13 @@
 		"@savvy-web/bundler": "^2.7.1",
 		"@tsdoctor/snapshot": "workspace:*",
 		"@types/node": "catalog:build",
-		"effect": "catalog:effect",
+		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/markdown": "catalog:effected:peers",
-		"@effected/tsconfig-json": "catalog:effected:peers",
-		"effect": "catalog:effect"
+		"@effected/markdown": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected",
+		"effect": "catalog:effected"
 	},
 	"engines": {
 		"node": ">=24.11.0"

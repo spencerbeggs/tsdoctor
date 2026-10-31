@@ -44,7 +44,7 @@ const program = Effect.gen(function* () {
 });
 
 program.pipe(
-  Effect.provide(Layer.mergeAll(NodeFileSystem.layer, Path.layer, NodeCrypto.layer)),
+  Effect.provide(Layer.mergeAll(NodeFileSystem.layer, Path.layer, NodeCrypto.layerDigest)),
   Effect.runPromise,
 );
 ```
@@ -61,7 +61,7 @@ Every resolved field carries `{ value, source }`, so "did the user override this
 - `resolveBundle` / `resolveBundleFrom` — the pure six-tier resolver producing a `ResolvedBundle` of `Provenanced` fields, with the documented inference rules (Open Graph alt-text chain, MIME from extension).
 - `hashLayerText`, `hashJsonValue`, `fingerprintResolvedBundle` — RFC 8785 (JCS) canonicalization plus SHA-256 (via `@effected/jsonc`'s `JsoncFingerprint`) for coarse (per-layer) and fine (per-field) change detection. Canonicalization is strict: an `undefined`-valued member or non-plain object fails typed rather than being silently dropped.
 
-All filesystem-touching functions keep `FileSystem` and `Path` in the Effect `R` channel, and the hashing functions keep `Crypto` there too; provide platform layers (for example `@effect/platform-node`'s `NodeFileSystem.layer`, `Path.layer` and `NodeCrypto.layer`) once at the application boundary.
+All filesystem-touching functions keep `FileSystem` and `Path` in the Effect `R` channel, and the hashing functions keep core's `Digest` there too; provide platform layers (for example `@effect/platform-node`'s `NodeFileSystem.layer`, `Path.layer` and `NodeCrypto.layerDigest`) once at the application boundary.
 
 ## License
 

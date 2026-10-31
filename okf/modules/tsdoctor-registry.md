@@ -13,8 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-24T20:28:47Z
-  body_sha256: f3ba10ca55d4278aaa378e23920b06421bb6ffb8dbafd62bc621926074d24d37
+  at: 2026-10-31T20:44:07Z
+integrity:
+  generated:
+    body: 96c99458280846dc
 ---
 
 # @tsdoctor/registry
@@ -54,9 +56,10 @@ alongside.
 
 Required peers: `effect`, `@effect/platform-node`, `@effected/store`, and
 `@effected/tsconfig-json`, which is propagated from `@tsdoctor/vfs`'s public
-surface. One optional peer: `@effected/xdg`. `@effected/semver` is used
-internally only, so it is an ordinary `dependency` (`catalog:effected`), not
-a peer. See
+surface. One optional peer: `@effected/xdg`. `@effected/semver` and
+`@effected/package-json` (whose `PackageExports` backs `TypeResolver`) are
+used internally only, so they are ordinary `dependencies`
+(`catalog:effected`), not peers. See
 [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
 `typescript` and `@typescript/vfs` stayed with `@tsdoctor/vfs`'s
 `TsEnvironment` when the split happened. Do not add them back here.

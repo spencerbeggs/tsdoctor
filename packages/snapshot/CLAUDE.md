@@ -47,8 +47,8 @@ Extracted from the plugin in phase 2 of the consolidation and rebuilt on
   digests are unchanged, and the characterization tests pinning literal digests
   are what proves it — including `@tsdoctor/model`'s frontmatter suite, which
   takes a test-only dependency on this package for exactly that reason.
-- Peers only: `effect` (`catalog:effect:peers`), `@effected/store` and
-  `@effected/jsonc` (both `catalog:effected:peers`) — never hand-pin
+- Peers only: `effect` (`catalog:effected`), `@effected/store` and
+  `@effected/jsonc` (both `catalog:effected`) — never hand-pin
   `@effected` ranges.
 - All queries and the transactional batch upsert run through `store.client`
   (the full `effect/sql` `SqlClient`). Layer errors carry Store's

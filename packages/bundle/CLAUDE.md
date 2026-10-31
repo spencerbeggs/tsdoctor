@@ -23,10 +23,10 @@ manifest shape and change-detection model.
   fails typed as `invalidPackageJson`),
   `BundleResolver.ts` (pure `resolveBundle`, `Provenanced<A>` fields),
   `BundleHash.ts` (rebuilt on `@effected/jsonc`'s `JsoncFingerprint` — RFC
-  8785/JCS canonicalization + SHA-256 through core's `Crypto` service;
+  8785/JCS canonicalization + SHA-256 through core's `Digest` service (`effect/crypto`);
   `hashText`/`hashJsonValue`/`hashLayerText`/`fingerprintResolvedBundle` are
-  Effects requiring `Crypto.Crypto`, provided at the edge via
-  `@effect/platform-node`'s `NodeCrypto.layer`, same posture as
+  Effects requiring `Digest.Digest` (no typed digest error), provided at the
+  edge via `@effect/platform-node`'s `NodeCrypto.layerDigest`, same posture as
   `FileSystem | Path`; canonicalization is strict — an `undefined` member or
   non-plain object fails typed as `JsoncCanonicalizeError`),
   `BundleFetch.ts` (`fetchNpmBundle` / `fetchGitHubReleaseBundle` over
@@ -56,7 +56,7 @@ manifest shape and change-detection model.
 - Builds via `@savvy-web/bundler` (`savvy.build.ts`); tsconfig extends
   `@savvy-web/bundler/tsconfig/ecma.json`; source `package.json` stays
   `"private": true` (`publishConfig` drives publishing). `@effected/*` deps
-  only via `catalog:effected` / `catalog:effected:peers`.
+  only via `catalog:effected`.
 - Tests: `@effect/vitest`, `@effected/memfs` for filesystem cases, plus a
   real fixture bundle at `__test__/fixtures/kitchensink/`.
 

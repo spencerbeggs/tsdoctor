@@ -13,8 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-24T20:28:47Z
-  body_sha256: ffc0b5a8a9f6d20fd9dc6c23cb9efcdeb78fdceb59e8c2fea2c981a9324e98c1
+  at: 2026-10-31T20:38:59Z
+integrity:
+  generated:
+    body: 7198462ade0ae327
 ---
 
 # @tsdoctor/model
@@ -46,7 +48,7 @@ which `ApiExtractedPackage` extends) and `@effected/yaml`
 public surface). Peers: `effect`, `@effected/markdown` (public surface) and
 `@effected/tsconfig-json`, which is propagated from `@tsdoctor/vfs` and
 carried as a devDependency to satisfy it locally. Both `@effected` peers use
-`catalog:effected:peers`. See
+`catalog:effected`. See
 [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
 `@tsdoctor/snapshot` is a **test-only** devDependency — the frontmatter
 characterization tests pin literal digests hashed through the real
