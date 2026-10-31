@@ -6,11 +6,11 @@ resource: ../../pnpm-workspace.yaml
 tags: [dx, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:38:59Z
+  at: 2026-10-31T20:58:34Z
 status: stable
 integrity:
   generated:
-    body: 33ff4a694c865e03
+    body: a85c64a08985debe
 ---
 
 # Dogfood an unreleased `@effected/*` capability
@@ -43,8 +43,8 @@ sibling `effected` checkout, never by reimplementing it locally.
    `pnpm-workspace.yaml` — this is enforced, not merely advisory; do not
    work around it.
 6. Once the kit cuts a real release carrying the capability, remove the
-   `overrides:` block, bump the affected `catalog:effected` /
-   `catalog:effected` entries to the released version and
+   `overrides:` block, move the `@effected/pnpm-plugin-effected` config dependency to the
+   release that carries the capability and
    `pnpm install` again, then run `/silk:dogfood --exit` to close the
    loop.
 

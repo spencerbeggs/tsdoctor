@@ -26,7 +26,7 @@ const reachesKit = (pkg) =>
 const builtOn41 = (pkg) =>
 	[pkg.dependencies, pkg.peerDependencies, pkg.optionalDependencies].some((deps) => {
 		const spec = deps?.effect;
-		return spec !== undefined && /^[~=]*4\.(?:[1-9]|\d{2,})\./.test(String(spec).trim());
+		return spec !== undefined && /^[\^~=]*4\.(?:[1-9]|\d{2,})\./.test(String(spec).trim());
 	});
 function readPackage(pkg) {
 	if (pkg.private === true || !pkg.name || builtOn41(pkg)) return pkg;
