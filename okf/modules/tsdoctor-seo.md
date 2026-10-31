@@ -7,12 +7,14 @@ resource: ../../packages/seo
 layer: L2
 generated:
   by: "okfit/claude-code"
-  at: 2026-09-24T20:28:47Z
-  body_sha256: c76d11f119a236c121dd039fb37cf501e04605e2d7ad797a470a072d88c58d8e
+  at: 2026-10-31T20:38:59Z
 tags:
   - architecture
   - dx
 status: stable
+integrity:
+  generated:
+    body: 1419e5f37bed346d
 ---
 
 # @tsdoctor/seo
@@ -36,10 +38,10 @@ rendering change rather than a second SEO implementation.
 
 ## Dependencies
 
-- `effect` (peer, `catalog:effect`)
-- `@effected/package-json` (peer, `catalog:effected:peers`) — `PackageManifest`
+- `effect` (peer, `catalog:effected`)
+- `@effected/package-json` (peer, `catalog:effected`) — `PackageManifest`
   and the SPDX-aware license helpers used by `attributionFacts`
-- `@effected/schema-org` (peer, `catalog:effected:peers`) — `JsonLdDocument` /
+- `@effected/schema-org` (peer, `catalog:effected`) — `JsonLdDocument` /
   `JsonLdNode` / `NodeRef`, the schema.org vocabulary and its `./validate`
   conformance checker
 - `@effected/spdx` (dependency, `catalog:effected`) — the SPDX license

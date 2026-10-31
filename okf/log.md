@@ -1,5 +1,21 @@
 # Log
 
+## 2026-10-31
+
+* Updated @effected is the foundation: check before hand-rolling
+* Updated @tsdoctor/bundle
+* Updated @tsdoctor/model
+* Updated @tsdoctor/pages
+* Updated @tsdoctor/seo
+* Updated @tsdoctor/snapshot
+* Updated @tsdoctor/vfs
+* Updated Core @effected peers follow the public .d.ts surface
+* Updated Dogfood an unreleased @effected/* capability
+* Updated Effect v4 only
+* Updated The tsdoctor monorepo workspace
+* Updated Vendored reference repos under .repos/
+* Updated vitepress-plugin-api-extractor
+
 ## 2026-10-28
 
 * Updated The tsdoctor monorepo workspace

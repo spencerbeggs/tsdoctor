@@ -24,11 +24,13 @@ sources:
     resource: ../../platforms/vitepress/package.json
 generated:
   by: okfit/claude-code
-  at: 2026-09-24T20:28:47Z
-  body_sha256: c6596f170f0da3e9fc8b8f6ca60c8c8ba1cebfe4956b25ac6da04efdf0b205b6
+  at: 2026-10-31T20:38:59Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+integrity:
+  generated:
+    body: d6cbf60a55074885
 ---
 
 # Core `@effected` peers follow the public `.d.ts` surface
@@ -43,7 +45,7 @@ depends on another core library, and every application, with `@effected`
 peers nothing in their own manifest satisfied, so completeness leaned on
 pnpm's `autoInstallPeers`. `pnpm peers check` reported them as missing. The
 peer spellings had also drifted between `catalog:effected` and
-`catalog:effected:peers`.
+`catalog:effected`.
 
 ## Decision
 
@@ -71,7 +73,7 @@ The repository owner approved this policy on 2026-09-24.[^owner]
    application's install is complete without relying on
    `autoInstallPeers`.[^rspress-pkg] [^vitepress-pkg] See the
    [adapter dependency-closure convention](../conventions/rspress-dependency-closure.md).
-4. **`@effected/*` peers are spelled `catalog:effected:peers`**, and
+4. **`@effected/*` peers are spelled `catalog:effected`**, and
    `@effected/*` dependencies are spelled `catalog:effected`.
 
 The resulting split, public-surface peers first, then the packages that
@@ -89,7 +91,7 @@ became internal-only dependencies:
 | `@tsdoctor/manifest` | none (`effect` only) | none |
 
 `@tsdoctor/bundle`'s own manifest shows the split in one file:[^bundle-pkg]
-seven `catalog:effected:peers` entries, plus `glob` and `walker` under
+seven `catalog:effected` entries, plus `glob` and `walker` under
 `dependencies`. `@tsdoctor/vfs` keeps
 `@effected/tsconfig-json` as a required peer, not an optional one,
 because `CompilerOptions` is part of its exported types.[^vfs-pkg]

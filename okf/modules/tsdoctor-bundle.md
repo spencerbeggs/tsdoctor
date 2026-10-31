@@ -13,8 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-10-09T17:59:46Z
-  body_sha256: f1070c1d46b9137de9032422f1dfb98d7efcf496268190ff7ee8eb6cc813e6be
+  at: 2026-10-31T20:38:59Z
+integrity:
+  generated:
+    body: 886d3c22fc2cc18f
 ---
 
 # @tsdoctor/bundle
@@ -46,7 +48,7 @@ images through `publishBundleAssets`.
 Peers: `effect`, `@tsdoctor/manifest`, and the seven
 `@effected` packages whose types appear in this package's public `.d.ts`
 surface: `github`, `jsonc`, `npm`, `package-json`, `store`,
-`tsconfig-json` and `xdg`, each `catalog:effected:peers`. `@effected/glob`,
+`tsconfig-json` and `xdg`, each `catalog:effected`. `@effected/glob`,
 `@effected/walker` and `@effected/images` (image dimensions for published
 Open Graph assets) are used internally only, so they are ordinary
 `dependencies` (`catalog:effected`). See
@@ -79,9 +81,10 @@ This package's own modules, flat, module-per-concept:[^src]
 - `BundleHash.ts` — `hashText`, `hashJsonValue`, `hashLayerText`,
   `fingerprintResolvedBundle`, `normalizeText`. Rebuilt on
   `@effected/jsonc`'s `JsoncFingerprint` (RFC 8785 / JCS canonicalization
-  plus SHA-256 through core's `Crypto` service); these are Effects
-  requiring `Crypto.Crypto`, provided at the edge (typically
-  `@effect/platform-node`'s `NodeCrypto.layer`), the same posture as
+  plus SHA-256 through core's `Digest` service from `effect/crypto`);
+  these are Effects requiring `Digest.Digest` that cannot fail typed on
+  the digest, provided at the edge (typically `@effect/platform-node`'s
+  `NodeCrypto.layerDigest`, or core's `Digest.layerWebCrypto`), the same posture as
   `FileSystem | Path`. Canonicalization is strict: an `undefined` member
   or a non-plain object fails typed as `JsoncCanonicalizeError` rather
   than being silently dropped or coerced.

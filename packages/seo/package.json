@@ -39,13 +39,13 @@
 		"@effected/schema-org": "catalog:effected",
 		"@savvy-web/bundler": "^2.7.1",
 		"@types/node": "catalog:build",
-		"effect": "catalog:effect",
+		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/package-json": "catalog:effected:peers",
-		"@effected/schema-org": "catalog:effected:peers",
-		"effect": "catalog:effect"
+		"@effected/package-json": "catalog:effected",
+		"@effected/schema-org": "catalog:effected",
+		"effect": "catalog:effected"
 	},
 	"engines": {
 		"node": ">=24.11.0"

@@ -36,7 +36,7 @@
 		"@effected/jsonc": "catalog:effected"
 	},
 	"devDependencies": {
-		"@effect/vitest": "catalog:effect",
+		"@effect/vitest": "catalog:effected",
 		"@effected/glob": "catalog:effected",
 		"@effected/jsonc": "catalog:effected",
 		"@effected/memfs": "catalog:effected",
@@ -46,14 +46,14 @@
 		"@shikijs/twoslash": "^4.5.0",
 		"@types/node": "catalog:build",
 		"@typescript/vfs": "^1.6.5",
-		"effect": "catalog:effect",
+		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/tsconfig-json": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected",
 		"@shikijs/twoslash": "^4.4.3",
 		"@typescript/vfs": "^1.6.5",
-		"effect": "catalog:effect",
+		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependenciesMeta": {

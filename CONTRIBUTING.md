@@ -23,7 +23,7 @@ pnpm run build   # build the core libraries, the plugin and the fixture modules
 pnpm run test    # run the full test suite
 ```
 
-`pnpm install` wires up the whole workspace, runs husky to register the git hooks, and resolves the Effect and `@effected/*` versions through the pnpm catalogs supplied by the `@effected/pnpm-plugin-effect` config dependency in `pnpm-workspace.yaml`. Never hand-pin an `@effected/*` version range — declare those dependencies as `catalog:effected` (or `catalog:effected:peers` under `peerDependencies`).
+`pnpm install` wires up the whole workspace, runs husky to register the git hooks, and resolves the Effect and `@effected/*` versions through the pnpm catalogs supplied by the `@effected/pnpm-plugin-effected` config dependency in `pnpm-workspace.yaml`. Never hand-pin an `@effected/*` version range — declare those dependencies (and `effect` / `@effect/*`) as `catalog:effected`, the plugin's single catalog, under `dependencies`, `devDependencies` and `peerDependencies` alike.
 
 ## Repository layout
 

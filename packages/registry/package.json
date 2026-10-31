@@ -36,8 +36,8 @@
 		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {
-		"@effect/platform-node": "catalog:effect",
-		"@effect/vitest": "catalog:effect",
+		"@effect/platform-node": "catalog:effected",
+		"@effect/vitest": "catalog:effected",
 		"@effected/config-file": "catalog:effected",
 		"@effected/glob": "catalog:effected",
 		"@effected/jsonc": "catalog:effected",
@@ -50,15 +50,15 @@
 		"@effected/yaml": "catalog:effected",
 		"@savvy-web/bundler": "^2.7.1",
 		"@types/node": "catalog:build",
-		"effect": "catalog:effect",
+		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effect/platform-node": "catalog:effect",
-		"@effected/store": "catalog:effected:peers",
-		"@effected/tsconfig-json": "catalog:effected:peers",
-		"@effected/xdg": "catalog:effected:peers",
-		"effect": "catalog:effect"
+		"@effect/platform-node": "catalog:effected",
+		"@effected/store": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected",
+		"@effected/xdg": "catalog:effected",
+		"effect": "catalog:effected"
 	},
 	"peerDependenciesMeta": {
 		"@effected/xdg": {

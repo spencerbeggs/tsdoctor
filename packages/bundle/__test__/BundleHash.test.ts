@@ -11,7 +11,7 @@ import {
 	resolveBundle,
 } from "../src/index.js";
 
-const CryptoLive = NodeCrypto.layer;
+const CryptoLive = NodeCrypto.layerDigest;
 
 describe("canonicalization (via @effected/jsonc JsoncFingerprint)", () => {
 	it("sorts object keys recursively", () => {

@@ -6,9 +6,11 @@ resource: ../../pnpm-workspace.yaml
 tags: [dx, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: f14f76a34450012c34edea7def4fc27a6a0c151a8e1e3099a959bc0cbfd801a7
+  at: 2026-10-31T20:38:59Z
 status: stable
+integrity:
+  generated:
+    body: 33ff4a694c865e03
 ---
 
 # Dogfood an unreleased `@effected/*` capability
@@ -28,9 +30,8 @@ sibling `effected` checkout, never by reimplementing it locally.
    tinkered `@effected/*` package **and its peers** at `file:` links into
    that checkout's built output. `@effected/*` versions in this repo are
    otherwise supplied only through the
-   `@effected/pnpm-plugin-effect` config dependency's catalogs
-   (`catalog:effect`, `catalog:effect:peers`, `catalog:effected`,
-   `catalog:effected:peers`)[^1] — never hand-pin a version range instead
+   `@effected/pnpm-plugin-effected` config dependency's single catalog
+   (`catalog:effected`)[^1] — never hand-pin a version range instead
    of linking.
 3. `pnpm install` so the lockfile picks up the `file:` links.
 4. Iterate through the `.claude/dogfood/` mail-and-journal loop:
@@ -43,7 +44,7 @@ sibling `effected` checkout, never by reimplementing it locally.
    work around it.
 6. Once the kit cuts a real release carrying the capability, remove the
    `overrides:` block, bump the affected `catalog:effected` /
-   `catalog:effected:peers` entries to the released version and
+   `catalog:effected` entries to the released version and
    `pnpm install` again, then run `/silk:dogfood --exit` to close the
    loop.
 

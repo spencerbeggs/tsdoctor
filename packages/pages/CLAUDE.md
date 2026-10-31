@@ -68,7 +68,7 @@ non-trivial dependency and it is CPU-bound and I/O-free.
   emits the result; it does not post-process blocks.
 - `apiScopeOf` is load-bearing across adapters: it keys Twoslash cache
   generations and names the per-package llms files. One definition, here.
-- Peers: `effect` (`catalog:effect`) and `@effected/markdown`
+- Peers: `effect` (`catalog:effected`) and `@effected/markdown`
   (`catalog:effected`) — never hand-pin an `@effected` range. Dependencies:
   `@tsdoctor/model`, `@tsdoctor/seo`, `@microsoft/api-extractor-model`,
   `prettier`.

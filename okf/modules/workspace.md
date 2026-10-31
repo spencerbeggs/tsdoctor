@@ -7,11 +7,11 @@ resource: ../..
 tags: [architecture, dx, ci, release, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-10-28T21:46:42Z
+  at: 2026-10-31T20:38:59Z
 status: stable
 integrity:
   generated:
-    body: 5aa67f015139d145
+    body: 0c72b985ae01eb50
 ---
 
 # The tsdoctor monorepo workspace
@@ -56,16 +56,15 @@ site coverage.
 ## Effect-TS foundation and the `@effected` catalogs
 
 Everything in `packages/*` and `platforms/*` runs on Effect v4
-(`effect@4.0.7` per `.repos/config.json`'s pin), never Effect v3 —
+(`effect@4.1.1` per `.repos/config.json`'s pin), never Effect v3 —
 see [`../decisions/effect-v4-only.md`](../decisions/effect-v4-only.md).
 
 `@effected/*` packages are distributed through the
-`@effected/pnpm-plugin-effect` **config dependency** declared in
+`@effected/pnpm-plugin-effected` **config dependency** declared in
 `pnpm-workspace.yaml`'s `configDependencies` block (alongside
-`@savvy-web/pnpm-plugin-silk`), which supplies the pnpm catalogs
-`catalog:effect` / `catalog:effect:peers` for Effect-org packages and
-`catalog:effected` / `catalog:effected:peers` for `@effected/*` packages. A
-config dependency resolves before the rest of the workspace, which is what
+`@savvy-web/pnpm-plugin-silk`), which supplies
+one catalog, `catalog:effected`, for Effect-org and `@effected/*` packages
+alike. A config dependency resolves before the rest of the workspace, which is what
 lets every `@tsdoctor/*` package pin through the catalog rather than a
 hand-picked version range — see
 [`../conventions/effected-is-the-foundation.md`](../conventions/effected-is-the-foundation.md)
