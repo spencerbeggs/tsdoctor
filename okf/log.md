@@ -15,6 +15,7 @@
 * Updated The tsdoctor monorepo workspace
 * Updated Vendored reference repos under .repos/
 * Updated vitepress-plugin-api-extractor
+* Updated @tsdoctor/registry
 
 ## 2026-10-28
 

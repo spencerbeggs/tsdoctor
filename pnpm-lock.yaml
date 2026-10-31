@@ -327,7 +327,7 @@ overrides:
   '@effect/vitest@^4.0.0': 4.1.1
   effect@^4.0.0: 4.1.1
 
-pnpmfileChecksum: sha256-BtjQJPpT6FJMRC24OdmcEZO/fjB+JsbpW53sYkCdlxk=
+pnpmfileChecksum: sha256-Heu9WmJ6S/tcHAmHbdTQwjpBL/awKNfMlDG7AQqXoAM=
 
 importers:
 
@@ -596,6 +596,9 @@ importers:
 
   packages/registry:
     dependencies:
+      '@effected/package-json':
+        specifier: catalog:effected
+        version: 0.28.0(effect@4.1.1)
       '@effected/semver':
         specifier: catalog:effected
         version: 0.20.0(effect@4.1.1)

@@ -164,6 +164,43 @@ describe("TypeResolver", () => {
 		});
 	});
 
+	describe("TypeScript's reading of the manifest", () => {
+		const pkg = PackageSpec.make({ name: "pkg", version: "1.0.0" });
+
+		it("walks conditions in the manifest's key order, not a fixed types-first order", () => {
+			const importFirst = manifest({
+				exports: { ".": { import: { types: "./index.d.mts" }, types: "./index.d.ts" } },
+			});
+			const result = TypeResolver.resolveImport("pkg", importFirst, pkg);
+			assert.isTrue(Option.isSome(result));
+			if (Option.isSome(result)) assert.strictEqual(result.value.filePath, "index.d.mts");
+		});
+
+		it("substitutes a JS target for the declaration file TypeScript reads", () => {
+			const jsOnly = manifest({ exports: { ".": { import: "./dist/index.mjs" } } });
+			const result = TypeResolver.resolveImport("pkg", jsOnly, pkg);
+			assert.isTrue(Option.isSome(result));
+			if (Option.isSome(result)) {
+				assert.strictEqual(result.value.filePath, "dist/index.d.mts");
+				assert.isTrue(result.value.isTypeDefinition);
+			}
+		});
+
+		it("ignores typesVersions when exports is present", () => {
+			const both = manifest({
+				exports: { ".": { types: "./index.d.ts" } },
+				typesVersions: { "*": { deep: ["types/deep.d.ts"] } },
+			});
+			assert.isTrue(Option.isNone(TypeResolver.resolveImport("pkg/deep", both, pkg)));
+		});
+
+		it("resolves the root through main when exports is absent", () => {
+			const result = TypeResolver.resolveImport("pkg", manifest({ main: "./lib/x.js" }), pkg);
+			assert.isTrue(Option.isSome(result));
+			if (Option.isSome(result)) assert.strictEqual(result.value.filePath, "lib/x.d.ts");
+		});
+	});
+
 	describe("hostile input", () => {
 		const pkg = PackageSpec.make({ name: "evil", version: "1.0.0" });
 
@@ -251,14 +288,20 @@ describe("TypeResolver", () => {
 			);
 		});
 
-		it("typesVersions dunder keys are skipped", () => {
+		it("a typesVersions __proto__ key is read as an own key and pollutes nothing", () => {
 			const hostile = manifest({
 				typesVersions: JSON.parse('{"*": {"__proto__": ["./pwned.d.ts"]}}') as Record<
 					string,
 					Record<string, ReadonlyArray<string>>
 				>,
 			});
-			assert.isTrue(Option.isNone(TypeResolver.resolveImport("evil/__proto__", hostile, pkg)));
+			// The key is the manifest's own data, so it maps like any other key —
+			// to a path confined to the package — and nothing reaches the prototype.
+			const result = TypeResolver.resolveImport("evil/__proto__", hostile, pkg);
+			assert.isTrue(Option.isSome(result));
+			if (Option.isSome(result)) assert.strictEqual(result.value.filePath, "pwned.d.ts");
+			assert.strictEqual(({} as Record<string, unknown>).pwned, undefined);
+			assert.strictEqual(Object.getPrototypeOf({}), Object.prototype);
 		});
 	});
 
@@ -288,7 +331,7 @@ describe("TypeResolver", () => {
 			);
 		});
 
-		it("filters non-declaration export targets (package.json, JS-only conditions)", () => {
+		it("filters non-declaration export targets and substitutes JS targets as TypeScript does", () => {
 			const pkg = PackageSpec.make({ name: "pkg", version: "1.0.0" });
 			const mixed = manifest({
 				types: "./index.d.ts",
@@ -298,9 +341,12 @@ describe("TypeResolver", () => {
 					"./js-only": { default: "./lib/js-only.js" },
 				},
 			});
+			// "./package.json" names no declaration and is dropped; the JS-only
+			// "./js-only" target is read as TypeScript reads it, through extension
+			// substitution to its sibling declaration file.
 			assert.deepStrictEqual(
 				TypeResolver.resolveTypeEntries(mixed, pkg).map((entry) => entry.filePath),
-				["index.d.ts"],
+				["index.d.ts", "lib/js-only.d.ts"],
 			);
 			for (const entry of TypeResolver.resolveTypeEntries(mixed, pkg)) {
 				assert.isTrue(entry.isTypeDefinition);

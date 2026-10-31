@@ -24,13 +24,13 @@ sources:
     resource: ../../platforms/vitepress/package.json
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:38:59Z
+  at: 2026-10-31T20:44:07Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
 integrity:
   generated:
-    body: d6cbf60a55074885
+    body: 80bc34d07a08fe1a
 ---
 
 # Core `@effected` peers follow the public `.d.ts` surface
@@ -73,8 +73,8 @@ The repository owner approved this policy on 2026-09-24.[^owner]
    application's install is complete without relying on
    `autoInstallPeers`.[^rspress-pkg] [^vitepress-pkg] See the
    [adapter dependency-closure convention](../conventions/rspress-dependency-closure.md).
-4. **`@effected/*` peers are spelled `catalog:effected`**, and
-   `@effected/*` dependencies are spelled `catalog:effected`.
+4. **Every `@effected/*` edge is spelled `catalog:effected`**, peer and
+   dependency alike: the catalog plugin serves one catalog.
 
 The resulting split, public-surface peers first, then the packages that
 became internal-only dependencies:
@@ -85,7 +85,7 @@ became internal-only dependencies:
 | `@tsdoctor/snapshot` | `store` | `jsonc` |
 | `@tsdoctor/seo` | `package-json`, `schema-org` | `spdx` |
 | `@tsdoctor/model` | `markdown`, plus `tsconfig-json` propagated from vfs | `yaml` |
-| `@tsdoctor/registry` | `store`, `xdg`, plus `tsconfig-json` propagated from vfs | `semver` |
+| `@tsdoctor/registry` | `store`, `xdg`, plus `tsconfig-json` propagated from vfs | `semver`, `package-json` |
 | `@tsdoctor/bundle` | `github`, `jsonc`, `npm`, `package-json`, `store`, `tsconfig-json`, `xdg` | `glob`, `walker` |
 | `@tsdoctor/pages` | `markdown`, plus `package-json`, `schema-org`, `tsconfig-json` propagated | none |
 | `@tsdoctor/manifest` | none (`effect` only) | none |

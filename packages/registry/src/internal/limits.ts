@@ -15,13 +15,6 @@
 export const MAX_NESTING_DEPTH = 256;
 
 /**
- * Cap on `*` wildcards per exports/typesVersions pattern before regex
- * compilation. npm semantics use exactly one wildcard; a pattern exceeding
- * the bound simply does not match (ReDoS guard — the glob CVE precedent).
- */
-export const MAX_WILDCARDS_PER_PATTERN = 1;
-
-/**
  * Cap on declaration files materialized per package by `getTypeFiles`. A
  * pathological or hostile file tree naming more declaration files than this
  * fails typed rather than exhausting memory.
