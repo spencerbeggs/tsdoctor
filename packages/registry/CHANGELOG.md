@@ -1,5 +1,46 @@
 # @tsdoctor/registry
 
+## 0.6.0
+
+### Breaking Changes
+
+- The `effect` peer dependency is now `~4.1.1`, and every `@effected/*` peer moves to its release built on Effect 4.1. Projects still on Effect 4.0 must upgrade to Effect 4.1 before installing this version. The `@effected/*` releases built on Effect 4.0 cannot load under Effect 4.1, so the two lines cannot be mixed. [#387][#387]
+
+* `TypeResolver` now resolves manifests the way TypeScript does, through `@effected/package-json`'s `PackageExports`. Results change for some packages:
+
+* Export conditions are walked in the manifest's own key order. A package that lists `import` before `types` now resolves to the declaration under `import`.
+
+* JS targets go through TypeScript's extension substitution, so `./dist/index.mjs` resolves to `dist/index.d.mts` instead of the JS file.
+
+* `typesVersions` is ignored when `exports` is present.
+
+* `resolveImport` now resolves the root through `main` when `exports`, `types` and `typings` are absent.
+
+* Trailing-slash folder export keys (`"./lib/": "./lib/"`) no longer resolve.
+
+* `resolveTypeEntries` returns only the main entry when the `exports` map holds an invalid target. [#387][#387]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/semver | dependency | updated | ^0.19.0 | ^0.20.0 |
+| @tsdoctor/vfs | dependency | updated | 0.5.0 | 0.6.0 |
+| @effect/platform-node | peerDependency | updated | ^4.0.7 | ~4.1.1 |
+| @effected/store | peerDependency | updated | ^0.21.0 | ^0.22.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.18.0 | ^0.19.0 |
+| @effected/xdg | peerDependency | updated | ^0.17.0 | ^0.18.0 |
+| effect | peerDependency | updated | ^4.0.7 | ~4.1.1 |
+| @effected/package-json | dependency | added | — | ^0.28.0 |
+
+[#387][#387]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#387]: https://github.com/spencerbeggs/tsdoctor/pull/387
+
 ## 0.5.14
 
 ### Bug Fixes

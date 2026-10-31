@@ -1,5 +1,28 @@
 # @tsdoctor/seo
 
+## 0.5.0
+
+### Breaking Changes
+
+- The `effect` peer dependency is now `~4.1.1`, and every `@effected/*` peer moves to its release built on Effect 4.1. Projects still on Effect 4.0 must upgrade to Effect 4.1 before installing this version. The `@effected/*` releases built on Effect 4.0 cannot load under Effect 4.1, so the two lines cannot be mixed. [#387][#387]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/spdx | dependency | updated | ^0.17.0 | ^0.18.0 |
+| @effected/package-json | peerDependency | updated | ^0.27.0 | ^0.28.0 |
+| @effected/schema-org | peerDependency | updated | ^0.12.0 | ^0.13.0 |
+| effect | peerDependency | updated | ^4.0.7 | ~4.1.1 |
+
+[#387][#387]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#387]: https://github.com/spencerbeggs/tsdoctor/pull/387
+
 ## 0.4.13
 
 ### Dependencies
