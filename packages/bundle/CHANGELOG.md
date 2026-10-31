@@ -1,5 +1,47 @@
 # @tsdoctor/bundle
 
+## 0.7.0
+
+### Breaking Changes
+
+- `hashText`, `hashJsonValue`, `hashLayerText` and `fingerprintResolvedBundle` now require core's `Digest` service (`effect/crypto`) instead of the removed `Crypto` service. They no longer fail with `PlatformError`. Hashes are unchanged.
+
+- Provide a `Digest` layer at the edge, such as `NodeCrypto.layerDigest` from `@effect/platform-node` or `Digest.layerWebCrypto` from `effect/crypto`: [#387][#387]
+
+```ts
+import { NodeCrypto, NodeFileSystem } from "@effect/platform-node";
+import { Effect, Layer, Path } from "effect";
+
+program.pipe(Effect.provide(Layer.mergeAll(NodeFileSystem.layer, Path.layer, NodeCrypto.layerDigest)));
+```
+
+- The `effect` peer dependency is now `~4.1.1`, and every `@effected/*` peer moves to its release built on Effect 4.1. Projects still on Effect 4.0 must upgrade to Effect 4.1 before installing this version. The `@effected/*` releases built on Effect 4.0 cannot load under Effect 4.1, so the two lines cannot be mixed. [#387][#387]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/glob | dependency | updated | ^0.16.0 | ^0.17.0 |
+| @effected/images | dependency | updated | ^0.7.0 | ^0.8.0 |
+| @effected/walker | dependency | updated | ^0.22.0 | ^0.24.0 |
+| @tsdoctor/manifest | dependency | updated | 0.2.11 | 0.3.0 |
+| @effected/github | peerDependency | updated | ^0.26.0 | ^0.27.0 |
+| @effected/jsonc | peerDependency | updated | ^0.21.0 | ^0.22.0 |
+| @effected/npm | peerDependency | updated | ^0.28.0 | ^0.29.0 |
+| @effected/package-json | peerDependency | updated | ^0.27.0 | ^0.28.0 |
+| @effected/store | peerDependency | updated | ^0.21.0 | ^0.22.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.18.0 | ^0.19.0 |
+| @effected/xdg | peerDependency | updated | ^0.17.0 | ^0.18.0 |
+| effect | peerDependency | updated | ^4.0.7 | ~4.1.1 |
+
+[#387][#387]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#387]: https://github.com/spencerbeggs/tsdoctor/pull/387
+
 ## 0.6.11
 
 ### Dependencies

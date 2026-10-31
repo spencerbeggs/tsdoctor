@@ -1,5 +1,30 @@
 # @tsdoctor/model
 
+## 0.9.0
+
+### Breaking Changes
+
+- The `effect` peer dependency is now `~4.1.1`, and every `@effected/*` peer moves to its release built on Effect 4.1. Projects still on Effect 4.0 must upgrade to Effect 4.1 before installing this version. The `@effected/*` releases built on Effect 4.0 cannot load under Effect 4.1, so the two lines cannot be mixed. [#387][#387]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/engine | dependency | updated | ^0.10.0 | ^0.11.0 |
+| @effected/yaml | dependency | updated | ^0.26.0 | ^0.27.0 |
+| @tsdoctor/vfs | dependency | updated | 0.5.0 | 0.6.0 |
+| @effected/markdown | peerDependency | updated | ^0.24.0 | ^0.25.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.18.0 | ^0.19.0 |
+| effect | peerDependency | updated | ^4.0.7 | ~4.1.1 |
+
+[#387][#387]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#387]: https://github.com/spencerbeggs/tsdoctor/pull/387
+
 ## 0.8.15
 
 ### Bug Fixes
