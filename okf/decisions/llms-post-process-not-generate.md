@@ -6,7 +6,6 @@ description: The RSPress adapter rewrites @rspress/plugin-llms' own output inste
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 6ee85dbd2f850f2433a95d5a38c1ca05ded909c0930be52aa5b55050145231dd
 tags: [architecture]
 sources:
   - id: llms-program
@@ -16,6 +15,15 @@ sources:
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 6ee85dbd2f850f24
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: c6c3e36266510250
 ---
 
 # Post-process llms.txt rather than generate it

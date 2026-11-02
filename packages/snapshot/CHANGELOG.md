@@ -1,5 +1,29 @@
 # @tsdoctor/snapshot
 
+## 0.7.0
+
+### Breaking Changes
+
+- The `effect` peer dependency is now `~4.1.2`, and every `@effected/*` peer moves to its next minor release. Projects must upgrade to Effect 4.1.2 and the matching `@effected/*` releases before installing this version. [#391][#391]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/engine | dependency | removed | ^0.11.0 | — |
+| @effected/jsonc | dependency | updated | ^0.22.0 | ^0.23.0 |
+| @effected/store | peerDependency | updated | ^0.22.0 | ^0.23.0 |
+| effect | peerDependency | updated | ~4.1.1 | ~4.1.2 |
+| @effected/kit | dependency | added | — | ^0.12.0 |
+
+[#391][#391]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#391]: https://github.com/spencerbeggs/tsdoctor/pull/391
+
 ## 0.6.0
 
 ### Breaking Changes

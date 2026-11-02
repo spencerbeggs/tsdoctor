@@ -1,5 +1,32 @@
 # @tsdoctor/registry
 
+## 0.7.0
+
+### Breaking Changes
+
+- The `effect` peer dependency is now `~4.1.2`, and every `@effected/*` peer moves to its next minor release. Projects must upgrade to Effect 4.1.2 and the matching `@effected/*` releases before installing this version. [#391][#391]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/package-json | dependency | updated | ^0.28.0 | ^0.29.0 |
+| @effected/semver | dependency | updated | ^0.20.0 | ^0.21.0 |
+| @tsdoctor/vfs | dependency | updated | 0.6.0 | 0.7.0 |
+| @effect/platform-node | peerDependency | updated | ~4.1.1 | ~4.1.2 |
+| @effected/store | peerDependency | updated | ^0.22.0 | ^0.23.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.19.0 | ^0.20.0 |
+| @effected/xdg | peerDependency | updated | ^0.18.0 | ^0.19.0 |
+| effect | peerDependency | updated | ~4.1.1 | ~4.1.2 |
+
+[#391][#391]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#391]: https://github.com/spencerbeggs/tsdoctor/pull/391
+
 ## 0.6.0
 
 ### Breaking Changes

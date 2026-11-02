@@ -7,10 +7,18 @@ tags: [architecture, compat]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: d2924a5cf9eb3c9ac4fa0cf83389f347690ae24caf9b5e3301d30565f5ee6de6
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: d2924a5cf9eb3c9a
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: f8a6a455608e2c35
 ---
 
 # One TypeScript environment per distinct resolved compiler config

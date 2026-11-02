@@ -21,7 +21,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import { TsconfigLoaderSync } from "@effected/tsconfig-json";
 import { Result } from "effect";
 import type { TypeResolutionCompilerOptions } from "./TypeResolutionOptions.js";

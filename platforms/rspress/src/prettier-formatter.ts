@@ -1,6 +1,6 @@
 /* v8 ignore start -- Prettier integration wrapper, tested via page generator integration tests */
 
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import { formatExampleCode } from "@tsdoctor/pages";
 import { Effect, Result } from "effect";
 import { PluginEvent as PE } from "./observability/events.js";

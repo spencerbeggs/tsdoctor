@@ -14,7 +14,7 @@
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 
 import type { ApiPackage } from "@microsoft/api-extractor-model";
 import { ApiModel as MsApiModel } from "@microsoft/api-extractor-model";

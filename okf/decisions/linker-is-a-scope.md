@@ -7,10 +7,18 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 489a276027d91627371b7420a4a9e9e4f920b49a88bfb6e7b37ef52bcfd18214
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 489a276027d91627
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: dbfcb7e38ee0d21b
 ---
 
 # A linker is a scope — no mutable current-scope holder

@@ -1,5 +1,49 @@
 # rspress-plugin-api-extractor
 
+## 0.19.15
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/engine | dependency | removed | ^0.11.0 | — |
+| @effect/platform-node | dependency | updated | ~4.1.1 | ~4.1.2 |
+| @effected/github | dependency | updated | ^0.27.0 | ^0.28.0 |
+| @effected/glob | dependency | updated | ^0.17.0 | ^0.18.0 |
+| @effected/images | dependency | updated | ^0.8.0 | ^0.9.0 |
+| @effected/jsonc | dependency | updated | ^0.22.0 | ^0.23.0 |
+| @effected/markdown | dependency | updated | ^0.25.0 | ^0.26.0 |
+| @effected/memfs | dependency | updated | ^0.22.0 | ^0.23.0 |
+| @effected/npm | dependency | updated | ^0.29.0 | ^0.30.0 |
+| @effected/package-json | dependency | updated | ^0.28.0 | ^0.29.0 |
+| @effected/schema-org | dependency | updated | ^0.13.0 | ^0.14.0 |
+| @effected/semver | dependency | updated | ^0.20.0 | ^0.21.0 |
+| @effected/spdx | dependency | updated | ^0.18.0 | ^0.19.0 |
+| @effected/store | dependency | updated | ^0.22.0 | ^0.23.0 |
+| @effected/tsconfig-json | dependency | updated | ^0.19.0 | ^0.20.0 |
+| @effected/walker | dependency | updated | ^0.24.0 | ^0.25.0 |
+| @effected/xdg | dependency | updated | ^0.18.0 | ^0.19.0 |
+| @effected/yaml | dependency | updated | ^0.27.0 | ^0.28.0 |
+| @microsoft/api-extractor-model | dependency | updated | ^7.33.15 | ^7.33.16 |
+| @tsdoctor/bundle | dependency | updated | 0.7.0 | 0.8.0 |
+| @tsdoctor/manifest | dependency | updated | 0.3.0 | 0.4.0 |
+| @tsdoctor/model | dependency | updated | 0.9.0 | 0.10.0 |
+| @tsdoctor/pages | dependency | updated | 0.4.0 | 0.5.0 |
+| @tsdoctor/registry | dependency | updated | 0.6.0 | 0.7.0 |
+| @tsdoctor/seo | dependency | updated | 0.5.0 | 0.6.0 |
+| @tsdoctor/snapshot | dependency | updated | 0.6.0 | 0.7.0 |
+| @tsdoctor/vfs | dependency | updated | 0.6.0 | 0.7.0 |
+| effect | dependency | updated | ~4.1.1 | ~4.1.2 |
+| @effected/kit | dependency | added | — | ^0.12.0 |
+
+[#391][#391]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#391]: https://github.com/spencerbeggs/tsdoctor/pull/391
+
 ## 0.19.14
 
 ### Dependencies

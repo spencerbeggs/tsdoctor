@@ -7,10 +7,18 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-28T19:00:27Z
-  body_sha256: 278c8b8369f4405f1310605088f6eeb957a2eaf0996b50d6d73874f0a205ce28
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 278c8b8369f4405f
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: bdd3f2d2ae4c1ad1
 ---
 
 # Core packages, thin adapters

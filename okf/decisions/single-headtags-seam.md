@@ -7,10 +7,18 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 756431b8382fbbf7d5fef2622a609186bea8caa93c7a58aca751da0b09783c47
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 756431b8382fbbf7
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 9b456722a7ca0bf2
 ---
 
 # One seam decides every head tag, adapters only render

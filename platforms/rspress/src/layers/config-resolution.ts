@@ -1,6 +1,6 @@
 import type { PathLike } from "node:fs";
 import path from "node:path";
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import { PackageManifest } from "@effected/package-json";
 import type { ApiEntryPoint, ApiModel, ApiPackage } from "@microsoft/api-extractor-model";
 import type { PlatformOverrides, PublishedOpenGraphImage, ResolvedBundle } from "@tsdoctor/bundle";

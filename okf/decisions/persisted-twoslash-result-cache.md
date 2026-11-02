@@ -7,10 +7,18 @@ tags: [performance, architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 058c9611f91cf964ada1f0c506bb9f86542c5307034e6cb1a50bbc37db3f69fe
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 058c9611f91cf964
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 536ae0a72c65ca96
 ---
 
 # A persisted Twoslash result cache is the render-phase performance fix

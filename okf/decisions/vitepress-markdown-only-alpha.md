@@ -7,10 +7,18 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 0035e03c913e1f287124087584407b6d8a2d5ccfc6cd17c6d4484738695581de
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 0035e03c913e1f28
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 76f4116931674226
 ---
 
 # The VitePress adapter alpha is markdown-only, no Vue components

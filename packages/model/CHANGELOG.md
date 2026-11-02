@@ -1,5 +1,32 @@
 # @tsdoctor/model
 
+## 0.10.0
+
+### Breaking Changes
+
+- The `effect` peer dependency is now `~4.1.2`, and every `@effected/*` peer moves to its next minor release. Projects must upgrade to Effect 4.1.2 and the matching `@effected/*` releases before installing this version. [#391][#391]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/engine | dependency | removed | ^0.11.0 | — |
+| @effected/yaml | dependency | updated | ^0.27.0 | ^0.28.0 |
+| @microsoft/api-extractor-model | dependency | updated | ^7.33.15 | ^7.33.16 |
+| @tsdoctor/vfs | dependency | updated | 0.6.0 | 0.7.0 |
+| @effected/markdown | peerDependency | updated | ^0.25.0 | ^0.26.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.19.0 | ^0.20.0 |
+| effect | peerDependency | updated | ~4.1.1 | ~4.1.2 |
+| @effected/kit | dependency | added | — | ^0.12.0 |
+
+[#391][#391]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#391]: https://github.com/spencerbeggs/tsdoctor/pull/391
+
 ## 0.9.0
 
 ### Breaking Changes

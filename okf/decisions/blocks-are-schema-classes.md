@@ -7,10 +7,18 @@ tags: [architecture, compat]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 1e00a08ea615dad454e2ef528bd849754ad7b0310ae8ae528c60c71863d801cb
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 1e00a08ea615dad4
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: dabe15866b4ab7d0
 ---
 
 # Page IR blocks are `Schema.Class` variants, not `Data.TaggedEnum`
