@@ -1,5 +1,21 @@
 # rspress-plugin-api-extractor
 
+## 0.19.16
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| hast-util-to-jsx-runtime | dependency | updated | ^2.3.6 | ^2.3.7 |
+
+[#393][#393]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#393]: https://github.com/spencerbeggs/tsdoctor/pull/393
+
 ## 0.19.15
 
 ### Dependencies
