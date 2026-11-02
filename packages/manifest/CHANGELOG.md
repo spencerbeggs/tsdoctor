@@ -1,5 +1,25 @@
 # @tsdoctor/manifest
 
+## 0.4.0
+
+### Breaking Changes
+
+- The `effect` peer dependency is now `~4.1.2`, and every `@effected/*` peer moves to its next minor release. Projects must upgrade to Effect 4.1.2 and the matching `@effected/*` releases before installing this version. [#391][#391]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| effect | peerDependency | updated | ~4.1.1 | ~4.1.2 |
+
+[#391][#391]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#391]: https://github.com/spencerbeggs/tsdoctor/pull/391
+
 ## 0.3.0
 
 ### Breaking Changes
