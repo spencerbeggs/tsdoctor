@@ -7,10 +7,18 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: c5982ae55dcf97c5135cd895bd7f6b07ed87405bf8029dea86a3b75dd78633b1
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: c5982ae55dcf97c5
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 7c119301d182d6fe
 ---
 
 # MDX pages serialize each block node separately, joins owned by the emitter

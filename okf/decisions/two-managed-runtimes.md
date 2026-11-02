@@ -7,10 +7,18 @@ tags: [architecture, observability]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 25271fb34792fa492154135a668941f29136eba1b67f0d95754d796e14660f4b
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 25271fb34792fa49
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: dbc2af7858e5f93e
 ---
 
 # One layer-construction call produces both `ManagedRuntime`s

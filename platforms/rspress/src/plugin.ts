@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import type { RspressPlugin, UserConfig } from "@rspress/core";
 import { normalizeBaseRoute, unscopedName } from "@tsdoctor/pages";
 import { Effect, FileSystem, ManagedRuntime, Option, Ref, Schema } from "effect";

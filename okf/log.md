@@ -1,5 +1,37 @@
 # Log
 
+## 2026-11-02
+
+* Updated @tsdoctor/manifest sits below @tsdoctor/bundle
+* Updated @tsdoctor/vfs sits below the registry and the model
+* Updated A linker is a scope — no mutable current-scope holder
+* Updated A persisted Twoslash result cache is the render-phase performance fix
+* Updated A route collision fails the build, never a synthetic suffix
+* Updated A working VitePress alpha gates every core package's 1.0
+* Updated Consolidate into one monorepo
+* Updated Content hashing over mtimes
+* Updated Core @effected peers follow the public .d.ts surface
+* Updated Core packages, thin adapters
+* Updated Deprecate the model's Render module in favour of @tsdoctor/pages
+* Updated Doc generation runs inside RSPress's config() hook
+* Updated Effect v4 only
+* Updated Emit the runtime bundleless, per file
+* Updated Extract the page IR only once two adapters exist
+* Updated Head tags are built in the generate stage
+* Updated Import the namespace root, never the leaf
+* Updated MDX pages serialize each block node separately, joins owned by the emitter
+* Updated One TypeScript environment per distinct resolved compiler config
+* Updated One anchor algorithm, never a second spelling
+* Updated One layer-construction call produces both ManagedRuntimes
+* Updated One seam decides every head tag, adapters only render
+* Updated Page IR blocks are Schema.Class variants, not Data.TaggedEnum
+* Updated Post-process llms.txt rather than generate it
+* Updated The VitePress adapter alpha is markdown-only, no Vue components
+* Updated The agent plugin versions on its own release line, built for both hosts by pluginfinity
+* Updated The build event bus fans out synchronously, in-process
+* Updated The canonical site URL is derived, never configured
+* Updated The type and Twoslash caches degrade; the snapshot store fails
+
 ## 2026-10-31
 
 * Updated @effected is the foundation: check before hand-rolling

@@ -1,6 +1,6 @@
 /* v8 ignore start -- Shiki/Twoslash integration, requires full highlighter setup for testing */
 
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import { Markdown, Mdast } from "@effected/markdown";
 import type { ProgrammaticCompilerOptions } from "@effected/tsconfig-json";
 import { rendererRich, transformerTwoslash } from "@shikijs/twoslash";

@@ -7,10 +7,18 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 4ad7d7a1f9965e72f040042496921588f5ef26bd11b8e2f308c60b9b2f572eb5
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 4ad7d7a1f9965e72
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 92d98c885e3ff75b
 ---
 
 # Doc generation runs inside RSPress's `config()` hook

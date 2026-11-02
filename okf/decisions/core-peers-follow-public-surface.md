@@ -28,9 +28,15 @@ generated:
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
 integrity:
   generated:
     body: cacbf1fd09011dd6
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: f363815b18d94dfa
 ---
 
 # Core `@effected` peers follow the public `.d.ts` surface

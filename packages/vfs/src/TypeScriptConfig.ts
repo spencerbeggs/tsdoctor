@@ -1,5 +1,5 @@
 import type { PathLike } from "node:fs";
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import { TsConfigParseError, parseTsConfig } from "./TsconfigParser.js";
 import type { TypeResolutionCompilerOptions } from "./TypeResolutionOptions.js";
 import { decodeCompilerOptions } from "./TypeResolutionOptions.js";

@@ -7,10 +7,18 @@ tags: [architecture, release]
 generated:
   by: okfit/claude-code
   at: 2026-09-24T20:28:47Z
-  body_sha256: 5bc538948ea7c5bb049651e72ae0461392453ff683c408d4548cf5f58742367c
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 5bc538948ea7c5bb
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 73d64af308b9ecf5
 ---
 
 # Consolidate into one monorepo

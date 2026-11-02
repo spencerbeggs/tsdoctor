@@ -7,10 +7,18 @@ tags: [architecture, compat]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 4642686e9a5a8edece258633d0e423855ac97eb6b0928f3c3daeadbb26b050b9
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 4642686e9a5a8ede
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 4ba1a9b1cb1530be
 ---
 
 # `@tsdoctor/manifest` sits below `@tsdoctor/bundle`

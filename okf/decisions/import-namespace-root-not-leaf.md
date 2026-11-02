@@ -7,10 +7,18 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 33b7670d984daa5f7dffd49bc4b081d0943269d5664dbf8e04a7d23fc1faffeb
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 33b7670d984daa5f
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 1b6687887236dfff
 ---
 
 # Import the namespace root, never the leaf

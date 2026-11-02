@@ -7,10 +7,18 @@ tags: [release, architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: bfd32dcf3dcd20e5912fe038d924f7ef4b8d3cf8c18214b50b24c0337106e7a4
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: bfd32dcf3dcd20e5
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: b2b4ae237b888107
 ---
 
 # A working VitePress alpha gates every core package's 1.0

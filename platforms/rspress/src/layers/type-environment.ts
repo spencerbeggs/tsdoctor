@@ -10,7 +10,7 @@
  * @packageDocumentation
  */
 
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import { resolveTypeScriptConfig, twoslashEnvHash } from "@tsdoctor/vfs";
 import { Effect } from "effect";
 import ts from "typescript";

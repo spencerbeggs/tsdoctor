@@ -1,5 +1,5 @@
 import { NodeHttpClient } from "@effect/platform-node";
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import { Cache } from "@effected/store";
 import { AppDirs } from "@effected/xdg";
 import { PackageFetcher, PackageSpec, RegistryObserver, TypeCache, TypeRegistry } from "@tsdoctor/registry";
