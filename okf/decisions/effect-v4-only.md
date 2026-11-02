@@ -17,9 +17,15 @@ sources:
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
 integrity:
   generated:
     body: 77e95e06ffffbfd7
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: f2a3b70cb0ffe9ea
 ---
 
 # The repository runs on Effect v4 only

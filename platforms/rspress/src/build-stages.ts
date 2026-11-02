@@ -1,5 +1,5 @@
 import path from "node:path";
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import type { ApiPackage } from "@microsoft/api-extractor-model";
 import type { PublishedOpenGraphImage } from "@tsdoctor/bundle";
 import type { CrossLinker } from "@tsdoctor/model";

@@ -7,10 +7,18 @@ tags: [architecture, release]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: c89de21e7f269f90e070a7a322c7b2f3d7fe6d77b0a75720bbdd939ac8a72437
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: c89de21e7f269f90
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: e54a1a3d6bfbf441
 ---
 
 # Deprecate the model's `Render` module in favour of `@tsdoctor/pages`

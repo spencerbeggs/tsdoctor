@@ -7,10 +7,18 @@ tags: [architecture, testing]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 4d7f0ac3aa37b732354b40ffe730fb6798f0439e24ab5ec48800d5ad7ac245a1
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 4d7f0ac3aa37b732
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 789212ae696c9b64
 ---
 
 # Head tags are built in the generate stage

@@ -7,10 +7,18 @@ tags: [architecture, observability]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 335f21d3574f8a9804f3679e8607b9d131b7f95a2359f70bd03fcda22b1c8ab0
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 335f21d3574f8a98
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: d7477e54d67cc8ca
 ---
 
 # The build event bus fans out synchronously, in-process

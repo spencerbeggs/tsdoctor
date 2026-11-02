@@ -17,11 +17,19 @@ sources:
 generated:
   by: okfit/claude-code
   at: 2026-10-10T00:56:05Z
-  body_sha256: 79670f8faa0799a72ffa07ef9085b1d6c591bf9f5cbc9bc9fdd79f412ec7a9ae
 status: stable
 verified:
   - by: human:spencer
     at: 2026-10-10T00:54:24Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 79670f8faa0799a7
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 0e8c4770973d4ce9
 ---
 
 # The agent plugin versions on its own release line, built for both hosts by pluginfinity

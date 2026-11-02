@@ -172,15 +172,11 @@ Everything runs on **Effect v4** (`effect@4.1.1`, pinned through the
 `@effected/*` packages are distributed through the `@effected/pnpm-plugin-effected`
 config dependency in `pnpm-workspace.yaml` (`configDependencies:`), which
 supplies one pnpm catalog, `catalog:effected`, holding both the Effect
-family (held to one Effect minor, `~4.1.1`) and the `@effected/*` kit.
+family (held to one Effect minor, `~4.1.2`) and the `@effected/*` kit.
 
 - Declare every `effect`, `@effect/*` and `@effected/*` dependency in this
   repo as `"catalog:effected"` — in `dependencies`, `devDependencies` and
   `peerDependencies` alike. Never hand-pin an `@effected` version range.
-- A temporary root `.pnpmfile.cjs` bridges the build toolchain
-  (`@savvy-web/*`, okfit, vitest-agent, pluginfinity) onto `effect@4.0.7`
-  until those tools republish on an Effect 4.1 `@effected` release; remove it
-  then.
 - Upstream effected CI/CD bumps `@effected/pnpm-plugin-effected`; a plugin
   release carries the whole `@effected` dependency/peer graph — never manage
   that graph by hand.

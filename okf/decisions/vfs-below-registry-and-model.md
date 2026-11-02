@@ -7,10 +7,18 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-24T20:28:47Z
-  body_sha256: e65451ae8ee6c0fccb1d5c99c4e9a77d5054a63c784495ef5e2b44788f66f695
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: e65451ae8ee6c0fc
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 67970dda8b97765c
 ---
 
 # `@tsdoctor/vfs` sits below the registry and the model

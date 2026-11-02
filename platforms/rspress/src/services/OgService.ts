@@ -14,8 +14,8 @@
  * @packageDocumentation
  */
 
-import { ErrorText } from "@effected/engine";
 import { ImageFacts } from "@effected/images";
+import { ErrorText } from "@effected/kit";
 import type { OpenGraphImageConfig, OpenGraphImageMetadata } from "@tsdoctor/seo";
 import { resolveUrl } from "@tsdoctor/seo";
 import { Context, Data, Effect, FileSystem, Layer, Option, Path } from "effect";

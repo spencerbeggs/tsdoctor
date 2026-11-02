@@ -7,10 +7,18 @@ tags: [architecture, dx]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 67fa171e3ee8d223de8cb25916fd869813ba0d2a88862e357c01cff2506dfb1c
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: 67fa171e3ee8d223
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 584983930768e9ab
 ---
 
 # Emit the runtime bundleless, per file

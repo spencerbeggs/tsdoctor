@@ -7,10 +7,18 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: dc4b4e120b09624c2fc4c1875dabe02e195dea4e1b251ec60df327cf74be60b5
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: dc4b4e120b09624c
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 014bdf678df2fae8
 ---
 
 # A route collision fails the build, never a synthetic suffix

@@ -1,4 +1,4 @@
-import { ErrorText } from "@effected/engine";
+import { ErrorText } from "@effected/kit";
 import type { StoreError, StoreMigration, StoreMigrationError } from "@effected/store";
 import { Store } from "@effected/store";
 import { Context, Data, Effect, Layer, Option } from "effect";

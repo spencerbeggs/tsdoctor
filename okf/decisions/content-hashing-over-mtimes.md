@@ -6,7 +6,6 @@ description: The snapshot system compares canonical content hashes, not filesyst
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: f723b778e1bb5e26830bf2c4b7d6d02e6f723b9319300dbb6e26f62c8b696516
 tags: [architecture, performance]
 sources:
   - id: content-hash
@@ -16,6 +15,15 @@ sources:
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: f723b778e1bb5e26
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 747f4cc6189c000b
 ---
 
 # Content hashing over mtimes

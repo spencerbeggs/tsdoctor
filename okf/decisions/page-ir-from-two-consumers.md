@@ -7,10 +7,18 @@ tags: [architecture, testing]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: eddb91cb3b8dbe56df8856a2c428fe51adb81c1f34b0dc5a7d8191e950bd4102
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
+  - by: human:spencer
+    at: 2026-11-02T19:11:05Z
+integrity:
+  generated:
+    body: eddb91cb3b8dbe56
+  verified:
+    by: human:spencer
+    at: 2026-11-02T19:11:05Z
+    content: 515910799125f101
 ---
 
 # Extract the page IR only once two adapters exist
