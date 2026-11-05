@@ -1,5 +1,36 @@
 # @tsdoctor/registry
 
+## 0.7.1
+
+### Bug Fixes
+
+- `TypeCache.writePackage` keeps the previous package tree complete until the new one is ready to take its place. A crash during the swap no longer loses the old tree: the next write restores it before staging
+- `TypeCache.writePackage` no longer fails when only the removal of the retired tree fails. The new tree is already live and complete, and the next write clears the leftover
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/package-json | dependency | updated | ^0.29.0 | ^0.30.0 |
+| @effected/semver | dependency | updated | ^0.21.0 | ^0.22.0 |
+| @tsdoctor/vfs | dependency | updated | 0.7.0 | 0.7.1 |
+| @effected/store | peerDependency | updated | ^0.23.0 | ^0.24.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.20.0 | ^0.20.1 |
+| @effected/xdg | peerDependency | updated | ^0.19.0 | ^0.19.1 |
+| @effected/files | dependency | added | — | ^0.1.0 |
+
+[#395][#395]
+
+### Maintenance
+
+- Staging now uses the sibling directories `.<version>.staging` and `.<version>.old`. A `.staging-<version>` directory left behind by a crash in an earlier version is ignored and can be deleted [#395][#395]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#395]: https://github.com/spencerbeggs/tsdoctor/pull/395
+
 ## 0.7.0
 
 ### Breaking Changes
