@@ -13,10 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:44:07Z
+  at: 2026-11-05T23:04:35Z
 integrity:
   generated:
-    body: 96c99458280846dc
+    body: 342ccf0566995d64
 ---
 
 # @tsdoctor/registry
@@ -56,7 +56,8 @@ alongside.
 
 Required peers: `effect`, `@effect/platform-node`, `@effected/store`, and
 `@effected/tsconfig-json`, which is propagated from `@tsdoctor/vfs`'s public
-surface. One optional peer: `@effected/xdg`. `@effected/semver` and
+surface. One optional peer: `@effected/xdg`. `@effected/semver`,
+`@effected/files` (whose `AtomicDirectory` backs `TypeCache.writePackage`) and
 `@effected/package-json` (whose `PackageExports` backs `TypeResolver`) are
 used internally only, so they are ordinary `dependencies`
 (`catalog:effected`), not peers. See

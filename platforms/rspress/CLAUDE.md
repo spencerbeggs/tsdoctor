@@ -39,7 +39,7 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
   `@effect/sql` back.
 - `@effect/platform-node` — `NodeFileSystem`. `@effect/sql-sqlite-node` and
   `gray-matter` are **gone** (`@tsdoctor/snapshot` / `@tsdoctor/model`)
-- `ioredis` + the `@effected/*` closure (`semver`/`store`/`tsconfig-json`/
+- `ioredis` + the `@effected/*` closure (`files`/`semver`/`store`/`tsconfig-json`/
   `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
   `markdown`/`memfs`) + `@typescript/vfs` — peer-closure deps, some imported directly
   (`services/TypeRegistryService.ts`, `config-helpers.ts`).

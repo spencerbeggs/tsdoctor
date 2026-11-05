@@ -24,7 +24,7 @@ sources:
     resource: ../../platforms/vitepress/package.json
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:58:34Z
+  at: 2026-11-05T23:04:35Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
@@ -32,7 +32,7 @@ verified:
     at: 2026-11-02T19:11:05Z
 integrity:
   generated:
-    body: cacbf1fd09011dd6
+    body: 17390968c4236892
   verified:
     by: human:spencer
     at: 2026-11-02T19:11:05Z
@@ -91,7 +91,7 @@ became internal-only dependencies:
 | `@tsdoctor/snapshot` | `store` | `jsonc` |
 | `@tsdoctor/seo` | `package-json`, `schema-org` | `spdx` |
 | `@tsdoctor/model` | `markdown`, plus `tsconfig-json` propagated from vfs | `yaml` |
-| `@tsdoctor/registry` | `store`, `xdg`, plus `tsconfig-json` propagated from vfs | `semver`, `package-json` |
+| `@tsdoctor/registry` | `store`, `xdg`, plus `tsconfig-json` propagated from vfs | `files`, `semver`, `package-json` |
 | `@tsdoctor/bundle` | `github`, `jsonc`, `npm`, `package-json`, `store`, `tsconfig-json`, `xdg` | `glob`, `walker` |
 | `@tsdoctor/pages` | `markdown`, plus `package-json`, `schema-org`, `tsconfig-json` propagated | none |
 | `@tsdoctor/manifest` | none (`effect` only) | none |
