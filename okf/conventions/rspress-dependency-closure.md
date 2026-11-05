@@ -4,8 +4,7 @@ title: Keep every adapter's dependency closure whole
 description: "Every platforms/* adapter declares the full @effected closure and every @tsdoctor/* core package it consumes in dependencies, never as peers; never prune an entry as unused without checking."
 generated:
   by: okfit/claude-code
-  at: 2026-09-30T15:44:29Z
-  body_sha256: a81d15f17fee156e16acd7c65b6d2aead945a8f7af3010d3950b72eca554d5b3
+  at: 2026-11-05T23:04:35Z
 stale_after: 2026-12-23T00:00:00Z
 tags: [compat, release, deps]
 sources:
@@ -14,6 +13,9 @@ sources:
   - id: vitepress-package-json
     resource: ../../platforms/vitepress/package.json
 status: stable
+integrity:
+  generated:
+    body: 4da0117cfa310f51
 ---
 
 # Keep every adapter's full closure in `dependencies`
@@ -26,7 +28,7 @@ list the following as ordinary `dependencies`, never as `peerDependencies`:
 
 - The complete `@effected/*` closure of the core packages the adapter
   consumes, each as `catalog:effected`. That covers public-surface peers
-  and internal-only dependencies alike: `github`, `glob`, `jsonc`,
+  and internal-only dependencies alike: `files`, `github`, `glob`, `jsonc`,
   `markdown`, `npm`, `package-json`, `schema-org`, `semver`, `spdx`,
   `store`, `tsconfig-json`, `walker`, `xdg` and `yaml`. The RSPress adapter
   also carries `memfs` as a runtime dependency: its `node-sync` subpath is

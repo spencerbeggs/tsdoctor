@@ -30,8 +30,8 @@ external package types into a `Vfs`. Do not re-add a VFS primitive here —
 - Emits no logs; the `RegistryObserver` tag is the only diagnostic surface.
 - **Peer closure is deliberate**: required peers `effect`,
   `@effect/platform-node`, `@effected/store`; one optional peer,
-  `@effected/xdg`. `@effected/semver` and `@effected/package-json` are
-  internal dependencies.
+  `@effected/xdg`. `@effected/semver`, `@effected/files` and
+  `@effected/package-json` are internal dependencies.
 - `TypeResolver` delegates manifest resolution to `@effected/package-json`'s
   `PackageExports` (TypeScript's reading); do not reintroduce a local
   exports/typesVersions walker. `typescript`, `@typescript/vfs` and

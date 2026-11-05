@@ -1,5 +1,11 @@
 # Log
 
+## 2026-11-05
+
+* Updated @tsdoctor/registry
+* Updated Core @effected peers follow the public .d.ts surface
+* Updated Keep every adapter's dependency closure whole
+
 ## 2026-11-02
 
 * Updated @tsdoctor/manifest sits below @tsdoctor/bundle

@@ -90,7 +90,27 @@ describe("TypeCache", () => {
 				assert.deepStrictEqual((yield* cache.listFiles(pkg)).toSorted(), ["dist/index.d.ts", "package.json"]);
 				assert.strictEqual(yield* cache.read(pkg, "dist/index.d.ts"), "export declare const x: number;");
 				// The staging sibling is renamed onto the live dir on success — no leftovers.
-				assert.isFalse(yield* fs.exists(join(cacheDir, "atomic", ".staging-1.0.0")));
+				assert.deepStrictEqual(yield* fs.readDirectory(join(cacheDir, "atomic")), ["1.0.0"]);
+			}),
+		);
+
+		it.effect("writePackage rejects Windows drive and UNC paths before touching the disk", () =>
+			Effect.gen(function* () {
+				const cache = yield* TypeCache;
+				const fs = yield* FileSystem.FileSystem;
+				const pkg = PackageSpec.make({ name: "windows-hostile", version: "1.0.0" });
+				for (const filePath of ["C:\\evil", "\\\\unc\\share"]) {
+					const error = yield* Effect.flip(
+						cache.writePackage(pkg, [
+							["package.json", "{}"],
+							[filePath, "pwned"],
+						]),
+					);
+					assert.instanceOf(error, TypeCacheError);
+					assert.strictEqual(error.path, filePath);
+				}
+				// The guard ran before staging, so not even a sibling was created.
+				assert.isFalse(yield* fs.exists(join(cacheDir, "windows-hostile")));
 			}),
 		);
 
@@ -337,6 +357,46 @@ describe("TypeCache", () => {
 					"node_modules/refresh/b.d.ts",
 				]);
 			}).pipe(Effect.provide(ControlledLayer));
+		}),
+	);
+
+	it.effect("writePackage succeeds when only the retired tree's removal fails, and the next write clears it", () =>
+		Effect.gen(function* () {
+			const dir = "/cache-cleanup";
+			let armed = false;
+			let oldTreeRemovals = 0;
+			// The first removal of `.old` in a write clears any leftover; the second
+			// is the post-promotion cleanup, which is the one to fail.
+			const faultyFs = MemoryFileSystem.layerWith(undefined, {
+				faults: {
+					remove: (target) => {
+						if (!armed || !target.endsWith(".old")) return undefined;
+						oldTreeRemovals += 1;
+						return oldTreeRemovals === 2 ? Effect.fail(undeletableError(target)) : undefined;
+					},
+				},
+			});
+			const CleanupLayer = TypeCache.layer({ cacheDir: dir }).pipe(
+				Layer.provideMerge(Layer.mergeAll(Cache.layerTest(), faultyFs, Path.layer)),
+			);
+			yield* Effect.gen(function* () {
+				const cache = yield* TypeCache;
+				const fs = yield* FileSystem.FileSystem;
+				const pkg = PackageSpec.make({ name: "cleanup", version: "1.0.0" });
+				const siblings = join(dir, "cleanup");
+				yield* cache.writePackage(pkg, [["a.d.ts", "A"]]);
+
+				armed = true;
+				yield* cache.writePackage(pkg, [["a.d.ts", "A2"]]);
+				armed = false;
+				assert.strictEqual(oldTreeRemovals, 2);
+				assert.strictEqual(yield* cache.read(pkg, "a.d.ts"), "A2");
+				assert.isTrue(yield* fs.exists(join(siblings, ".1.0.0.old")));
+
+				yield* cache.writePackage(pkg, [["a.d.ts", "A3"]]);
+				assert.strictEqual(yield* cache.read(pkg, "a.d.ts"), "A3");
+				assert.deepStrictEqual(yield* fs.readDirectory(siblings), ["1.0.0"]);
+			}).pipe(Effect.provide(CleanupLayer));
 		}),
 	);
 
