@@ -50,7 +50,7 @@
 		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.3",
+		"@savvy-web/bundler": "^2.7.4",
 		"@types/node": "catalog:build",
 		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
