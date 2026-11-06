@@ -1,5 +1,23 @@
 # rspress-plugin-api-extractor
 
+## 0.19.18
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @shikijs/twoslash | dependency | updated | ^4.5.0 | ^4.6.0 |
+| @typescript/vfs | dependency | updated | ^1.6.5 | ^1.6.6 |
+| shiki | dependency | updated | ^4.5.0 | ^4.6.0 |
+
+[#398][#398]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#398]: https://github.com/spencerbeggs/tsdoctor/pull/398
+
 ## 0.19.17
 
 ### Dependencies
