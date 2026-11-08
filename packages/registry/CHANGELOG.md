@@ -1,5 +1,25 @@
 # @tsdoctor/registry
 
+## 0.7.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/files | dependency | updated | ^0.1.0 | ^0.2.0 |
+| @effected/package-json | dependency | updated | ^0.30.0 | ^0.31.0 |
+| @tsdoctor/vfs | dependency | updated | 0.7.1 | 0.7.2 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.20.1 | ^0.20.2 |
+| @effected/xdg | peerDependency | updated | ^0.19.1 | ^0.19.2 |
+
+[#404][#404]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#404]: https://github.com/spencerbeggs/tsdoctor/pull/404
+
 ## 0.7.1
 
 ### Bug Fixes
