@@ -1,5 +1,12 @@
 import { build } from "@savvy-web/rspress-builder";
 
+// Stays on @savvy-web/rspress-builder (upgrade ledger 0001 deferred):
+// - `effected package build` has no per-file runtime output for `runtime: true`
+//   (spencerbeggs/effected#1303, tracked in spencerbeggs/tsdoctor#402).
+// - The sites load this package's built JS in plain Node, which needs the
+//   `@tsdoctor/*` dist/dev link trees the kit removes
+//   (spencerbeggs/effected#1304, tracked in spencerbeggs/tsdoctor#403).
+
 await build({
 	runtime: true,
 	bundledPackages: ["@rspress/core", "@type/mdast", "@type/unist"],
