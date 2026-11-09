@@ -5,7 +5,6 @@ description: A service declares its live layer as a static on the class itself; 
 generated:
   by: okfit/claude-code
   at: 2026-09-27T18:03:13Z
-  body_sha256: 5faaf0a876a0586f97d4089c0663ad3d3694fedb00cf191cabe8dc54371904c2
 stale_after: 2026-12-12T00:00:00Z
 tags: [architecture, dx, testing]
 sources:
@@ -14,6 +13,9 @@ sources:
   - id: services-inventory
     resource: ../modules/rspress-plugin-api-extractor.md
 status: stable
+integrity:
+  generated:
+    body: 5faaf0a876a0586f
 ---
 
 # A service owns its layer as a static; no separate `*Live.ts` modules

@@ -24,19 +24,21 @@ sources:
     resource: ../../platforms/vitepress/package.json
 generated:
   by: okfit/claude-code
-  at: 2026-11-05T23:04:35Z
+  at: 2026-11-09T18:10:55Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
   - by: human:spencer
     at: 2026-11-02T19:11:05Z
+  - by: human:spencer
+    at: 2026-11-09T18:10:30Z
 integrity:
   generated:
-    body: 17390968c4236892
+    body: 33be9e58212af36e
   verified:
     by: human:spencer
-    at: 2026-11-02T19:11:05Z
-    content: f363815b18d94dfa
+    at: 2026-11-09T18:10:30Z
+    content: 9eb9f040746bb546
 ---
 
 # Core `@effected` peers follow the public `.d.ts` surface
@@ -92,13 +94,13 @@ became internal-only dependencies:
 | `@tsdoctor/seo` | `package-json`, `schema-org` | `spdx` |
 | `@tsdoctor/model` | `markdown`, plus `tsconfig-json` propagated from vfs | `yaml` |
 | `@tsdoctor/registry` | `store`, `xdg`, plus `tsconfig-json` propagated from vfs | `files`, `semver`, `package-json` |
-| `@tsdoctor/bundle` | `github`, `jsonc`, `npm`, `package-json`, `store`, `tsconfig-json`, `xdg` | `glob`, `walker` |
+| `@tsdoctor/bundle` | `github`, `jsonc`, `manifest`, `npm`, `package-json`, `store`, `tsconfig-json`, `xdg` | `glob`, `images`, `walker` |
 | `@tsdoctor/pages` | `markdown`, plus `package-json`, `schema-org`, `tsconfig-json` propagated | none |
-| `@tsdoctor/manifest` | none (`effect` only) | none |
+| `@tsdoctor/manifest` (deprecated re-export) | none (`effect` only) | `manifest` |
 
 `@tsdoctor/bundle`'s own manifest shows the split in one file:[^bundle-pkg]
-seven `catalog:effected` peer entries, plus `glob` and `walker` under
-`dependencies`. `@tsdoctor/vfs` keeps
+eight `@effected` `catalog:effected` peer entries, plus `glob`, `images`
+and `walker` under `dependencies`. `@tsdoctor/vfs` keeps
 `@effected/tsconfig-json` as a required peer, not an optional one,
 because `CompilerOptions` is part of its exported types.[^vfs-pkg]
 

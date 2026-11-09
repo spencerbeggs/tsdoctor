@@ -5,7 +5,6 @@ description: Accept both tsconfig and programmatic compiler-option spellings onl
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 6d2d88b5d4e03b7a1d28826bb592befd105ac06f1b7d61d49359299ab8e6775c
 stale_after: 2026-12-12T00:00:00Z
 tags: [compat, testing]
 sources:
@@ -18,6 +17,9 @@ sources:
   - id: rspress-compiler-seam-test
     resource: ../../platforms/rspress/__test__/compiler-options-seam.test.ts
 status: stable
+integrity:
+  generated:
+    body: 6d2d88b5d4e03b7a
 ---
 
 # Decode compiler options at one seam, never cast

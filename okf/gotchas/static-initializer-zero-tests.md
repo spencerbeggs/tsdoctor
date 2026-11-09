@@ -8,8 +8,10 @@ stale_after: 2026-12-12T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: a516af95db97a64a97f91d437aefc97944f7a45cc0cc53bd30839cdeba190361
 status: stable
+integrity:
+  generated:
+    body: a516af95db97a64a
 ---
 
 # "0 tests passed" with exit 0 means a static threw at import time

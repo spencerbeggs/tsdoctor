@@ -1,8 +1,8 @@
 import { GlobPatternOptions } from "@effected/glob";
+import type { BundleManifestError } from "@effected/manifest";
+import { BUNDLE_MANIFEST_FILENAME } from "@effected/manifest";
 import { LenientManifest } from "@effected/package-json";
 import { compileAndExpand } from "@effected/walker";
-import type { BundleManifestError } from "@tsdoctor/manifest";
-import { TSDOCTOR_MANIFEST_FILENAME } from "@tsdoctor/manifest";
 import { Effect, FileSystem, Option, Path, Schema } from "effect";
 import type { Bundle, BundleDescriptor, BundleLayerError } from "./Bundle.js";
 import { readApiModelInfo, readBundle } from "./Bundle.js";
@@ -199,7 +199,7 @@ function pickModelFile(
  * @remarks
  * Generalizes the RSPress plugin's `api.fromDir` helper, framework-neutral:
  * no route derivation — that stays in the adapter. Layer 0 (`*.api.json`) is
- * required; package.json, tsconfig.json and tsdoctor.json are recorded when
+ * required; package.json, tsconfig.json and bundle.json are recorded when
  * present. The package name comes from package.json when it has one, falling
  * back to the api.json model's own name; the version comes from package.json
  * alone. Caller overrides win over discovery. `FileSystem` and `Path` stay
@@ -235,7 +235,7 @@ export function discoverBundle(
 		const version = options?.overrides?.version ?? (Option.isSome(packageJson) ? packageJson.value.version : undefined);
 
 		const tsconfigPath = path.join(abs, "tsconfig.json");
-		const manifestPath = path.join(abs, TSDOCTOR_MANIFEST_FILENAME);
+		const manifestPath = path.join(abs, BUNDLE_MANIFEST_FILENAME);
 		const hasTsconfig = yield* fs.exists(tsconfigPath).pipe(Effect.orElseSucceed(() => false));
 		const hasManifest = yield* fs.exists(manifestPath).pipe(Effect.orElseSucceed(() => false));
 

@@ -7,8 +7,10 @@ tags: [observability, performance]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 93d169fa236e0018b4adef0549a6e8bbd18f6191b8daf6bfe84db5b9261a818f
 status: stable
+integrity:
+  generated:
+    body: 93d169fa236e0018
 ---
 
 # Heartbeat misses the render phase

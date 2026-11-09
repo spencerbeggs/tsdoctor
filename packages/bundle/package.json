@@ -2,7 +2,7 @@
 	"name": "@tsdoctor/bundle",
 	"version": "0.8.2",
 	"private": true,
-	"description": "The tsdoctor bundle spec: layered bundle discovery, the versioned tsdoctor.json sidecar manifest, provenance-carrying resolution and canonical input hashing for API documentation bundles.",
+	"description": "The tsdoctor bundle spec: layered bundle discovery, the versioned bundle.json sidecar manifest, provenance-carrying resolution and canonical input hashing for API documentation bundles.",
 	"keywords": ["api-extractor", "bundle", "manifest", "documentation", "provenance", "typescript", "effect", "esm"],
 	"homepage": "https://github.com/spencerbeggs/tsdoctor#readme",
 	"bugs": {
@@ -22,13 +22,14 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": {
+			"effected-built": "./dist/prod/npm/pkg/index.js",
+			"default": "./src/index.ts"
+		},
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
-		"prepare": "node savvy.build.ts --target dev",
+		"build": "effected package build",
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -42,6 +43,7 @@
 		"@effected/config-file": "catalog:effected",
 		"@effected/github": "catalog:effected",
 		"@effected/jsonc": "catalog:effected",
+		"@effected/manifest": "catalog:effected",
 		"@effected/memfs": "catalog:effected",
 		"@effected/npm": "catalog:effected",
 		"@effected/package-json": "catalog:effected",
@@ -50,21 +52,19 @@
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.4",
-		"@tsdoctor/manifest": "workspace:*",
-		"@types/node": "catalog:build",
+		"@types/node": "catalog:effected:build",
 		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
 		"@effected/github": "catalog:effected",
 		"@effected/jsonc": "catalog:effected",
+		"@effected/manifest": "catalog:effected",
 		"@effected/npm": "catalog:effected",
 		"@effected/package-json": "catalog:effected",
 		"@effected/store": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
-		"@tsdoctor/manifest": "workspace:*",
 		"effect": "catalog:effected"
 	},
 	"engines": {
@@ -72,8 +72,6 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
 		"targets": {
 			"npm": true
 		}

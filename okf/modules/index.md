@@ -1,7 +1,7 @@
 # Module
 
-* [@tsdoctor/bundle](tsdoctor-bundle.md) - The versioned bundle spec — layered discovery, the tsdoctor.json manifest, provenance-carrying resolution, fetchers and Open Graph asset publishing.
-* [@tsdoctor/manifest](tsdoctor-manifest.md) - The tsdoctor.json sidecar manifest schema: spec, encode/decode boundaries and the ManifestSource authoring-file shape.
+* [@tsdoctor/bundle](tsdoctor-bundle.md) - The versioned bundle spec — layered discovery, the bundle.json manifest, provenance-carrying resolution, fetchers and Open Graph asset publishing.
+* [@tsdoctor/manifest](tsdoctor-manifest.md) - Deprecated: a thin re-export of @effected/manifest, the kit package that now owns the bundle.json sidecar manifest schema.
 * [@tsdoctor/model](tsdoctor-model.md) - Framework-neutral analysis of Microsoft API Extractor models — loading, TSDoc extraction, multi-entry resolution, routes, cross-linking, signatures and the api.json-to-TypeScript bridge.
 * [@tsdoctor/pages](tsdoctor-pages.md) - The framework-neutral documentation page IR for static TypeScript API sites — blocks, builders, navigation, and the plain-markdown emitter.
 * [@tsdoctor/registry](tsdoctor-registry.md) - External package type loading — fetch, cache and resolve published npm type definitions into a Vfs for Twoslash tooling.

@@ -6,8 +6,10 @@ tags: [architecture, observability]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 9b47d95350beb4c7ed4e3758cdff26e79be601b537b04557aff7cdc50a70b342
 status: stable
+integrity:
+  generated:
+    body: 9b47d95350beb4c7
 ---
 
 # Sync island

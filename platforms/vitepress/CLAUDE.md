@@ -33,7 +33,7 @@ adapter) and `@okf/modules/tsdoctor-pages.md` (the IR contract) in the
   `ApiExtractorOptions.ogImage?: string | OpenGraphImage` is the platform
   tier — an absolute `http(s)://` string resolves to a `url` image, any other
   string to a bundle-relative `path` — ranked above the bundle's own
-  `tsdoctor.json`. Pages emit `og:title` (the item's display name) and
+  `bundle.json`. Pages emit `og:title` (the item's display name) and
   `og:site_name` (the resolved project or package name) alongside `og:image`.
 - **The emitter is `src/emit/markdown.ts`.** Signatures, members, base
   classes and type-checked examples are `ts twoslash` fences carrying the
@@ -64,13 +64,16 @@ adapter) and `@okf/modules/tsdoctor-pages.md` (the IR contract) in the
 - Out of scope for the alpha, deliberately: code-block cross-links
   (`ShikiCrossLinker` is RSPress-HAST-shaped), llms.txt, multiVersion / i18n /
   multi-API, snapshot-tracked writes, a `serve` runner.
-- Builds with `build()` (`savvy.build.ts`, `@savvy-web/bundler`); tsconfig
-  extends `@savvy-web/bundler/tsconfig/ecma.json`; `vitepress` is a peer.
+- Builds with `effected package build` (no `effected.toml`); tsconfig
+  extends `@effected/plugin/tsconfig/ecma.json`; `vitepress` is a peer.
+  The fixture site's config imports this adapter through a variable-specifier
+  `import(adapter)` so Node, not Vite's config bundler, resolves it under
+  `--conditions=effected-built` to the built output.
 
 ## Commands
 
 ```bash
-pnpm --filter vitepress-plugin-api-extractor run build:dev
+pnpm --filter vitepress-plugin-api-extractor run build
 pnpm --filter @sites/vitepress-basic run build   # the fixture site
 pnpm vitest run platforms/vitepress/
 ```
@@ -85,5 +88,6 @@ bundle" section and `okf/index.md`). Concepts most relevant to this package:
 - `../../okf/interfaces/vitepress-api-extractor.md`
 - `../../okf/gotchas/vitepress-buildend-never-fires-in-dev.md`
 - `../../okf/limitations/vitepress-alpha-scope.md`
+- `../../okf/gotchas/vite-config-ignores-conditions.md`
 - `../../okf/modules/tsdoctor-vfs.md`
 - `../../okf/interfaces/seo-headtags.md`

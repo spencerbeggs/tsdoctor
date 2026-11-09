@@ -5,7 +5,6 @@ description: Time code-block rendering with synchronous spans only, summed rathe
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: e3dd4b89b9f18440f8b8e39827f4af5f3e17d8192de75fbd5edbecb64351c775
 stale_after: 2026-12-12T00:00:00Z
 tags: [observability, performance, testing]
 sources:
@@ -14,6 +13,9 @@ sources:
   - id: twoslash-timing-wrapper
     resource: ../../platforms/rspress/src/twoslash-timing-wrapper.ts
 status: stable
+integrity:
+  generated:
+    body: e3dd4b89b9f18440
 ---
 
 # Never measure a code-block span across an await

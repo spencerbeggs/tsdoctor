@@ -18,9 +18,11 @@ sources:
     resource: ../../pnpm-workspace.yaml
 generated:
   by: okfit/claude-code
-  at: 2026-10-10T00:55:39Z
-  body_sha256: 351a02726fe3332b786b9c78beb66b6db5d80968eb681ff28166edc1dcabd266
+  at: 2026-11-09T18:10:55Z
 status: draft
+integrity:
+  generated:
+    body: 62576c4a6fc778f3
 ---
 
 # api-docs agent plugin
@@ -78,7 +80,7 @@ for the distinction this repository draws between the two.
 The manifests, `hooks.json` and `monitors.json` exist only in `builds/`,
 written by `pluginfinity build` from the config; no source file holds
 them[^plugin-claude-md]. Turbo runs that build through the workspace's
-`build:dev` and `build:prod` scripts. `builds/` is committed and never
+`build` script. `builds/` is committed and never
 hand-edited: `pnpm plugin:check` (`pluginfinity build --check` plus a
 `git diff` over `plugin/builds`) fails when the builds lag the source, and
 the release workflow runs it as its on-build gate.

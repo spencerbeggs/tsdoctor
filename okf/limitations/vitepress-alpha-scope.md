@@ -7,8 +7,10 @@ tags: [architecture, compat]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 2f832cd810af9f4678eafd707a0f8b4db98cb37fae84c3b8f2ecbe27c14cad0b
 status: stable
+integrity:
+  generated:
+    body: 2f832cd810af9f46
 ---
 
 # VitePress adapter alpha scope

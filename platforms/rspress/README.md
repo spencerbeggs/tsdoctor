@@ -42,7 +42,7 @@ npx rspress dev
 # Generates one MDX page per public API item and serves them at http://localhost:3000
 ```
 
-The plugin reads your `.api.json` model and writes one MDX page per public API item under your docs root, grouped into category folders (classes, interfaces, functions, type aliases, enums, variables and namespaces) with navigation metadata. To produce the model, pair it with [@savvy-web/bundler](https://github.com/savvy-web/bundler), which emits the `.api.json` as part of your production TypeScript build.
+The plugin reads your `.api.json` model and writes one MDX page per public API item under your docs root, grouped into category folders (classes, interfaces, functions, type aliases, enums, variables and namespaces) with navigation metadata. To produce the model, run [API Extractor](https://api-extractor.com/) as part of your production TypeScript build (for example through `effected package build`, which emits the `.api.json` beside your package).
 
 ## Features
 

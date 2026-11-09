@@ -4,7 +4,7 @@
 	"tasks": {
 		"build": {
 			"cache": false,
-			"dependsOn": ["@modules/effect-kit#build:prod", "@modules/kitchensink#build:prod"],
+			"dependsOn": ["^build", "@modules/effect-kit#build", "@modules/kitchensink#build"],
 			"outputLogs": "full",
 			"outputs": ["dist/**"]
 		},

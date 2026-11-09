@@ -6,19 +6,21 @@ description: Core @tsdoctor/* packages stay pre-1.0 until platforms/vitepress pr
 tags: [release, architecture]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
+  at: 2026-11-09T18:10:55Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
   - by: human:spencer
     at: 2026-11-02T19:11:05Z
+  - by: human:spencer
+    at: 2026-11-09T18:10:30Z
 integrity:
   generated:
-    body: bfd32dcf3dcd20e5
+    body: 70c6bb3028a333d2
   verified:
     by: human:spencer
-    at: 2026-11-02T19:11:05Z
-    content: b2b4ae237b888107
+    at: 2026-11-09T18:10:30Z
+    content: b31c874eb91d0d56
 ---
 
 # A working VitePress alpha gates every core package's 1.0
@@ -82,10 +84,9 @@ depends on which TypeScript compiler generation is in use.
   [deprecate-model-render.md](deprecate-model-render.md)); the next core-move
   tier measured by building the VitePress adapter and not yet taken;
   an unscheduled follow-up (requested 2026-09-03) to generate a versioned
-  JSON Schema for `tsdoctor.json` from `@tsdoctor/manifest`'s
-  `BundleManifest` via `@effected/schemastore`, emitted to the repo root
-  under `schemas/<version>/tsdoctor-<version>.json` for SchemaStore
-  submission; and the final phase-7 pass to stabilize APIs, write user
+  JSON Schema for `bundle.json` from `BundleManifest` via
+  `@effected/schemastore` for SchemaStore submission, which now belongs
+  with the kit package `@effected/manifest` that owns the schema; and the final phase-7 pass to stabilize APIs, write user
   docs and finalize deprecations before tagging 1.0 across the core and
   `rspress-plugin-api-extractor@1.0.0` on top of it.
 - Docusaurus support and a `@tsdoctor/cli` scaffolding binary are both

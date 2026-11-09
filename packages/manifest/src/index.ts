@@ -1,29 +1,33 @@
 /**
- * `@tsdoctor/manifest` — the `tsdoctor.json` sidecar manifest: the spec-1
- * schema, the writer and reader boundaries, and the authoring-file shape.
+ * `@tsdoctor/manifest` — deprecated. The spec-1 bundle manifest now ships
+ * from the kit as `@effected/manifest`, and the sidecar is named
+ * `bundle.json`.
  *
  * @remarks
- * The kit now owns spec 1 (`BundleManifest` in `@effected/bundler`), but only
- * from the build-toolchain package. This copy stays until it ships from a pure
- * kit package: spencerbeggs/effected#1301, tracked in spencerbeggs/tsdoctor#400.
+ * Every name re-exports `@effected/manifest` unchanged, so an existing import
+ * keeps working for one more release. Import from `@effected/manifest`, or
+ * from `@tsdoctor/bundle`, which re-exports the same names.
+ *
+ * @deprecated Use `@effected/manifest`.
  *
  * @packageDocumentation
  */
 
 export {
+	BUNDLE_MANIFEST_FILENAME,
 	BundleManifest,
 	BundleManifestError,
 	KNOWN_REGISTRY_TYPES,
 	type KnownRegistryType,
 	MANIFEST_SPEC,
+	ManifestSource,
 	OpenGraphConfig,
 	OpenGraphImage,
 	ProjectIdentity,
 	RegistryRef,
 	SbomRef,
-	TSDOCTOR_MANIFEST_FILENAME,
 	decodeBundleManifest,
+	decodeManifestSource,
 	encodeBundleManifest,
 	isKnownRegistryType,
-} from "./BundleManifest.js";
-export { ManifestSource, decodeManifestSource } from "./ManifestSource.js";
+} from "@effected/manifest";

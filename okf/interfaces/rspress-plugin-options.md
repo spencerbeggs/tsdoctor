@@ -8,8 +8,10 @@ description: The Effect Schema PluginOptions decodes into ResolvedApiConfig; con
 tags: [dx, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 8c52fa3afe976972067c0ef10ba96db7ef2a5fd7e25aeecf6e100ad8fc4872df
+  at: 2026-11-09T18:10:55Z
+integrity:
+  generated:
+    body: d02c044f75ef1058
 ---
 
 # RSPress plugin options (`PluginOptions`)
@@ -102,7 +104,7 @@ ignored rather than type-checking that version differently.
 
 `ogImage` is a legacy, still-live option at the global and per-API levels,
 resolved through `OgService`. It **outranks** whatever Open Graph image the
-resolved `@tsdoctor/bundle`'s `tsdoctor.json` carries, because `OgService`
+resolved `@tsdoctor/bundle`'s `bundle.json` carries, because `OgService`
 can additionally probe the site's own `docs/public` directory — something
 the bundle resolver has no access to. There is no `siteUrl` option (see the
 linked decision) and no `twitterSite` option; `twitterSite` is a seam

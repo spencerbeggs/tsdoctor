@@ -8,8 +8,10 @@ stale_after: 2026-12-12T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 0160ccb356f03b57fda1bba6c5379114b54f6e43f6eb787d7f2940250158f858
 status: stable
+integrity:
+  generated:
+    body: 0160ccb356f03b57
 ---
 
 # An undimensioned metric total outlives the build that produced it

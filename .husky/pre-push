@@ -15,7 +15,7 @@ in_ci() { [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; }
 if ! in_ci; then
 	if ! (cd "$ROOT/plugin" && pnpm exec pluginfinity build --check >/dev/null); then
 		echo "plugin: plugin/builds is out of date with its source - push blocked." >&2
-		echo "  Rebuild and commit: pnpm --filter @tsdoctor/ai-plugins run build:dev" >&2
+		echo "  Rebuild and commit: pnpm --filter @tsdoctor/ai-plugins run build" >&2
 		exit 1
 	fi
 	if [ -n "$(git -C "$ROOT" status --porcelain -- plugin/builds)" ]; then

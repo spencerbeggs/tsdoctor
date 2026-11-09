@@ -7,14 +7,14 @@ resource: ../../packages/seo
 layer: L2
 generated:
   by: "okfit/claude-code"
-  at: 2026-10-31T20:38:59Z
+  at: 2026-11-09T18:10:55Z
 tags:
   - architecture
   - dx
 status: stable
 integrity:
   generated:
-    body: 1419e5f37bed346d
+    body: f2d96cc4aae24e66
 ---
 
 # @tsdoctor/seo
@@ -184,7 +184,7 @@ constant answer.
 ## Out of scope
 
 Open Graph image *generation* (satori + resvg-js — that now happens at build
-time in the upstream `@savvy-web/bundler` meta pass, not in this package or
+time in the `effected package build` meta pass (`@effected/bundler`), not in this package or
 either adapter), sitemaps, `robots.txt`, and a configured `twitter:site`
 handle (the seam input exists; no plugin option supplies it yet).
 

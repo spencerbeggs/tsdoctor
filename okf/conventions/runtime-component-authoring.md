@@ -4,8 +4,7 @@ title: Runtime component authoring
 description: Conventions for React components under platforms/rspress/src/runtime/components — layout, styling, SSG-MD dual-mode rendering, and accessibility.
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 439564d4abf41b028c4a46f51b849853211bdc328fa942aa940c1fa374ca64e7
+  at: 2026-11-09T18:10:55Z
 stale_after: 2026-12-12T00:00:00Z
 tags: [dx]
 sources:
@@ -16,6 +15,9 @@ sources:
   - id: api-example
     resource: ../../platforms/rspress/src/runtime/components/ApiExample/index.tsx
 status: stable
+integrity:
+  generated:
+    body: cca22c3f15228590
 ---
 
 # Runtime component authoring
@@ -81,8 +83,8 @@ registration paths depend on.
 - `grep -rn "import \* as" platforms/rspress/src/runtime/` returns nothing.
 - Every relative import inside `runtime/` ends in `.js`.
 - Build the runtime (`pnpm --filter rspress-plugin-api-extractor run
-  build:dev`) and confirm the emitted `dist/dev/pkg/runtime/` tree still has
-  one file per component rather than a shared chunk.
+  build`) and confirm the emitted `dist/prod/npm/pkg/runtime/` tree still
+  has one file per component rather than a shared chunk.
 - Generate a site's `llms-full.txt` and diff a changed component's markdown
   output against its browser rendering for parity of information (not
   markup).

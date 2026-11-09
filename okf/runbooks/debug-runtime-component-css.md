@@ -6,9 +6,11 @@ resource: ../../platforms/rspress/src/runtime/components
 tags: [dx, testing]
 generated:
   by: okfit/claude-code
-  at: 2026-09-27T18:03:13Z
-  body_sha256: aa9d383a746efc0852b408dbf0a35cb6038171c68911cf533b2fa3a66e6b5391
+  at: 2026-11-09T18:10:55Z
 status: stable
+integrity:
+  generated:
+    body: 4222f43a8f6a2a5b
 ---
 
 # Debug runtime component CSS in a live fixture site
@@ -28,9 +30,9 @@ Twoslash popup positioning. Unit tests cannot see any of these.
    example through Playwright MCP.
 3. Edit the component's CSS or `index.tsx`.
 4. Rebuild the plugin alone:
-   `pnpm --filter rspress-plugin-api-extractor run build:dev`.
+   `pnpm --filter rspress-plugin-api-extractor run build`.
 5. Kill and restart the dev server. It does not hot-reload the plugin's
-   built `dist/dev/pkg` output, so without a restart the browser keeps
+   built `dist/prod/npm/pkg` output, so without a restart the browser keeps
    showing the previous build and an edit looks like it did nothing.
 6. Re-inspect the page, and repeat from step 3.
 

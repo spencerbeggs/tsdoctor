@@ -7,14 +7,16 @@ resource: ../../platforms/rspress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-10-10T00:56:05Z
-  body_sha256: d873949fc3e85dbe6b215b270fad83c4ceae83ebb3b716a5dfd3fb115c05c3f2
+  at: 2026-11-09T18:10:55Z
 tags:
   - architecture
   - observability
   - performance
   - dx
 status: stable
+integrity:
+  generated:
+    body: f29f31f05b755f5f
 ---
 
 # rspress-plugin-api-extractor
@@ -59,8 +61,7 @@ Core package consumption (every edge `workspace:*`):
 | `@tsdoctor/model` | `Model.load`, the `Tsdoc` / `ApiItems` / `EntryPoints` / `Routes` / `SyntheticBases` / `Signature` namespaces, the `CrossLinker`, `ApiExtractedPackage`, `TypeReferenceExtractor`, the `Frontmatter` contract |
 | `@tsdoctor/vfs` | The `Vfs` currency type, `VirtualPackage`, `TsEnvironment`, the compiler-options seam, the Twoslash result cache |
 | `@tsdoctor/registry` | External type loading into a `Vfs`, behind `src/services/TypeRegistryService.ts` |
-| `@tsdoctor/bundle` | `discoverBundle` for the config helpers, plus npm-tarball and GitHub-release fetchers |
-| `@tsdoctor/manifest` | The `tsdoctor.json` schema `loadBundle` / `publishBundleAssets` decode and encode through |
+| `@tsdoctor/bundle` | `discoverBundle` for the config helpers, plus npm-tarball and GitHub-release fetchers; re-exports the `bundle.json` schema from `@effected/manifest` (a direct `catalog:effected` dependency, not a workspace edge) |
 | `@tsdoctor/snapshot` | `SnapshotService` and the content hashers |
 | `@tsdoctor/seo` | `deriveSiteUrl`, `attributionFacts`, `packageContext`, `deriveScriptBody`, `headTags` — every `<head>` decision |
 | `@tsdoctor/pages` | `prepareWorkItems`, `buildPage` / `buildIndexPage`, `buildNav`, example preparation, the scope helpers, the llms.txt text transforms |
@@ -300,7 +301,7 @@ keys remains a configuration error. When inert, no model is loaded, no
 
 **Resolving the bundle.** `resolveApiBundle` calls `loadBundle` on the
 model's directory per API — a loader-function or URL-based model has no
-directory to discover a `tsdoctor.json` sidecar beside, so it falls back to
+directory to discover a `bundle.json` sidecar beside, so it falls back to
 an inferred bundle carrying only the package name — resolves it with an
 empty platform tier (this adapter has no platform-override tier of its own),
 and, when a `siteUrl` and an `openGraph` block both exist, publishes the
@@ -310,7 +311,7 @@ passes its version as the `subdir`, so per-version images do not collide).
 `loadBundle` pins the model it was already handed
 (`overrides: { modelPath, name: packageName }`) rather than letting
 discovery re-pick an `*.api.json` candidate in the directory. Only a
-malformed `tsdoctor.json` fails typed as `ConfigValidationError` with
+malformed `bundle.json` fails typed as `ConfigValidationError` with
 `field: "bundle"`; a discovery or layer-read failure degrades to a
 `ConfigValidationWarning` with `field: "bundle"` plus the inferred bundle. An
 asset-publish failure separately degrades to a `ConfigValidationWarning` with
@@ -652,26 +653,31 @@ Two runtime UI components: `ApiLlmsPackageActions`, registered as a
 
 ### Build output
 
-Built via `build()` from `@savvy-web/rspress-builder` (`savvy.build.ts`).
-Two emitted halves: the plugin half (Node.js) — every `src/*.ts` becomes its
+Built by `effected package build`, configured by `effected.toml`. Two
+emitted halves: the plugin half (Node.js) — every `src/*.ts` becomes its
 own `.js` under the package root, `dependencies` left external; and the
-runtime half (browser) — emitted bundleless, each component transpiled
-1:1 into its own `.js` beside its CSS module under `runtime/`, `react` /
-`@theme` external, `import.meta.env` left as a runtime expression so RSPress
-does the final per-site compile. A single bundle once froze
+runtime half (browser) — a `[[package.build.overrides]]` block
+(`entries = ["./runtime"]`, `outSubdir = "runtime"`,
+`platform = "browser"`) emits it bundleless, each component transpiled 1:1
+into its own `.js` under `runtime/`, CSS modules compiled through
+`@tsdown/css` with `inject = true`, `react` / `@rspress/core` / `@theme`
+external, and `import.meta.env.SSG_MD` left unresolved so RSPress does the
+final per-site compile. A single bundle once froze
 `import.meta.env.SSG_MD` to `undefined` and broke the SSG-MD dual-mode
 branch. See
 [bundleless-per-file-runtime](../decisions/bundleless-per-file-runtime.md).
 
-The dev build writes `dist/dev/pkg`; `publishConfig` (`directory:
-"dist/dev/pkg"`, `linkDirectory: true`) makes that directory the workspace
-link target — sites depending on the plugin via `workspace:*` import the
-built per-file JS, not `src/`. Production emits the published root under
-`dist/prod/`, recorded in `dist/prod/targets.json`.
+The one `build` script writes the published root to `dist/prod/npm/pkg`,
+recorded in `dist/prod/targets.json`, with the build report at
+`dist/prod/issues.json`. There is no dev build. The source `exports`
+resolve to `src/` by default and carry a leading `effected-built`
+condition pointing at `./dist/prod/npm/pkg/`; the fixture sites select it,
+so sites depending on the plugin via `workspace:*` import the built
+per-file JS, not `src/`.
 
-The plugin's own `tsconfig.json` uses `"module": "esnext"` and
-`"moduleResolution": "bundler"` because API Extractor requires bundler
-resolution. The package also publishes
+The plugin's own `tsconfig.json` extends
+`@effected/plugin/tsconfig/ecma.json`, adding only `react-jsx` and the DOM
+lib. The package also publishes
 `rspress-plugin-api-extractor/tsconfig/rspress.json`, a standard RSPress
 React-JSX bundler-resolution config sites extend from.
 

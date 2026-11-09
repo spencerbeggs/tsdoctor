@@ -69,7 +69,7 @@ export interface GenerateInput {
 	readonly source?: { readonly url: string; readonly ref?: string | undefined } | undefined;
 	/**
 	 * The `manifest.platform` Open Graph image override, ranked above the
-	 * bundle's own `tsdoctor.json`. A string is an absolute `http(s)://` URL or
+	 * bundle's own `bundle.json`. A string is an absolute `http(s)://` URL or
 	 * a path relative to the bundle directory; an object is the manifest image
 	 * shape (`path` XOR `url`, plus `type`/`width`/`height`/`alt`).
 	 */
@@ -153,7 +153,7 @@ export const generate = Effect.fn("Generate.generate")(function* (input: Generat
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 
-	// 1. The bundle: model, package.json, tsconfig, and its tsdoctor.json sidecar.
+	// 1. The bundle: model, package.json, tsconfig, and its bundle.json sidecar.
 	const bundle = yield* loadBundle(input.dir, { cwd: input.cwd });
 	const descriptor = bundle.descriptor;
 	const apiPackage = yield* Model.load(descriptor.modelPath);
@@ -208,7 +208,7 @@ export const generate = Effect.fn("Generate.generate")(function* (input: Generat
 	const docsDir = path.resolve(input.cwd, input.docsDir);
 
 	// The `ogImage` option is the `manifest.platform` tier, ranked above the
-	// bundle's own `tsdoctor.json`: a string is either an absolute URL or a
+	// bundle's own `bundle.json`: a string is either an absolute URL or a
 	// path relative to the bundle directory, an object is the manifest image
 	// shape verbatim.
 	const platform: PlatformOverrides =

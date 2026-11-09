@@ -19,12 +19,23 @@ export default defineConfig({
 	plugins: [
 		ApiExtractorPlugin({
 			observability: { logLevel: "info" },
-			// The bundle's tsdoctor.json manifest now supplies the Open Graph
-			// image — see lib/models/kitchensink/tsdoctor.json.
+			// The bundle.json manifest now supplies the Open Graph
+			// image — see lib/models/kitchensink/bundle.json.
 			api: ApiExtractorPlugin.api.fromDir("./lib/models/kitchensink"),
 		}),
 	],
 	route: {
 		cleanUrls: true,
+	},
+	// Resolve the workspace plugin runtime and its @tsdoctor/* siblings to their
+	// built output, as Node does for this config under --conditions=effected-built.
+	builderConfig: {
+		tools: {
+			rspack: (config) => {
+				config.resolve ??= {};
+				config.resolve.conditionNames = ["effected-built", ...(config.resolve.conditionNames ?? ["..."])];
+				return config;
+			},
+		},
 	},
 });

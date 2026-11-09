@@ -38,7 +38,7 @@ const extractedNpmSeed: MemoryFileSystemSeed = {
 		description: "Fixture",
 	}),
 	"/extracted/package/tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
-	"/extracted/package/tsdoctor.json": JSON.stringify({ spec: 1, name: "Sidecar" }),
+	"/extracted/package/bundle.json": JSON.stringify({ spec: 1, name: "Sidecar" }),
 };
 
 /** The base environment: memfs, Path, in-memory Cache, AppDirs pinned into memfs. */
@@ -324,7 +324,7 @@ const extractedMetaSeedWithImage: MemoryFileSystemSeed = {
 	"/gh-og-extracted/meta/kitchensink.api.json": apiModelText("@vitest-agent/kitchensink"),
 	"/gh-og-extracted/meta/package.json": JSON.stringify({ name: "@vitest-agent/kitchensink", version: "1.0.0" }),
 	"/gh-og-extracted/meta/tsconfig.json": JSON.stringify({ compilerOptions: {} }),
-	"/gh-og-extracted/meta/tsdoctor.json": JSON.stringify({
+	"/gh-og-extracted/meta/bundle.json": JSON.stringify({
 		spec: 1,
 		name: "Kitchen Sink",
 		openGraph: { images: [{ path: "og/k.png" }] },
@@ -338,7 +338,7 @@ const extractedMetaSeedTraversalImage: MemoryFileSystemSeed = {
 	"/gh-og-traversal/meta/kitchensink.api.json": apiModelText("@vitest-agent/kitchensink"),
 	"/gh-og-traversal/meta/package.json": JSON.stringify({ name: "@vitest-agent/kitchensink", version: "1.0.0" }),
 	"/gh-og-traversal/meta/tsconfig.json": JSON.stringify({ compilerOptions: {} }),
-	"/gh-og-traversal/meta/tsdoctor.json": JSON.stringify({
+	"/gh-og-traversal/meta/bundle.json": JSON.stringify({
 		spec: 1,
 		name: "Kitchen Sink",
 		openGraph: { images: [{ path: "../evil.png" }] },
@@ -352,7 +352,7 @@ const extractedMetaSeedMissingImage: MemoryFileSystemSeed = {
 	"/gh-missing-extracted/meta/kitchensink.api.json": apiModelText("@vitest-agent/kitchensink"),
 	"/gh-missing-extracted/meta/package.json": JSON.stringify({ name: "@vitest-agent/kitchensink", version: "1.0.0" }),
 	"/gh-missing-extracted/meta/tsconfig.json": JSON.stringify({ compilerOptions: {} }),
-	"/gh-missing-extracted/meta/tsdoctor.json": JSON.stringify({
+	"/gh-missing-extracted/meta/bundle.json": JSON.stringify({
 		spec: 1,
 		name: "Kitchen Sink",
 		openGraph: { images: [{ path: "og/missing.png" }] },
@@ -369,7 +369,7 @@ describe("fetchGitHubReleaseBundle openGraph assets", () => {
 
 			const fs = yield* FileSystem.FileSystem;
 			const path = yield* Path.Path;
-			assert.isTrue(yield* fs.exists(path.join(cacheDir, "tsdoctor.json")));
+			assert.isTrue(yield* fs.exists(path.join(cacheDir, "bundle.json")));
 			assert.isTrue(yield* fs.exists(path.join(cacheDir, "og", "k.png")));
 
 			const loaded = yield* loadBundle(cacheDir);

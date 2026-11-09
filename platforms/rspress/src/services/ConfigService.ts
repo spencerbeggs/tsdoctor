@@ -76,7 +76,7 @@ export interface ResolvedApiConfig {
 	 * The API's bundle, resolved with provenance across the manifest tiers.
 	 *
 	 * @remarks
-	 * Always present: a bundle with no `tsdoctor.json` still resolves, its
+	 * Always present: a bundle with no `bundle.json` still resolves, its
 	 * `name` falling back to the api.json model's own name.
 	 */
 	readonly bundle: ResolvedBundle;

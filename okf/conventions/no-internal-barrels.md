@@ -5,7 +5,6 @@ description: In an adapter's src, only src/index.ts re-exports; every internal i
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 78aaf4c2a56b5b89842360b03b22c5603c85e9c4e52a3f43308ea365b130bde2
 stale_after: 2026-12-12T00:00:00Z
 tags: [dx, architecture]
 sources:
@@ -14,6 +13,9 @@ sources:
   - id: vitepress-index
     resource: ../../platforms/vitepress/src/index.ts
 status: stable
+integrity:
+  generated:
+    body: 78aaf4c2a56b5b89
 ---
 
 # No internal barrels

@@ -1,7 +1,7 @@
 ---
 type: Module
 title: "@tsdoctor/bundle"
-description: The versioned bundle spec — layered discovery, the tsdoctor.json manifest, provenance-carrying resolution, fetchers and Open Graph asset publishing.
+description: The versioned bundle spec — layered discovery, the bundle.json manifest, provenance-carrying resolution, fetchers and Open Graph asset publishing.
 kind: package
 layer: L2
 resource: ../../packages/bundle
@@ -13,10 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:38:59Z
+  at: 2026-11-09T18:10:55Z
 integrity:
   generated:
-    body: 886d3c22fc2cc18f
+    body: 7053cee665352fd8
 ---
 
 # @tsdoctor/bundle
@@ -26,8 +26,8 @@ integrity:
 `@tsdoctor/bundle` formalizes the *bundle*: the folder or tarball of files
 describing one documented package — the fundamental input contract behind
 "give us an api.json and we transform it into static docs." It owns the
-layered resolution ladder, the sidecar manifest (schema re-exported from
-`@tsdoctor/manifest`), a provenance-carrying resolver, three fetchers
+layered resolution ladder, the `bundle.json` sidecar manifest (schema
+re-exported from `@effected/manifest`), a provenance-carrying resolver, three fetchers
 (local directory, npm tarball, GitHub release) and an Open Graph asset
 publisher.[^src] It is deliberately free of `@microsoft/api-extractor-model`:
 layer 0 of the ladder reads only the model's package name; full model
@@ -35,9 +35,9 @@ loading belongs to `@tsdoctor/model`.
 
 ## Layer cake
 
-Re-exports every name from `@tsdoctor/manifest` (`workspace:*`), so this
-package is the one consumers in the monorepo import from — a reader never
-imports `@tsdoctor/manifest` directly. Ships no services of its own:
+Re-exports every name from `@effected/manifest` (`catalog:effected`), so
+this package is the one consumers in the monorepo import from — a reader
+never imports the manifest package directly. Ships no services of its own:
 filesystem functions keep `FileSystem | Path` in their Effect requirement
 channel, and callers compose the platform at the edge, the same posture
 `@effected/walker` takes. Both adapters (`platforms/rspress`'s
@@ -45,7 +45,7 @@ channel, and callers compose the platform at the edge, the same posture
 `loadBundle` then `resolveBundleFrom` and publish the resolved Open Graph
 images through `publishBundleAssets`.
 
-Peers: `effect`, `@tsdoctor/manifest`, and the seven
+Peers: `effect`, `@effected/manifest`, and the seven
 `@effected` packages whose types appear in this package's public `.d.ts`
 surface: `github`, `jsonc`, `npm`, `package-json`, `store`,
 `tsconfig-json` and `xdg`, each `catalog:effected`. `@effected/glob`,
@@ -56,10 +56,11 @@ Open Graph assets) are used internally only, so they are ordinary
 
 ## Public surface
 
-Re-exported from `@tsdoctor/manifest` (see that module for detail):
+Re-exported from `@effected/manifest` (see the interface concept for
+detail):
 `BundleManifest`, `ManifestSource`, `decodeBundleManifest`,
 `encodeBundleManifest`, `decodeManifestSource`, `MANIFEST_SPEC`,
-`TSDOCTOR_MANIFEST_FILENAME`, `KNOWN_REGISTRY_TYPES`,
+`BUNDLE_MANIFEST_FILENAME`, `KNOWN_REGISTRY_TYPES`,
 `isKnownRegistryType`, `OpenGraphConfig`, `OpenGraphImage`,
 `ProjectIdentity`, `RegistryRef`, `SbomRef`.[^src]
 
@@ -97,7 +98,7 @@ This package's own modules, flat, module-per-concept:[^src]
 - `PlatformOverrides.ts` — `PlatformOverrides`, `decodePlatformOverrides`.
   The top-ranked override tier: a data-override object an adapter's own
   plugin options pass through, so a user with only an api.json can
-  declare identity declaratively without a `tsdoctor.json` file at all.
+  declare identity declaratively without a `bundle.json` file at all.
 - `BundleAssets.ts` — `publishBundleAssets`, `PublishedOpenGraphImage`,
   `PublishBundleAssetsInput`, `BundleAssetError`.
 
@@ -113,7 +114,7 @@ enriching, never gating:
 | 0 | `<name>.api.json` (required) | package name, entry points, the API itself |
 | 1 | `package.json` | version, description, author/contributors, repository, license, the dependencies the registry loads for rendering |
 | 2 | `tsconfig.json` | compiler options for the Twoslash environment |
-| 3 | `tsdoctor.json` | the sidecar manifest: display identity, Open Graph, SBOM pointer, registries |
+| 3 | `bundle.json` | the sidecar manifest: display identity, Open Graph, SBOM pointer, registries |
 
 Discovery requires only layer 0: a folder with just the `.api.json` is a
 valid bundle, with the display name falling back to the model's own name
@@ -129,7 +130,7 @@ the RSPress helpers used to enforce.
 
 `resolveBundle` ranks tiers highest first: `manifest.platform` (the
 `PlatformOverrides` data-override object), `manifest.leaf` (the package's
-own `tsdoctor.json`), `manifest.project` (the monorepo's project-tier
+own `bundle.json`), `manifest.project` (the monorepo's project-tier
 manifest), then a derived band (`packageJson`, `tsconfig`, `apiModel`),
 and finally `inferred` (documented inference rules, such as deriving
 Open Graph alt text). One deliberate exception: `name` resolution skips
@@ -237,7 +238,8 @@ that is a later product change, not a gap in this package.
 - Layer 0 (the `.api.json`) is the only required file; every other layer
   enriches without gating.
 - Consumers in this repository import manifest names from
-  `@tsdoctor/bundle`, never from `@tsdoctor/manifest` directly.
+  `@tsdoctor/bundle`, never from `@effected/manifest` or the deprecated
+  `@tsdoctor/manifest` directly.
 - A present-but-malformed layer 1–3 file fails typed
   (`BundleLayerError` / `BundleManifestError` / `BundleDiscoveryError`);
   an absent one is `Option.none()`.
@@ -251,9 +253,9 @@ that is a later product change, not a gap in this package.
 
 ## Links
 
-- [Decision: the manifest sits below the bundle package](../decisions/manifest-below-bundle.md)
+- [Decision: the manifest schema ships from `@effected/manifest`](../decisions/manifest-schema-home.md)
 - [Glossary: bundle](../glossary/bundle.md)
-- [Interface: the tsdoctor.json manifest contract](../interfaces/tsdoctor-json-manifest.md)
+- [Interface: the bundle.json manifest contract](../interfaces/bundle-json-manifest.md)
 
 [^src]: `packages/bundle/src/index.ts`, `packages/bundle/src/Bundle.ts`,
 `packages/bundle/src/BundleDiscovery.ts`,

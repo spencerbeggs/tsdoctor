@@ -57,7 +57,7 @@ export interface ApiExtractorOptions {
 	readonly source?: { readonly url: string; readonly ref?: string | undefined } | undefined;
 	/**
 	 * The `manifest.platform` Open Graph image override, ranked above the
-	 * bundle's own `tsdoctor.json`. A string is an absolute `http(s)://` URL or
+	 * bundle's own `bundle.json`. A string is an absolute `http(s)://` URL or
 	 * a path relative to the bundle directory; an object is the manifest image
 	 * shape (`path` XOR `url`, plus `type`/`width`/`height`/`alt`).
 	 */

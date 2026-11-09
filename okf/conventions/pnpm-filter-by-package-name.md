@@ -7,8 +7,10 @@ tags: [dx]
 stale_after: 2026-12-12T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 02a8231c7864b8bbcf575af7b8a79172806af454d7ebc2af4a9194bc0d938ccc
+  at: 2026-11-09T18:10:55Z
+integrity:
+  generated:
+    body: 29d19fd80b9a8028
 ---
 
 # `pnpm --filter` matches the package **name**, not the folder
@@ -28,7 +30,7 @@ name.
 | `packages/vfs/` | `@tsdoctor/vfs` |
 | `packages/registry/` | `@tsdoctor/registry` |
 | `packages/model/` | `@tsdoctor/model` |
-| `packages/manifest/` | `@tsdoctor/manifest` |
+| `packages/manifest/` | `@tsdoctor/manifest` (deprecated) |
 | `packages/bundle/` | `@tsdoctor/bundle` |
 | `packages/snapshot/` | `@tsdoctor/snapshot` |
 | `packages/seo/` | `@tsdoctor/seo` |
@@ -45,7 +47,7 @@ name.
 | `sites/vitepress-basic/` | `@sites/vitepress-basic` |
 
 A path filter works too, and is the escape hatch when the name is not at
-hand: `pnpm --filter ./platforms/rspress run build:dev`.
+hand: `pnpm --filter ./platforms/rspress run build`.
 
 ## Why
 
@@ -60,9 +62,9 @@ erroring loudly enough to notice in a long command chain.
 ## How to check
 
 ```bash
-pnpm --filter rspress-plugin-api-extractor run build:dev   # correct
-pnpm --filter ./platforms/rspress run build:dev             # also correct
-pnpm --filter platforms/rspress run build:dev                # matches nothing
+pnpm --filter rspress-plugin-api-extractor run build   # correct
+pnpm --filter ./platforms/rspress run build            # also correct
+pnpm --filter platforms/rspress run build              # matches nothing
 ```
 
 Confirm any package's real name with `cat <folder>/package.json | grep

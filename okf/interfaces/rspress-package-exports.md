@@ -8,8 +8,10 @@ description: Three entry points -- ".", "./runtime", "./tsconfig/rspress.json" -
 tags: [compat, release]
 generated:
   by: okfit/claude-code
-  at: 2026-09-24T20:28:47Z
-  body_sha256: 3167caca4af9c41add592bd526d97e04655b79e8e710fcba039cf38799a50b96
+  at: 2026-11-09T18:10:55Z
+integrity:
+  generated:
+    body: 87ea99371aec49f5
 ---
 
 # `rspress-plugin-api-extractor` package exports
@@ -25,11 +27,14 @@ generated:
 | `./runtime` | `src/runtime/index.tsx` | the React runtime components |
 | `./tsconfig/rspress.json` | `public/tsconfig/rspress.json` | an RSPress React-JSX, bundler-resolution tsconfig for a site to extend |
 
-In the built package these source-relative paths are rewritten by
-`@savvy-web/rspress-builder`'s `build()` to point at the emitted per-file
-`dist/dev/pkg/` (or `dist/prod/`) layout; a consumer's `workspace:*`
-dependency resolves against `publishConfig.directory`
-(`dist/dev/pkg`)[^1], never against `src/`.
+In the built package `effected package build` rewrites these
+source-relative paths to point at the emitted per-file
+`dist/prod/npm/pkg/` layout. In this monorepo a `workspace:*` dependency
+resolves to `src/` by default; the `.` and `./runtime` entries also carry
+a leading `effected-built` condition pointing at the built file under
+`./dist/prod/npm/pkg/`[^1], which the fixture sites select with
+`--conditions=effected-built` and which the build strips from the
+published manifest.
 
 ## The main entry (`.`)
 

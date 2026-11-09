@@ -2,7 +2,7 @@
 	"name": "@tsdoctor/manifest",
 	"version": "0.4.0",
 	"private": true,
-	"description": "The tsdoctor.json bundle manifest: the spec-1 schema, encode/decode boundaries and the authoring-file shape shared by bundlers that write it and readers that consume it.",
+	"description": "Deprecated: re-exports @effected/manifest, the kit's spec-1 bundle.json manifest. Import from @effected/manifest instead.",
 	"keywords": ["tsdoctor", "manifest", "api-extractor", "effect"],
 	"homepage": "https://github.com/spencerbeggs/tsdoctor#readme",
 	"bugs": {
@@ -22,19 +22,22 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": {
+			"effected-built": "./dist/prod/npm/pkg/index.js",
+			"default": "./src/index.ts"
+		},
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
-		"prepare": "node savvy.build.ts --target dev",
+		"build": "effected package build",
 		"types:check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@effected/manifest": "catalog:effected"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.4",
-		"@types/node": "catalog:build",
+		"@types/node": "catalog:effected:build",
 		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
@@ -46,8 +49,6 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
 		"targets": {
 			"npm": true
 		}

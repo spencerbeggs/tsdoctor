@@ -1,12 +1,12 @@
 ---
 type: Decision
-status: stable
+status: deprecated
 title: "@tsdoctor/manifest sits below @tsdoctor/bundle"
 description: Split the tsdoctor.json schema out of the bundle package so a writer can depend on encode/decode without the bundle's fetch, cache and discovery stack.
 tags: [architecture, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
+  at: 2026-11-09T18:10:55Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
@@ -14,7 +14,7 @@ verified:
     at: 2026-11-02T19:11:05Z
 integrity:
   generated:
-    body: 4642686e9a5a8ede
+    body: 070c5163f5daf72c
   verified:
     by: human:spencer
     at: 2026-11-02T19:11:05Z
@@ -22,6 +22,14 @@ integrity:
 ---
 
 # `@tsdoctor/manifest` sits below `@tsdoctor/bundle`
+
+> **Deprecated.** Superseded by
+> [the manifest schema ships from `@effected/manifest`](manifest-schema-home.md).
+> The reason below — a writer needs the schema without the bundle's fetch
+> stack — still holds, but the kit package `@effected/manifest` now
+> satisfies it, the sidecar is named `bundle.json`, and
+> `@tsdoctor/manifest` is a deprecated re-export. The body records the
+> choice as it was made.
 
 ## Context
 

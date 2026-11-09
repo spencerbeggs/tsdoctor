@@ -1,0 +1,6 @@
+[package.build.meta]
+localPaths = ["../../sites/effect/lib/models/effect-kit", "../../sites/multi/lib/models/effect-kit"]
+
+[[package.build.meta.tsdoc.tagDefinitions]]
+tagName = "@since"
+syntaxKind = "block"

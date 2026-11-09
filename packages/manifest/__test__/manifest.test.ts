@@ -49,8 +49,8 @@ describe("ManifestSource", () => {
 
 	it.effect("carries a path into the error", () =>
 		Effect.gen(function* () {
-			const result = yield* Effect.result(decodeManifestSource({ name: 42 }, "/pkg/tsdoctor.json"));
-			expect(result._tag === "Failure" && result.failure.path).toBe("/pkg/tsdoctor.json");
+			const result = yield* Effect.result(decodeManifestSource({ name: 42 }, "/pkg/bundle.json"));
+			expect(result._tag === "Failure" && result.failure.path).toBe("/pkg/bundle.json");
 		}),
 	);
 });

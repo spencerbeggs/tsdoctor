@@ -1,4 +1,4 @@
-import { BundleManifestError, OpenGraphConfig, RegistryRef, SbomRef } from "@tsdoctor/manifest";
+import { BundleManifestError, OpenGraphConfig, RegistryRef, SbomRef } from "@effected/manifest";
 import { Effect, Schema } from "effect";
 
 /**
@@ -42,7 +42,7 @@ export type PlatformOverrides = typeof PlatformOverrides.Type;
  *
  * @remarks
  * For adapters decoding raw platform options. Failures share
- * {@link BundleManifestError} — the platform tier is manifest data by another
+ * {@link @effected/manifest#BundleManifestError} — the platform tier is manifest data by another
  * route, and a caller handles both boundaries with one tag.
  *
  * @public

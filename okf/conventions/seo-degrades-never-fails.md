@@ -5,7 +5,6 @@ description: No head-tag, Open Graph, JSON-LD, or attribution derivation may abo
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 7b1ce5e4bb1db596ddc7bb14538f7bc62509f9916bbd069c0b6fa98b2f264382
 stale_after: 2026-12-12T00:00:00Z
 tags: [architecture]
 sources:
@@ -20,6 +19,9 @@ sources:
   - id: vitepress-generate
     resource: ../../platforms/vitepress/src/Generate.ts
 status: stable
+integrity:
+  generated:
+    body: 7b1ce5e4bb1db596
 ---
 
 # SEO derivation degrades, never fails the build

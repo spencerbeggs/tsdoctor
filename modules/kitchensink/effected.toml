@@ -1,0 +1,18 @@
+[package.build.meta]
+localPaths = [
+	"../../sites/basic/lib/models/kitchensink",
+	"../../sites/i18n/lib/models/kitchensink",
+	"../../sites/multi/lib/models/kitchensink",
+	"../../sites/vitepress-basic/lib/models/kitchensink",
+]
+# Compiler-generated mixin bases (AuditedRecord_base) are intentionally
+# unexported; the docs plugin inlines them on the owning class page. The
+# default `_base` forgotten-export suppression covers them.
+
+[package.bundle]
+name = "Kitchen Sink"
+tagline = "Every API Extractor shape the docs pipeline must render"
+
+[package.bundle.openGraph]
+generate = "satori"
+themeColor = "#0f172a"

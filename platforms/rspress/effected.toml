@@ -1,0 +1,23 @@
+[package.build]
+externals = ["@rspress/core"]
+bundledPackages = ["@rspress/core", "@type/mdast", "@type/unist"]
+
+# The runtime ships one file per source, with `import.meta.env.SSG_MD` left
+# for RSPress to resolve at site build time.
+[[package.build.overrides]]
+entries = ["./runtime"]
+outSubdir = "runtime"
+platform = "browser"
+externals = ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "@rspress/core", "@theme"]
+css = { modules = { localsConvention = "camelCaseOnly", namedExport = false }, inject = true }
+
+[[package.build.meta.tsdoc.suppressWarnings]]
+messageId = "ae-forgotten-export"
+pattern = "_base"
+
+[[package.build.meta.tsdoc.suppressWarnings]]
+# The config helpers are exposed only via the `ApiExtractorPlugin.api`
+# namespace (not as named top-level exports), so their declarations are
+# referenced by the public type but intentionally not re-exported.
+messageId = "ae-forgotten-export"
+pattern = "ApiExtractorPluginImpl|fromDir|fromParentDir"
