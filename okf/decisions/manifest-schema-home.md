@@ -26,13 +26,15 @@ sources:
 verified:
   - by: human:spencer
     at: 2026-11-09T18:10:29Z
+  - by: human:spencer
+    at: 2026-11-09T18:52:17Z
 integrity:
   generated:
     body: 650f65becb6b0e24
   verified:
     by: human:spencer
-    at: 2026-11-09T18:10:29Z
-    content: 8676e6bd5559879d
+    at: 2026-11-09T18:52:17Z
+    content: 3b44f19f00065e37
 ---
 
 # The bundle manifest schema ships from `@effected/manifest`
