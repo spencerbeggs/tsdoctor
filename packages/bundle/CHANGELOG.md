@@ -1,5 +1,45 @@
 # @tsdoctor/bundle
 
+## 0.9.0
+
+### Breaking Changes
+
+#### The sidecar manifest is `bundle.json`
+
+- A bundle's layer-3 manifest is now read from `bundle.json`, the name the `effected package build` meta pass writes. A `tsdoctor.json` beside a model is no longer read, so the site falls back to the model-derived name and loses the manifest's tagline and Open Graph images.
+
+- Rename each checked-in `tsdoctor.json` to `bundle.json`; the contents are unchanged (spec 1)
+
+- `TSDOCTOR_MANIFEST_FILENAME` is now `BUNDLE_MANIFEST_FILENAME` (`"bundle.json"`) in `@tsdoctor/bundle`
+
+#### The manifest schema comes from `@effected/manifest`
+
+- `@tsdoctor/bundle` re-exports `BundleManifest`, `decodeBundleManifest`, `encodeBundleManifest`, `ManifestSource` and the rest from the kit package `@effected/manifest`, which is now its peer dependency in place of `@tsdoctor/manifest`. Install `@effected/manifest` alongside `@tsdoctor/bundle`.
+
+- `@tsdoctor/manifest` is retired and gets no further releases. Import its names from `@effected/manifest`, or from `@tsdoctor/bundle`. [#408][#408]
+
+### Build System
+
+- Built with `effected package build` instead of `@savvy-web/bundler` and `@savvy-web/rspress-builder`; the published entry points and file layout are unchanged
+- The RSPress runtime still ships one file per source, with `import.meta.env.SSG_MD` left for RSPress to resolve [#408][#408]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/manifest | peerDependency | removed | 0.4.0 | — |
+| @effected/npm | peerDependency | updated | ^0.31.0 | ^0.32.0 |
+| @effected/package-json | peerDependency | updated | ^0.31.0 | ^0.31.1 |
+| @effected/manifest | peerDependency | added | — | ^0.1.0 |
+
+[#408][#408]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#408]: https://github.com/spencerbeggs/tsdoctor/pull/408
+
 ## 0.8.2
 
 ### Dependencies
