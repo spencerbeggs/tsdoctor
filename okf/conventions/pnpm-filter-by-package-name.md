@@ -7,10 +7,10 @@ tags: [dx]
 stale_after: 2026-12-12T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:10:55Z
+  at: 2026-11-09T18:33:27Z
 integrity:
   generated:
-    body: 29d19fd80b9a8028
+    body: 6462d17511707147
 ---
 
 # `pnpm --filter` matches the package **name**, not the folder
@@ -30,7 +30,6 @@ name.
 | `packages/vfs/` | `@tsdoctor/vfs` |
 | `packages/registry/` | `@tsdoctor/registry` |
 | `packages/model/` | `@tsdoctor/model` |
-| `packages/manifest/` | `@tsdoctor/manifest` (deprecated) |
 | `packages/bundle/` | `@tsdoctor/bundle` |
 | `packages/snapshot/` | `@tsdoctor/snapshot` |
 | `packages/seo/` | `@tsdoctor/seo` |

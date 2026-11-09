@@ -6,7 +6,7 @@ description: Split the tsdoctor.json schema out of the bundle package so a write
 tags: [architecture, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:10:55Z
+  at: 2026-11-09T18:33:27Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
@@ -14,7 +14,7 @@ verified:
     at: 2026-11-02T19:11:05Z
 integrity:
   generated:
-    body: 070c5163f5daf72c
+    body: af25f4320dadad93
   verified:
     by: human:spencer
     at: 2026-11-02T19:11:05Z
@@ -28,7 +28,7 @@ integrity:
 > The reason below — a writer needs the schema without the bundle's fetch
 > stack — still holds, but the kit package `@effected/manifest` now
 > satisfies it, the sidecar is named `bundle.json`, and
-> `@tsdoctor/manifest` is a deprecated re-export. The body records the
+> the `@tsdoctor/manifest` workspace has since been deleted. The body records the
 > choice as it was made.
 
 ## Context
@@ -86,7 +86,7 @@ implicit.
   hand-written script) has the same lightweight dependency to reach for
   that `@savvy-web/bundler` already uses.
 
-[^1]: [packages/manifest/package.json](../../packages/manifest/package.json)
-[^2]: [packages/manifest/package.json](../../packages/manifest/package.json)
+[^1]: `packages/manifest/package.json` (deleted; see `npm:@tsdoctor/manifest`)
+[^2]: `packages/manifest/package.json` (deleted; see `npm:@tsdoctor/manifest`)
 [^3]: [packages/bundle/src/index.ts](../../packages/bundle/src/index.ts)
 [^4]: [platforms/rspress/package.json](../../platforms/rspress/package.json)

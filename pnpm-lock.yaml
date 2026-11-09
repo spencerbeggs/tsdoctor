@@ -464,25 +464,6 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  packages/manifest:
-    dependencies:
-      '@effected/manifest':
-        specifier: catalog:effected
-        version: 0.1.0(effect@4.1.2)
-    devDependencies:
-      '@effect/vitest':
-        specifier: catalog:effected
-        version: 4.1.2(effect@4.1.2)(vitest@5.1.0)
-      '@types/node':
-        specifier: catalog:effected:build
-        version: 26.6.6
-      effect:
-        specifier: catalog:effected
-        version: 4.1.2
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-
   packages/model:
     dependencies:
       '@effected/kit':

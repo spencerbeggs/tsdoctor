@@ -13,10 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:10:55Z
+  at: 2026-11-09T18:33:27Z
 integrity:
   generated:
-    body: 7053cee665352fd8
+    body: 8bfa13bbc3609c98
 ---
 
 # @tsdoctor/bundle
@@ -238,8 +238,7 @@ that is a later product change, not a gap in this package.
 - Layer 0 (the `.api.json`) is the only required file; every other layer
   enriches without gating.
 - Consumers in this repository import manifest names from
-  `@tsdoctor/bundle`, never from `@effected/manifest` or the deprecated
-  `@tsdoctor/manifest` directly.
+  `@tsdoctor/bundle`, never from `@effected/manifest` directly.
 - A present-but-malformed layer 1–3 file fails typed
   (`BundleLayerError` / `BundleManifestError` / `BundleDiscoveryError`);
   an absent one is `Option.none()`.

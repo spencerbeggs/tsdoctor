@@ -1,6 +1,5 @@
 ---
 "@tsdoctor/bundle": minor
-"@tsdoctor/manifest": minor
 "rspress-plugin-api-extractor": minor
 "vitepress-plugin-api-extractor": minor
 ---
@@ -18,4 +17,4 @@ A bundle's layer-3 manifest is now read from `bundle.json`, the name the `effect
 
 `@tsdoctor/bundle` re-exports `BundleManifest`, `decodeBundleManifest`, `encodeBundleManifest`, `ManifestSource` and the rest from the kit package `@effected/manifest`, which is now its peer dependency in place of `@tsdoctor/manifest`. Install `@effected/manifest` alongside `@tsdoctor/bundle`.
 
-`@tsdoctor/manifest` is deprecated and re-exports `@effected/manifest` unchanged. Import from `@effected/manifest`, or from `@tsdoctor/bundle`.
+`@tsdoctor/manifest` is retired and gets no further releases. Import its names from `@effected/manifest`, or from `@tsdoctor/bundle`.

@@ -4,7 +4,7 @@ title: Keep every adapter's dependency closure whole
 description: "Every platforms/* adapter declares the full @effected closure and every @tsdoctor/* core package it consumes in dependencies, never as peers; never prune an entry as unused without checking."
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:10:55Z
+  at: 2026-11-09T18:33:27Z
 stale_after: 2026-12-23T00:00:00Z
 tags: [compat, release, deps]
 sources:
@@ -15,7 +15,7 @@ sources:
 status: stable
 integrity:
   generated:
-    body: ef70996ab9911e1b
+    body: b4f1a7b5b5a3888e
 ---
 
 # Keep every adapter's full closure in `dependencies`
@@ -31,15 +31,14 @@ list the following as ordinary `dependencies`, never as `peerDependencies`:
   and internal-only dependencies alike: `files`, `github`, `glob`,
   `images`, `jsonc`, `kit`, `manifest`, `markdown`, `npm`, `package-json`,
   `schema-org`, `semver`, `spdx`, `store`, `tsconfig-json`, `walker`,
-  `xdg` and `yaml`. `@effected/manifest` replaces the deprecated
-  `@tsdoctor/manifest` as the adapters' direct manifest dependency. The RSPress adapter
+  `xdg` and `yaml`. `@effected/manifest` is the adapters' direct manifest
+  dependency. The RSPress adapter
   also carries `memfs` as a runtime dependency: its `node-sync` subpath is
   the synchronous `FileSystem` the config helpers run bundle discovery on.
 - `effect` and `@effect/platform-node`.
 - Every `@tsdoctor/*` core workspace it consumes, as `workspace:*`. That is
   seven for RSPress (`bundle`, `model`, `pages`, `registry`, `seo`,
   `snapshot`, `vfs`) and every one except `snapshot` for VitePress.
-  Neither adapter depends on the deprecated `@tsdoctor/manifest`.
 
 An adapter's only `peerDependencies` are its host framework:
 `@rspress/core`, `react` and `react-dom` for RSPress, and `vitepress` for

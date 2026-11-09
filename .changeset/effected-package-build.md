@@ -1,6 +1,5 @@
 ---
 "@tsdoctor/bundle": patch
-"@tsdoctor/manifest": patch
 "@tsdoctor/model": patch
 "@tsdoctor/pages": patch
 "@tsdoctor/registry": patch

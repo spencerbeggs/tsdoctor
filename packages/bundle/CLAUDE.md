@@ -12,8 +12,7 @@ manifest shape and change-detection model.
 - The `bundle.json` manifest schema lives in the kit package
   `@effected/manifest` (depends on `effect` alone; `BUNDLE_MANIFEST_FILENAME`
   is `"bundle.json"`) and is re-exported here by name — import it from
-  `@tsdoctor/bundle`. The deprecated `@tsdoctor/manifest` re-exports the same
-  names.
+  `@tsdoctor/bundle`.
 - Modules (flat, module-per-concept): `PlatformOverrides.ts` (the top-ranked override tier),
   `Bundle.ts` (descriptor + four layer readers + `readBundle`),
   `BundleDiscovery.ts` (`discoverBundle`/`discoverBundles`, generalizing the

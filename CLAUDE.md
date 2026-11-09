@@ -38,7 +38,6 @@ Workspace globs (`pnpm-workspace.yaml`): `modules/*`, `packages/*`,
 | `packages/vfs/` | `@tsdoctor/vfs` | Publishable | VFS primitives: `Vfs`, `VirtualPackage`, `TsEnvironment`, the compiler-options seam |
 | `packages/registry/` | `@tsdoctor/registry` | Publishable | External type loading: fetch, cache and resolve package types into a `Vfs` |
 | `packages/model/` | `@tsdoctor/model` | Publishable | api.json loading, TSDoc extraction, routes, signatures, `.d.ts` reconstruction, frontmatter, markdown rendering |
-| `packages/manifest/` | `@tsdoctor/manifest` | Publishable (deprecated) | Thin re-export of `@effected/manifest`, the kit's spec-1 `bundle.json` sidecar manifest schema; import from `@effected/manifest` or `@tsdoctor/bundle` instead |
 | `packages/bundle/` | `@tsdoctor/bundle` | Publishable | Bundle spec: `bundle.json` manifest, provenance resolver, discovery, fetchers |
 | `packages/snapshot/` | `@tsdoctor/snapshot` | Publishable | Incremental-build snapshot store (SQLite via `@effected/store`) + content hashing |
 | `packages/seo/` | `@tsdoctor/seo` | Publishable | Framework-neutral `<head>` metadata: `HeadTag`, canonical, OG/Twitter, attribution, JSON-LD |
@@ -100,10 +99,9 @@ compiler-options seam and the Twoslash result cache both adapters warm.
 `typescript`, `@typescript/vfs` and `@shikijs/twoslash` are optional peers
 there and nowhere else in the core.
 
-**manifest** is deprecated: the `bundle.json` schema now ships from the kit
-as `@effected/manifest` (depends on `effect` alone), and `@tsdoctor/manifest`
-is a thin re-export of it. **bundle** re-exports the same names from
-`@effected/manifest`, so readers in this repo import from `@tsdoctor/bundle`;
+The `bundle.json` manifest schema ships from the kit as `@effected/manifest`
+(depends on `effect` alone); this repo keeps no copy of it. **bundle**
+re-exports its names from `@effected/manifest`, so readers in this repo import from `@tsdoctor/bundle`;
 both platforms depend on `@effected/manifest` directly.
 
 **seo** owns every `<head>` concern behind one seam, `Seo.headTags(input)`,
