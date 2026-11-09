@@ -1,5 +1,27 @@
 # @tsdoctor/registry
 
+## 0.7.3
+
+### Build System
+
+- Built with `effected package build` instead of `@savvy-web/bundler` and `@savvy-web/rspress-builder`; the published entry points and file layout are unchanged
+- The RSPress runtime still ships one file per source, with `import.meta.env.SSG_MD` left for RSPress to resolve [#408][#408]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/package-json | dependency | updated | ^0.31.0 | ^0.31.1 |
+| @tsdoctor/vfs | dependency | updated | 0.7.2 | 0.7.3 |
+
+[#408][#408]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#408]: https://github.com/spencerbeggs/tsdoctor/pull/408
+
 ## 0.7.2
 
 ### Dependencies

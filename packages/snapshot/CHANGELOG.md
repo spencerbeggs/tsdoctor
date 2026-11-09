@@ -1,5 +1,18 @@
 # @tsdoctor/snapshot
 
+## 0.7.2
+
+### Build System
+
+- Built with `effected package build` instead of `@savvy-web/bundler` and `@savvy-web/rspress-builder`; the published entry points and file layout are unchanged
+- The RSPress runtime still ships one file per source, with `import.meta.env.SSG_MD` left for RSPress to resolve [#408][#408]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#408]: https://github.com/spencerbeggs/tsdoctor/pull/408
+
 ## 0.7.1
 
 ### Dependencies
