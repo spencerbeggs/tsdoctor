@@ -4,9 +4,9 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "vitepress build docs",
-		"dev": "vitepress dev docs",
-		"preview": "vitepress preview docs",
+		"build": "NODE_OPTIONS=--conditions=effected-built vitepress build docs",
+		"dev": "NODE_OPTIONS=--conditions=effected-built vitepress dev docs",
+		"preview": "NODE_OPTIONS=--conditions=effected-built vitepress preview docs",
 		"types:check": "tsc --noEmit"
 	},
 	"devDependencies": {

@@ -62,14 +62,14 @@ Extracted from the plugin in phase 2 of the consolidation and rebuilt on
   `layers/AppLayer.ts` composes `SnapshotService.layer(dbPath)` for the
   `<cwd>/.api-docs/snapshot/api-docs.db` path `plugin.ts` resolves and
   `mkdirSync`s.
-- Builds with `defineBuild()` (`savvy.build.ts`, `@savvy-web/bundler`);
-  tsconfig extends `@savvy-web/bundler/tsconfig/ecma.json`. Source
+- Builds with `effected package build` (no `effected.toml`); tsconfig
+  extends `@effected/plugin/tsconfig/ecma.json`. Source
   `package.json` stays `"private": true`; `publishConfig` drives publishing.
 
 ## Commands
 
 ```bash
-pnpm --filter @tsdoctor/snapshot run build:dev
+pnpm --filter @tsdoctor/snapshot run build
 pnpm vitest run packages/snapshot/
 ```
 

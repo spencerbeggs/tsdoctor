@@ -5,7 +5,7 @@
 [![Node.js %3E%3D24.11.0](https://img.shields.io/badge/Node.js-%3E%3D24.11.0-5fa04e.svg)](https://nodejs.org/)
 [![TypeScript 6.0](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg)](https://www.typescriptlang.org/)
 
-The tsdoctor bundle spec. A bundle is the folder of files that describes one documented package — an API Extractor `.api.json` model plus optional overlays — and this package owns everything about reading one: discovery on disk, the versioned `tsdoctor.json` sidecar manifest, resolution of manifest data across override tiers with per-field provenance, and canonical hashing of the inputs for change detection.
+The tsdoctor bundle spec. A bundle is the folder of files that describes one documented package — an API Extractor `.api.json` model plus optional overlays — and this package owns everything about reading one: discovery on disk, the versioned `bundle.json` sidecar manifest, resolution of manifest data across override tiers with per-field provenance, and canonical hashing of the inputs for change detection.
 
 ## The layered bundle
 
@@ -16,12 +16,12 @@ A bundle is one required file plus optional overlays. Each layer enriches the re
 | 0 | `<name>.api.json` | yes | package name, the API itself |
 | 1 | `package.json` | no | version, description, dependencies and peers |
 | 2 | `tsconfig.json` | no | compiler options for the rendering environment |
-| 3 | `tsdoctor.json` | no | display identity, Open Graph, SBOM pointer, registries |
+| 3 | `bundle.json` | no | display identity, Open Graph, SBOM pointer, registries |
 
 ## Install
 
 ```bash
-pnpm add @tsdoctor/bundle effect @effected/glob @effected/package-json @effected/tsconfig-json @effected/walker
+pnpm add @tsdoctor/bundle effect @effected/manifest @effected/glob @effected/package-json @effected/tsconfig-json @effected/walker
 ```
 
 This is an ESM-only package. `effect` and the `@effected/*` packages are peer dependencies.
@@ -56,7 +56,7 @@ Every resolved field carries `{ value, source }`, so "did the user override this
 - `discoverBundle(dir)` / `discoverBundles(parentDir)` — resolve folder(s) into `BundleDescriptor`s (model file selection, name/version parsing, overlay detection).
 - `fetchNpmBundle` / `fetchGitHubReleaseBundle` — fetch a published bundle from any npm-protocol registry (via `@effected/npm`'s verified tarball pipeline) or from a GitHub release's `*.npm.meta.tgz` asset (via `@effected/github`), through a durable XDG cache (`@effected/store` + `@effected/xdg`). npm versions are immutable, so cache hits skip the network; `refresh: true` refetches.
 - `readBundle(descriptor)` / `loadBundle(dir)` / `loadBundles(parentDir)` — read the four layers into typed structures.
-- `BundleManifest`, `decodeBundleManifest` — the `tsdoctor.json` spec-1 schema; unknown fields and unknown registry types degrade gracefully instead of rejecting.
+- `BundleManifest`, `decodeBundleManifest` — the `bundle.json` spec-1 schema, re-exported from `@effected/manifest`; unknown fields and unknown registry types degrade gracefully instead of rejecting.
 - `PlatformOverrides`, `decodePlatformOverrides` — the top-ranked data-override tier a consumer passes through platform options.
 - `resolveBundle` / `resolveBundleFrom` — the pure six-tier resolver producing a `ResolvedBundle` of `Provenanced` fields, with the documented inference rules (Open Graph alt-text chain, MIME from extension).
 - `hashLayerText`, `hashJsonValue`, `fingerprintResolvedBundle` — RFC 8785 (JCS) canonicalization plus SHA-256 (via `@effected/jsonc`'s `JsoncFingerprint`) for coarse (per-layer) and fine (per-field) change detection. Canonicalization is strict: an `undefined`-valued member or non-plain object fails typed rather than being silently dropped.

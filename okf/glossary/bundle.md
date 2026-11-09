@@ -1,13 +1,15 @@
 ---
 type: Glossary
 title: Bundle
-description: In this repository a bundle is a folder or tarball describing one documented package — the api.json trio plus an optional tsdoctor.json sidecar, an og/ image directory and an optional SBOM pointer — never an Rspack/tsdown build output.
+description: In this repository a bundle is a folder or tarball describing one documented package — the api.json trio plus an optional bundle.json sidecar, an og/ image directory and an optional SBOM pointer — never an Rspack/tsdown build output.
 tags: [architecture, dx]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 9ee6b722f648c9718bcaa42437108cab33d739596165c08bfd7e8324dad38cf7
+  at: 2026-11-09T18:10:55Z
 status: stable
+integrity:
+  generated:
+    body: 182dcaaf5151fa3f
 ---
 
 # Bundle
@@ -25,9 +27,10 @@ optional layer means "enrich less", never "fail":
   `@tsdoctor/model`'s job, not this package's.
 - **Layer 1:** the package's own `package.json`.
 - **Layer 2:** a discovered or provided `tsconfig.json`.
-- **Layer 3 (optional):** a `tsdoctor.json` sidecar manifest[^3] —
+- **Layer 3 (optional):** a `bundle.json` sidecar manifest[^3] —
   project/leaf identity, Open Graph image config, SBOM pointer — decoded
-  through `@tsdoctor/manifest`.
+  through `@effected/manifest`'s schema, re-exported by
+  `@tsdoctor/bundle`.
 - **`og/`:** a directory of Open Graph images the manifest's `openGraph`
   block can reference, published into a site's public directory by
   `publishBundleAssets`[^4].
@@ -43,32 +46,35 @@ to the model's own package name.
 
 Everywhere else in this monorepo's toolchain, "bundle" means the output
 of a JavaScript bundler: an Rspack/Rsbuild output under `dist/`, or a
-tsdown/`@savvy-web/bundler` build artifact. Those are build **outputs**;
-a `@tsdoctor/bundle` bundle is a documentation **input** — a package
+tsdown build artifact from `effected package build` (`@effected/bundler`,
+under `dist/prod/npm/pkg/`). Those are build **outputs**; a
+`@tsdoctor/bundle` bundle is a documentation **input** — a package
 description a doc generator reads, not something a compiler emits.
-`@savvy-web/bundler`'s meta pass is the one thing that *writes* the
-`tsdoctor.json` sidecar (an authoring-file `ManifestSource` shape encoded
-through `@tsdoctor/manifest`), which is easy to conflate with "the
-bundler bundles the bundle" — it does not: the bundler writes one layer
-of the bundle, `@tsdoctor/bundle` reads and resolves all of them.
+`@effected/bundler`'s meta pass is the one thing that *writes* the
+`bundle.json` sidecar (composed from `ManifestSource` tiers and encoded
+through `@effected/manifest`) into `dist/prod/npm/meta/`, which is easy to
+conflate with "the bundler bundles the bundle" — it does not: the bundler
+writes one layer of the bundle, `@tsdoctor/bundle` reads and resolves all
+of them.
 
 ## Why this earns a concept
 
-The collision is the word itself, doubled by two adjacent packages named
-for the two sides of the one sidecar file: `@tsdoctor/manifest` owns the
-`tsdoctor.json` *schema* (a plain `effect`-only dependency, no fetch or
-discovery stack); `@tsdoctor/bundle` owns *resolving a bundle*, of which
-the manifest is one optional layer. Reading "bundle" as a JS build
+The collision is the word itself, tripled now that the sidecar file is
+named `bundle.json` and its writer is `@effected/bundler`:
+`@effected/manifest` owns the `bundle.json` *schema* (an `effect`-only
+peer, no fetch or discovery stack); `@tsdoctor/bundle` owns *resolving a
+bundle*, of which the manifest is one optional layer; `@effected/bundler`
+builds code and, in its meta pass, writes the manifest. Reading "bundle" as a JS build
 artifact instead of this input contract misdirects a search for where a
 documented package's identity, categories or model path come from.
 
 [^1]: [packages/bundle/src/Bundle.ts](../../packages/bundle/src/Bundle.ts)
 [^2]: [packages/bundle/src/Bundle.ts](../../packages/bundle/src/Bundle.ts)
-[^3]: [packages/manifest/src/BundleManifest.ts](../../packages/manifest/src/BundleManifest.ts)
+[^3]: `npm:@effected/manifest`
 [^4]: [packages/bundle/src/BundleAssets.ts](../../packages/bundle/src/BundleAssets.ts)
 [^5]: [packages/bundle/src/BundleDiscovery.ts](../../packages/bundle/src/BundleDiscovery.ts)
 [^6]: [packages/bundle/src/BundleResolver.ts](../../packages/bundle/src/BundleResolver.ts)
 [^7]: [packages/bundle/src/BundleFetch.ts](../../packages/bundle/src/BundleFetch.ts)
 
 See also: [`@tsdoctor/bundle` module](../modules/tsdoctor-bundle.md),
-[the `tsdoctor.json` manifest interface](../interfaces/tsdoctor-json-manifest.md).
+[the `bundle.json` manifest interface](../interfaces/bundle-json-manifest.md).

@@ -72,14 +72,16 @@ framework-free: no RSPress, no React, no I/O beyond model loading.
 - `__test__/mdx-vocabulary.test.ts` is the proof-consumer suite for
   `@effected/markdown`'s MDX vocabulary (construction/serialization),
   seeding the phase-5 `@tsdoctor/pages` IR seam.
-- Builds with `defineBuild()` (`savvy.build.ts`, `@savvy-web/bundler`);
-  tsconfig extends `@savvy-web/bundler/tsconfig/ecma.json`. Source
+- Builds with `effected package build`; `effected.toml` restates the
+  default `_base` forgotten-export suppression and adds one for the
+  `_d_exports` namespace bindings. tsconfig extends
+  `@effected/plugin/tsconfig/ecma.json`. Source
   `package.json` stays `"private": true`; `publishConfig` drives publishing.
 
 ## Commands
 
 ```bash
-pnpm --filter @tsdoctor/model run build:dev
+pnpm --filter @tsdoctor/model run build
 pnpm vitest run packages/model/
 ```
 

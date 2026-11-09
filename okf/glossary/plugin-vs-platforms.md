@@ -6,8 +6,10 @@ tags: [architecture, dx]
 generated:
   by: okfit/claude-code
   at: 2026-10-10T00:56:05Z
-  body_sha256: ed4306ba6d953c5ba5a3c7e4f5e30ea00a7dfa71b2e9f7deb6406bd5a7c13655
 status: draft
+integrity:
+  generated:
+    body: ed4306ba6d953c5b
 ---
 
 # "Plugin" versus "the plugin" versus `platforms/`

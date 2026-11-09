@@ -4,7 +4,7 @@
 	"tasks": {
 		"build": {
 			"cache": false,
-			"dependsOn": ["@modules/versioned-v1#build:prod", "@modules/versioned-v2#build:prod"],
+			"dependsOn": ["^build", "@modules/versioned-v1#build", "@modules/versioned-v2#build"],
 			"outputLogs": "full",
 			"outputs": ["dist/**"]
 		},

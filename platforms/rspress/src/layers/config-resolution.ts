@@ -149,12 +149,12 @@ function decodeManifest(
  *
  * @remarks
  * Every API resolves a bundle, even one declared with a loader function
- * rather than a path: a loader has no directory to discover a `tsdoctor.json`
+ * rather than a path: a loader has no directory to discover a `bundle.json`
  * sidecar beside, so resolution falls back to an inferred bundle carrying
  * only the package name — the same floor {@link resolveBundleFrom} itself
  * guarantees for `name`.
  *
- * A present-but-malformed `tsdoctor.json` fails the build typed, the same
+ * A present-but-malformed `bundle.json` fails the build typed, the same
  * posture as a malformed tsconfig: {@link ConfigValidationError} with
  * `field: "bundle"`. Asset publishing degrades instead — a malformed or
  * unreadable image must not stop the docs from generating, it should just
@@ -189,7 +189,7 @@ function resolveApiBundle(input: {
 
 		// A non-manifest discovery/layer failure degrades to a warning plus the
 		// inferred bundle, exactly the loader-function fallback above; only a
-		// malformed `tsdoctor.json` (BundleManifestError) stays fatal.
+		// malformed `bundle.json` (BundleManifestError) stays fatal.
 		const degradeToWarning = (cause: { readonly path: string; readonly message: string }) =>
 			Effect.andThen(
 				emit(
@@ -688,7 +688,7 @@ export const makeConfigService: Effect.Effect<ConfigServiceShape, never, TypeReg
 													const fullRoute = versionDp.routeBase;
 
 													// Resolved against the version's own model directory — each
-													// version may carry its own `tsdoctor.json` sidecar.
+													// version may carry its own `bundle.json` sidecar.
 													const { bundle, siteName, bundleOgImage } = yield* resolveApiBundle({
 														model: versionConfig.model,
 														packageName: api.packageName,

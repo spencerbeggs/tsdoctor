@@ -2,12 +2,13 @@
 	"$schema": "https://turborepo.com/schema.v2.json",
 	"extends": ["//"],
 	"tasks": {
-		"build:prod": {
+		"build": {
 			"outputs": [
 				"$TURBO_EXTENDS$",
 				"../../sites/basic/lib/models/kitchensink/**",
 				"../../sites/i18n/lib/models/kitchensink/**",
-				"../../sites/multi/lib/models/kitchensink/**"
+				"../../sites/multi/lib/models/kitchensink/**",
+				"../../sites/vitepress-basic/lib/models/kitchensink/**"
 			]
 		}
 	}

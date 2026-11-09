@@ -1,12 +1,12 @@
 ---
 type: Decision
-status: stable
+status: deprecated
 title: "@tsdoctor/manifest sits below @tsdoctor/bundle"
 description: Split the tsdoctor.json schema out of the bundle package so a writer can depend on encode/decode without the bundle's fetch, cache and discovery stack.
 tags: [architecture, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
+  at: 2026-11-09T18:33:27Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
@@ -14,7 +14,7 @@ verified:
     at: 2026-11-02T19:11:05Z
 integrity:
   generated:
-    body: 4642686e9a5a8ede
+    body: af25f4320dadad93
   verified:
     by: human:spencer
     at: 2026-11-02T19:11:05Z
@@ -22,6 +22,14 @@ integrity:
 ---
 
 # `@tsdoctor/manifest` sits below `@tsdoctor/bundle`
+
+> **Deprecated.** Superseded by
+> [the manifest schema ships from `@effected/manifest`](manifest-schema-home.md).
+> The reason below — a writer needs the schema without the bundle's fetch
+> stack — still holds, but the kit package `@effected/manifest` now
+> satisfies it, the sidecar is named `bundle.json`, and
+> the `@tsdoctor/manifest` workspace has since been deleted. The body records the
+> choice as it was made.
 
 ## Context
 
@@ -78,7 +86,7 @@ implicit.
   hand-written script) has the same lightweight dependency to reach for
   that `@savvy-web/bundler` already uses.
 
-[^1]: [packages/manifest/package.json](../../packages/manifest/package.json)
-[^2]: [packages/manifest/package.json](../../packages/manifest/package.json)
+[^1]: `packages/manifest/package.json` (deleted; see `npm:@tsdoctor/manifest`)
+[^2]: `packages/manifest/package.json` (deleted; see `npm:@tsdoctor/manifest`)
 [^3]: [packages/bundle/src/index.ts](../../packages/bundle/src/index.ts)
 [^4]: [platforms/rspress/package.json](../../platforms/rspress/package.json)

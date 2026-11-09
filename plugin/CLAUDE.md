@@ -7,8 +7,8 @@ a Claude Code plugin and a GitHub Copilot plugin.
 **Do not confuse this with the npm package.** The publishable RSPress plugin
 (`rspress-plugin-api-extractor`) lives in `platforms/rspress/`, not here. This
 folder is the pnpm workspace `@tsdoctor/ai-plugins` (private, never published
-to npm); Turbo builds it through its `build:dev` / `build:prod` scripts, which
-run `pluginfinity build`.
+to npm); Turbo builds it through its single `build` script, which runs
+`pluginfinity build`.
 
 ## Status
 
@@ -75,7 +75,7 @@ After `changeset version`, run `pluginfinity build` and commit `builds/`.
 ## Commands
 
 ```bash
-pnpm --filter @tsdoctor/ai-plugins run build:dev  # pluginfinity build
+pnpm --filter @tsdoctor/ai-plugins run build      # pluginfinity build
 pnpm plugin:check     # build --check: builds/ match the source
 pnpm --filter @tsdoctor/ai-plugins run validate   # each host's own check
 pnpm test:bats        # bats --recursive plugin/__test__ (both hosts)

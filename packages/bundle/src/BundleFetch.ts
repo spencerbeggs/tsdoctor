@@ -1,11 +1,11 @@
 import type { ReleaseAsset } from "@effected/github";
 import { GitHubRelease, Repo, RepoRef } from "@effected/github";
+import type { BundleManifestError } from "@effected/manifest";
+import { decodeBundleManifest } from "@effected/manifest";
 import type { RegistryTarget } from "@effected/npm";
 import { NpmRegistry, PackageTarball, PublishedVersion } from "@effected/npm";
 import { Cache } from "@effected/store";
 import { AppDirs } from "@effected/xdg";
-import type { BundleManifestError } from "@tsdoctor/manifest";
-import { decodeBundleManifest } from "@tsdoctor/manifest";
 import { Effect, FileSystem, Option, Path, Schema } from "effect";
 import type { Bundle, BundleLayerError } from "./Bundle.js";
 import { readBundle } from "./Bundle.js";

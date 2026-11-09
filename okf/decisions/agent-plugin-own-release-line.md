@@ -16,20 +16,22 @@ sources:
     resource: ../../.github/workflows/release.yml
 generated:
   by: okfit/claude-code
-  at: 2026-10-10T00:56:05Z
+  at: 2026-11-09T18:10:55Z
 status: stable
 verified:
   - by: human:spencer
     at: 2026-10-10T00:54:24Z
   - by: human:spencer
     at: 2026-11-02T19:11:05Z
+  - by: human:spencer
+    at: 2026-11-09T18:10:30Z
 integrity:
   generated:
-    body: 79670f8faa0799a7
+    body: f6eaa618041693d2
   verified:
     by: human:spencer
-    at: 2026-11-02T19:11:05Z
-    content: 0e8c4770973d4ce9
+    at: 2026-11-09T18:10:30Z
+    content: 31f59f28ebebd64c
 ---
 
 # The agent plugin versions on its own release line, built for both hosts by pluginfinity
@@ -47,8 +49,7 @@ second hand-maintained tree in a different host format.
 
 1. **One host-neutral source, two built plugins.** `plugin/` is the pnpm
    workspace `@tsdoctor/ai-plugins` (private, never published to npm).
-   `pluginfinity build`, run by Turbo through its `build:dev` and
-   `build:prod` scripts, turns `plugin/pluginfinity.config.ts` and the
+   `pluginfinity build`, run by Turbo through its `build` script, turns `plugin/pluginfinity.config.ts` and the
    skills, agent, hook and monitor sources into `plugin/builds/claude/` and
    `plugin/builds/copilot/`[^pluginfinity-config]. Host-only features stay
    host-only: the `doc-build-issues` monitor is built for Claude Code alone.

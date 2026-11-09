@@ -1,6 +1,6 @@
+import type { BundleManifest, ProjectIdentity, RegistryRef, SbomRef } from "@effected/manifest";
 import type { PackageManifest } from "@effected/package-json";
 import type { CompilerOptions, ResolvedTsconfig } from "@effected/tsconfig-json";
-import type { BundleManifest, ProjectIdentity, RegistryRef, SbomRef } from "@tsdoctor/manifest";
 import { HashMap, Option } from "effect";
 import type { ApiModelInfo, Bundle } from "./Bundle.js";
 import type { PlatformOverrides } from "./PlatformOverrides.js";
@@ -126,7 +126,7 @@ export interface ResolveBundleInput {
 	readonly packageJson?: PackageManifest;
 	/** Layer 2: the extends-resolved tsconfig, when present. */
 	readonly tsconfig?: ResolvedTsconfig;
-	/** Layer 3: the tsdoctor.json sidecar manifest, when present. */
+	/** Layer 3: the bundle.json sidecar manifest, when present. */
 	readonly manifest?: BundleManifest;
 	/** The `manifest.platform` tier, from platform options. */
 	readonly platform?: PlatformOverrides;

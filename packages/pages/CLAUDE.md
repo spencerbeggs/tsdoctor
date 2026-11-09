@@ -72,14 +72,14 @@ non-trivial dependency and it is CPU-bound and I/O-free.
   (`catalog:effected`) — never hand-pin an `@effected` range. Dependencies:
   `@tsdoctor/model`, `@tsdoctor/seo`, `@microsoft/api-extractor-model`,
   `prettier`.
-- Builds with `build()` (`savvy.build.ts`, `@savvy-web/bundler`); tsconfig
-  extends `@savvy-web/bundler/tsconfig/ecma.json`. Source `package.json` stays
+- Builds with `effected package build` (no `effected.toml`); tsconfig
+  extends `@effected/plugin/tsconfig/ecma.json`. Source `package.json` stays
   `"private": true`; `publishConfig` drives publishing.
 
 ## Commands
 
 ```bash
-pnpm --filter @tsdoctor/pages run build:dev
+pnpm --filter @tsdoctor/pages run build
 pnpm vitest run packages/pages/
 ```
 

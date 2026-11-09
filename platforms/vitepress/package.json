@@ -22,13 +22,14 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": {
+			"effected-built": "./dist/prod/npm/pkg/index.js",
+			"default": "./src/index.ts"
+		},
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
-		"prepare": "node savvy.build.ts --target dev",
+		"build": "effected package build",
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -39,6 +40,7 @@
 		"@effected/images": "catalog:effected",
 		"@effected/jsonc": "catalog:effected",
 		"@effected/kit": "catalog:effected",
+		"@effected/manifest": "catalog:effected",
 		"@effected/markdown": "catalog:effected",
 		"@effected/npm": "catalog:effected",
 		"@effected/package-json": "catalog:effected",
@@ -50,11 +52,10 @@
 		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"@microsoft/api-extractor-model": "catalog:build",
+		"@microsoft/api-extractor-model": "catalog:effected:build",
 		"@shikijs/twoslash": "^4.6.0",
 		"@shikijs/vitepress-twoslash": "^4.4.3",
 		"@tsdoctor/bundle": "workspace:*",
-		"@tsdoctor/manifest": "workspace:*",
 		"@tsdoctor/model": "workspace:*",
 		"@tsdoctor/pages": "workspace:*",
 		"@tsdoctor/registry": "workspace:*",
@@ -68,8 +69,7 @@
 		"@effect/vitest": "catalog:effected",
 		"@effected/config-file": "catalog:effected",
 		"@effected/toml": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.4",
-		"@types/node": "catalog:build",
+		"@types/node": "catalog:effected:build",
 		"vitepress": "catalog:docs"
 	},
 	"peerDependencies": {
@@ -80,8 +80,6 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
 		"targets": {
 			"npm": true
 		}

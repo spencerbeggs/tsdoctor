@@ -1,12 +1,13 @@
 /**
  * `@tsdoctor/bundle` — the tsdoctor bundle spec: layered bundle discovery,
- * the versioned `tsdoctor.json` sidecar manifest, provenance-carrying
+ * the versioned `bundle.json` sidecar manifest, provenance-carrying
  * resolution and canonical input hashing for API documentation bundles.
  *
  * @packageDocumentation
  */
 
 export {
+	BUNDLE_MANIFEST_FILENAME,
 	BundleManifest,
 	BundleManifestError,
 	KNOWN_REGISTRY_TYPES,
@@ -18,12 +19,11 @@ export {
 	ProjectIdentity,
 	RegistryRef,
 	SbomRef,
-	TSDOCTOR_MANIFEST_FILENAME,
 	decodeBundleManifest,
 	decodeManifestSource,
 	encodeBundleManifest,
 	isKnownRegistryType,
-} from "@tsdoctor/manifest";
+} from "@effected/manifest";
 export {
 	type ApiModelInfo,
 	type Bundle,

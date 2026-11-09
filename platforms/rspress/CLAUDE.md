@@ -6,17 +6,17 @@ unrelated Claude Code plugin).
 
 ## Architecture
 
-Built via `build()` from `@savvy-web/rspress-builder` (`savvy.build.ts`, self-executing) passing `runtime: true`, `bundledPackages` and `meta.tsdoc.suppressWarnings` (`ae-forgotten-export`). Published via `publishConfig.directory` (`dist/dev/pkg`, npm-only) — no `files` field.
+Built via `effected package build`, configured by `effected.toml`: `externals`, `bundledPackages`, a `[[package.build.overrides]]` entry for `./runtime` (`outSubdir = "runtime"`, `platform = "browser"`, CSS modules via `@tsdown/css` with `inject`) and `ae-forgotten-export` suppressions. Published from `dist/prod/npm/pkg` (npm-only) — no `files` field. Every export carries an `effected-built` condition first (`./dist/prod/npm/pkg/index.js`, `./dist/prod/npm/pkg/runtime/index.js`) ahead of the `src/` default; the build strips it from the published manifest. tsconfig extends `@effected/plugin/tsconfig/ecma.json`, overriding `jsx: react-jsx`, `lib: [es2025, dom]` and `types: [node, react, react-dom]`.
 
 | Artifact | Entry | Target | Output |
 | -------- | ----- | ------ | ------ |
-| Plugin | `src/index.ts` | Node.js | per-file `.js` under `dist/<mode>/pkg/` (`index.js`, `serve.js`, etc.) |
-| Runtime | `src/runtime/` | bundleless per-file JS | `dist/<mode>/pkg/runtime/` (RSPress does the final per-site compile) |
-| API model | — | `.api.json` | `dist/<mode>/meta/` |
+| Plugin | `src/index.ts` | Node.js | per-file `.js` under `dist/prod/npm/pkg/` (`index.js`, `serve.js`, etc.) |
+| Runtime | `src/runtime/` | bundleless per-file JS | `dist/prod/npm/pkg/runtime/` (RSPress does the final per-site compile) |
+| API model | — | `.api.json` | `dist/prod/npm/meta/` |
 
 ### Runtime ships bundleless
 
-The React runtime ships as per-file compiled JS under `runtime/` (mirroring `src/runtime/`), with `react`/`@theme` external and `import.meta.env.SSG_MD` left for RSPress to resolve per site build — that is what makes dual-mode (HTML vs markdown) rendering work; a single bundle froze it. `plugin.ts` registers `ApiLlmsPackageActions` (`globalUIComponents`) and `ApiLlmsViewOptions` (`resolve.alias`) by a **zero-level** `path.resolve(pluginDir, "runtime/components/<Name>/index.js")`, layout-invariant across the dev and published roots. Never reintroduce a `../../src/runtime/` prefix — it broke `llms: true` builds when published.
+The React runtime ships as per-file compiled JS under `runtime/` (mirroring `src/runtime/`), with `react`/`@theme` external and `import.meta.env.SSG_MD` left for RSPress to resolve per site build — that is what makes dual-mode (HTML vs markdown) rendering work; a single bundle froze it. `plugin.ts` registers `ApiLlmsPackageActions` (`globalUIComponents`) and `ApiLlmsViewOptions` (`resolve.alias`) by a **zero-level** `path.resolve(pluginDir, "runtime/components/<Name>/index.js")`, layout-invariant across the built and published roots. Never reintroduce a `../../src/runtime/` prefix — it broke `llms: true` builds when published.
 
 ### Effect service layer
 

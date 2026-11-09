@@ -8,8 +8,10 @@ description: The one awaited helper a site's docs/.vitepress/config.mts calls to
 tags: [compat]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: d5964c3f6e633aad4c91b1a92d3caf2aa1d10962613458e85af2b07281b63cce
+  at: 2026-11-09T18:10:55Z
+integrity:
+  generated:
+    body: 3d9a0e68284773f7
 ---
 
 # `apiExtractor(options)`
@@ -69,7 +71,7 @@ URL becomes `{ url }`; any other string is treated as a path relative to the
 bundle directory and becomes `{ path }`. An object is passed through
 verbatim as the manifest's Open Graph image shape (`path` XOR `url`, plus
 `type`/`width`/`height`/`alt`). This option is the platform tier and
-outranks the bundle's own `tsdoctor.json` Open Graph block — see
+outranks the bundle's own `bundle.json` Open Graph block — see
 [../decisions/vitepress-markdown-only-alpha.md](../decisions/vitepress-markdown-only-alpha.md)
 for how it composes with the rest of the alpha's scope.
 

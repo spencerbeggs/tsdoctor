@@ -7,8 +7,10 @@ tags: [testing, performance]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 81893363df9ec9197ad4163bef4071bd573fab83f1decc363af31af6b71deda0
 status: stable
+integrity:
+  generated:
+    body: 81893363df9ec919
 ---
 
 # Measure hover parity before and after a Twoslash-path change

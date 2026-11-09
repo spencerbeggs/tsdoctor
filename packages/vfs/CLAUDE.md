@@ -71,14 +71,14 @@ hovers over the `multi` fixture before and after). Version line starts at 0.x.
   extracted — copied from the registry, where only `TsEnvironment` reached it —
   and stayed wrong until the compiler-option seam moved in. If a future change
   makes it genuinely lazy, defer that schema construction first.
-- Builds with `defineBuild()` (`savvy.build.ts`, `@savvy-web/bundler`);
-  tsconfig extends `@savvy-web/bundler/tsconfig/ecma.json`. Source
+- Builds with `effected package build` (no `effected.toml`); tsconfig
+  extends `@effected/plugin/tsconfig/ecma.json`. Source
   `package.json` stays `"private": true`; `publishConfig` drives publishing.
 
 ## Commands
 
 ```bash
-pnpm --filter @tsdoctor/vfs run build:dev
+pnpm --filter @tsdoctor/vfs run build
 pnpm vitest run packages/vfs/
 ```
 

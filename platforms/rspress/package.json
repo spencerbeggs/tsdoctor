@@ -14,17 +14,21 @@
 	"author": "Spencer Beggs",
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": {
+			"effected-built": "./dist/prod/npm/pkg/index.js",
+			"default": "./src/index.ts"
+		},
 		"./env": {
 			"types": "./src/env.d.ts"
 		},
-		"./runtime": "./src/runtime/index.tsx",
+		"./runtime": {
+			"effected-built": "./dist/prod/npm/pkg/runtime/index.js",
+			"default": "./src/runtime/index.tsx"
+		},
 		"./tsconfig/rspress.json": "./public/tsconfig/rspress.json"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
-		"prepare": "node savvy.build.ts --target dev",
+		"build": "effected package build",
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -35,6 +39,7 @@
 		"@effected/images": "catalog:effected",
 		"@effected/jsonc": "catalog:effected",
 		"@effected/kit": "catalog:effected",
+		"@effected/manifest": "catalog:effected",
 		"@effected/markdown": "catalog:effected",
 		"@effected/memfs": "catalog:effected",
 		"@effected/npm": "catalog:effected",
@@ -47,10 +52,9 @@
 		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"@microsoft/api-extractor-model": "catalog:build",
+		"@microsoft/api-extractor-model": "catalog:effected:build",
 		"@shikijs/twoslash": "^4.6.0",
 		"@tsdoctor/bundle": "workspace:*",
-		"@tsdoctor/manifest": "workspace:*",
 		"@tsdoctor/model": "workspace:*",
 		"@tsdoctor/pages": "workspace:*",
 		"@tsdoctor/registry": "workspace:*",
@@ -75,17 +79,17 @@
 		"@effected/toml": "catalog:effected",
 		"@microsoft/tsdoc": "~0.17.0",
 		"@rspress/core": "catalog:docs",
-		"@savvy-web/rspress-builder": "^1.3.34",
+		"@tsdown/css": "^0.23.7",
 		"@types/hast": "^3.0.5",
 		"@types/mdast": "^4.0.4",
-		"@types/node": "catalog:build",
-		"@types/react": "catalog:build",
-		"@types/react-dom": "catalog:build",
+		"@types/node": "catalog:effected:build",
+		"@types/react": "catalog:effected:build",
+		"@types/react-dom": "catalog:effected:build",
 		"@types/unist": "^3.0.3",
 		"mdast-util-from-markdown": "^2.1.0",
 		"mdast-util-mdx-jsx": "^3.2.1",
-		"react": "catalog:build",
-		"react-dom": "catalog:build",
+		"react": "catalog:effected:build",
+		"react-dom": "catalog:effected:build",
 		"unified": "^11.0.5"
 	},
 	"peerDependencies": {
@@ -98,8 +102,6 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
 		"targets": {
 			"npm": true
 		}

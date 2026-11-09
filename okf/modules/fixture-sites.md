@@ -7,9 +7,11 @@ resource: ../../sites
 tags: [testing, ci]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: 454d2acee3d56f38f05af8617d7adb954b6294ae295402410765dda8d5e12954
+  at: 2026-11-09T18:10:55Z
 status: stable
+integrity:
+  generated:
+    body: f80f59f9341c9b1c
 ---
 
 # Fixture sites
@@ -33,25 +35,36 @@ Every RSPress site's `package.json` `build` script is `rspress build` and
 `dev`/`preview` invoke `node lib/scripts/dev.mts` / `preview.mts` (which
 call `rspress-plugin-api-extractor`'s exported `serve()` helper); the
 VitePress fixture's scripts call `vitepress build|dev|preview docs`
-directly.
+directly. Every one of these scripts runs under
+`NODE_OPTIONS=--conditions=effected-built`.
 
 ## Consuming the adapter as a built artifact
 
-A site depends on its adapter through `workspace:*`, which pnpm links to
-the adapter's `publishConfig.directory` — the adapter's **built** output
-(`dist/dev/pkg` for the dev build), not `src/`. A fixture site therefore
-exercises exactly the artifact that ships to real consumers: a build-only
-break (a missing export condition, a wrong runtime path) shows up in a
-fixture site rather than surfacing only downstream.
+A site depends on its adapter through `workspace:*`, whose `exports`
+resolve to `src/` by default. Every `packages/*` and `platforms/*` export
+also carries a leading `effected-built` condition pointing at the built
+file under `./dist/prod/npm/pkg/`, and the sites select it in three
+places: the `NODE_OPTIONS=--conditions=effected-built` script prefix (for
+Node loading the config), each RSPress site's `rspress.config.ts`
+prepending `effected-built` to rspack's `resolve.conditionNames` (for the
+site bundle), and the VitePress fixture's config importing the adapter
+through a variable-specifier dynamic `import(adapter)` (see
+[the Vite config-bundler gotcha](../gotchas/vite-config-ignores-conditions.md)).
+A fixture site therefore exercises the adapter's **built** output, the
+artifact that ships to real consumers: a build-only break (a missing
+export condition, a wrong runtime path) shows up in a fixture site rather
+than surfacing only downstream. Turbo's site `build` depends on `^build`
+and the fixture module's `#build`, so the built output exists first.
 
 ## Populating a model
 
 Each site's `sites/*/lib/models/kitchensink/` (or equivalent per-module
 directory) is populated by the corresponding fixture module's build via
 `localPaths` — generated, gitignored, containing the `.api.json` trio,
-`tsdoctor.json` and any published Open Graph image (see
-[`fixture-modules.md`](fixture-modules.md)). The **root** `tsdoctor.json`
-is the project tier every site's resolved bundle manifest flattens over.
+`bundle.json` and any published Open Graph image under `og/` (see
+[`fixture-modules.md`](fixture-modules.md)). The **root** `bundle.json`
+is the project tier the build nests, under `project`, into every
+module's emitted manifest.
 
 ## Commands
 
@@ -59,7 +72,7 @@ is the project tier every site's resolved bundle manifest flattens over.
 pnpm dev                    # start the basic site's dev server (default)
 pnpm dev:<site>             # basic | versioned | i18n | multi | effect | vitepress-basic
 pnpm preview:<site>         # same set
-pnpm build:basic            # turbo run build:dev build:prod --filter=@sites/basic
+pnpm build:basic            # turbo run build --filter=@sites/basic
 pnpm build:multi
 pnpm build:vitepress-basic  # turbo run build --filter=@sites/vitepress-basic
 ```

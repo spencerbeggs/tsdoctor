@@ -6,19 +6,21 @@ description: Frame-neutral logic lives in packages/; each platforms/* adapter is
 tags: [architecture]
 generated:
   by: okfit/claude-code
-  at: 2026-09-28T19:00:27Z
+  at: 2026-11-09T18:10:55Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
   - by: human:spencer
     at: 2026-11-02T19:11:05Z
+  - by: human:spencer
+    at: 2026-11-09T18:10:30Z
 integrity:
   generated:
-    body: 278c8b8369f4405f
+    body: 933e28e2fba4614e
   verified:
     by: human:spencer
-    at: 2026-11-02T19:11:05Z
-    content: bdd3f2d2ae4c1ad1
+    at: 2026-11-09T18:10:30Z
+    content: cf302dbcc40716b3
 ---
 
 # Core packages, thin adapters
@@ -71,8 +73,10 @@ into `@tsdoctor/vfs`, following `TsEnvironment`; the llms.txt transforms,
 the scope helpers, `prepareWorkItems` and the page generators into
 `@tsdoctor/pages`; the Twoslash result cache into `@tsdoctor/vfs` once
 both adapters wired the same `TwoslashTypesCache` interface; the OG and
-canonical helpers into `@tsdoctor/seo`; the `tsdoctor.json` manifest
-schema out of `@tsdoctor/bundle` into `@tsdoctor/manifest`.
+canonical helpers into `@tsdoctor/seo`; the sidecar manifest schema out of
+`@tsdoctor/bundle` into `@tsdoctor/manifest`, since moved on into the kit
+as `@effected/manifest` (see
+[manifest-schema-home.md](manifest-schema-home.md)).
 
 Two files were deliberately kept in the RSPress adapter rather than moved,
 on the same coupling-from-inside reasoning:

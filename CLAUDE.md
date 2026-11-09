@@ -38,8 +38,7 @@ Workspace globs (`pnpm-workspace.yaml`): `modules/*`, `packages/*`,
 | `packages/vfs/` | `@tsdoctor/vfs` | Publishable | VFS primitives: `Vfs`, `VirtualPackage`, `TsEnvironment`, the compiler-options seam |
 | `packages/registry/` | `@tsdoctor/registry` | Publishable | External type loading: fetch, cache and resolve package types into a `Vfs` |
 | `packages/model/` | `@tsdoctor/model` | Publishable | api.json loading, TSDoc extraction, routes, signatures, `.d.ts` reconstruction, frontmatter, markdown rendering |
-| `packages/manifest/` | `@tsdoctor/manifest` | Publishable | The `tsdoctor.json` spec-1 sidecar manifest: schema, `encodeBundleManifest` / `decodeBundleManifest` boundaries and the `ManifestSource` authoring-file shape |
-| `packages/bundle/` | `@tsdoctor/bundle` | Publishable | Bundle spec: `tsdoctor.json` manifest, provenance resolver, discovery, fetchers |
+| `packages/bundle/` | `@tsdoctor/bundle` | Publishable | Bundle spec: `bundle.json` manifest, provenance resolver, discovery, fetchers |
 | `packages/snapshot/` | `@tsdoctor/snapshot` | Publishable | Incremental-build snapshot store (SQLite via `@effected/store`) + content hashing |
 | `packages/seo/` | `@tsdoctor/seo` | Publishable | Framework-neutral `<head>` metadata: `HeadTag`, canonical, OG/Twitter, attribution, JSON-LD |
 | `packages/pages/` | `@tsdoctor/pages` | Publishable | Framework-neutral page IR: block vocabulary, `ApiItem` → `Page` builders, navigation tree, example preparation, plain-markdown emitter, llms.txt text transforms |
@@ -62,13 +61,13 @@ adapters as `rspress-plugin-api-extractor` / `vitepress-plugin-api-extractor`
 ### platforms/rspress/
 
 The publishable plugin (`rspress-plugin-api-extractor`). Builds via
-`build()` from `@savvy-web/rspress-builder`
-(`platforms/rspress/savvy.build.ts`); the runtime is emitted bundleless
-per-file under `dist/<mode>/pkg/runtime/` (see `platforms/rspress/CLAUDE.md`).
+`effected package build`, configured by `platforms/rspress/effected.toml`; the
+runtime is emitted bundleless per-file under `dist/prod/npm/pkg/runtime/`
+(see `platforms/rspress/CLAUDE.md`).
 Depends on all seven `@tsdoctor/*` core workspaces via `workspace:*`.
 Exports three entry points:
 
-- `.` — Main plugin (per-file output under `dist/<mode>/pkg/`)
+- `.` — Main plugin (output under `dist/prod/npm/pkg/`)
 - `./runtime` — React components for SSG-compatible rendering (bundleless per-file)
 - `./tsconfig/rspress.json` — RSPress tsconfig that sites extend from
 
@@ -100,10 +99,10 @@ compiler-options seam and the Twoslash result cache both adapters warm.
 `typescript`, `@typescript/vfs` and `@shikijs/twoslash` are optional peers
 there and nowhere else in the core.
 
-**manifest** depends on `effect` alone so a bundler can write `tsdoctor.json`
-through it without the bundle package's fetch and cache stack; **bundle**
-depends on it and re-exports every manifest name, so readers in this repo
-import from `@tsdoctor/bundle`.
+The `bundle.json` manifest schema ships from the kit as `@effected/manifest`
+(depends on `effect` alone); this repo keeps no copy of it. **bundle**
+re-exports its names from `@effected/manifest`, so readers in this repo import from `@tsdoctor/bundle`;
+both platforms depend on `@effected/manifest` directly.
 
 **seo** owns every `<head>` concern behind one seam, `Seo.headTags(input)`,
 returning a neutral `HeadTag[]` an adapter merely renders. The package decides
@@ -131,14 +130,15 @@ are the two built manifests. Load with `pnpm claude` / `pnpm copilot`;
 
 ### modules/
 
-Test fixture modules built with `defineBuild()` from `@savvy-web/bundler`
-(`savvy.build.ts`), producing `dist/dev/` (source maps) and `dist/prod/`
-(API Extractor model, `.api.json` under `dist/<mode>/meta/`).
+Test fixture modules built with `effected package build`, producing
+`dist/prod/npm/pkg/` and `dist/prod/npm/meta/` (API Extractor model,
+`.api.json`); each module's `effected.toml` sets `[package.build.meta]
+localPaths` to copy the model into the sites that consume it.
 **kitchensink** also exports a `./testing` entry point for multi-entry
-testing. `modules/kitchensink/savvy.build.ts` carries a `meta.tsdoctor` block
-(name, tagline, a satori-generated Open Graph image via
-`@savvy-web/bundler/og`'s `ogImage.satori()`) that the bundler writes out as
-the site's `tsdoctor.json` sidecar.
+testing. `modules/kitchensink/effected.toml` carries a `[package.bundle]`
+table (name, tagline, a satori-generated Open Graph image via
+`[package.bundle.openGraph] generate = "satori"`) that the build writes out
+as the site's `bundle.json` sidecar.
 
 ### sites/
 
@@ -146,10 +146,21 @@ RSPress 2.0 sites consuming the plugin via `workspace:*` plus one or more
 modules (configurations in the workspace table). `sites/vitepress-basic/` is
 the VitePress 2 fixture, populated by kitchensink's `localPaths` like
 `sites/basic/`. Each site's `sites/*/lib/models/kitchensink/` is populated by
-the kitchensink build (generated, gitignored) with `tsdoctor.json` and
-`og/kitchensink.png` beside the api.json trio. The root `tsdoctor.json` is
-the project tier the bundler flattens into every site's resolved bundle
+the kitchensink build (generated, gitignored) with `bundle.json` and
+`og/kitchensink.png` beside the api.json trio. The root `bundle.json` is
+the project tier the build flattens into every site's resolved bundle
 manifest.
+
+Workspace links resolve through `exports` to `src/`; every `packages/*` and
+`platforms/*` export carries an `effected-built` condition first (pointing at
+`dist/prod/npm/pkg/`), which the build strips from the published manifest.
+Sites run `build`/`dev`/`preview` with
+`NODE_OPTIONS=--conditions=effected-built`, so they load the built siblings:
+each RSPress config prepends `effected-built` to rspack's
+`resolve.conditionNames`, and the VitePress fixture imports the adapter
+through a variable-specifier `import(adapter)` because Vite's config bundler
+ignores `--conditions`. Siblings must be built before a site runs (Turbo
+handles it).
 
 ## Effect-TS Architecture
 
@@ -204,6 +215,7 @@ read one when the task touches its area.
 - `okf/interfaces/rspress-plugin-options.md`
 - `okf/decisions/core-peers-follow-public-surface.md`
 - `okf/conventions/rspress-dependency-closure.md`
+- `okf/decisions/typescript-version-split.md`
 
 **Page generation & markdown** — the Stream pipeline, Shiki transformers,
 cross-linking:
@@ -266,17 +278,20 @@ heartbeat, the `issues.json` artifact:
 
 Every publishable workspace's source `package.json` is `"private": true` —
 **intentional**. `publishConfig` controls publishing (npm only, with
-provenance); never set `"private": false` in the source manifest — the
-builders transform `package.json` during build.
+provenance); never set `"private": false` in the source manifest —
+`effected package build` transforms `package.json` during build.
 
 ### Turbo Orchestration
 
 [Turbo](https://turbo.build/) manages task dependencies and caching:
 
-- `build:dev` depends on `^build:dev`; `build:prod` on `types:check` and
-  `build:dev`; `types:check` on `^build:dev`
-- The root `build` script runs `build:dev build:prod`; sites define only a
-  `build` task, so they are excluded
+- One `build` task (`effected package build`) depends on `^build` and
+  `types:check`, with outputs `dist/prod/**` (`<group>/{pkg,meta}`,
+  `targets.json`, `issues.json`); `types:check` depends on `^types:check`
+- `dev`/`preview` depend on `^build`; a site's `build` depends on `^build`
+  plus its module's `#build`
+- The root `build` script is `turbo run build --filter=!@sites/*`;
+  `ci:build` also excludes modules
 - Environment pass-through: `GITHUB_ACTIONS`, `CI`
 
 ## Savvy-Web Tool References
@@ -286,8 +301,6 @@ unexpected, read the installed source under `node_modules/@savvy-web/`.
 
 | Package | Purpose | GitHub |
 | ------- | ------- | ------ |
-| bundler | Build pipeline for modules (tsdown-based, dual output, package.json transform) | [savvy-web/bundler](https://github.com/savvy-web/bundler) |
-| rspress-builder | RSPress-plugin build pipeline (built on bundler, runtime emission) | [savvy-web/rspress-builder](https://github.com/savvy-web/rspress-builder) |
 | commitlint | Conventional commit + DCO enforcement | [savvy-web/commitlint](https://github.com/savvy-web/commitlint) |
 | changesets | Versioning, changelogs, release management | [savvy-web/changesets](https://github.com/savvy-web/changesets) |
 | lint-staged | Pre-commit file linting via Biome | [savvy-web/lint-staged](https://github.com/savvy-web/lint-staged) |
@@ -295,9 +308,10 @@ unexpected, read the installed source under `node_modules/@savvy-web/`.
 
 TypeScript configurations extend per workspace type:
 
-- `platforms/rspress/` → `@savvy-web/rspress-builder/tsconfig/plugin.json`
 - Core packages, modules and `platforms/vitepress/` →
-  `@savvy-web/bundler/tsconfig/ecma.json`
+  `@effected/plugin/tsconfig/ecma.json`
+- `platforms/rspress/` → the same, overriding `jsx: react-jsx`,
+  `lib: [es2025, dom]` and `types: [node, react, react-dom]`
 - RSPress sites → `rspress-plugin-api-extractor/tsconfig/rspress.json`
 - Root → `@savvy-web/silk/tsconfig/node/root.json`
 
@@ -346,8 +360,8 @@ pnpm preview:<site>        # basic | versioned | i18n | multi | effect | vitepre
 ### Per-Workspace Examples
 
 ```bash
-pnpm --filter rspress-plugin-api-extractor run build:dev  # plugin only
-pnpm --filter @sites/basic run dev                        # one site's dev server
+pnpm --filter rspress-plugin-api-extractor run build  # plugin only
+pnpm --filter @sites/basic run dev                    # one site's dev server
 pnpm vitest run platforms/rspress/__test__/build-stages.test.ts
 ```
 

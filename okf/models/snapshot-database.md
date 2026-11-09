@@ -7,13 +7,15 @@ tags: [architecture, performance]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 73f62fc38c7f025e7984499c4c9b90906bc984b79f0e7881d9af6a1be73b47aa
 sources:
   - id: snapshot-service-src
     resource: ../../packages/snapshot/src/SnapshotService.ts
   - id: content-hash-src
     resource: ../../packages/snapshot/src/content-hash.ts
 status: stable
+integrity:
+  generated:
+    body: 73f62fc38c7f025e
 ---
 
 # Snapshot database

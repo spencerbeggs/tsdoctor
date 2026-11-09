@@ -22,7 +22,7 @@ const fullDescriptor: BundleDescriptor = {
 	modelPath: "/bundles/kitchensink/kitchensink.api.json",
 	packageJsonPath: "/bundles/kitchensink/package.json",
 	tsconfigPath: "/bundles/kitchensink/tsconfig.json",
-	manifestPath: "/bundles/kitchensink/tsdoctor.json",
+	manifestPath: "/bundles/kitchensink/bundle.json",
 };
 
 describe("readApiModelInfo", () => {
@@ -71,7 +71,7 @@ describe("readBundle", () => {
 						dependencies: { zod: "^3.0.0" },
 					}),
 					"/bundles/kitchensink/tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
-					"/bundles/kitchensink/tsdoctor.json": JSON.stringify({ spec: 1, name: "Kitchen Sink" }),
+					"/bundles/kitchensink/bundle.json": JSON.stringify({ spec: 1, name: "Kitchen Sink" }),
 				}),
 			),
 		),
@@ -103,24 +103,24 @@ describe("readBundle", () => {
 					// Parses as JSON but violates the manifest schema (bad semver).
 					"/bundles/kitchensink/package.json": JSON.stringify({ name: "x", version: "not-semver" }),
 					"/bundles/kitchensink/tsconfig.json": JSON.stringify({ compilerOptions: {} }),
-					"/bundles/kitchensink/tsdoctor.json": JSON.stringify({ spec: 1 }),
+					"/bundles/kitchensink/bundle.json": JSON.stringify({ spec: 1 }),
 				}),
 			),
 		),
 	);
 
-	it.effect("a present-but-invalid tsdoctor.json fails typed as a manifest error", () =>
+	it.effect("a present-but-invalid bundle.json fails typed as a manifest error", () =>
 		Effect.gen(function* () {
 			const error = yield* Effect.flip(readBundle(fullDescriptor));
 			assert.strictEqual(error._tag, "BundleManifestError");
-			assert.isTrue(error._tag === "BundleManifestError" && error.path === "/bundles/kitchensink/tsdoctor.json");
+			assert.isTrue(error._tag === "BundleManifestError" && error.path === "/bundles/kitchensink/bundle.json");
 		}).pipe(
 			Effect.provide(
 				testLayer({
 					"/bundles/kitchensink/kitchensink.api.json": apiModelText,
 					"/bundles/kitchensink/package.json": JSON.stringify({ name: "@modules/kitchensink", version: "0.1.0" }),
 					"/bundles/kitchensink/tsconfig.json": JSON.stringify({ compilerOptions: {} }),
-					"/bundles/kitchensink/tsdoctor.json": JSON.stringify({ spec: 99 }),
+					"/bundles/kitchensink/bundle.json": JSON.stringify({ spec: 99 }),
 				}),
 			),
 		),

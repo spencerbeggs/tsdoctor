@@ -21,7 +21,7 @@ const makeTestLayer = (options: PluginOptions) =>
 			TwoslashEnvironments.layer,
 			Layer.succeed(PluginConfig, options),
 			// `resolve()` now loads each API's bundle (`loadBundle`), which needs
-			// a real FileSystem/Path to discover a `tsdoctor.json` sidecar beside
+			// a real FileSystem/Path to discover a `bundle.json` sidecar beside
 			// the fixture model.
 			NodeFileSystem.layer,
 			Path.layer,
@@ -452,7 +452,7 @@ describe("ConfigService.layer.resolve — typed configuration failures", () => {
 
 /**
  * `resolve()` resolving each API's bundle — display identity and Open Graph
- * images from a `tsdoctor.json` sidecar beside the model.
+ * images from a `bundle.json` sidecar beside the model.
  */
 describe("ConfigService.layer.resolve — bundle manifest", () => {
 	const bundleFixtureModel = path.join(import.meta.dirname, "__fixtures__/bundle-manifest/kitchensink.api.json");
@@ -487,7 +487,7 @@ describe("ConfigService.layer.resolve — bundle manifest", () => {
 		expect(published.byteLength).toBeGreaterThan(0);
 	});
 
-	it("resolves a fallback bundle (name only) for a model with no tsdoctor.json beside it", async () => {
+	it("resolves a fallback bundle (name only) for a model with no bundle.json beside it", async () => {
 		const options: PluginOptions = {
 			api: {
 				packageName: "example-module",
@@ -539,7 +539,7 @@ describe("ConfigService.layer.resolve — bundle manifest", () => {
 		expect(result[0].bundle.name.value).toBe("Kitchen Sink");
 	});
 
-	it("fails typed when the pinned model's tsdoctor.json is malformed", async () => {
+	it("fails typed when the pinned model's bundle.json is malformed", async () => {
 		const malformedModel = path.join(
 			import.meta.dirname,
 			"__fixtures__/bundle-manifest-malformed/kitchensink.api.json",
