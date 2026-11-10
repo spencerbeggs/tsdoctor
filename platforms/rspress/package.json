@@ -93,9 +93,9 @@
 		"unified": "^11.0.5"
 	},
 	"peerDependencies": {
-		"@rspress/core": "catalog:docs:peers",
-		"react": "catalog:docs:peers",
-		"react-dom": "catalog:docs:peers"
+		"@rspress/core": "^2.1.1",
+		"react": "catalog:effected:build:peers",
+		"react-dom": "catalog:effected:build:peers"
 	},
 	"engines": {
 		"node": ">=24.11.0"
