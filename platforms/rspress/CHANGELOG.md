@@ -1,5 +1,17 @@
 # rspress-plugin-api-extractor
 
+## 0.20.2
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @rspress/core | peerDependency | updated | ^2.0.0 | ^2.1.1 |
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.20.1
 
 ### Dependencies
