@@ -1,5 +1,37 @@
 # @tsdoctor/vfs
 
+## 0.7.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/jsonc | dependency | updated | ^0.24.0 | ^0.25.0 |
+| @effected/kit | dependency | updated | ^0.13.0 | ^0.14.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.20.2 | ^0.21.0 |
+| effect | peerDependency | updated | ~4.1.2 | ~4.1.0 |
+
+[#410][#410]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#410]: https://github.com/spencerbeggs/tsdoctor/pull/410
+
+## 0.7.3
+
+### Build System
+
+- Built with `effected package build` instead of `@savvy-web/bundler` and `@savvy-web/rspress-builder`; the published entry points and file layout are unchanged
+- The RSPress runtime still ships one file per source, with `import.meta.env.SSG_MD` left for RSPress to resolve [#408][#408]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#408]: https://github.com/spencerbeggs/tsdoctor/pull/408
+
 ## 0.7.2
 
 ### Dependencies

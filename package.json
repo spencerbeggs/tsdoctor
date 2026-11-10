@@ -16,11 +16,11 @@
 	},
 	"type": "module",
 	"scripts": {
-		"build": "turbo run build:dev build:prod --log-order=grouped --output-logs=full --log-prefix=none",
-		"build:basic": "turbo run build:dev build:prod --filter=@sites/basic --ui=stream",
-		"build:multi": "turbo run build:dev build:prod --filter=@sites/multi --ui=stream",
+		"build": "turbo run build --filter=!@sites/* --log-order=grouped --output-logs=full --log-prefix=none",
+		"build:basic": "turbo run build --filter=@sites/basic --ui=stream",
+		"build:multi": "turbo run build --filter=@sites/multi --ui=stream",
 		"build:vitepress-basic": "turbo run build --filter=@sites/vitepress-basic --ui=stream",
-		"ci:build": "CI=\"true\" turbo run build:dev build:prod --filter=!@sites/* --filter=!@modules/* --log-order=grouped --output-logs=full --log-prefix=none",
+		"ci:build": "CI=\"true\" turbo run build --filter=!@sites/* --filter=!@modules/* --log-order=grouped --output-logs=full --log-prefix=none",
 		"ci:test": "CI=\"true\" vitest run --coverage",
 		"claude": "claude --plugin-dir plugin/builds/claude",
 		"copilot": "copilot --plugin-dir plugin/builds/copilot",
@@ -54,9 +54,9 @@
 	},
 	"devDependencies": {
 		"@effected/plugin": "catalog:effected",
-		"@okfit/plugin": "^0.5.30",
-		"@savvy-web/silk": "^4.5.7",
-		"@vitest-agent/plugin": "^6.0.6"
+		"@okfit/plugin": "^0.5.32",
+		"@savvy-web/silk": "^5.0.0",
+		"@vitest-agent/plugin": "^6.0.9"
 	},
 	"engines": {
 		"node": ">=24.11.0"
@@ -64,7 +64,7 @@
 	"devEngines": {
 		"packageManager": {
 			"name": "pnpm",
-			"version": "12.18.0",
+			"version": "12.19.0",
 			"onFail": "download"
 		},
 		"runtime": [

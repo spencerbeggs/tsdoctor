@@ -25,4 +25,15 @@ export default defineConfig({
 	],
 	markdown: { link: { checkDeadLinks: false } },
 	route: { cleanUrls: true },
+	// Resolve the workspace plugin runtime and its @tsdoctor/* siblings to their
+	// built output, as Node does for this config under --conditions=effected-built.
+	builderConfig: {
+		tools: {
+			rspack: (config) => {
+				config.resolve ??= {};
+				config.resolve.conditionNames = ["effected-built", ...(config.resolve.conditionNames ?? ["..."])];
+				return config;
+			},
+		},
+	},
 });

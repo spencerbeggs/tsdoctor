@@ -1,5 +1,11 @@
 import { defineConfig } from "vitepress";
-import { apiExtractor } from "vitepress-plugin-api-extractor";
+
+// Vite bundles this config and resolves bare imports with its own fixed
+// conditions, ignoring --conditions=effected-built. A specifier held in a
+// variable stays a runtime import, so Node resolves the workspace adapter to
+// its built output.
+const adapter = "vitepress-plugin-api-extractor";
+const { apiExtractor }: typeof import("vitepress-plugin-api-extractor") = await import(adapter);
 
 // Generation runs at config load: VitePress has no pre-scan hook, so the
 // helper writes the pages under docs/ before VitePress reads them, and hands

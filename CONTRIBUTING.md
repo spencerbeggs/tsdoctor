@@ -39,7 +39,7 @@ pnpm run test    # run the full test suite
 
 ## Build pipeline
 
-[Turbo](https://turbo.build/) orchestrates the build graph. Each publishable workspace builds with the `@savvy-web` builders and emits dual outputs: a development build under `dist/dev/` and a production build under `dist/prod/`.
+[Turbo](https://turbo.build/) orchestrates the build graph. Each workspace has one `build` script, `effected package build` (from `@effected/plugin`), configured by an optional `effected.toml` beside its `package.json`. It emits a single production build under `dist/prod/`: the package and its API Extractor model in `dist/prod/npm/{pkg,meta}`, plus `targets.json` and `issues.json`.
 
 ```bash
 pnpm run build     # build packages + plugin + fixture modules via Turbo (sites are excluded)
@@ -48,11 +48,11 @@ pnpm run build     # build packages + plugin + fixture modules via Turbo (sites 
 Build a single workspace by filtering:
 
 ```bash
-pnpm --filter @tsdoctor/model run build:dev              # one core library
-pnpm --filter rspress-plugin-api-extractor run build:dev  # the plugin only
+pnpm --filter @tsdoctor/model run build              # one core library
+pnpm --filter rspress-plugin-api-extractor run build  # the plugin only
 ```
 
-The workspace links resolve to each package's built `dist/dev/pkg`, not its `src/` — the sites import the built plugin, and the plugin imports the built libraries. Run `pnpm run build` after cloning before starting a dev server.
+The workspace links resolve through each package's `exports` to its `src/`. Every export also carries an `effected-built` condition, listed first, that points at the built `dist/prod/npm/pkg/` (the build strips it from the published manifest). The sites run with `NODE_OPTIONS=--conditions=effected-built`, so they import the built plugin, and the plugin imports the built libraries. Run `pnpm run build` after cloning before starting a dev server; Turbo builds the siblings first when you run a site through it.
 
 ## Fixture sites
 

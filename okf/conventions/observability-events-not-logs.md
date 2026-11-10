@@ -5,7 +5,6 @@ description: Every build diagnostic is a typed PluginEvent through the event bus
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 4e312ed02271b672c826784a0005995e9ae3cb5d6da8f6dcf9b7561695b4f45f
 stale_after: 2026-12-12T00:00:00Z
 tags: [observability, dx]
 sources:
@@ -20,6 +19,9 @@ sources:
   - id: render-sink
     resource: ../../platforms/rspress/src/observability/sinks/render-sink.ts
 status: stable
+integrity:
+  generated:
+    body: 4e312ed02271b672
 ---
 
 # Report through events, not logs or direct metrics

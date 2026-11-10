@@ -31,14 +31,14 @@ describe("discoverBundle", () => {
 			assert.strictEqual(descriptor.modelPath, "/bundles/kitchensink/kitchensink.api.json");
 			assert.strictEqual(descriptor.packageJsonPath, "/bundles/kitchensink/package.json");
 			assert.strictEqual(descriptor.tsconfigPath, "/bundles/kitchensink/tsconfig.json");
-			assert.strictEqual(descriptor.manifestPath, "/bundles/kitchensink/tsdoctor.json");
+			assert.strictEqual(descriptor.manifestPath, "/bundles/kitchensink/bundle.json");
 		}).pipe(
 			Effect.provide(
 				memfsLayer({
 					"/bundles/kitchensink/kitchensink.api.json": apiModelText("@modules/kitchensink"),
 					"/bundles/kitchensink/package.json": JSON.stringify({ name: "@modules/kitchensink", version: "0.1.0" }),
 					"/bundles/kitchensink/tsconfig.json": JSON.stringify({ compilerOptions: {} }),
-					"/bundles/kitchensink/tsdoctor.json": JSON.stringify({ spec: 1 }),
+					"/bundles/kitchensink/bundle.json": JSON.stringify({ spec: 1 }),
 				}),
 			),
 		),

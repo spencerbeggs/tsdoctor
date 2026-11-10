@@ -38,14 +38,14 @@ external package types into a `Vfs`. Do not re-add a VFS primitive here —
   `@effected/tsconfig-json` left with `TsEnvironment` — do not add them back.
   Anything that peers on `effect` must remain a peer — a nested `effect` copy
   strands artifacts at import.
-- Builds with `defineBuild()` (`savvy.build.ts`, `@savvy-web/bundler`);
-  tsconfig extends `@savvy-web/bundler/tsconfig/ecma.json`. Source
+- Builds with `effected package build` (no `effected.toml`); tsconfig
+  extends `@effected/plugin/tsconfig/ecma.json`. Source
   `package.json` stays `"private": true`; `publishConfig` drives publishing.
 
 ## Commands
 
 ```bash
-pnpm --filter @tsdoctor/registry run build:dev
+pnpm --filter @tsdoctor/registry run build
 pnpm vitest run packages/registry/
 ```
 

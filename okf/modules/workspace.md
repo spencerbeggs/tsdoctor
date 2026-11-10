@@ -7,11 +7,11 @@ resource: ../..
 tags: [architecture, dx, ci, release, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:38:59Z
+  at: 2026-11-09T18:10:55Z
 status: stable
 integrity:
   generated:
-    body: 0c72b985ae01eb50
+    body: 7a661c3413cab0a9
 ---
 
 # The tsdoctor monorepo workspace
@@ -33,25 +33,32 @@ fixture modules — sites are excluded from the root build) get a checkout worki
 
 ## Turbo task graph
 
+Every package, platform and fixture module builds through one `build`
+script, `effected package build` (the bin from the root
+`@effected/plugin` devDependency), optionally configured by an
+`effected.toml` beside its `package.json`. It writes `dist/prod/npm/pkg`
+(the publishable package), `dist/prod/npm/meta` (the API Extractor model
+and `bundle.json`) and `dist/prod/issues.json`. There is no dev build.
+
 `turbo.json` defines four tasks:
 
-- `build:dev` depends on `^build:dev` (its own workspace dependencies must
-  build first) and writes `dist/dev/**`.
-- `build:prod` depends on `types:check` and `build:dev`, and writes
+- `build` depends on `^build` and `types:check`, and writes
   `dist/prod/**`.
-- `types:check` depends on `^build:dev` (a workspace can only type-check
-  once everything it imports has emitted its dev build) and caches
-  `dist/.tsbuildinfo.lib`.
-- `dev` / `preview` are uncached, persistent tasks depending on `build:dev`,
+- `types:check` depends on `^types:check` and caches
+  `dist/.tsbuildinfo.lib`. Workspace links resolve through `exports` to
+  `src/`, so type-checking needs no upstream build.
+- `dev` / `preview` are uncached, persistent tasks depending on `^build`,
   used by the fixture sites' dev servers.
 
-The root `build` script runs `build:dev build:prod` through Turbo; fixture
-sites define only a `build` script (not `build:dev`/`build:prod`), so
-Turbo's root build never touches them. `ci:build` explicitly filters both
-`!@sites/*` and `!@modules/*`, so CI's unattended build path never builds a
-fixture module or fixture site — see
+A fixture site's own `turbo.json` makes its `build` depend on `^build`
+plus the fixture module's `#build` that populates its models. The root
+`build` script runs `turbo run build --filter=!@sites/*`, so the root
+build never touches a site. `ci:build` explicitly filters both
+`!@sites/*` and `!@modules/*`, so CI's unattended build path never builds
+a fixture module or fixture site — see
 [`../modules/fixture-sites.md`](fixture-sites.md) for what that means for
-site coverage.
+site coverage, and for the `effected-built` export condition the sites use
+to load built output.
 
 ## Effect-TS foundation and the `@effected` catalogs
 
@@ -123,12 +130,16 @@ their source — see
 
 ## TypeScript configuration per workspace type
 
-- `platforms/rspress/` extends `@savvy-web/rspress-builder/tsconfig/plugin.json`.
-- Core packages, fixture modules and `platforms/vitepress/` extend
-  `@savvy-web/bundler/tsconfig/ecma.json`.
+- Core packages, both adapters and the fixture modules extend
+  `@effected/plugin/tsconfig/ecma.json`.
 - RSPress fixture sites extend `rspress-plugin-api-extractor/tsconfig/rspress.json`
   (the plugin's own published tsconfig entry point).
 - The repo root extends `@savvy-web/silk/tsconfig/node/root.json`.
+
+Packages and platforms stay on TypeScript 6 while the effected build
+chain declares a TypeScript 7.1 peer; toolchain devDependencies come from
+`catalog:effected:build` — see
+[`../decisions/typescript-version-split.md`](../decisions/typescript-version-split.md).
 
 ## Testing
 

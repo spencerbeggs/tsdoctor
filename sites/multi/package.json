@@ -4,18 +4,18 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "rspress build",
-		"dev": "node lib/scripts/dev.mts",
-		"preview": "node lib/scripts/preview.mts",
+		"build": "NODE_OPTIONS=--conditions=effected-built rspress build",
+		"dev": "NODE_OPTIONS=--conditions=effected-built node lib/scripts/dev.mts",
+		"preview": "NODE_OPTIONS=--conditions=effected-built node lib/scripts/preview.mts",
 		"types:check": "tsc --noEmit"
 	},
 	"devDependencies": {
 		"@rspress/core": "catalog:docs",
-		"@types/node": "catalog:docs",
-		"@types/react": "catalog:docs",
-		"@types/react-dom": "catalog:docs",
-		"react": "catalog:docs",
-		"react-dom": "catalog:docs",
+		"@types/node": "catalog:effected:build",
+		"@types/react": "catalog:effected:build",
+		"@types/react-dom": "catalog:effected:build",
+		"react": "catalog:effected:build",
+		"react-dom": "catalog:effected:build",
 		"rspress-plugin-api-extractor": "workspace:*"
 	}
 }

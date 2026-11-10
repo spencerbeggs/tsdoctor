@@ -2,17 +2,27 @@
 type: Gotcha
 title: "ae-missing-release-tag on a _base class names a synthesized base, not a real undocumented class"
 description: API Extractor flags AgentNotFoundError_base and RunManifest_base as missing a release tag; both are anonymous bases Effect's class factories synthesize, and the fix is a narrower suppressWarnings pattern, never a release tag on a base const.
-resource: ../../modules/effect-kit/savvy.build.ts
+resource: ../../modules/effect-kit/effected.toml
 tags: [dx, release]
 stale_after: 2026-12-12T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: cbd0c774bb4d3bceb3fedd088acbe177734feb7a98f50fea8151bb1d72978cf0
-status: stable
+  at: 2026-11-09T18:10:55Z
+status: deprecated
+integrity:
+  generated:
+    body: 62d5e71263a643cd
 ---
 
 # `ae-missing-release-tag` on a `_base` class names a synthesized base, not a real undocumented class
+
+> **Deprecated.** Since the move to `effected package build`,
+> `modules/effect-kit/dist/prod/issues.json` no longer reports
+> `ae-missing-release-tag` for either `_base` identifier, and the
+> `ae-forgotten-export` diagnostics on them land in `suppressed` through the
+> build's default `_base` rule, with no entry in
+> `modules/effect-kit/effected.toml`[^3]. The explanation below still
+> describes what a `_base` identifier is if the warning returns.
 
 ## What you see
 
@@ -47,32 +57,35 @@ source entirely; it exists only in the rolled-up `.d.ts` API Extractor
 inspects, which is also why `ae-forgotten-export` on the same `_base`
 identifier is already sitting in the `suppressed` bucket of the same
 `issues.json` — that diagnostic IS handled, by the `suppressWarnings`
-entry already in `savvy.build.ts`[^3]:
+rule (the build's default, restated explicitly in
+`packages/model/effected.toml`):
 
-```ts
-tsdoc: {
- suppressWarnings: [{ messageId: "ae-forgotten-export", pattern: "_base" }],
-},
+```toml
+[[package.build.meta.tsdoc.suppressWarnings]]
+messageId = "ae-forgotten-export"
+pattern = "_base"
 ```
 
-That entry only matches `ae-forgotten-export`. `ae-missing-release-tag` is
+That rule only matches `ae-forgotten-export`. `ae-missing-release-tag` is
 a different `messageId` on the same `_base` identifier, and the current
 config does not list it, so it surfaces as a live warning instead of
 landing in `suppressed` beside its sibling.
 
 ## What to do
 
-Extend the existing `suppressWarnings` array in
-`modules/effect-kit/savvy.build.ts`[^3] with a second entry matching
-`ae-missing-release-tag` against the same `_base` pattern, so both
-diagnostics the synthesized base produces land in the `suppressed`
-bucket together:
+If the warning returns, add `suppressWarnings` entries to
+`modules/effect-kit/effected.toml`[^3] matching both message ids against
+the same `_base` pattern. A list there replaces the default `_base` rule,
+so restate it:
 
-```ts
-suppressWarnings: [
- { messageId: "ae-forgotten-export", pattern: "_base" },
- { messageId: "ae-missing-release-tag", pattern: "_base" },
-],
+```toml
+[[package.build.meta.tsdoc.suppressWarnings]]
+messageId = "ae-forgotten-export"
+pattern = "_base"
+
+[[package.build.meta.tsdoc.suppressWarnings]]
+messageId = "ae-missing-release-tag"
+pattern = "_base"
 ```
 
 Never add `@public` (or any release tag) to a hand-written base const, and
@@ -84,4 +97,4 @@ pattern rather than changing how the class is declared.
 
 [^1]: [modules/effect-kit/dist/prod/issues.json](../../modules/effect-kit/dist/prod/issues.json)
 [^2]: [modules/effect-kit/src/index.ts](../../modules/effect-kit/src/index.ts)
-[^3]: [modules/effect-kit/savvy.build.ts](../../modules/effect-kit/savvy.build.ts)
+[^3]: [modules/effect-kit/effected.toml](../../modules/effect-kit/effected.toml)

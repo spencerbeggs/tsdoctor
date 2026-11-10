@@ -8,8 +8,10 @@ stale_after: 2026-12-12T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: a37eae0a12a4b443d590f5886148979651e9a1b713df4daa36d7d1642a92cda2
 status: stable
+integrity:
+  generated:
+    body: a37eae0a12a4b443
 ---
 
 # A dev session's Twoslash cache never gets saved

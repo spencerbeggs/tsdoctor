@@ -8,8 +8,10 @@ stale_after: 2026-12-12T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 856e59aed87f7829ec9b621757843fdff405cfce45b8ad297e146ddbb5848499
 status: stable
+integrity:
+  generated:
+    body: 856e59aed87f7829
 ---
 
 # A green hashing unit test can pin a shape the real pipeline never produces

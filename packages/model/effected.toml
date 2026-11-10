@@ -1,0 +1,14 @@
+# A list here replaces the default `_base` rule, so it is restated.
+[[package.build.meta.tsdoc.suppressWarnings]]
+# Effect's class factories (Schema.TaggedError / Schema.Class) synthesize
+# anonymous `_base` intermediate classes that cannot be exported or
+# release-tagged from source.
+messageId = "ae-forgotten-export"
+pattern = "_base"
+
+[[package.build.meta.tsdoc.suppressWarnings]]
+# The dts rollup synthesizes an `<Module>_d_exports` binding for each
+# `export * as <Module>` namespace re-export; a release tag cannot be attached
+# to that synthetic binding from source.
+messageId = "ae-missing-release-tag"
+pattern = "_d_exports"

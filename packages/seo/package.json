@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/seo",
-	"version": "0.6.2",
+	"version": "0.6.4",
 	"private": true,
 	"description": "Framework-neutral head metadata for static TypeScript API documentation: schema.org JSON-LD, Open Graph and Twitter card vocabulary, canonical URLs, and package attribution derived from an api.json model plus its manifest.",
 	"keywords": ["seo", "schema.org", "json-ld", "open-graph", "documentation", "effect"],
@@ -22,13 +22,14 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": {
+			"effected-built": "./dist/prod/npm/pkg/index.js",
+			"default": "./src/index.ts"
+		},
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
-		"prepare": "node savvy.build.ts --target dev",
+		"build": "effected package build",
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -37,23 +38,20 @@
 	"devDependencies": {
 		"@effected/package-json": "catalog:effected",
 		"@effected/schema-org": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.4",
-		"@types/node": "catalog:build",
+		"@types/node": "catalog:effected:build",
 		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/package-json": "catalog:effected",
-		"@effected/schema-org": "catalog:effected",
-		"effect": "catalog:effected"
+		"@effected/package-json": "catalog:effected:peers",
+		"@effected/schema-org": "catalog:effected:peers",
+		"effect": "catalog:effected:peers"
 	},
 	"engines": {
 		"node": ">=24.11.0"
 	},
 	"publishConfig": {
 		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
 		"targets": {
 			"npm": true
 		}

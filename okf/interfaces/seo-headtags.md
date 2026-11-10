@@ -8,7 +8,6 @@ tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: d8b5f6598e54f4cfe5528f6d2893008f855b757e638fc5b481066f7b1517d625
 sources:
   - id: seo-src
     resource: ../../packages/seo/src/Seo.ts
@@ -19,6 +18,9 @@ sources:
   - id: vitepress-frontmatter
     resource: ../../platforms/vitepress/src/emit/frontmatter.ts
 status: stable
+integrity:
+  generated:
+    body: d8b5f6598e54f4cf
 ---
 
 # `@tsdoctor/seo` headTags seam

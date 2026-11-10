@@ -92,9 +92,9 @@ describe("BundleManifest", () => {
 
 	it.effect("carries the manifest path on file-bound failures", () =>
 		Effect.gen(function* () {
-			const error = yield* Effect.flip(decodeBundleManifest({ spec: 3 }, "/bundles/x/tsdoctor.json"));
-			assert.strictEqual(error.path, "/bundles/x/tsdoctor.json");
-			assert.include(error.message, "/bundles/x/tsdoctor.json");
+			const error = yield* Effect.flip(decodeBundleManifest({ spec: 3 }, "/bundles/x/bundle.json"));
+			assert.strictEqual(error.path, "/bundles/x/bundle.json");
+			assert.include(error.message, "/bundles/x/bundle.json");
 		}),
 	);
 });

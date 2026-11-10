@@ -1,0 +1,8 @@
+[package.build.meta]
+localPaths = ["../../sites/versioned/lib/models/v2"]
+
+# v1 and v2 document one package across two versions, so both emit as
+# @modules/versioned.
+[package.build.manifest]
+drop = ["devDependencies", "scripts", "publishConfig"]
+set = { name = "@modules/versioned" }

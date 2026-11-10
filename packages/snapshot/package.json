@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/snapshot",
-	"version": "0.7.1",
+	"version": "0.7.3",
 	"private": true,
 	"description": "Incremental-build snapshot tracking for static documentation pipelines: a schema-versioned SQLite store of per-file content hashes and timestamps, built on @effected/store, plus the pure SHA-256 content-hashing helpers that feed it.",
 	"keywords": ["snapshot", "incremental-build", "sqlite", "content-hash", "effect", "documentation"],
@@ -22,13 +22,14 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": {
+			"effected-built": "./dist/prod/npm/pkg/index.js",
+			"default": "./src/index.ts"
+		},
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
-		"prepare": "node savvy.build.ts --target dev",
+		"build": "effected package build",
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -37,22 +38,19 @@
 	},
 	"devDependencies": {
 		"@effected/store": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.4",
-		"@types/node": "catalog:build",
+		"@types/node": "catalog:effected:build",
 		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/store": "catalog:effected",
-		"effect": "catalog:effected"
+		"@effected/store": "catalog:effected:peers",
+		"effect": "catalog:effected:peers"
 	},
 	"engines": {
 		"node": ">=24.11.0"
 	},
 	"publishConfig": {
 		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
 		"targets": {
 			"npm": true
 		}

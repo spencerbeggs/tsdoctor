@@ -1,5 +1,51 @@
 # @tsdoctor/registry
 
+## 0.7.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/files | dependency | updated | ^0.2.0 | ^0.3.0 |
+| @effected/package-json | dependency | updated | ^0.31.1 | ^0.32.0 |
+| @effected/semver | dependency | updated | ^0.22.0 | ^0.24.0 |
+| @tsdoctor/vfs | dependency | updated | 0.7.3 | 0.7.4 |
+| @effect/platform-node | peerDependency | updated | ~4.1.2 | ~4.1.0 |
+| @effected/store | peerDependency | updated | ^0.24.0 | ^0.25.0 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.20.2 | ^0.21.0 |
+| @effected/xdg | peerDependency | updated | ^0.19.2 | ^0.20.0 |
+| effect | peerDependency | updated | ~4.1.2 | ~4.1.0 |
+
+[#410][#410]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#410]: https://github.com/spencerbeggs/tsdoctor/pull/410
+
+## 0.7.3
+
+### Build System
+
+- Built with `effected package build` instead of `@savvy-web/bundler` and `@savvy-web/rspress-builder`; the published entry points and file layout are unchanged
+- The RSPress runtime still ships one file per source, with `import.meta.env.SSG_MD` left for RSPress to resolve [#408][#408]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/package-json | dependency | updated | ^0.31.0 | ^0.31.1 |
+| @tsdoctor/vfs | dependency | updated | 0.7.2 | 0.7.3 |
+
+[#408][#408]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#408]: https://github.com/spencerbeggs/tsdoctor/pull/408
+
 ## 0.7.2
 
 ### Dependencies

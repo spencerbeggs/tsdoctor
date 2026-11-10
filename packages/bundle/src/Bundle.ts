@@ -1,9 +1,9 @@
+import type { BundleManifest } from "@effected/manifest";
+import { BundleManifestError, decodeBundleManifest } from "@effected/manifest";
 import type { PackageManifest } from "@effected/package-json";
 import { PackageJsonFile } from "@effected/package-json";
 import type { ResolvedTsconfig } from "@effected/tsconfig-json";
 import { TsconfigLoader } from "@effected/tsconfig-json";
-import type { BundleManifest } from "@tsdoctor/manifest";
-import { BundleManifestError, decodeBundleManifest } from "@tsdoctor/manifest";
 import type { Path } from "effect";
 import { Effect, FileSystem, Option, Schema } from "effect";
 
@@ -36,7 +36,7 @@ const ApiModelHeader = Schema.Struct({
  * Absence of layers 1–3 is the normal case (layers enrich, never gate) and
  * reads as `Option.none()`, never as this error. A file that exists but is
  * malformed is a real problem worth surfacing, not degrading past. Manifest
- * (layer 3) failures use {@link BundleManifestError} instead, so manifest
+ * (layer 3) failures use {@link @effected/manifest#BundleManifestError} instead, so manifest
  * consumers handle one tag across the file and non-file boundaries.
  *
  * @public
@@ -81,7 +81,7 @@ export interface BundleDescriptor {
 	readonly packageJsonPath?: string;
 	/** Absolute path to the layer-2 tsconfig.json, when present. */
 	readonly tsconfigPath?: string;
-	/** Absolute path to the layer-3 tsdoctor.json manifest, when present. */
+	/** Absolute path to the layer-3 bundle.json manifest, when present. */
 	readonly manifestPath?: string;
 }
 
@@ -100,7 +100,7 @@ export interface Bundle {
 	readonly packageJson: Option.Option<PackageManifest>;
 	/** Layer 2: the tsconfig, extends-resolved. */
 	readonly tsconfig: Option.Option<ResolvedTsconfig>;
-	/** Layer 3: the tsdoctor.json sidecar manifest. */
+	/** Layer 3: the bundle.json sidecar manifest. */
 	readonly manifest: Option.Option<BundleManifest>;
 }
 
@@ -152,7 +152,7 @@ function readTsconfigLayer(
 	);
 }
 
-/** Read layer 3 when the descriptor recorded a tsdoctor.json. */
+/** Read layer 3 when the descriptor recorded a bundle.json. */
 function readManifestLayer(
 	manifestPath: string | undefined,
 ): Effect.Effect<Option.Option<BundleManifest>, BundleManifestError, FileSystem.FileSystem> {
@@ -179,7 +179,7 @@ function readManifestLayer(
  * Layer 0 is required; layers 1–3 read to `Option.none()` when the
  * descriptor recorded no file for them. A layer file that is present but
  * malformed fails typed ({@link BundleLayerError}, or
- * {@link BundleManifestError} for the manifest) — lenient about absence,
+ * {@link @effected/manifest#BundleManifestError} for the manifest) — lenient about absence,
  * strict about shape. `FileSystem` and `Path` stay in the `R` channel;
  * provide the platform layer once at the application boundary.
  *

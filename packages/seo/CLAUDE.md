@@ -63,14 +63,14 @@ types. Filesystem probing of a configured OG image stays in the adapter's
 - **Out of scope (deliberate):** OG image *generation* (satori + resvg-js —
   deferred, needs a native binary and its own persistence story), sitemaps and
   `robots.txt`. `twitterSite` is a seam input with no adapter config yet.
-- Builds with `defineBuild()` (`savvy.build.ts`, `@savvy-web/bundler`);
-  tsconfig extends `@savvy-web/bundler/tsconfig/ecma.json`. Source
+- Builds with `effected package build` (no `effected.toml`); tsconfig
+  extends `@effected/plugin/tsconfig/ecma.json`. Source
   `package.json` stays `"private": true`; `publishConfig` drives publishing.
 
 ## Commands
 
 ```bash
-pnpm --filter @tsdoctor/seo run build:dev
+pnpm --filter @tsdoctor/seo run build
 pnpm vitest run packages/seo/
 ```
 

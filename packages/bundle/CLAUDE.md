@@ -1,7 +1,7 @@
 # packages/bundle/CLAUDE.md
 
 `@tsdoctor/bundle` (publishable, versioned via changesets) — the versioned
-bundle spec: layered bundle discovery, the `tsdoctor.json` sidecar manifest
+bundle spec: layered bundle discovery, the `bundle.json` sidecar manifest
 (spec 1), the six-tier provenance-carrying resolver and canonical input
 hashing. Phase-2 package; the `@okf/modules/tsdoctor-bundle.md` module
 concept in the `okf/` bundle is the authority for the ladder, tier ranking,
@@ -9,12 +9,11 @@ manifest shape and change-detection model.
 
 ## Key Facts
 
-- The `tsdoctor.json` manifest schema lives in `@tsdoctor/manifest`
-  (`packages/manifest/`, depends on `effect` alone) and is re-exported here
-  by name — import it from `@tsdoctor/bundle`.
-- Modules (flat, module-per-concept): `BundleManifest.ts` (schema + typed
-  decode, graceful degradation for unknown registry types / top-level
-  fields), `PlatformOverrides.ts` (the top-ranked override tier),
+- The `bundle.json` manifest schema lives in the kit package
+  `@effected/manifest` (depends on `effect` alone; `BUNDLE_MANIFEST_FILENAME`
+  is `"bundle.json"`) and is re-exported here by name — import it from
+  `@tsdoctor/bundle`.
+- Modules (flat, module-per-concept): `PlatformOverrides.ts` (the top-ranked override tier),
   `Bundle.ts` (descriptor + four layer readers + `readBundle`),
   `BundleDiscovery.ts` (`discoverBundle`/`discoverBundles`, generalizing the
   plugin's `fromDir`/`fromParentDir` without the RSPress baseRoute logic;
@@ -53,8 +52,9 @@ manifest shape and change-detection model.
   the `manifest.project` tier (project identity is exposed separately).
 - Fingerprints hash `{ value, source }` pairs — an override flip with an
   unchanged value is a visible diff by design.
-- Builds via `@savvy-web/bundler` (`savvy.build.ts`); tsconfig extends
-  `@savvy-web/bundler/tsconfig/ecma.json`; source `package.json` stays
+- Builds via `effected package build` (no `effected.toml`; defaults
+  suffice); tsconfig extends `@effected/plugin/tsconfig/ecma.json`; source
+  `package.json` stays
   `"private": true` (`publishConfig` drives publishing). `@effected/*` deps
   only via `catalog:effected`.
 - Tests: `@effect/vitest`, `@effected/memfs` for filesystem cases, plus a
@@ -63,7 +63,7 @@ manifest shape and change-detection model.
 ## Commands
 
 ```bash
-pnpm --filter @tsdoctor/bundle run build:dev
+pnpm --filter @tsdoctor/bundle run build
 pnpm vitest run packages/bundle/
 ```
 
@@ -73,8 +73,8 @@ Design record now lives under `okf/` (see the root `CLAUDE.md`'s "Knowledge
 bundle" section and `okf/index.md`). Concepts most relevant to this package:
 
 - `../../okf/modules/tsdoctor-bundle.md`
-- `../../okf/decisions/manifest-below-bundle.md`
+- `../../okf/decisions/manifest-schema-home.md`
 - `../../okf/glossary/bundle.md`
-- `../../okf/interfaces/tsdoctor-json-manifest.md`
+- `../../okf/interfaces/bundle-json-manifest.md`
 - `../../okf/decisions/core-adapter-boundary.md`
 - `../../okf/decisions/vitepress-alpha-gates-1-0.md`

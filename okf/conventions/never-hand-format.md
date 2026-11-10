@@ -8,7 +8,9 @@ stale_after: 2026-12-12T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: f8f3582bd8d1e883bc9e99e67ae691d88abde4c95edc6548fb6761a4afdc9492
+integrity:
+  generated:
+    body: f8f3582bd8d1e883
 ---
 
 # Do not hand-format what the pre-commit hook already normalizes

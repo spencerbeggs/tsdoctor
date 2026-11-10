@@ -7,8 +7,10 @@ tags: [performance, compat]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 14dd6014c0e8225ab3d0af6853f01c872aabe0526907199e4f613a71b7839d16
 status: stable
+integrity:
+  generated:
+    body: 14dd6014c0e8225a
 ---
 
 # Twoslash cache invalidates per VFS, not per package

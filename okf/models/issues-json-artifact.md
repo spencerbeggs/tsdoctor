@@ -6,14 +6,16 @@ resource: ../../platforms/rspress/src/observability/sinks/issues-sink.ts
 tags: [observability, ci]
 generated:
   by: okfit/claude-code
-  at: 2026-10-10T00:56:05Z
-  body_sha256: 71bdfe836b89fa04e66a0af721487f85f8be242eb11a76c415261abb1b0343b0
+  at: 2026-11-09T18:10:55Z
 sources:
   - id: issues-sink-src
     resource: ../../platforms/rspress/src/observability/sinks/issues-sink.ts
   - id: watch-issues-monitor
     resource: ../../plugin/monitors/watch-issues.mjs
 status: stable
+integrity:
+  generated:
+    body: e024654b90776955
 ---
 
 # `issues.json` artifact
@@ -48,7 +50,7 @@ interface Issue {
 ```
 
 wrapped with `generatedAt`, `package` and a fixed `target: "prod"` — the
-same shape field for field as `@savvy-web/bundler`'s own `issues.json`,
+same shape field for field as the build's own `dist/prod/issues.json`,
 plus one addition this artifact needs and the bundler's does not: the
 per-`Issue` optional `api` field, carrying which API scope produced it on a
 multi-API site.[^issues-sink-src]

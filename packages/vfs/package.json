@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/vfs",
-	"version": "0.7.2",
+	"version": "0.7.4",
 	"private": true,
 	"description": "Virtual TypeScript projects for documentation tooling: the Vfs currency type, declaration-backed virtual packages, @typescript/vfs environments, and the compiler-option resolution that configures them.",
 	"keywords": ["typescript", "vfs", "twoslash", "declarations", "virtual-package", "effect"],
@@ -22,13 +22,14 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": {
+			"effected-built": "./dist/prod/npm/pkg/index.js",
+			"default": "./src/index.ts"
+		},
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
-		"prepare": "node savvy.build.ts --target dev",
+		"build": "effected package build",
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -42,18 +43,17 @@
 		"@effected/memfs": "catalog:effected",
 		"@effected/tsconfig-json": "catalog:effected",
 		"@effected/walker": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.4",
 		"@shikijs/twoslash": "^4.6.0",
-		"@types/node": "catalog:build",
+		"@types/node": "catalog:effected:build",
 		"@typescript/vfs": "^1.6.6",
 		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/tsconfig-json": "catalog:effected",
+		"@effected/tsconfig-json": "catalog:effected:peers",
 		"@shikijs/twoslash": "^4.4.3",
 		"@typescript/vfs": "^1.6.5",
-		"effect": "catalog:effected",
+		"effect": "catalog:effected:peers",
 		"typescript": "^6.0.3"
 	},
 	"peerDependenciesMeta": {
@@ -72,8 +72,6 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
 		"targets": {
 			"npm": true
 		}

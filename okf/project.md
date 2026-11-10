@@ -5,8 +5,10 @@ description: Generates API documentation for static-site frameworks from TypeScr
 status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
-  body_sha256: b231bec2ebf0cf1358e8a0aed381d35056091611bcc1f3b9e653c5c1309dfd98
+  at: 2026-11-09T18:10:55Z
+integrity:
+  generated:
+    body: 4990576b0a12bca8
 ---
 
 # tsdoctor
@@ -34,7 +36,7 @@ missions of the project, not afterthoughts bolted onto one adapter.
   computation, external type resolution into a virtual TypeScript
   environment, the page IR (`@tsdoctor/pages`) and its builders, every
   `<head>` tag decision (`@tsdoctor/seo`), the incremental-build snapshot
-  store, and the bundle spec (`tsdoctor.json` sidecar manifest,
+  store, and the bundle spec (`bundle.json` sidecar manifest,
   provenance resolution, fetchers).
 - **Adapters own:** the framework's component/rendering layer, the
   remark/markdown-it or Twoslash integration specific to that framework,
@@ -55,7 +57,7 @@ missions of the project, not afterthoughts bolted onto one adapter.
 - **Docusaurus support** is a possible future adapter, explicitly deferred
   past 1.0.
 - **The TypeScript compiler / API Extractor toolchain itself is off the
-  critical path.** The bundle spec (`tsdoctor.json` plus the `api.json`
+  critical path.** The bundle spec (`bundle.json` plus the `api.json`
   it accompanies) is the firewall between whatever produced the model and
   this project's doc generation; a future TS7-based extractor is a
   producer-side concern this project does not need to track.

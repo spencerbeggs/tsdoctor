@@ -1,6 +1,6 @@
 {
 	"name": "@tsdoctor/registry",
-	"version": "0.7.2",
+	"version": "0.7.4",
 	"private": true,
 	"description": "External TypeScript type loading for Effect: fetch, cache and resolve type definitions from npm via the jsDelivr CDN into a virtual file system.",
 	"keywords": ["typescript", "vfs", "twoslash", "types", "jsdelivr", "cache", "effect"],
@@ -22,13 +22,14 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": {
+			"effected-built": "./dist/prod/npm/pkg/index.js",
+			"default": "./src/index.ts"
+		},
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
-		"prepare": "node savvy.build.ts --target dev",
+		"build": "effected package build",
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -50,17 +51,16 @@
 		"@effected/walker": "catalog:effected",
 		"@effected/xdg": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.4",
-		"@types/node": "catalog:build",
+		"@types/node": "catalog:effected:build",
 		"effect": "catalog:effected",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effect/platform-node": "catalog:effected",
-		"@effected/store": "catalog:effected",
-		"@effected/tsconfig-json": "catalog:effected",
-		"@effected/xdg": "catalog:effected",
-		"effect": "catalog:effected"
+		"@effect/platform-node": "catalog:effected:peers",
+		"@effected/store": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
+		"@effected/xdg": "catalog:effected:peers",
+		"effect": "catalog:effected:peers"
 	},
 	"peerDependenciesMeta": {
 		"@effected/xdg": {
@@ -72,8 +72,6 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
 		"targets": {
 			"npm": true
 		}

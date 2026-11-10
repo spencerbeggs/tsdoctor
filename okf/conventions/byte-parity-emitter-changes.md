@@ -5,7 +5,6 @@ description: Any behaviour change to the pages IR builders or either adapter's e
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
-  body_sha256: 457c9be06aed01d1cb35d44103729fb12c366345baa68ecd58415ffd06f86efd
 stale_after: 2026-12-12T00:00:00Z
 tags: [testing, architecture]
 sources:
@@ -18,6 +17,9 @@ sources:
   - id: build-page
     resource: ../../packages/pages/src/Build.ts
 status: stable
+integrity:
+  generated:
+    body: 457c9be06aed01d1
 ---
 
 # A behaviour change in an emitter ships as its own labelled commit

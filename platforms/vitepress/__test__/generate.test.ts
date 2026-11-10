@@ -1,6 +1,6 @@
 /**
  * `generate` resolving an API's bundle — display identity and Open Graph
- * images from a `tsdoctor.json` sidecar beside the model — end to end
+ * images from a `bundle.json` sidecar beside the model — end to end
  * against a real filesystem.
  */
 

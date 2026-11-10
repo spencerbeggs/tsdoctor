@@ -6,19 +6,21 @@ description: The React runtime is transpiled 1:1 per component rather than bundl
 tags: [architecture, dx]
 generated:
   by: okfit/claude-code
-  at: 2026-09-13T14:07:05Z
+  at: 2026-11-09T18:10:55Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
   - by: human:spencer
     at: 2026-11-02T19:11:05Z
+  - by: human:spencer
+    at: 2026-11-09T18:10:30Z
 integrity:
   generated:
-    body: 67fa171e3ee8d223
+    body: 6207226d843793fe
   verified:
     by: human:spencer
-    at: 2026-11-02T19:11:05Z
-    content: 584983930768e9ab
+    at: 2026-11-09T18:10:30Z
+    content: bd94efa13df83e81
 ---
 
 # Emit the runtime bundleless, per file
@@ -34,13 +36,15 @@ build.
 
 ## Decision
 
-The runtime (`./runtime` export) is built with `runtime: true` in
-`savvy.build.ts`[^1], emitted bundleless: each component is transpiled 1:1
-into its own `.js` next to its CSS module under `runtime/`, with `react`,
-`react/jsx-runtime` and `@theme` left external and `import.meta.env`
-preserved as a runtime expression via an identity `define`, so RSPress does
-the final per-site compile and resolves `import.meta.env.SSG_MD` for real. A
-single bundled `runtime/index.js` froze that value to `undefined`, which
+The runtime (`./runtime` export) is built by a `[[package.build.overrides]]`
+block in the adapter's `effected.toml`[^1] (`entries = ["./runtime"]`,
+`outSubdir = "runtime"`, `platform = "browser"`), emitted bundleless: each
+component is transpiled 1:1 into its own `.js` under `runtime/`, with
+`react`, `react/jsx-runtime`, `@rspress/core` and `@theme` left external,
+CSS modules compiled through `@tsdown/css` with `inject = true`, and
+`import.meta.env.SSG_MD` left unresolved, so RSPress does the final
+per-site compile and resolves `import.meta.env.SSG_MD` for real. A single
+bundled `runtime/index.js` froze that value to `undefined`, which
 permanently took the browser-render branch and broke the SSG-MD dual-mode
 split.
 
@@ -54,12 +58,16 @@ workspace link and the published root alike — carries the identical flat
 resolve correctly regardless of which root is in play; a source-relative
 path resolves only against `src/` and breaks once the package is published.
 
-The dev build writes `dist/dev/pkg`, and `publishConfig` (`"directory":
-"dist/dev/pkg"`, `"linkDirectory": true`)[^3] makes that directory the
-workspace link target, so a site depending on the plugin via `workspace:*`
-imports the built per-file JS rather than `src/`. The source manifest stays
-`"private": true`[^3] with `src/`-pointing exports; the builder transforms
-`package.json` during build.
+`effected package build` writes the package to `dist/prod/npm/pkg`. The
+source manifest stays `"private": true`[^3] and its `exports` resolve to
+`src/` by default; every export also carries an `effected-built` condition,
+listed first, pointing at the built file under `./dist/prod/npm/pkg/`[^3]
+(the build strips it from the published manifest). The fixture sites run
+under `NODE_OPTIONS=--conditions=effected-built` and prepend
+`effected-built` to rspack's `resolve.conditionNames`, so a site depending
+on the plugin via `workspace:*` imports the built per-file JS rather than
+`src/`; under the default condition `import.meta.url` would point into
+`src/`, where the `runtime/components/.../index.js` paths do not exist.
 
 ## Alternatives rejected
 
@@ -70,10 +78,12 @@ imports the built per-file JS rather than `src/`. The source manifest stays
   path.** Rejected: that path only resolves against the dev workspace link
   (`src/`), not the published package root, so the registration would work
   in this monorepo and break for every external consumer.
-- **Link the workspace against `src/` directly.** Rejected: sites would then
-  exercise TypeScript source rather than the exact per-file JS artifact that
-  ships, hiding build-only breaks (a missing export condition, a wrong
-  runtime path) until publish.
+- **Run the fixture sites against `src/` directly.** Rejected: sites would
+  then exercise TypeScript source rather than the exact per-file JS artifact
+  that ships, hiding build-only breaks (a missing export condition, a wrong
+  runtime path) until publish. The workspace link itself resolves to `src/`
+  for tests and type-checking; the sites opt into the built output through
+  the `effected-built` condition.
 
 ## Consequences
 
@@ -85,9 +95,10 @@ imports the built per-file JS rather than `src/`. The source manifest stays
   a breaking change to `plugin.ts`'s registration logic, not just to the
   build.
 - Every fixture site under `sites/*` exercises the real built artifact via
-  the `workspace:*` link, so a build-only regression surfaces in the fixture
-  sites before it reaches any external consumer.
+  the `workspace:*` link under the `effected-built` condition, so a
+  build-only regression surfaces in the fixture sites before it reaches any
+  external consumer.
 
-[^1]: [platforms/rspress/savvy.build.ts](../../platforms/rspress/savvy.build.ts)
+[^1]: [platforms/rspress/effected.toml](../../platforms/rspress/effected.toml)
 [^2]: [platforms/rspress/src/plugin.ts](../../platforms/rspress/src/plugin.ts)
 [^3]: [platforms/rspress/package.json](../../platforms/rspress/package.json)

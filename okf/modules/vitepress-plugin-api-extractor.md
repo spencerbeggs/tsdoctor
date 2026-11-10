@@ -7,14 +7,14 @@ resource: ../../platforms/vitepress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-10-31T20:38:59Z
+  at: 2026-11-09T18:10:55Z
 tags:
   - architecture
   - dx
 status: stable
 integrity:
   generated:
-    body: d041ca14c5d5e9d3
+    body: 1b8701c849a59e8b
 ---
 
 # vitepress-plugin-api-extractor
@@ -34,14 +34,16 @@ workspaces, even though the folder is `platforms/vitepress/` — `pnpm
 
 ## Dependencies
 
-- `@tsdoctor/bundle`, `@tsdoctor/manifest`, `@tsdoctor/model`,
-  `@tsdoctor/pages`, `@tsdoctor/registry`, `@tsdoctor/seo`, `@tsdoctor/vfs`
-  (dependencies, `workspace:*`)
+- `@tsdoctor/bundle`, `@tsdoctor/model`, `@tsdoctor/pages`,
+  `@tsdoctor/registry`, `@tsdoctor/seo`, `@tsdoctor/vfs` (dependencies,
+  `workspace:*`); `@effected/manifest` (dependency, `catalog:effected`)
+  for the `bundle.json` schema
 - `@effect/platform-node` (dependency, `catalog:effected`)
 - The full `@effected` closure of the core packages it consumes:
-  `github`, `glob`, `jsonc`, `markdown`, `npm`, `package-json`,
-  `schema-org`, `semver`, `spdx`, `store`, `tsconfig-json`, `walker`,
-  `xdg` and `yaml` (dependencies, `catalog:effected`). Most are not
+  `files`, `github`, `glob`, `images`, `jsonc`, `kit`, `markdown`, `npm`,
+  `package-json`, `schema-org`, `semver`, `spdx`, `store`,
+  `tsconfig-json`, `walker`, `xdg` and `yaml` (dependencies,
+  `catalog:effected`). Most are not
   imported by adapter source. They are declared so that an application's
   install never relies on `autoInstallPeers` for completeness (see
   [rspress-dependency-closure](../conventions/rspress-dependency-closure.md),
@@ -108,7 +110,7 @@ yet exist.
 ### Resolving Open Graph images
 
 `ApiExtractorOptions.ogImage?: string | OpenGraphImage` is the platform
-tier, ranked above the bundle's own `tsdoctor.json`, mapped the same way
+tier, ranked above the bundle's own `bundle.json`, mapped the same way
 RSPress's legacy `ogImage` option is: an absolute `http(s)://` string
 becomes a `{ url }` image, any other string a `{ path }` relative to the
 bundle directory, an object passes through as the manifest image shape
