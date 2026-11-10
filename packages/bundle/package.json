@@ -57,15 +57,15 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/github": "catalog:effected",
-		"@effected/jsonc": "catalog:effected",
-		"@effected/manifest": "catalog:effected",
-		"@effected/npm": "catalog:effected",
-		"@effected/package-json": "catalog:effected",
-		"@effected/store": "catalog:effected",
-		"@effected/tsconfig-json": "catalog:effected",
-		"@effected/xdg": "catalog:effected",
-		"effect": "catalog:effected"
+		"@effected/github": "catalog:effected:peers",
+		"@effected/jsonc": "catalog:effected:peers",
+		"@effected/manifest": "catalog:effected:peers",
+		"@effected/npm": "catalog:effected:peers",
+		"@effected/package-json": "catalog:effected:peers",
+		"@effected/store": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
+		"@effected/xdg": "catalog:effected:peers",
+		"effect": "catalog:effected:peers"
 	},
 	"engines": {
 		"node": ">=24.11.0"

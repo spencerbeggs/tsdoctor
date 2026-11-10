@@ -51,11 +51,11 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/markdown": "catalog:effected",
-		"@effected/package-json": "catalog:effected",
-		"@effected/schema-org": "catalog:effected",
-		"@effected/tsconfig-json": "catalog:effected",
-		"effect": "catalog:effected"
+		"@effected/markdown": "catalog:effected:peers",
+		"@effected/package-json": "catalog:effected:peers",
+		"@effected/schema-org": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
+		"effect": "catalog:effected:peers"
 	},
 	"engines": {
 		"node": ">=24.11.0"

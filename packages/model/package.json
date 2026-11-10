@@ -52,9 +52,9 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/markdown": "catalog:effected",
-		"@effected/tsconfig-json": "catalog:effected",
-		"effect": "catalog:effected"
+		"@effected/markdown": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
+		"effect": "catalog:effected:peers"
 	},
 	"engines": {
 		"node": ">=24.11.0"
