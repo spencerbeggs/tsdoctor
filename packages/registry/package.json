@@ -56,11 +56,11 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effect/platform-node": "catalog:effected",
-		"@effected/store": "catalog:effected",
-		"@effected/tsconfig-json": "catalog:effected",
-		"@effected/xdg": "catalog:effected",
-		"effect": "catalog:effected"
+		"@effect/platform-node": "catalog:effected:peers",
+		"@effected/store": "catalog:effected:peers",
+		"@effected/tsconfig-json": "catalog:effected:peers",
+		"@effected/xdg": "catalog:effected:peers",
+		"effect": "catalog:effected:peers"
 	},
 	"peerDependenciesMeta": {
 		"@effected/xdg": {

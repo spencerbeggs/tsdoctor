@@ -43,9 +43,9 @@
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
-		"@effected/package-json": "catalog:effected",
-		"@effected/schema-org": "catalog:effected",
-		"effect": "catalog:effected"
+		"@effected/package-json": "catalog:effected:peers",
+		"@effected/schema-org": "catalog:effected:peers",
+		"effect": "catalog:effected:peers"
 	},
 	"engines": {
 		"node": ">=24.11.0"

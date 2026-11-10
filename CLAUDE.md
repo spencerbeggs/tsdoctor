@@ -186,8 +186,11 @@ supplies one pnpm catalog, `catalog:effected`, holding both the Effect
 family (held to one Effect minor, `~4.1.2`) and the `@effected/*` kit.
 
 - Declare every `effect`, `@effect/*` and `@effected/*` dependency in this
-  repo as `"catalog:effected"` — in `dependencies`, `devDependencies` and
-  `peerDependencies` alike. Never hand-pin an `@effected` version range.
+  repo as `"catalog:effected"` in `dependencies` and `devDependencies`, and
+  as `"catalog:effected:peers"` in `peerDependencies` (the catalog serves the
+  Effect family at exact versions; the `:peers` twin floors each range to its
+  minor so a published peer doesn't pin consumers to one patch). Never
+  hand-pin an `@effected` version range.
 - Upstream effected CI/CD bumps `@effected/pnpm-plugin-effected`; a plugin
   release carries the whole `@effected` dependency/peer graph — never manage
   that graph by hand.

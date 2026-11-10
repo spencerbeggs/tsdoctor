@@ -31,7 +31,7 @@
 		"typescript": "catalog:effected:build"
 	},
 	"peerDependencies": {
-		"effect": "catalog:effected"
+		"effect": "catalog:effected:peers"
 	},
 	"publishConfig": {}
 }
