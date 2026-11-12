@@ -1,5 +1,13 @@
 # @tsdoctor/seo
 
+## 0.6.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/spdx | dependency | updated | ^0.20.0 | 0.20.0 |
+
 ## 0.6.4
 
 ### Dependencies

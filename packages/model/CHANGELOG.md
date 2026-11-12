@@ -1,5 +1,15 @@
 # @tsdoctor/model
 
+## 0.10.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/kit | dependency | updated | ^0.14.0 | 0.14.0 |
+| @effected/yaml | dependency | updated | ^0.30.0 | 0.30.0 |
+| @tsdoctor/vfs | dependency | updated | 0.7.4 | 0.7.5 |
+
 ## 0.10.4
 
 ### Dependencies
