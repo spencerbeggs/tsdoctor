@@ -7,14 +7,14 @@ resource: ../../platforms/vitepress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-11-12T02:49:54Z
+  at: 2026-11-12T02:59:11Z
 tags:
   - architecture
   - dx
 status: stable
 integrity:
   generated:
-    body: eb5bcba3126b8c91
+    body: 563b75100a252b5e
 ---
 
 # vitepress-plugin-api-extractor
@@ -43,10 +43,9 @@ workspaces, even though the folder is `platforms/vitepress/` — `pnpm
   `commands`, `config-file`, `crypto`, `files`, `github`,
   `github-references`, `glob`, `images`, `jsonc`, `jwt`, `kit`,
   `markdown`, `npm`, `oidc`, `package-json`, `schema-org`, `semver`,
-  `source`, `spdx`, `store`, `tsconfig-json`, `walker`, `xdg` and `yaml`,
-  plus `@effect/platform-node-shared` and `@effect/sql-sqlite-node`
+  `source`, `spdx`, `store`, `tsconfig-json`, `walker`, `xdg` and `yaml`
   (dependencies, `catalog:effected:exact`), flattened to every kit package
-  reached at any depth. Most are not imported by adapter source. They are
+  reached through a range at any depth. Most are not imported by adapter source. They are
   declared so that an application's install never relies on
   `autoInstallPeers` for completeness, and so every upstream kit-to-kit
   caret resolves onto the adapter's exact pin, so a kit patch never

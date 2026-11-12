@@ -4,7 +4,7 @@ title: "@effected is the foundation: check before hand-rolling"
 description: "Check @effected/* before hand-rolling any capability; expand the kit through the dogfood loop when it lacks one."
 generated:
   by: okfit/claude-code
-  at: 2026-11-12T02:49:54Z
+  at: 2026-11-12T02:59:11Z
 stale_after: 2026-12-12T00:00:00Z
 tags: [dx, architecture]
 sources:
@@ -15,14 +15,14 @@ sources:
 status: stable
 integrity:
   generated:
-    body: 725bf256bd4a3d95
+    body: 671aa724f5f8eb1b
 ---
 
 # Check @effected before hand-rolling any capability
 
 Before implementing a capability — parsing or editing JSONC/YAML/TOML/Markdown, semver math, SPDX license expressions, an in-memory filesystem for tests, package.json or tsconfig.json handling, XDG directory resolution, SQLite-backed state or caching, schema.org vocabulary, and so on — check whether an `@effected/*` package already ships it. When the kit genuinely lacks a capability this repo needs, close the gap by expanding `@effected` itself through the dogfood loop (see `../runbooks/dogfood-effected-overrides.md`) — never by reimplementing the capability locally as a one-off helper.
 
-Declare every `effect`, `@effect/*` and `@effected/*` entry through the catalog plugin: `"catalog:effected:exact"` in `dependencies`, `"catalog:effected:peers"` under `peerDependencies`, and `"catalog:effected"` in `devDependencies`. Never hand-pin an `@effected` package to a specific version range. Which of peer and dependency a core `@tsdoctor/*` library uses is decided by its public `.d.ts` surface (see `../decisions/core-peers-follow-public-surface.md`). Every `platforms/*` adapter declares the whole kit closure, flattened to every package reached at any depth, as exact `dependencies` (see `../decisions/adapter-kit-closure-pins.md`). Never manage the `@effected` dependency/peer graph by hand at all: upstream `effected` CI/CD bumps the `@effected/pnpm-plugin-effected` config dependency in `../../pnpm-workspace.yaml`, and a single plugin release carries the whole `@effected` graph forward together.
+Declare every `effect`, `@effect/*` and `@effected/*` entry through the catalog plugin: `"catalog:effected:exact"` in `dependencies`, `"catalog:effected:peers"` under `peerDependencies`, and `"catalog:effected"` in `devDependencies`. Never hand-pin an `@effected` package to a specific version range. Which of peer and dependency a core `@tsdoctor/*` library uses is decided by its public `.d.ts` surface (see `../decisions/core-peers-follow-public-surface.md`). Every `platforms/*` adapter declares the whole kit closure, flattened to every package reached through a range at any depth, as exact `dependencies` (see `../decisions/adapter-kit-closure-pins.md`). Never manage the `@effected` dependency/peer graph by hand at all: upstream `effected` CI/CD bumps the `@effected/pnpm-plugin-effected` config dependency in `../../pnpm-workspace.yaml`, and a single plugin release carries the whole `@effected` graph forward together.
 
 In tests, reach for `@effected/memfs` as the in-memory `FileSystem` implementation instead of hand-stubbing a filesystem layer.
 

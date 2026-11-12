@@ -24,7 +24,7 @@ sources:
     resource: ../../platforms/vitepress/package.json
 generated:
   by: okfit/claude-code
-  at: 2026-11-12T02:49:54Z
+  at: 2026-11-12T02:59:11Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
@@ -40,7 +40,7 @@ verified:
     at: 2026-11-12T02:51:17Z
 integrity:
   generated:
-    body: 68699659dd9062ca
+    body: f319a6a6b6212f7f
   verified:
     by: human:spencer
     at: 2026-11-12T02:51:17Z
@@ -88,7 +88,7 @@ The repository owner approved this policy on 2026-09-24.[^owner]
    application's install is complete without relying on
    `autoInstallPeers`.[^rspress-pkg] [^vitepress-pkg] Those entries are
    pinned exactly, and the closure is flattened to every kit package
-   reached at any depth (see [adapter-kit-closure-pins](adapter-kit-closure-pins.md)). See the
+   reached through a range at any depth (see [adapter-kit-closure-pins](adapter-kit-closure-pins.md)). See the
    [adapter dependency-closure convention](../conventions/rspress-dependency-closure.md).
 4. **Every `@effected/*` edge is spelled through the catalog plugin, never
    hand-pinned.** Peers use `catalog:effected:peers`, which floors each

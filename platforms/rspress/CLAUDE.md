@@ -37,8 +37,11 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
 - `effect` (v4, `catalog:effected:exact`) — core runtime plus the merged-in `FileSystem`
   and `effect/sql` modules; do not add `@effect/platform` or
   `@effect/sql` back.
-- `@effect/platform-node` — `NodeFileSystem`. `@effect/sql-sqlite-node` and
-  `gray-matter` are **gone** (`@tsdoctor/snapshot` / `@tsdoctor/model`)
+- `@effect/platform-node` — `NodeFileSystem`. `gray-matter` is **gone**
+  (`@tsdoctor/model`), and so is a direct `@effect/sql-sqlite-node`:
+  `@tsdoctor/snapshot` reaches it through `@effected/store`, which pins it
+  exactly, so the sealed closure must not redeclare it (a mismatched pin
+  installs a second copy in consumers; `kit-closure-pins.test.ts` fails)
 - `ioredis` + the `@effected/*` closure (`files`/`semver`/`store`/`tsconfig-json`/
   `xdg`/`config-file`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
   `markdown`/`memfs`) + `@typescript/vfs` — peer-closure deps, some imported directly

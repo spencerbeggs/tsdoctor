@@ -196,11 +196,14 @@ family (held to one Effect minor, `~4.1.2`) and the `@effected/*` kit.
   release: the `:exact` spelling covers every runtime kit dependency of the
   adapters *and* of the `@tsdoctor/*` libraries they ship (pnpm resolves a
   library's carets independently), and each adapter declares its whole kit
-  closure flattened — every kit package reached through a dependency or
-  required peer, at any depth — so upstream kit-to-kit carets resolve onto
-  the adapter's pins. `platforms/*/__test__/kit-closure-pins.test.ts`
-  holds these rules; when a plugin bump fails it, add the new package to
-  both adapters as `catalog:effected:exact`.
+  closure flattened — every kit package reached through a range (a
+  dependency or required peer, at any depth) — so upstream kit-to-kit
+  carets resolve onto the adapter's pins. Don't redeclare a package
+  upstream already pins exactly: every adapter pin must satisfy every
+  published edge reaching it, or consumers get a second copy.
+  `platforms/*/__test__/kit-closure-pins.test.ts` holds these rules; when a
+  plugin bump fails it on an undeclared package, add it to both adapters as
+  `catalog:effected:exact`.
 - Upstream effected CI/CD bumps `@effected/pnpm-plugin-effected`; a plugin
   release carries the whole `@effected` dependency/peer graph — never manage
   that graph by hand.

@@ -27,8 +27,6 @@
 | @effected/xdg | dependency | updated | ^0.20.1 | 0.20.1 |
 | @effected/yaml | dependency | updated | ^0.30.0 | 0.30.0 |
 | effect | dependency | updated | 4.1.3 | 4.1.4 |
-| @effect/platform-node-shared | dependency | added | — | 4.1.4 |
-| @effect/sql-sqlite-node | dependency | added | — | 4.1.4 |
 | @effected/commands | dependency | added | — | 0.21.0 |
 | @effected/config-file | dependency | added | — | 0.27.1 |
 | @effected/crypto | dependency | added | — | 0.7.0 |

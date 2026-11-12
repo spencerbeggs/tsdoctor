@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: Adapters seal their kit closure at exact versions
-description: "Both platforms/* adapters spell every effect, @effect/* and @effected/* runtime dependency catalog:effected:exact and declare their whole kit closure flattened, at any depth, and the core @tsdoctor/* libraries pin their regular @effected dependencies the same way, so a kit patch never reaches a consumer without a release."
+description: "Both platforms/* adapters spell every effect, @effect/* and @effected/* runtime dependency catalog:effected:exact and declare every kit package their closure reaches through a range, at any depth, and the core @tsdoctor/* libraries pin their regular @effected dependencies the same way, so a kit patch never reaches a consumer without a release."
 status: stable
 tags: [deps, release, compat]
 sources:
@@ -26,7 +26,7 @@ sources:
     resource: ../../platforms/vitepress/__test__/kit-closure-pins.test.ts
 generated:
   by: okfit/claude-code
-  at: 2026-11-12T02:49:54Z
+  at: 2026-11-12T02:59:11Z
 verified:
   - by: human:spencer
     at: 2026-11-12T02:38:59Z
@@ -34,7 +34,7 @@ verified:
     at: 2026-11-12T02:51:17Z
 integrity:
   generated:
-    body: acb82d85108f36ba
+    body: 15c86237e46c40bf
   verified:
     by: human:spencer
     at: 2026-11-12T02:51:17Z
@@ -68,13 +68,13 @@ The repository owner decided this on 2026-11-11.[^owner]
    `@effected/pnpm-plugin-effected` bump, so nothing is hand-pinned.
    `devDependencies` stay `catalog:effected`.
 2. **Adapters declare their whole kit closure, flattened.** Every
-   `effect`, `@effect/*` or `@effected/*` package reached from an adapter
-   through a regular dependency or a required peer, at any depth, is also
-   one of the adapter's exact runtime dependencies. Upstream kit packages
-   reach each other through carets (`@effected/jsonc` →
-   `@effected/source@^0.5.0`, `@effected/github` → `@effected/jwt@^0.10.0`,
-   `@effect/platform-node` → `@effect/platform-node-shared`), and this
-   repository cannot change those edges. It can make them resolve to one
+   `effect`, `@effect/*` or `@effected/*` package an adapter's closure
+   reaches through a range (a regular dependency or a required peer, at
+   any depth) is also one of the adapter's exact runtime dependencies.
+   Upstream kit packages reach each other through carets (`@effected/jsonc`
+   → `@effected/source@^0.5.0`, `@effected/github` →
+   `@effected/jwt@^0.10.0`), and this repository cannot change those
+   edges. It can make them resolve to one
    version: npm and pnpm both satisfy a transitive caret with the copy the
    installing package pins, so declaring the flattened closure holds every
    edge to the adapter's tested version. A scratch install confirmed it
@@ -82,13 +82,24 @@ The repository owner decided this on 2026-11-11.[^owner]
    `chalk@2.4.2` (which asks for `supports-color@^5.3.0`) installed one copy,
    5.3.0, although 5.5.0 is current. Optional peers are left out, because
    the closure never installs them and a host that installs one picks its
-   version. Applying the rule found two gaps. `@effected/xdg` peers on
+   version.
+
+   A package reached **only** through exact upstream pins is already
+   sealed, and is not redeclared. Redeclaring it can do harm: every pin
+   must satisfy every published edge that reaches it. `@effected/store`
+   0.25.0 pins `@effect/sql-sqlite-node` at exactly 4.1.3, while the
+   catalog serves 4.1.4. This workspace's graph-wide Effect overrides hide
+   the difference, but a consumer has no such overrides, so an adapter pin
+   of 4.1.4 would install a dead second copy beside the 4.1.3 that `store`
+   uses. `@effect/sql-sqlite-node` and `@effect/platform-node-shared`
+   (exact under `@effect/platform-node`) are therefore left to upstream.
+
+   Applying the rule found two gaps. `@effected/xdg` peers on
    `@effected/config-file`, which both adapters had carried only as a
-   devDependency. Eight transitive packages were not declared at all:
-   `@effect/platform-node-shared`, `@effect/sql-sqlite-node`, and
-   `@effected/commands`, `crypto`, `github-references`, `jwt`, `oidc` and
-   `source`. All of them are now exact runtime dependencies of both
-   adapters.
+   devDependency. Six transitive packages reached through carets were not
+   declared at all: `@effected/commands`, `crypto`, `github-references`,
+   `jwt`, `oidc` and `source`. All of them are now exact runtime
+   dependencies of both adapters.
 3. **Core libraries pin their regular kit dependencies exactly.** A core
    `@tsdoctor/*` library spells each `@effected/*` entry in its
    `dependencies` as `catalog:effected:exact`.[^registry-pkg] The adapters
@@ -103,10 +114,21 @@ A guard test in each adapter enforces all three
 rules.[^rspress-test] [^vitepress-test] It checks that the adapter declares at
 least one kit runtime dependency and that every one is
 `catalog:effected:exact`. It then walks the installed closure through
-regular dependencies and required peers, at any depth, and fails on any kit
-package the adapter does not declare, on any kit package that resolves at
-more than one version, and on any `@tsdoctor/*` package in the closure with
-a non-exact regular kit dependency.
+regular dependencies and required peers, at any depth. It fails on:
+
+- any kit package reached through a range that the adapter does not
+  declare;
+- any adapter pin that does not satisfy a published edge reaching it,
+  checked against the edge's own range rather than the local install, so
+  the workspace overrides cannot mask a consumer-side split;
+- any kit package that resolves at more than one version;
+- any `@tsdoctor/*` package in the closure with a non-exact regular kit
+  dependency.
+
+When a plugin bump makes the pin check fail on an upstream exact pin,
+the upstream package was released against an older patch. Drop the
+adapter's redeclaration if nothing reaches the package through a range;
+otherwise report the stale pin upstream.
 
 ## Alternatives rejected
 

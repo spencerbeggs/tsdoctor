@@ -34,8 +34,6 @@
 	},
 	"dependencies": {
 		"@effect/platform-node": "catalog:effected:exact",
-		"@effect/platform-node-shared": "catalog:effected:exact",
-		"@effect/sql-sqlite-node": "catalog:effected:exact",
 		"@effected/commands": "catalog:effected:exact",
 		"@effected/config-file": "catalog:effected:exact",
 		"@effected/crypto": "catalog:effected:exact",
