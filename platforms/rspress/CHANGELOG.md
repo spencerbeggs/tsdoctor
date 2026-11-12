@@ -1,5 +1,23 @@
 # rspress-plugin-api-extractor
 
+## 0.20.6
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/config-file | dependency | updated | 0.27.1 | 0.28.0 |
+| @effected/glob | dependency | updated | 0.21.0 | 0.22.0 |
+| @effected/npm | dependency | updated | 0.34.0 | 0.34.1 |
+| @effected/tsconfig-json | dependency | updated | 0.21.1 | 0.22.0 |
+| @effected/walker | dependency | updated | 0.28.0 | 0.29.0 |
+| @effected/xdg | dependency | updated | 0.20.1 | 0.21.0 |
+| @tsdoctor/bundle | dependency | updated | 0.9.3 | 0.9.4 |
+| @tsdoctor/model | dependency | updated | 0.10.5 | 0.10.6 |
+| @tsdoctor/pages | dependency | updated | 0.5.6 | 0.5.7 |
+| @tsdoctor/registry | dependency | updated | 0.7.6 | 0.7.7 |
+| @tsdoctor/vfs | dependency | updated | 0.7.5 | 0.7.6 |
+
 ## 0.20.5
 
 ### Dependencies
