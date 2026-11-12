@@ -30,13 +30,15 @@ generated:
 verified:
   - by: human:spencer
     at: 2026-11-12T02:38:59Z
+  - by: human:spencer
+    at: 2026-11-12T02:51:17Z
 integrity:
   generated:
     body: acb82d85108f36ba
   verified:
     by: human:spencer
-    at: 2026-11-12T02:38:59Z
-    content: f81ebfc6d3e01d87
+    at: 2026-11-12T02:51:17Z
+    content: bde93de33644fad6
 ---
 
 # Adapters seal their kit closure at exact versions

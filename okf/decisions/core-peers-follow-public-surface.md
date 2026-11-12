@@ -36,13 +36,15 @@ verified:
     at: 2026-11-09T18:52:17Z
   - by: human:spencer
     at: 2026-11-12T02:38:50Z
+  - by: human:spencer
+    at: 2026-11-12T02:51:17Z
 integrity:
   generated:
     body: 68699659dd9062ca
   verified:
     by: human:spencer
-    at: 2026-11-12T02:38:50Z
-    content: 2627173bb74d17aa
+    at: 2026-11-12T02:51:17Z
+    content: 526e9d94d9ac9ca8
 ---
 
 # Core `@effected` peers follow the public `.d.ts` surface
