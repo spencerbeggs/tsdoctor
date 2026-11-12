@@ -13,10 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:38:59Z
+  at: 2026-11-12T02:39:25Z
 integrity:
   generated:
-    body: 7198462ade0ae327
+    body: c5a71cee62cbac81
 ---
 
 # @tsdoctor/model
@@ -44,11 +44,11 @@ not RSPress-specific.
 
 Runtime dependency: `@tsdoctor/vfs` (`workspace:*`, for `VirtualPackage`,
 which `ApiExtractedPackage` extends) and `@effected/yaml`
-(`catalog:effected`, used internally for frontmatter and absent from the
+(`catalog:effected:exact`, used internally for frontmatter and absent from the
 public surface). Peers: `effect`, `@effected/markdown` (public surface) and
 `@effected/tsconfig-json`, which is propagated from `@tsdoctor/vfs` and
 carried as a devDependency to satisfy it locally. Both `@effected` peers use
-`catalog:effected`. See
+`catalog:effected:peers`. See
 [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
 `@tsdoctor/snapshot` is a **test-only** devDependency — the frontmatter
 characterization tests pin literal digests hashed through the real

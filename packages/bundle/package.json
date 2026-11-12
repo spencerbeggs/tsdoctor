@@ -33,9 +33,9 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@effected/glob": "catalog:effected",
-		"@effected/images": "catalog:effected",
-		"@effected/walker": "catalog:effected"
+		"@effected/glob": "catalog:effected:exact",
+		"@effected/images": "catalog:effected:exact",
+		"@effected/walker": "catalog:effected:exact"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:effected",

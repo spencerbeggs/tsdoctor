@@ -13,10 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-11-05T23:04:35Z
+  at: 2026-11-12T02:39:25Z
 integrity:
   generated:
-    body: 342ccf0566995d64
+    body: 66b7ce5948638846
 ---
 
 # @tsdoctor/registry
@@ -60,7 +60,7 @@ surface. One optional peer: `@effected/xdg`. `@effected/semver`,
 `@effected/files` (whose `AtomicDirectory` backs `TypeCache.writePackage`) and
 `@effected/package-json` (whose `PackageExports` backs `TypeResolver`) are
 used internally only, so they are ordinary `dependencies`
-(`catalog:effected`), not peers. See
+(`catalog:effected:exact`), not peers. See
 [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
 `typescript` and `@typescript/vfs` stayed with `@tsdoctor/vfs`'s
 `TsEnvironment` when the split happened. Do not add them back here.

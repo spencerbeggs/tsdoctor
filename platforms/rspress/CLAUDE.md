@@ -34,18 +34,20 @@ Keep creating the empty `.api-docs/snapshot/` directory on the inert path: no ru
 
 ## Key Dependencies
 
-- `effect` (v4, `catalog:effected`) — core runtime plus the merged-in `FileSystem`
+- `effect` (v4, `catalog:effected:exact`) — core runtime plus the merged-in `FileSystem`
   and `effect/sql` modules; do not add `@effect/platform` or
   `@effect/sql` back.
 - `@effect/platform-node` — `NodeFileSystem`. `@effect/sql-sqlite-node` and
   `gray-matter` are **gone** (`@tsdoctor/snapshot` / `@tsdoctor/model`)
 - `ioredis` + the `@effected/*` closure (`files`/`semver`/`store`/`tsconfig-json`/
-  `xdg`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
+  `xdg`/`config-file`/`github`/`glob`/`npm`/`package-json`/`walker`/`yaml`/`jsonc`/
   `markdown`/`memfs`) + `@typescript/vfs` — peer-closure deps, some imported directly
   (`services/TypeRegistryService.ts`, `config-helpers.ts`).
   Do NOT prune as "unused" — see `effect-service-layer.md` (dependency
-  closure). Declare `@effected/*` as `catalog:effected`; never
-  hand-pin a version range.
+  closure); `config-file` is there only as `@effected/xdg`'s peer. Declare
+  runtime kit deps as `catalog:effected:exact` (the sealed closure,
+  enforced by `__test__/kit-closure-pins.test.ts`); never hand-pin a
+  version range.
 - `@tsdoctor/vfs` (`workspace:*`) — the `Vfs` currency type, the
   compiler-options seam (`resolveTypeScriptConfig` in
   `layers/type-environment.ts`; `toProgrammaticCompilerOptions` in

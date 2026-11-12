@@ -7,14 +7,14 @@ resource: ../../platforms/vitepress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-11-09T18:10:55Z
+  at: 2026-11-12T02:39:25Z
 tags:
   - architecture
   - dx
 status: stable
 integrity:
   generated:
-    body: 1b8701c849a59e8b
+    body: 3b5ba7f3da42026a
 ---
 
 # vitepress-plugin-api-extractor
@@ -36,21 +36,23 @@ workspaces, even though the folder is `platforms/vitepress/` — `pnpm
 
 - `@tsdoctor/bundle`, `@tsdoctor/model`, `@tsdoctor/pages`,
   `@tsdoctor/registry`, `@tsdoctor/seo`, `@tsdoctor/vfs` (dependencies,
-  `workspace:*`); `@effected/manifest` (dependency, `catalog:effected`)
+  `workspace:*`); `@effected/manifest` (dependency, `catalog:effected:exact`)
   for the `bundle.json` schema
-- `@effect/platform-node` (dependency, `catalog:effected`)
+- `@effect/platform-node` (dependency, `catalog:effected:exact`)
 - The full `@effected` closure of the core packages it consumes:
-  `files`, `github`, `glob`, `images`, `jsonc`, `kit`, `markdown`, `npm`,
-  `package-json`, `schema-org`, `semver`, `spdx`, `store`,
-  `tsconfig-json`, `walker`, `xdg` and `yaml` (dependencies,
-  `catalog:effected`). Most are not
+  `config-file`, `files`, `github`, `glob`, `images`, `jsonc`, `kit`,
+  `markdown`, `npm`, `package-json`, `schema-org`, `semver`, `spdx`,
+  `store`, `tsconfig-json`, `walker`, `xdg` and `yaml` (dependencies,
+  `catalog:effected:exact`). Most are not
   imported by adapter source. They are declared so that an application's
-  install never relies on `autoInstallPeers` for completeness (see
+  install never relies on `autoInstallPeers` for completeness, and pinned
+  exactly so a kit patch never reaches a consumer without a release (see
   [rspress-dependency-closure](../conventions/rspress-dependency-closure.md),
-  which covers every `platforms/*` adapter, and
-  [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md))
+  which covers every `platforms/*` adapter,
+  [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md)
+  and [adapter-kit-closure-pins](../decisions/adapter-kit-closure-pins.md))
 - `@shikijs/twoslash`, `@shikijs/vitepress-twoslash` (dependencies)
-- `effect` (dependency, `catalog:effected`)
+- `effect` (dependency, `catalog:effected:exact`)
 - `vitepress` (peer, `^2.0.0-alpha.19`)
 
 No `@tsdoctor/snapshot` dependency — this adapter does not track snapshots;

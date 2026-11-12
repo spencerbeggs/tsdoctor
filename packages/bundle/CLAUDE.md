@@ -56,7 +56,8 @@ manifest shape and change-detection model.
   suffice); tsconfig extends `@effected/plugin/tsconfig/ecma.json`; source
   `package.json` stays
   `"private": true` (`publishConfig` drives publishing). `@effected/*` deps
-  only via `catalog:effected`.
+  only via the catalog: `catalog:effected:exact` for `dependencies` (the
+  adapters' sealed closure), `catalog:effected:peers` for peers.
 - Tests: `@effect/vitest`, `@effected/memfs` for filesystem cases, plus a
   real fixture bundle at `__test__/fixtures/kitchensink/`.
 

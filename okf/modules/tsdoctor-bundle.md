@@ -13,10 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:33:27Z
+  at: 2026-11-12T02:39:25Z
 integrity:
   generated:
-    body: 8bfa13bbc3609c98
+    body: afffb15f6db97a7b
 ---
 
 # @tsdoctor/bundle
@@ -35,7 +35,7 @@ loading belongs to `@tsdoctor/model`.
 
 ## Layer cake
 
-Re-exports every name from `@effected/manifest` (`catalog:effected`), so
+Re-exports every name from `@effected/manifest` (a `catalog:effected:peers` peer), so
 this package is the one consumers in the monorepo import from — a reader
 never imports the manifest package directly. Ships no services of its own:
 filesystem functions keep `FileSystem | Path` in their Effect requirement
@@ -48,10 +48,10 @@ images through `publishBundleAssets`.
 Peers: `effect`, `@effected/manifest`, and the seven
 `@effected` packages whose types appear in this package's public `.d.ts`
 surface: `github`, `jsonc`, `npm`, `package-json`, `store`,
-`tsconfig-json` and `xdg`, each `catalog:effected`. `@effected/glob`,
+`tsconfig-json` and `xdg`, each `catalog:effected:peers`. `@effected/glob`,
 `@effected/walker` and `@effected/images` (image dimensions for published
 Open Graph assets) are used internally only, so they are ordinary
-`dependencies` (`catalog:effected`). See
+`dependencies` (`catalog:effected:exact`). See
 [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md).
 
 ## Public surface

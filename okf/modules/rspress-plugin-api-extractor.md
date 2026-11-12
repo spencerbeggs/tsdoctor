@@ -7,7 +7,7 @@ resource: ../../platforms/rspress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-11-09T18:10:55Z
+  at: 2026-11-12T02:39:25Z
 tags:
   - architecture
   - observability
@@ -16,7 +16,7 @@ tags:
 status: stable
 integrity:
   generated:
-    body: f29f31f05b755f5f
+    body: d214f9107c70e638
 ---
 
 # rspress-plugin-api-extractor
@@ -61,7 +61,7 @@ Core package consumption (every edge `workspace:*`):
 | `@tsdoctor/model` | `Model.load`, the `Tsdoc` / `ApiItems` / `EntryPoints` / `Routes` / `SyntheticBases` / `Signature` namespaces, the `CrossLinker`, `ApiExtractedPackage`, `TypeReferenceExtractor`, the `Frontmatter` contract |
 | `@tsdoctor/vfs` | The `Vfs` currency type, `VirtualPackage`, `TsEnvironment`, the compiler-options seam, the Twoslash result cache |
 | `@tsdoctor/registry` | External type loading into a `Vfs`, behind `src/services/TypeRegistryService.ts` |
-| `@tsdoctor/bundle` | `discoverBundle` for the config helpers, plus npm-tarball and GitHub-release fetchers; re-exports the `bundle.json` schema from `@effected/manifest` (a direct `catalog:effected` dependency, not a workspace edge) |
+| `@tsdoctor/bundle` | `discoverBundle` for the config helpers, plus npm-tarball and GitHub-release fetchers; re-exports the `bundle.json` schema from `@effected/manifest` (a direct `catalog:effected:exact` dependency, not a workspace edge) |
 | `@tsdoctor/snapshot` | `SnapshotService` and the content hashers |
 | `@tsdoctor/seo` | `deriveSiteUrl`, `attributionFacts`, `packageContext`, `deriveScriptBody`, `headTags` — every `<head>` decision |
 | `@tsdoctor/pages` | `prepareWorkItems`, `buildPage` / `buildIndexPage`, `buildNav`, example preparation, the scope helpers, the llms.txt text transforms |
@@ -71,11 +71,15 @@ never spells a second one (`src/emit/mdx.ts` carries no `sanitizeId`
 equivalent).
 
 Non-`@tsdoctor` dependencies of note: `@effect/platform-node` (`NodeFileSystem`),
-the full `@effected/*` closure (`github`, `glob`, `jsonc`, `markdown`, `npm`,
+the full `@effected/*` closure (`config-file`, `files`, `github`, `glob`,
+`images`, `jsonc`, `kit`, `manifest`, `markdown`, `memfs`, `npm`,
 `package-json`, `schema-org`, `semver`, `spdx`, `store`, `tsconfig-json`,
-`walker`, `xdg`, `yaml` — all `catalog:effected`, covering the core
-packages' public-surface peers and internal dependencies alike; see
-[core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md)),
+`walker`, `xdg`, `yaml` — all `catalog:effected:exact`, as are `effect`
+and `@effect/platform-node`, covering the core packages' public-surface
+peers, their internal dependencies and every non-optional kit peer alike;
+see
+[core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md)
+and [adapter-kit-closure-pins](../decisions/adapter-kit-closure-pins.md)),
 `@typescript/vfs`, `@microsoft/api-extractor-model`,
 `@shikijs/twoslash`, `shiki`, `mdast-util-to-hast` (runtime), `open`. These
 are declared in `dependencies`, not `peerDependencies` — see

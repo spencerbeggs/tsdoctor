@@ -7,7 +7,7 @@ resource: ../../packages/snapshot
 layer: L2
 generated:
   by: "okfit/claude-code"
-  at: 2026-10-31T20:38:59Z
+  at: 2026-11-12T02:39:25Z
 tags:
   - architecture
   - observability
@@ -15,7 +15,7 @@ tags:
 status: stable
 integrity:
   generated:
-    body: d06a9b2475843806
+    body: 913e1f1fc36d14c6
 ---
 
 # @tsdoctor/snapshot
@@ -37,10 +37,10 @@ stages. See [rspress-plugin-api-extractor](rspress-plugin-api-extractor.md)
 
 ## Dependencies
 
-- `effect` (peer, `catalog:effected`)
-- `@effected/store` (peer, `catalog:effected`) — `Store.layerSqlite`,
+- `effect` (peer, `catalog:effected:peers`)
+- `@effected/store` (peer, `catalog:effected:peers`) — `Store.layerSqlite`,
   the `Cache` primitive family; on the public surface
-- `@effected/jsonc` (dependency, `catalog:effected`) — `JsoncFingerprint`
+- `@effected/jsonc` (dependency, `catalog:effected:exact`) — `JsoncFingerprint`
   (RFC 8785 / JCS canonicalization) for `hashFrontmatter`, used internally
   only
 

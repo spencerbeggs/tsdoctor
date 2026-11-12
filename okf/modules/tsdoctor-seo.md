@@ -7,14 +7,14 @@ resource: ../../packages/seo
 layer: L2
 generated:
   by: "okfit/claude-code"
-  at: 2026-11-09T18:10:55Z
+  at: 2026-11-12T02:39:25Z
 tags:
   - architecture
   - dx
 status: stable
 integrity:
   generated:
-    body: f2d96cc4aae24e66
+    body: 19c536c08d201f9b
 ---
 
 # @tsdoctor/seo
@@ -38,13 +38,13 @@ rendering change rather than a second SEO implementation.
 
 ## Dependencies
 
-- `effect` (peer, `catalog:effected`)
-- `@effected/package-json` (peer, `catalog:effected`) — `PackageManifest`
+- `effect` (peer, `catalog:effected:peers`)
+- `@effected/package-json` (peer, `catalog:effected:peers`) — `PackageManifest`
   and the SPDX-aware license helpers used by `attributionFacts`
-- `@effected/schema-org` (peer, `catalog:effected`) — `JsonLdDocument` /
+- `@effected/schema-org` (peer, `catalog:effected:peers`) — `JsonLdDocument` /
   `JsonLdNode` / `NodeRef`, the schema.org vocabulary and its `./validate`
   conformance checker
-- `@effected/spdx` (dependency, `catalog:effected`) — the SPDX license
+- `@effected/spdx` (dependency, `catalog:effected:exact`) — the SPDX license
   catalog and expression grammar, used internally and absent from the
   public `.d.ts` surface, so it is not a peer (see
   [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md))

@@ -5,7 +5,7 @@ title: Effect v4 only
 description: The whole monorepo runs on Effect v4 exclusively, pinned through the catalog:effected pnpm catalog, with no v3-shaped code anywhere.
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:38:59Z
+  at: 2026-11-12T02:39:25Z
 tags: [compat, architecture]
 sources:
   - id: workspace
@@ -19,13 +19,15 @@ verified:
     at: 2026-09-24T20:24:18Z
   - by: human:spencer
     at: 2026-11-02T19:11:05Z
+  - by: human:spencer
+    at: 2026-11-12T02:38:50Z
 integrity:
   generated:
-    body: 77e95e06ffffbfd7
+    body: fdd738caac9b3926
   verified:
     by: human:spencer
-    at: 2026-11-02T19:11:05Z
-    content: f2a3b70cb0ffe9ea
+    at: 2026-11-12T02:38:50Z
+    content: aef11ffb701e1e87
 ---
 
 # The repository runs on Effect v4 only
@@ -47,6 +49,6 @@ Concrete idiom consequences that follow from the v4-only line: services are decl
 
 ## Consequences
 
-- Every `@effected/*` dependency in this repo is declared as `catalog:effected` (in `peerDependencies` too), never hand-pinned to a specific version range, because the config-dependency plugin is what keeps the whole `@effected` graph — and the `effect` version it targets — moving together.
+- Every `@effected/*` dependency in this repo is declared through the catalog plugin's catalogs (`catalog:effected:exact` for runtime dependencies, `catalog:effected:peers` for peers, `catalog:effected` for devDependencies; see `adapter-kit-closure-pins.md`), never hand-pinned to a specific version range, because the config-dependency plugin is what keeps the whole `@effected` graph — and the `effect` version it targets — moving together.
 - Reasoning about Effect from training data or from memory of the v3 API is unreliable by construction: names, signatures, and whole modules have moved. The vendored `.repos/effect` source and a runtime probe against the installed rc are the two sources of truth; nothing else is.
 - A future major bump of `effect` (a new Effect minor such as 4.2, or beyond) is an upstream-driven event carried through the same `@effected/pnpm-plugin-effected` config dependency, not a manual per-package version edit.
