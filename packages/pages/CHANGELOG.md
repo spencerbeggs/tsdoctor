@@ -1,5 +1,14 @@
 # @tsdoctor/pages
 
+## 0.5.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/model | dependency | updated | 0.10.4 | 0.10.5 |
+| @tsdoctor/seo | dependency | updated | 0.6.4 | 0.6.5 |
+
 ## 0.5.4
 
 ### Dependencies
