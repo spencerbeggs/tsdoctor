@@ -1,5 +1,13 @@
 # @tsdoctor/pages
 
+## 0.5.6
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| prettier | dependency | updated | ^3.9.10 | ^3.10.0 |
+
 ## 0.5.5
 
 ### Dependencies

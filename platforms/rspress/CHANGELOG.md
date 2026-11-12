@@ -1,5 +1,15 @@
 # rspress-plugin-api-extractor
 
+## 0.20.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/memfs | dependency | updated | 0.26.1 | 0.26.2 |
+| @tsdoctor/pages | dependency | updated | 0.5.5 | 0.5.6 |
+| prettier | dependency | updated | ^3.9.10 | ^3.10.0 |
+
 ## 0.20.4
 
 ### Dependencies
