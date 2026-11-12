@@ -36,7 +36,7 @@
 		"@microsoft/api-extractor-model": "catalog:effected:build",
 		"@tsdoctor/model": "workspace:*",
 		"@tsdoctor/seo": "workspace:*",
-		"prettier": "^3.9.10"
+		"prettier": "^3.10.0"
 	},
 	"devDependencies": {
 		"@effected/glob": "catalog:effected",
