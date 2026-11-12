@@ -24,7 +24,7 @@ sources:
     resource: ../../platforms/vitepress/package.json
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:33:27Z
+  at: 2026-11-12T02:59:11Z
 verified:
   - by: human:spencer
     at: 2026-09-24T20:24:18Z
@@ -34,13 +34,19 @@ verified:
     at: 2026-11-09T18:10:30Z
   - by: human:spencer
     at: 2026-11-09T18:52:17Z
+  - by: human:spencer
+    at: 2026-11-12T02:38:50Z
+  - by: human:spencer
+    at: 2026-11-12T02:51:17Z
+  - by: human:spencer
+    at: 2026-11-12T03:00:40Z
 integrity:
   generated:
-    body: 38f31cc7378c8272
+    body: f319a6a6b6212f7f
   verified:
     by: human:spencer
-    at: 2026-11-09T18:52:17Z
-    content: de5bc0192e9d2876
+    at: 2026-11-12T03:00:40Z
+    content: 94d524acbb8d7220
 ---
 
 # Core `@effected` peers follow the public `.d.ts` surface
@@ -65,7 +71,8 @@ The repository owner approved this policy on 2026-09-24.[^owner]
    package's types appear in the library's public `.d.ts` surface.** Those
    types cross the boundary, so a consumer must share one instance of the
    package with the library. Any other `@effected` edge is an ordinary
-   `dependency`, still `catalog:effected`. That is safe because every
+   `dependency`, spelled `catalog:effected:exact` (see
+   [adapter-kit-closure-pins](adapter-kit-closure-pins.md)). That is safe because every
    `@effected` package itself peers on `effect`, so the single `effect`
    instance is preserved. `effect` stays a peer everywhere. The public
    surface is determined by the `@effected/...` imports in the package's
@@ -81,26 +88,31 @@ The repository owner approved this policy on 2026-09-24.[^owner]
    `platforms/*` (RSPress and VitePress alike) lists the whole `@effected`
    closure of the core packages it consumes in `dependencies`, so an
    application's install is complete without relying on
-   `autoInstallPeers`.[^rspress-pkg] [^vitepress-pkg] See the
+   `autoInstallPeers`.[^rspress-pkg] [^vitepress-pkg] Those entries are
+   pinned exactly, and the closure is flattened to every kit package
+   reached through a range at any depth (see [adapter-kit-closure-pins](adapter-kit-closure-pins.md)). See the
    [adapter dependency-closure convention](../conventions/rspress-dependency-closure.md).
-4. **Every `@effected/*` edge is spelled `catalog:effected`**, peer and
-   dependency alike: the catalog plugin serves one catalog.
+4. **Every `@effected/*` edge is spelled through the catalog plugin, never
+   hand-pinned.** Peers use `catalog:effected:peers`, which floors each
+   range to its minor. Regular dependencies use `catalog:effected:exact`
+   (see [adapter-kit-closure-pins](adapter-kit-closure-pins.md)), and
+   `devDependencies` use `catalog:effected`.
 
 The resulting split, public-surface peers first, then the packages that
 became internal-only dependencies:
 
 | Package | `@effected` peers (public surface) | `@effected` dependencies (internal) |
 | --- | --- | --- |
-| `@tsdoctor/vfs` | `tsconfig-json` | none |
-| `@tsdoctor/snapshot` | `store` | `jsonc` |
+| `@tsdoctor/vfs` | `tsconfig-json` | `jsonc`, `kit` |
+| `@tsdoctor/snapshot` | `store` | `jsonc`, `kit` |
 | `@tsdoctor/seo` | `package-json`, `schema-org` | `spdx` |
-| `@tsdoctor/model` | `markdown`, plus `tsconfig-json` propagated from vfs | `yaml` |
+| `@tsdoctor/model` | `markdown`, plus `tsconfig-json` propagated from vfs | `kit`, `yaml` |
 | `@tsdoctor/registry` | `store`, `xdg`, plus `tsconfig-json` propagated from vfs | `files`, `semver`, `package-json` |
 | `@tsdoctor/bundle` | `github`, `jsonc`, `manifest`, `npm`, `package-json`, `store`, `tsconfig-json`, `xdg` | `glob`, `images`, `walker` |
 | `@tsdoctor/pages` | `markdown`, plus `package-json`, `schema-org`, `tsconfig-json` propagated | none |
 
 `@tsdoctor/bundle`'s own manifest shows the split in one file:[^bundle-pkg]
-eight `@effected` `catalog:effected` peer entries, plus `glob`, `images`
+eight `@effected` `catalog:effected:peers` peer entries, plus `glob`, `images`
 and `walker` under `dependencies`. `@tsdoctor/vfs` keeps
 `@effected/tsconfig-json` as a required peer, not an optional one,
 because `CompilerOptions` is part of its exported types.[^vfs-pkg]

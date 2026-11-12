@@ -48,9 +48,9 @@ types. Filesystem probing of a configured OG image stays in the adapter's
 - **Degrade, never fail.** No derivation here may abort a docs build; the
   adapter maps `OgImageError` / `StructuredDataError` to a
   `ConfigValidationWarning` and renders the page without that tag.
-- Peers: `effect` (`catalog:effected`) plus `@effected/package-json`,
-  `@effected/schema-org` and `@effected/spdx` (`catalog:effected`) —
-  never hand-pin an `@effected` range. Note `@effected/schema-org`'s validator
+- Peers: `effect`, `@effected/package-json` and `@effected/schema-org`
+  (`catalog:effected:peers`); dependency: `@effected/spdx`
+  (`catalog:effected:exact`) — never hand-pin an `@effected` range. Note `@effected/schema-org`'s validator
   lives on the `./validate` subpath, and its graph types are
   `JsonLdDocument`/`JsonLdNode`/`NodeRef`.
 - Conformance is gated **offline in CI**: `Conformance.check` over the manifest

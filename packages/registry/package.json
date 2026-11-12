@@ -33,9 +33,9 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@effected/files": "catalog:effected",
-		"@effected/package-json": "catalog:effected",
-		"@effected/semver": "catalog:effected",
+		"@effected/files": "catalog:effected:exact",
+		"@effected/package-json": "catalog:effected:exact",
+		"@effected/semver": "catalog:effected:exact",
 		"@tsdoctor/vfs": "workspace:*"
 	},
 	"devDependencies": {

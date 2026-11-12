@@ -33,7 +33,7 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@effected/spdx": "catalog:effected"
+		"@effected/spdx": "catalog:effected:exact"
 	},
 	"devDependencies": {
 		"@effected/package-json": "catalog:effected",

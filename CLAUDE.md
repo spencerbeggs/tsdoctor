@@ -185,12 +185,25 @@ config dependency in `pnpm-workspace.yaml` (`configDependencies:`), which
 supplies one pnpm catalog, `catalog:effected`, holding both the Effect
 family (held to one Effect minor, `~4.1.2`) and the `@effected/*` kit.
 
-- Declare every `effect`, `@effect/*` and `@effected/*` dependency in this
-  repo as `"catalog:effected"` in `dependencies` and `devDependencies`, and
-  as `"catalog:effected:peers"` in `peerDependencies` (the catalog serves the
-  Effect family at exact versions; the `:peers` twin floors each range to its
+- Declare every `effect`, `@effect/*` and `@effected/*` entry in
+  `dependencies` as `"catalog:effected:exact"`, in `devDependencies` as
+  `"catalog:effected"`, and in `peerDependencies` as
+  `"catalog:effected:peers"` (the `:peers` twin floors each range to its
   minor so a published peer doesn't pin consumers to one patch). Never
   hand-pin an `@effected` version range.
+- **The adapters seal their kit closure.** Consumers install
+  `platforms/*`, so a kit patch must never reach them without an adapter
+  release: the `:exact` spelling covers every runtime kit dependency of the
+  adapters *and* of the `@tsdoctor/*` libraries they ship (pnpm resolves a
+  library's carets independently), and each adapter declares its whole kit
+  closure flattened — every kit package reached through a range (a
+  dependency or required peer, at any depth) — so upstream kit-to-kit
+  carets resolve onto the adapter's pins. Don't redeclare a package
+  upstream already pins exactly: every adapter pin must satisfy every
+  published edge reaching it, or consumers get a second copy.
+  `platforms/*/__test__/kit-closure-pins.test.ts` holds these rules; when a
+  plugin bump fails it on an undeclared package, add it to both adapters as
+  `catalog:effected:exact`.
 - Upstream effected CI/CD bumps `@effected/pnpm-plugin-effected`; a plugin
   release carries the whole `@effected` dependency/peer graph — never manage
   that graph by hand.
@@ -217,6 +230,7 @@ read one when the task touches its area.
 - `okf/decisions/generate-docs-in-config-hook.md`
 - `okf/interfaces/rspress-plugin-options.md`
 - `okf/decisions/core-peers-follow-public-surface.md`
+- `okf/decisions/adapter-kit-closure-pins.md`
 - `okf/conventions/rspress-dependency-closure.md`
 - `okf/decisions/typescript-version-split.md`
 

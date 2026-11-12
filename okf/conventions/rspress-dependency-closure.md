@@ -1,10 +1,10 @@
 ---
 type: Convention
 title: Keep every adapter's dependency closure whole
-description: "Every platforms/* adapter declares the full @effected closure and every @tsdoctor/* core package it consumes in dependencies, never as peers; never prune an entry as unused without checking."
+description: "Every platforms/* adapter declares the full @effected closure, pinned catalog:effected:exact, and every @tsdoctor/* core package it consumes in dependencies, never as peers; never prune an entry as unused without checking."
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:33:27Z
+  at: 2026-11-12T02:59:11Z
 stale_after: 2026-12-23T00:00:00Z
 tags: [compat, release, deps]
 sources:
@@ -15,7 +15,7 @@ sources:
 status: stable
 integrity:
   generated:
-    body: b4f1a7b5b5a3888e
+    body: 5b50f5261f1601d5
 ---
 
 # Keep every adapter's full closure in `dependencies`
@@ -27,15 +27,24 @@ the VitePress adapter
 list the following as ordinary `dependencies`, never as `peerDependencies`:
 
 - The complete `@effected/*` closure of the core packages the adapter
-  consumes, each as `catalog:effected`. That covers public-surface peers
-  and internal-only dependencies alike: `files`, `github`, `glob`,
-  `images`, `jsonc`, `kit`, `manifest`, `markdown`, `npm`, `package-json`,
-  `schema-org`, `semver`, `spdx`, `store`, `tsconfig-json`, `walker`,
-  `xdg` and `yaml`. `@effected/manifest` is the adapters' direct manifest
-  dependency. The RSPress adapter
+  consumes, each as `catalog:effected:exact` (see
+  `../decisions/adapter-kit-closure-pins.md`). That covers public-surface
+  peers, internal-only dependencies, and every kit package reached through
+  a range (a regular dependency or a required peer) at any depth,
+  flattened: `commands`, `config-file`, `crypto`, `files`, `github`,
+  `github-references`, `glob`, `images`, `jsonc`, `jwt`, `kit`, `manifest`,
+  `markdown`, `npm`, `oidc`, `package-json`, `schema-org`, `semver`,
+  `source`, `spdx`, `store`, `tsconfig-json`, `walker`, `xdg` and `yaml`.
+  Most of the transitive entries are there only to hold an upstream caret
+  to the adapter's pinned version; `config-file` is `@effected/xdg`'s peer.
+  Packages reached only through exact upstream pins
+  (`@effect/platform-node-shared`, `@effect/sql-sqlite-node`) are already
+  sealed and must not be redeclared: a pin that disagrees with the
+  upstream exact pin installs a second copy in consumers. `@effected/manifest` is the
+  adapters' direct manifest dependency. The RSPress adapter
   also carries `memfs` as a runtime dependency: its `node-sync` subpath is
   the synchronous `FileSystem` the config helpers run bundle discovery on.
-- `effect` and `@effect/platform-node`.
+- `effect` and `@effect/platform-node`, also `catalog:effected:exact`.
 - Every `@tsdoctor/*` core workspace it consumes, as `workspace:*`. That is
   seven for RSPress (`bundle`, `model`, `pages`, `registry`, `seo`,
   `snapshot`, `vfs`) and every one except `snapshot` for VitePress.
@@ -83,6 +92,11 @@ gets.
 - `jq -r '.dependencies | keys[]' platforms/*/package.json | grep @effected | sort | uniq -c`.
   Every `@effected` package the core closure reaches should appear once
   per adapter.
+- Each adapter's `__test__/kit-closure-pins.test.ts` fails on a kit
+  runtime dependency not spelled `catalog:effected:exact`, on any kit
+  package reached through a range (at any depth) that the adapter does
+  not declare, on an adapter pin that does not satisfy a published edge
+  reaching it, and on a kit package resolving at two versions.
 - `grep -c "workspace:\*" ../../platforms/rspress/package.json` should
   count seven `@tsdoctor/*` entries.
 - Before removing any dependency entry, run
