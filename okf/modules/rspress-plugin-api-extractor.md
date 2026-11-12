@@ -7,7 +7,7 @@ resource: ../../platforms/rspress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-11-12T02:39:25Z
+  at: 2026-11-12T02:49:54Z
 tags:
   - architecture
   - observability
@@ -16,7 +16,7 @@ tags:
 status: stable
 integrity:
   generated:
-    body: d214f9107c70e638
+    body: b0d276a5433e606a
 ---
 
 # rspress-plugin-api-extractor
@@ -76,7 +76,10 @@ the full `@effected/*` closure (`config-file`, `files`, `github`, `glob`,
 `package-json`, `schema-org`, `semver`, `spdx`, `store`, `tsconfig-json`,
 `walker`, `xdg`, `yaml` — all `catalog:effected:exact`, as are `effect`
 and `@effect/platform-node`, covering the core packages' public-surface
-peers, their internal dependencies and every non-optional kit peer alike;
+peers, their internal dependencies and every kit package reached at any
+depth (including `commands`, `crypto`, `github-references`, `jwt`, `oidc`,
+`source`, `@effect/platform-node-shared` and `@effect/sql-sqlite-node`,
+which exist only to hold upstream carets to one version);
 see
 [core-peers-follow-public-surface](../decisions/core-peers-follow-public-surface.md)
 and [adapter-kit-closure-pins](../decisions/adapter-kit-closure-pins.md)),

@@ -195,9 +195,12 @@ family (held to one Effect minor, `~4.1.2`) and the `@effected/*` kit.
   `platforms/*`, so a kit patch must never reach them without an adapter
   release: the `:exact` spelling covers every runtime kit dependency of the
   adapters *and* of the `@tsdoctor/*` libraries they ship (pnpm resolves a
-  library's carets independently), and each adapter declares every
-  non-optional kit peer of its closure as a runtime dependency.
-  `platforms/*/__test__/kit-closure-pins.test.ts` holds all three rules.
+  library's carets independently), and each adapter declares its whole kit
+  closure flattened — every kit package reached through a dependency or
+  required peer, at any depth — so upstream kit-to-kit carets resolve onto
+  the adapter's pins. `platforms/*/__test__/kit-closure-pins.test.ts`
+  holds these rules; when a plugin bump fails it, add the new package to
+  both adapters as `catalog:effected:exact`.
 - Upstream effected CI/CD bumps `@effected/pnpm-plugin-effected`; a plugin
   release carries the whole `@effected` dependency/peer graph — never manage
   that graph by hand.

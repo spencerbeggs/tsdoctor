@@ -4,7 +4,7 @@ title: Keep every adapter's dependency closure whole
 description: "Every platforms/* adapter declares the full @effected closure, pinned catalog:effected:exact, and every @tsdoctor/* core package it consumes in dependencies, never as peers; never prune an entry as unused without checking."
 generated:
   by: okfit/claude-code
-  at: 2026-11-12T02:39:25Z
+  at: 2026-11-12T02:49:54Z
 stale_after: 2026-12-23T00:00:00Z
 tags: [compat, release, deps]
 sources:
@@ -15,7 +15,7 @@ sources:
 status: stable
 integrity:
   generated:
-    body: 342b6548f13bbf1e
+    body: ce9773665ba0fa6e
 ---
 
 # Keep every adapter's full closure in `dependencies`
@@ -29,12 +29,16 @@ list the following as ordinary `dependencies`, never as `peerDependencies`:
 - The complete `@effected/*` closure of the core packages the adapter
   consumes, each as `catalog:effected:exact` (see
   `../decisions/adapter-kit-closure-pins.md`). That covers public-surface
-  peers, internal-only dependencies, and every non-optional kit peer of a
-  kit package in the closure alike: `config-file`, `files`, `github`,
-  `glob`, `images`, `jsonc`, `kit`, `manifest`, `markdown`, `npm`,
-  `package-json`, `schema-org`, `semver`, `spdx`, `store`,
-  `tsconfig-json`, `walker`, `xdg` and `yaml`. `config-file` is there
-  because `@effected/xdg` peers on it. `@effected/manifest` is the
+  peers, internal-only dependencies, and every kit package reached through
+  a regular dependency or a required peer at any depth, flattened:
+  `commands`, `config-file`, `crypto`, `files`, `github`,
+  `github-references`, `glob`, `images`, `jsonc`, `jwt`, `kit`, `manifest`,
+  `markdown`, `npm`, `oidc`, `package-json`, `schema-org`, `semver`,
+  `source`, `spdx`, `store`, `tsconfig-json`, `walker`, `xdg` and `yaml`,
+  plus `@effect/platform-node-shared` and `@effect/sql-sqlite-node`
+  beside `@effect/platform-node`. Most of the transitive entries are there
+  only to hold an upstream caret to the adapter's pinned version;
+  `config-file` is `@effected/xdg`'s peer. `@effected/manifest` is the
   adapters' direct manifest dependency. The RSPress adapter
   also carries `memfs` as a runtime dependency: its `node-sync` subpath is
   the synchronous `FileSystem` the config helpers run bundle discovery on.
@@ -87,9 +91,9 @@ gets.
   Every `@effected` package the core closure reaches should appear once
   per adapter.
 - Each adapter's `__test__/kit-closure-pins.test.ts` fails on a kit
-  runtime dependency not spelled `catalog:effected:exact` and on a
-  non-optional kit peer in the installed closure that the adapter does
-  not declare.
+  runtime dependency not spelled `catalog:effected:exact`, on any kit
+  package in the installed closure (at any depth) that the adapter does
+  not declare, and on a kit package resolving at two versions.
 - `grep -c "workspace:\*" ../../platforms/rspress/package.json` should
   count seven `@tsdoctor/*` entries.
 - Before removing any dependency entry, run

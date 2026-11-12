@@ -285,15 +285,30 @@ catalogs:
     '@effect/platform-node':
       specifier: 4.1.4
       version: 4.1.4
+    '@effect/platform-node-shared':
+      specifier: 4.1.4
+      version: 4.1.4
+    '@effect/sql-sqlite-node':
+      specifier: 4.1.4
+      version: 4.1.4
+    '@effected/commands':
+      specifier: 0.21.0
+      version: 0.21.0
     '@effected/config-file':
       specifier: 0.27.1
       version: 0.27.1
+    '@effected/crypto':
+      specifier: 0.7.0
+      version: 0.7.0
     '@effected/files':
       specifier: 0.3.0
       version: 0.3.0
     '@effected/github':
       specifier: 0.32.1
       version: 0.32.1
+    '@effected/github-references':
+      specifier: 0.15.0
+      version: 0.15.0
     '@effected/glob':
       specifier: 0.21.0
       version: 0.21.0
@@ -303,6 +318,9 @@ catalogs:
     '@effected/jsonc':
       specifier: 0.25.0
       version: 0.25.0
+    '@effected/jwt':
+      specifier: 0.10.0
+      version: 0.10.0
     '@effected/kit':
       specifier: 0.14.0
       version: 0.14.0
@@ -318,6 +336,9 @@ catalogs:
     '@effected/npm':
       specifier: 0.34.0
       version: 0.34.0
+    '@effected/oidc':
+      specifier: 0.5.0
+      version: 0.5.0
     '@effected/package-json':
       specifier: 0.32.1
       version: 0.32.1
@@ -327,6 +348,9 @@ catalogs:
     '@effected/semver':
       specifier: 0.24.0
       version: 0.24.0
+    '@effected/source':
+      specifier: 0.5.0
+      version: 0.5.0
     '@effected/spdx':
       specifier: 0.20.0
       version: 0.20.0
@@ -754,15 +778,30 @@ importers:
       '@effect/platform-node':
         specifier: catalog:effected:exact
         version: 4.1.4(effect@4.1.4)(redis@6.3.1)
+      '@effect/platform-node-shared':
+        specifier: catalog:effected:exact
+        version: 4.1.4(effect@4.1.4)
+      '@effect/sql-sqlite-node':
+        specifier: catalog:effected:exact
+        version: 4.1.4(effect@4.1.4)
+      '@effected/commands':
+        specifier: catalog:effected:exact
+        version: 0.21.0(effect@4.1.4)
       '@effected/config-file':
         specifier: catalog:effected:exact
         version: 0.27.1(@effected/glob@0.21.0(effect@4.1.4))(@effected/jsonc@0.25.0(effect@4.1.4))(@effected/toml@0.20.0(effect@4.1.4))(@effected/walker@0.28.0(@effected/glob@0.21.0(effect@4.1.4))(effect@4.1.4))(@effected/yaml@0.30.0(effect@4.1.4))(effect@4.1.4)
+      '@effected/crypto':
+        specifier: catalog:effected:exact
+        version: 0.7.0(effect@4.1.4)
       '@effected/files':
         specifier: catalog:effected:exact
         version: 0.3.0(effect@4.1.4)
       '@effected/github':
         specifier: catalog:effected:exact
         version: 0.32.1(effect@4.1.4)
+      '@effected/github-references':
+        specifier: catalog:effected:exact
+        version: 0.15.0(effect@4.1.4)
       '@effected/glob':
         specifier: catalog:effected:exact
         version: 0.21.0(effect@4.1.4)
@@ -772,6 +811,9 @@ importers:
       '@effected/jsonc':
         specifier: catalog:effected:exact
         version: 0.25.0(effect@4.1.4)
+      '@effected/jwt':
+        specifier: catalog:effected:exact
+        version: 0.10.0(effect@4.1.4)
       '@effected/kit':
         specifier: catalog:effected:exact
         version: 0.14.0(effect@4.1.4)
@@ -787,6 +829,9 @@ importers:
       '@effected/npm':
         specifier: catalog:effected:exact
         version: 0.34.0(@effected/semver@0.24.0(effect@4.1.4))(effect@4.1.4)
+      '@effected/oidc':
+        specifier: catalog:effected:exact
+        version: 0.5.0(effect@4.1.4)
       '@effected/package-json':
         specifier: catalog:effected:exact
         version: 0.32.1(effect@4.1.4)
@@ -796,6 +841,9 @@ importers:
       '@effected/semver':
         specifier: catalog:effected:exact
         version: 0.24.0(effect@4.1.4)
+      '@effected/source':
+        specifier: catalog:effected:exact
+        version: 0.5.0
       '@effected/spdx':
         specifier: catalog:effected:exact
         version: 0.20.0(effect@4.1.4)
@@ -929,15 +977,30 @@ importers:
       '@effect/platform-node':
         specifier: catalog:effected:exact
         version: 4.1.4(effect@4.1.4)(redis@6.3.1)
+      '@effect/platform-node-shared':
+        specifier: catalog:effected:exact
+        version: 4.1.4(effect@4.1.4)
+      '@effect/sql-sqlite-node':
+        specifier: catalog:effected:exact
+        version: 4.1.4(effect@4.1.4)
+      '@effected/commands':
+        specifier: catalog:effected:exact
+        version: 0.21.0(effect@4.1.4)
       '@effected/config-file':
         specifier: catalog:effected:exact
         version: 0.27.1(@effected/glob@0.21.0(effect@4.1.4))(@effected/jsonc@0.25.0(effect@4.1.4))(@effected/toml@0.20.0(effect@4.1.4))(@effected/walker@0.28.0(@effected/glob@0.21.0(effect@4.1.4))(effect@4.1.4))(@effected/yaml@0.30.0(effect@4.1.4))(effect@4.1.4)
+      '@effected/crypto':
+        specifier: catalog:effected:exact
+        version: 0.7.0(effect@4.1.4)
       '@effected/files':
         specifier: catalog:effected:exact
         version: 0.3.0(effect@4.1.4)
       '@effected/github':
         specifier: catalog:effected:exact
         version: 0.32.1(effect@4.1.4)
+      '@effected/github-references':
+        specifier: catalog:effected:exact
+        version: 0.15.0(effect@4.1.4)
       '@effected/glob':
         specifier: catalog:effected:exact
         version: 0.21.0(effect@4.1.4)
@@ -947,6 +1010,9 @@ importers:
       '@effected/jsonc':
         specifier: catalog:effected:exact
         version: 0.25.0(effect@4.1.4)
+      '@effected/jwt':
+        specifier: catalog:effected:exact
+        version: 0.10.0(effect@4.1.4)
       '@effected/kit':
         specifier: catalog:effected:exact
         version: 0.14.0(effect@4.1.4)
@@ -959,6 +1025,9 @@ importers:
       '@effected/npm':
         specifier: catalog:effected:exact
         version: 0.34.0(@effected/semver@0.24.0(effect@4.1.4))(effect@4.1.4)
+      '@effected/oidc':
+        specifier: catalog:effected:exact
+        version: 0.5.0(effect@4.1.4)
       '@effected/package-json':
         specifier: catalog:effected:exact
         version: 0.32.1(effect@4.1.4)
@@ -968,6 +1037,9 @@ importers:
       '@effected/semver':
         specifier: catalog:effected:exact
         version: 0.24.0(effect@4.1.4)
+      '@effected/source':
+        specifier: catalog:effected:exact
+        version: 0.5.0
       '@effected/spdx':
         specifier: catalog:effected:exact
         version: 0.20.0(effect@4.1.4)
