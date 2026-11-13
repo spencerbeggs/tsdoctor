@@ -615,15 +615,9 @@ importers:
       '@effected/files':
         specifier: catalog:effected:exact
         version: 0.3.0(effect@4.1.4)
-      '@effected/npm':
-        specifier: catalog:effected:exact
-        version: 0.35.0(@effect/platform-node@4.1.4(effect@4.1.4)(redis@6.3.1))(@effected/semver@0.24.0(effect@4.1.4))(effect@4.1.4)
       '@effected/package-json':
         specifier: catalog:effected:exact
         version: 0.32.2(@effect/platform-node@4.1.4(effect@4.1.4)(redis@6.3.1))(effect@4.1.4)
-      '@effected/pnpm':
-        specifier: catalog:effected:exact
-        version: 0.1.0(@effected/npm@0.35.0(@effect/platform-node@4.1.4(effect@4.1.4)(redis@6.3.1))(@effected/semver@0.24.0(effect@4.1.4))(effect@4.1.4))(@effected/semver@0.24.0(effect@4.1.4))(effect@4.1.4)
       '@effected/semver':
         specifier: catalog:effected:exact
         version: 0.24.0(effect@4.1.4)
