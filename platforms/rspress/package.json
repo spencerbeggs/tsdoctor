@@ -50,6 +50,7 @@
 		"@effected/npm": "catalog:effected:exact",
 		"@effected/oidc": "catalog:effected:exact",
 		"@effected/package-json": "catalog:effected:exact",
+		"@effected/pnpm": "catalog:effected:exact",
 		"@effected/schema-org": "catalog:effected:exact",
 		"@effected/semver": "catalog:effected:exact",
 		"@effected/source": "catalog:effected:exact",
