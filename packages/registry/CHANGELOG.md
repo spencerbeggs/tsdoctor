@@ -1,5 +1,13 @@
 # @tsdoctor/registry
 
+## 0.7.8
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/package-json | dependency | updated | 0.32.1 | 0.32.2 |
+
 ## 0.7.7
 
 ### Dependencies
