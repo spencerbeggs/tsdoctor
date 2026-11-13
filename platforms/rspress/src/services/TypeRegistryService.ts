@@ -1,4 +1,3 @@
-import { NodeHttpClient } from "@effect/platform-node";
 import { ErrorText } from "@effected/kit";
 import { Cache } from "@effected/store";
 import { AppDirs } from "@effected/xdg";
@@ -8,6 +7,7 @@ import { Cause, Context, Duration, Effect, Layer, Path } from "effect";
 import { resolveExternalPackageVersions } from "../config-utils.js";
 import type { TypeRegistryError } from "../errors.js";
 import { TypeRegistryError as PluginTypeRegistryError } from "../errors.js";
+import { registryHttpClientLayer } from "../layers/registry-http-client.js";
 import { AppDirsLive, PlatformLive } from "../layers/xdg.js";
 import { emit } from "../observability/EventBus.js";
 import { PluginEvent } from "../observability/events.js";
@@ -213,6 +213,18 @@ const MetadataCacheLive = Layer.unwrap(
 ).pipe(Layer.provide(Layer.mergeAll(AppDirsLive, PlatformLive)), Cache.degrading);
 
 /**
+ * The registry's HTTP client: pnpm's proxy and TLS configuration from the site's
+ * directory, or a plain undici client (with a warning) when it cannot be applied.
+ */
+const RegistryHttpClientLive = registryHttpClientLayer({
+	cwd: process.cwd(),
+	env: process.env,
+	platform: process.platform,
+	onFallback: (reason) =>
+		emit(PluginEvent.TypeRegistryEvent({ ctx: {}, level: "warn", kind: "TransportFallback", detail: reason })),
+}).pipe(Layer.provide(PlatformLive));
+
+/**
  * The full registry runtime: TypeRegistry over an XDG-rooted TypeCache and the
  * jsDelivr PackageFetcher, with the observer that forwards registry events to
  * the plugin's EventBus (found ambiently via serviceOption at emit time).
@@ -220,7 +232,7 @@ const MetadataCacheLive = Layer.unwrap(
 const RegistryLayer = TypeRegistry.layer.pipe(
 	Layer.provideMerge(Layer.mergeAll(TypeCache.layerXdg(), PackageFetcher.layer)),
 	Layer.provideMerge(RegistryObserverLayer),
-	Layer.provide(Layer.mergeAll(MetadataCacheLive, AppDirsLive, PlatformLive, NodeHttpClient.layerUndici)),
+	Layer.provide(Layer.mergeAll(MetadataCacheLive, AppDirsLive, PlatformLive, RegistryHttpClientLive)),
 );
 
 /**
@@ -229,7 +241,7 @@ const RegistryLayer = TypeRegistry.layer.pipe(
 const RegistryBackedLive = Layer.effect(
 	TypeRegistryService,
 	Effect.gen(function* () {
-		// The whole registry stack — XDG dirs, `metadata.sqlite`, the undici HTTP
+		// The whole registry stack — XDG dirs, `metadata.sqlite`, the HTTP
 		// client, the type cache — is acquired ONCE here and released when the
 		// ManagedRuntime is disposed. It used to be provided inside each method,
 		// where `Effect.provide` builds into a forked MemoMap whose parent never

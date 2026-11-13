@@ -13,10 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-11-12T02:39:25Z
+  at: 2026-11-13T16:48:12Z
 integrity:
   generated:
-    body: 66b7ce5948638846
+    body: 339e71bafd7d46ed
 ---
 
 # @tsdoctor/registry
@@ -46,7 +46,8 @@ cost of the rename.
 Depends on `@tsdoctor/vfs` as a plain workspace dependency for `Vfs` and
 `VirtualPackage`. Ships **no platform layer of its own** — every consumer
 composes the Effect stack (FileSystem, HTTP client, cache backing) at the
-edge; `platforms/rspress/src/services/TypeRegistryService.ts` is the
+edge — including the proxy- and TLS-aware HTTP client each adapter builds
+from pnpm's configuration; `platforms/rspress/src/services/TypeRegistryService.ts` is the
 concrete example, owning its own layer as a static rather than reaching
 for a `*ServiceLive.ts` this package might have shipped. Consumed by both
 adapters (`platforms/rspress`, `platforms/vitepress`) and, indirectly
