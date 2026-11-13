@@ -7,7 +7,7 @@ resource: ../../platforms/rspress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-11-12T02:59:11Z
+  at: 2026-11-13T16:48:12Z
 tags:
   - architecture
   - observability
@@ -16,7 +16,7 @@ tags:
 status: stable
 integrity:
   generated:
-    body: a8a587cb86f884f2
+    body: 50f19dfbd021e4f0
 ---
 
 # rspress-plugin-api-extractor
@@ -191,6 +191,10 @@ Effect wiring:
 - `src/layers/xdg.ts` — `TSDOCTOR_NAMESPACE`, `PlatformLive`,
   `AppDirsLive`: the one home both cache-backed layers share; never
   re-declare the `"tsdoctor"` namespace literal
+- `src/layers/registry-http-client.ts` — `registryHttpClientLayer`, the
+  registry's HTTP client: pnpm 12's proxy and TLS configuration
+  (`PnpmNpmConfig.load` → `NpmHttpClient`), falling back to plain undici
+  with a report on the first request; the VitePress adapter keeps a twin
 
 Observability (`src/observability/`):
 
@@ -436,6 +440,13 @@ interruption rebuilt from the original cause's interruptors —
 `Effect.interrupt` would name the current fiber and misattribute the
 cancellation. Both cache layers take their platform and XDG root from
 `src/layers/xdg.ts`.
+
+The registry's HTTP client is `src/layers/registry-http-client.ts`, never a
+bare `NodeHttpClient.layerUndici`: external-type fetches must connect the way
+`pnpm install` does behind a proxy or a private CA. Its fallback reports on
+the first request, not at construction, because `CoreLayer` is merged beside
+`ObservabilityLayer` rather than under it — an `EventBus` emit while the
+layer builds finds no bus and is dropped.
 
 Write v4 idioms throughout: `Context.Service<Self, Shape>()("id")` tags;
 `Schema.Literals` / `Schema.Union` / `Schema.Record` with array arguments;

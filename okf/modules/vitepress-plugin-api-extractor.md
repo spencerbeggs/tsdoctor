@@ -7,14 +7,14 @@ resource: ../../platforms/vitepress
 layer: L3
 generated:
   by: "okfit/claude-code"
-  at: 2026-11-12T02:59:11Z
+  at: 2026-11-13T16:48:12Z
 tags:
   - architecture
   - dx
 status: stable
 integrity:
   generated:
-    body: 563b75100a252b5e
+    body: 8186320a0d61b3b9
 ---
 
 # vitepress-plugin-api-extractor
@@ -74,6 +74,9 @@ Other modules under `src/`:
 - `src/Generate.ts` — the Effect program from bundle load to written files
 - `src/Registry.ts` — the registry stack over the shared `"tsdoctor"` XDG
   namespace, degrading external type loading
+- `src/RegistryHttpClient.ts` — the registry's pnpm-proxy-aware HTTP client,
+  twin of the RSPress adapter's `src/layers/registry-http-client.ts`; a
+  fallback prints a `console.warn` on the first fetch
 - `src/Twoslash.ts` — `transformerTwoslash` from `@shikijs/vitepress-twoslash`
   over the combined VFS
 - `src/TwoslashCache.ts` — `TwoslashCacheStore`, persistence for

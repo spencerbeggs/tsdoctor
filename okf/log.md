@@ -1,5 +1,11 @@
 # Log
 
+## 2026-11-13
+
+* Updated @tsdoctor/registry
+* Updated rspress-plugin-api-extractor
+* Updated vitepress-plugin-api-extractor
+
 ## 2026-11-12
 
 * Updated @effected is the foundation: check before hand-rolling

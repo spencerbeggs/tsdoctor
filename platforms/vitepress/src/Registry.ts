@@ -12,12 +12,13 @@
  * @packageDocumentation
  */
 
-import { NodeFileSystem, NodeHttpClient } from "@effect/platform-node";
+import { NodeFileSystem } from "@effect/platform-node";
 import { Cache } from "@effected/store";
 import { AppDirs, Xdg } from "@effected/xdg";
 import { PackageFetcher, PackageSpec, RegistryObserver, TypeCache, TypeRegistry } from "@tsdoctor/registry";
 import type { Vfs } from "@tsdoctor/vfs";
 import { Effect, Layer, Path } from "effect";
+import { registryHttpClientLayer } from "./RegistryHttpClient.js";
 
 /**
  * The XDG namespace every tsdoctor cache lives under — shared with the
@@ -50,6 +51,17 @@ const MetadataCacheLive = Layer.unwrap(
 const RegistryObserverLive = Layer.succeed(RegistryObserver, { emit: () => Effect.void });
 
 /**
+ * The registry's HTTP client: pnpm's proxy and TLS configuration from the
+ * directory VitePress runs in, or a plain undici client with a warning.
+ */
+const RegistryHttpClientLive = registryHttpClientLayer({
+	cwd: process.cwd(),
+	env: process.env,
+	platform: process.platform,
+	onFallback: (reason) => Effect.sync(() => console.warn(`[vitepress-plugin-api-extractor] ${reason}`)),
+}).pipe(Layer.provide(PlatformLive));
+
+/**
  * The full registry runtime: `TypeRegistry` over an XDG-rooted `TypeCache`
  * and the jsDelivr `PackageFetcher`. Bound to a const so the stack builds
  * once per runtime.
@@ -59,7 +71,7 @@ const RegistryObserverLive = Layer.succeed(RegistryObserver, { emit: () => Effec
 export const RegistryLive: Layer.Layer<TypeRegistry> = TypeRegistry.layer.pipe(
 	Layer.provideMerge(Layer.mergeAll(TypeCache.layerXdg(), PackageFetcher.layer)),
 	Layer.provideMerge(RegistryObserverLive),
-	Layer.provide(Layer.mergeAll(MetadataCacheLive, AppDirsLive, PlatformLive, NodeHttpClient.layerUndici)),
+	Layer.provide(Layer.mergeAll(MetadataCacheLive, AppDirsLive, PlatformLive, RegistryHttpClientLive)),
 	Layer.orDie,
 );
 
