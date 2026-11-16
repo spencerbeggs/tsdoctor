@@ -1,5 +1,13 @@
 # @tsdoctor/vfs
 
+## 0.7.7
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/tsconfig-json | peerDependency | updated | ^0.22.0 | ^0.23.0 |
+
 ## 0.7.6
 
 ### Dependencies
