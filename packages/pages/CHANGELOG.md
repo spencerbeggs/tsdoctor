@@ -1,5 +1,14 @@
 # @tsdoctor/pages
 
+## 0.5.9
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/model | dependency | updated | 0.10.6 | 0.10.7 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.22.0 | ^0.23.0 |
+
 ## 0.5.8
 
 ### Dependencies
