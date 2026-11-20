@@ -1,6 +1,6 @@
 ---
 type: Decision
-status: draft
+status: stable
 title: Import or stub undeclared references, never leave them dangling
 description: A reconstructed entry point imports a name a sibling entry exports and gives every other undeclared name a non-exported any type-and-value stub, so one forgotten export or unresolved dotted name does not fail the whole file under Twoslash.
 tags: [architecture]
@@ -17,6 +17,13 @@ generated:
 integrity:
   generated:
     body: 7ad9140872b7e9a9
+  verified:
+    by: human:spencer
+    at: 2026-11-20T01:34:21Z
+    content: 18f990f9255dc4eb
+verified:
+  - by: human:spencer
+    at: 2026-11-20T01:34:21Z
 ---
 
 # Import or stub undeclared references, never leave them dangling
