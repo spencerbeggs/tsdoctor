@@ -24,6 +24,7 @@ import type {
 } from "@microsoft/api-extractor-model";
 import { ApiItemKind, ApiModel, ExcerptTokenKind } from "@microsoft/api-extractor-model";
 import { VirtualPackage } from "@tsdoctor/vfs";
+import { undeclaredStubs } from "./internal/undeclared.js";
 
 /**
  * Reconstructs TypeScript declaration files from an API Extractor model.
@@ -96,6 +97,15 @@ export class ApiExtractedPackage extends VirtualPackage {
 				parts.push(decl);
 				parts.push("");
 			}
+		}
+
+		// Non-exported `any` stubs for names the members reference but nothing
+		// declares (forgotten exports, unresolved dotted names), so one missing
+		// name does not fail the whole file.
+		const stubs = undeclaredStubs(ep, this.apiPackage.name, (token) => this.normalizeTokenText(token));
+		if (stubs) {
+			parts.push(stubs);
+			parts.push("");
 		}
 
 		// TypeScript compiler adds a trailing `export { }` to ensure module scope

@@ -1,5 +1,10 @@
 # Log
 
+## 2026-11-20
+
+* Updated @tsdoctor/model
+* Added Stub undeclared references as non-exported any
+
 ## 2026-11-13
 
 * Updated @tsdoctor/registry

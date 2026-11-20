@@ -4,7 +4,7 @@ import { VirtualPackage as VirtualPackageClass } from "@tsdoctor/vfs";
 import ts from "typescript";
 
 import { describe, expect, it } from "vitest";
-import { ApiExtractedPackage } from "../src/index.js";
+import { ApiExtractedPackage, TypeReferenceExtractor } from "../src/index.js";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "__fixtures__", "example-module");
 const API_MODEL_PATH = path.join(FIXTURES_DIR, "example-module.api.json");
@@ -407,5 +407,55 @@ describe("ApiExtractedPackage", () => {
 			const unresolved = diagnosticMessages(generated).filter((m) => /\$\d/.test(m));
 			expect(unresolved).toEqual([]);
 		}, 20_000);
+	});
+
+	describe("undeclared references (issues #177, #178)", () => {
+		const UNDECLARED_MODEL_PATH = path.join(
+			import.meta.dirname,
+			"__fixtures__",
+			"undeclared-references",
+			"undeclared.api.json",
+		);
+		const reconstructed = ApiExtractedPackage.fromApiModel(UNDECLARED_MODEL_PATH);
+		const generated = reconstructed.toVfs().get("node_modules/probe/index.d.ts") as string;
+		const [entryPoint] = reconstructed.apiPackage.entryPoints;
+		const extractor = new TypeReferenceExtractor(reconstructed.apiPackage, "probe");
+		const imports = TypeReferenceExtractor.formatImports(
+			entryPoint ? extractor.extractImportsForEntryPoint(entryPoint) : [],
+		);
+		// What an adapter hands Twoslash: the prepended imports on top of the reconstruction.
+		const prepended = `${imports.join("\n")}\n\n${generated}`;
+		// The standalone compile cannot resolve `@effected/store` itself (TS2307); every
+		// other diagnostic is a name the reconstruction failed to declare.
+		const nameDiagnostics = (dts: string): string[] =>
+			diagnosticMessages(dts).filter((m) => !m.includes("Cannot find module"));
+
+		it("declares an internal reference the entry point does not export (#177)", () => {
+			expect(nameDiagnostics(prepended).filter((m) => /PackageJson|Box|Hidden/.test(m))).toEqual([]);
+		}, 20_000);
+
+		it("declares a namespaced name that arrived with no canonical reference (#178)", () => {
+			expect(nameDiagnostics(prepended).filter((m) => /Migrator|Outer|Inner|Leaf/.test(m))).toEqual([]);
+		}, 20_000);
+
+		it("leaves the reconstruction free of name diagnostics once imports are prepended", () => {
+			expect(nameDiagnostics(prepended)).toEqual([]);
+		}, 20_000);
+
+		it("keeps every stub out of the entry point's exports", () => {
+			expect(generated).not.toMatch(
+				/export\s+(declare\s+)?(type|namespace|interface)\s+(PackageJson|Box|Hidden|Migrator|Outer)\b/,
+			);
+		});
+
+		it("gives a generically used stub enough type parameters", () => {
+			// `Box<string, Declared>` and `Outer.Inner.Leaf<Map<…>, () => void>` each pass two arguments.
+			expect(generated).toMatch(/type Box<[^>]*,[^>]*>/);
+			expect(generated).toMatch(/type Leaf<[^>]*,[^>]*>/);
+		});
+
+		it("stubs nothing that is declared, imported, global, or a string", () => {
+			expect(generated).not.toMatch(/declare (type|namespace) (Declared|SqliteMigrator|Intl|Sibling|left|up)\b/);
+		});
 	});
 });
