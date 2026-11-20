@@ -24,6 +24,7 @@ import type {
 } from "@microsoft/api-extractor-model";
 import { ApiItemKind, ApiModel, ExcerptTokenKind } from "@microsoft/api-extractor-model";
 import { VirtualPackage } from "@tsdoctor/vfs";
+import { resolveUndeclared } from "./internal/undeclared.js";
 
 /**
  * Reconstructs TypeScript declaration files from an API Extractor model.
@@ -89,6 +90,21 @@ export class ApiExtractedPackage extends VirtualPackage {
 			parts.push("");
 		}
 
+		// Names the members reference but nothing here declares: import the
+		// ones a sibling entry point exports, stub the rest as non-exported
+		// `any` (forgotten exports, unresolved dotted names), so one missing
+		// name does not fail the whole file.
+		const undeclared = resolveUndeclared(
+			ep,
+			this.apiPackage.name,
+			(token) => this.normalizeTokenText(token),
+			this.siblingExports(ep),
+		);
+		if (undeclared.imports.length > 0) {
+			parts.push(...undeclared.imports);
+			parts.push("");
+		}
+
 		// Generate declarations for each exported member
 		for (const member of ep.members) {
 			const decl = this.generateDeclaration(member);
@@ -96,6 +112,11 @@ export class ApiExtractedPackage extends VirtualPackage {
 				parts.push(decl);
 				parts.push("");
 			}
+		}
+
+		if (undeclared.stubs) {
+			parts.push(undeclared.stubs);
+			parts.push("");
 		}
 
 		// TypeScript compiler adds a trailing `export { }` to ensure module scope
@@ -780,6 +801,26 @@ export class ApiExtractedPackage extends VirtualPackage {
 		}
 
 		return parts.join("");
+	}
+
+	/**
+	 * Every member name the package's other entry points export, mapped to the
+	 * module specifier that imports it. The main entry wins a name several
+	 * entries export.
+	 */
+	private siblingExports(entryPoint: ApiEntryPoint): Map<string, string> {
+		const exports = new Map<string, string>();
+		const others = this.apiPackage.entryPoints
+			.filter((other) => other !== entryPoint)
+			.sort((a, b) => Number(a.displayName !== "") - Number(b.displayName !== ""));
+		for (const other of others) {
+			const entryName = this.getEntryPointName(other);
+			const specifier = entryName ? `${this.name}/${entryName}` : this.name;
+			for (const member of other.members) {
+				if (!exports.has(member.displayName)) exports.set(member.displayName, specifier);
+			}
+		}
+		return exports;
 	}
 
 	private getEntryPointName(entryPoint: ApiEntryPoint): string | undefined {

@@ -13,10 +13,10 @@ sources:
     last_modified: 2026-09-13T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-11-12T02:39:25Z
+  at: 2026-11-20T01:31:37Z
 integrity:
   generated:
-    body: c5a71cee62cbac81
+    body: 4c3bc08567c9176c
 ---
 
 # @tsdoctor/model
@@ -219,6 +219,14 @@ and collapse a `typeof X.Type` companion type into an error type.
 `ImportStatement` (`packageName`, a `symbols` set, `typeOnly`) is the one
 shape crossing this boundary, and it feeds both VFS import prepending and
 `@tsdoctor/pages`'s hidden-import generation for example blocks.
+
+The internal bucket's "already declared" assumption fails for a forgotten
+export, and a dotted name API Extractor could not resolve carries no
+canonical reference to classify at all. `ApiExtractedPackage` closes both
+gaps itself: each entry point's `.d.ts` imports such a name from the sibling
+entry point that exports it, and otherwise ends with a non-exported `any`
+type-and-value stub for it (see
+[Import or stub undeclared references, never leave them dangling](../decisions/undeclared-reference-stubs.md)).
 
 ### Frontmatter
 

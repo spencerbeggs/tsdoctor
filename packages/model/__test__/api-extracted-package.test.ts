@@ -4,7 +4,8 @@ import { VirtualPackage as VirtualPackageClass } from "@tsdoctor/vfs";
 import ts from "typescript";
 
 import { describe, expect, it } from "vitest";
-import { ApiExtractedPackage } from "../src/index.js";
+import { ApiExtractedPackage, TypeReferenceExtractor } from "../src/index.js";
+import { preparedVfs, vfsNameDiagnostics } from "./utils/compile-vfs.js";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "__fixtures__", "example-module");
 const API_MODEL_PATH = path.join(FIXTURES_DIR, "example-module.api.json");
@@ -407,5 +408,102 @@ describe("ApiExtractedPackage", () => {
 			const unresolved = diagnosticMessages(generated).filter((m) => /\$\d/.test(m));
 			expect(unresolved).toEqual([]);
 		}, 20_000);
+	});
+
+	describe("undeclared references (issues #177, #178)", () => {
+		const UNDECLARED_MODEL_PATH = path.join(
+			import.meta.dirname,
+			"__fixtures__",
+			"undeclared-references",
+			"undeclared.api.json",
+		);
+		const reconstructed = ApiExtractedPackage.fromApiModel(UNDECLARED_MODEL_PATH);
+		const generated = reconstructed.toVfs().get("node_modules/probe/index.d.ts") as string;
+		const [entryPoint] = reconstructed.apiPackage.entryPoints;
+		const extractor = new TypeReferenceExtractor(reconstructed.apiPackage, "probe");
+		const imports = TypeReferenceExtractor.formatImports(
+			entryPoint ? extractor.extractImportsForEntryPoint(entryPoint) : [],
+		);
+		// What an adapter hands Twoslash: the prepended imports on top of the reconstruction.
+		const prepended = `${imports.join("\n")}\n\n${generated}`;
+		// The standalone compile cannot resolve `@effected/store` itself (TS2307); every
+		// other diagnostic is a name the reconstruction failed to declare.
+		const nameDiagnostics = (dts: string): string[] =>
+			diagnosticMessages(dts).filter((m) => !m.includes("Cannot find module"));
+
+		it("declares an internal reference the entry point does not export (#177)", () => {
+			expect(nameDiagnostics(prepended).filter((m) => /PackageJson|Box|Hidden/.test(m))).toEqual([]);
+		}, 20_000);
+
+		it("declares a namespaced name that arrived with no canonical reference (#178)", () => {
+			expect(nameDiagnostics(prepended).filter((m) => /Migrator|Outer|Inner|Leaf/.test(m))).toEqual([]);
+		}, 20_000);
+
+		it("leaves the reconstruction free of name diagnostics once imports are prepended", () => {
+			expect(nameDiagnostics(prepended)).toEqual([]);
+		}, 20_000);
+
+		it("keeps every stub out of the entry point's exports", () => {
+			expect(generated).not.toMatch(
+				/export\s+(declare\s+)?(type|namespace|interface)\s+(PackageJson|Box|Hidden|Migrator|Outer)\b/,
+			);
+		});
+
+		it("gives a generically used stub enough type parameters", () => {
+			// `Box<string, Declared>` and `Outer.Inner.Leaf<Map<…>, () => void>` each pass two arguments.
+			expect(generated).toMatch(/type Box<[^>]*,[^>]*>/);
+			expect(generated).toMatch(/type Leaf<[^>]*,[^>]*>/);
+		});
+
+		it("stubs nothing that is declared, imported, global, or a string", () => {
+			expect(generated).not.toMatch(/declare (type|namespace) (Declared|SqliteMigrator|Intl|Sibling|left|up)\b/);
+		});
+
+		it("stubs a forgotten export as a value too, so a class can extend it", () => {
+			expect(generated).toMatch(/declare const Derived_base: any;/);
+			expect(generated).toMatch(/declare const Base: any;/);
+			expect(nameDiagnostics(prepended).filter((m) => /Derived_base|Base/.test(m))).toEqual([]);
+		}, 20_000);
+
+		describe("a name a sibling entry point exports", () => {
+			const files = preparedVfs(reconstructed);
+			const testing = files.get("/node_modules/probe/testing.d.ts") as string;
+
+			it("is imported from that entry, not stubbed", () => {
+				expect(testing).toContain('import { Declared, Engine } from "probe";');
+				expect(testing).not.toMatch(/declare (type|const) (Declared|Engine)\b/);
+			});
+
+			it("still stubs a name no entry point exports", () => {
+				expect(testing).toMatch(/declare type PackageJson = any;/);
+			});
+
+			it("type-checks across entry points", () => {
+				expect(vfsNameDiagnostics(files, "/node_modules/probe/testing.d.ts")).toEqual([]);
+			}, 20_000);
+		});
+	});
+
+	describe("undeclared references in the stored fixture models (PR 437 review)", () => {
+		const load = (name: string) =>
+			ApiExtractedPackage.fromApiModel(path.join(import.meta.dirname, "__fixtures__", name, `${name}.api.json`));
+		const UNDECLARED = /DataSink|DataSource|Pipeline|AgentNotFoundError_base|only refers to a type/;
+
+		it("imports kitchensink's sibling-exported bases into testing rather than stubbing them", () => {
+			const files = preparedVfs(load("kitchensink"));
+			const testing = files.get("/node_modules/kitchensink/testing.d.ts") as string;
+			expect(testing).toContain('import { DataSink, DataSource, Pipeline } from "kitchensink";');
+			expect(testing).not.toContain("// Referenced by this entry point");
+			expect(
+				vfsNameDiagnostics(files, "/node_modules/kitchensink/testing.d.ts").filter((m) => UNDECLARED.test(m)),
+			).toEqual([]);
+		}, 30_000);
+
+		it("lets effect-kit's error classes extend their forgotten _base", () => {
+			const files = preparedVfs(load("effect-kit"));
+			for (const file of [...files.keys()].filter((f) => f.endsWith(".d.ts"))) {
+				expect(vfsNameDiagnostics(files, file).filter((m) => UNDECLARED.test(m))).toEqual([]);
+			}
+		}, 30_000);
 	});
 });
