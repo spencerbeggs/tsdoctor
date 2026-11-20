@@ -13,9 +13,11 @@
  *   classify, so nothing imports it.
  *
  * Either one fails the whole file (TS2304 / TS2503), which poisons every
- * Twoslash hover in a block that touches the entry point. A non-exported
- * `any` stub keeps the rest of the file type-checking without adding the name
- * to the entry point's exports.
+ * Twoslash hover in a block that touches the entry point. A name a sibling
+ * entry point exports is imported from that entry; any other name gets a
+ * non-exported `any` stub (a type and a value, so heritage clauses resolve),
+ * which keeps the rest of the file type-checking without adding the name to
+ * the entry point's exports.
  *
  * @internal
  */
@@ -71,18 +73,31 @@ interface StubNode {
 }
 
 /**
- * Render the stub block for one entry point, or `""` when every referenced
- * name is declared, imported or global.
+ * What an entry point needs beyond its own members: imports of names a
+ * sibling entry point exports, and stubs for names nothing exports.
+ */
+export interface UndeclaredResolution {
+	/** `import { … } from "<package>/<entry>"` lines, one per sibling entry. */
+	readonly imports: readonly string[];
+	/** The stub block, or `""` when nothing needs stubbing. */
+	readonly stubs: string;
+}
+
+/**
+ * Resolve the names an entry point references but does not declare: import
+ * the ones a sibling entry point exports, stub the rest.
  *
  * @param entryPoint - The entry point being reconstructed
  * @param packageName - The canonical package name of the documented package
  * @param renderToken - How the reconstruction spells a token (alias-normalized)
+ * @param siblingExports - Name to module specifier for every member of the package's other entry points
  */
-export function undeclaredStubs(
+export function resolveUndeclared(
 	entryPoint: ApiEntryPoint,
 	packageName: string,
 	renderToken: (token: ExcerptToken) => string,
-): string {
+	siblingExports: ReadonlyMap<string, string>,
+): UndeclaredResolution {
 	const declared = new Set(entryPoint.members.map((member) => member.displayName));
 	// Roots some reference resolves outside this file: external imports the
 	// prepender adds, and lib globals. Stubbing one would collide with it.
@@ -97,10 +112,21 @@ export function undeclaredStubs(
 	};
 	for (const member of entryPoint.members) visit(member);
 
+	const siblingImports = new Map<string, Set<string>>();
 	const roots = new Map<string, StubNode>();
 	for (const { path, arity } of candidates) {
 		const [root] = path;
 		if (!root || declared.has(root) || resolvedRoots.has(root) || AMBIENT_ROOTS.has(root)) continue;
+		const specifier = siblingExports.get(root);
+		if (specifier !== undefined) {
+			let names = siblingImports.get(specifier);
+			if (!names) {
+				names = new Set();
+				siblingImports.set(specifier, names);
+			}
+			names.add(root);
+			continue;
+		}
 		let level = roots;
 		let node: StubNode | undefined;
 		for (const segment of path) {
@@ -116,7 +142,12 @@ export function undeclaredStubs(
 			node.arity = Math.max(node.arity, arity);
 		}
 	}
-	if (roots.size === 0) return "";
+
+	// A plain (not type-only) import: a sibling class may sit in an `extends` clause.
+	const imports = [...siblingImports]
+		.sort(([a], [b]) => a.localeCompare(b))
+		.map(([specifier, names]) => `import { ${[...names].sort().join(", ")} } from "${specifier}";`);
+	if (roots.size === 0) return { imports, stubs: "" };
 
 	const lines = [
 		"// Referenced by this entry point but neither exported nor resolvable in the API model;",
@@ -125,7 +156,7 @@ export function undeclaredStubs(
 	for (const [name, node] of [...roots].sort(([a], [b]) => a.localeCompare(b))) {
 		renderNode(name, node, "", true, lines);
 	}
-	return lines.join("\n");
+	return { imports, stubs: lines.join("\n") };
 }
 
 function collect(
@@ -207,6 +238,9 @@ function renderNode(name: string, node: StubNode, indent: string, topLevel: bool
 		const parameters = Array.from({ length: node.arity }, (_, i) => `T${i} = any`);
 		const generic = parameters.length > 0 ? `<${parameters.join(", ")}>` : "";
 		lines.push(`${indent}${keyword} type ${name}${generic} = any;`);
+		// The matching value: a heritage clause (`extends Foo_base`) is a value
+		// position, which a type alias alone answers with TS2693.
+		lines.push(`${indent}${keyword} const ${name}: any;`);
 	}
 	if (node.children.size > 0) {
 		lines.push(`${indent}${keyword} namespace ${name} {`);

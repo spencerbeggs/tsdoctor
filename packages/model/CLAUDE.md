@@ -45,10 +45,11 @@ framework-free: no RSPress, no React, no I/O beyond model loading.
     pattern in `fromPackage` — the entries map must exist before `super` runs.
     Its private `extractPlainText` is a **different** algorithm from this
     package's prose extraction: it PRESERVES `{@link X.Y}` and reconstructs code
-    fences for `.d.ts`/JSDoc output. Do not unify the two. Each entry ends
-    with non-exported `any` stubs (`internal/undeclared.ts`) for names its
-    members reference that nothing declares or imports: forgotten exports
-    and unresolved dotted `Content` names.
+    fences for `.d.ts`/JSDoc output. Do not unify the two. Each entry is generated
+    resolving the names its members reference that nothing declares
+    (`internal/undeclared.ts`): a name a sibling entry exports is imported
+    from it; any other (a forgotten export, an unresolved dotted `Content`
+    name) gets a non-exported `any` type-and-value stub.
   - `TypeReferenceExtractor` (+ `TypeReference`, `ImportStatement`) — classifies
     canonical references and emits the `import type` lines a VFS entry needs.
   - `Frontmatter.ts` (`parseFrontmatter`, `stringifyFrontmatter`,

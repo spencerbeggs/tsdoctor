@@ -523,6 +523,171 @@
               }
             }
           ]
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "probe!Derived:class",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class Derived extends "
+            },
+            {
+              "kind": "Reference",
+              "text": "Derived_base",
+              "canonicalReference": "probe!~Derived_base"
+            },
+            {
+              "kind": "Content",
+              "text": " "
+            }
+          ],
+          "fileUrlPath": "src/index.ts",
+          "releaseTag": "Public",
+          "isAbstract": false,
+          "name": "Derived",
+          "preserveMemberOrder": false,
+          "extendsTokenRange": {
+            "startIndex": 1,
+            "endIndex": 2
+          },
+          "implementsTokenRanges": [],
+          "members": []
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "probe!GenericDerived:class",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class GenericDerived extends "
+            },
+            {
+              "kind": "Reference",
+              "text": "Base",
+              "canonicalReference": "probe!~Base:class"
+            },
+            {
+              "kind": "Content",
+              "text": "<string> "
+            }
+          ],
+          "fileUrlPath": "src/index.ts",
+          "releaseTag": "Public",
+          "isAbstract": false,
+          "name": "GenericDerived",
+          "preserveMemberOrder": false,
+          "extendsTokenRange": {
+            "startIndex": 1,
+            "endIndex": 3
+          },
+          "implementsTokenRanges": [],
+          "members": []
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "probe!Engine:class",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class Engine "
+            }
+          ],
+          "fileUrlPath": "src/index.ts",
+          "releaseTag": "Public",
+          "isAbstract": false,
+          "name": "Engine",
+          "preserveMemberOrder": false,
+          "implementsTokenRanges": [],
+          "members": []
+        }
+      ]
+    },
+    {
+      "kind": "EntryPoint",
+      "canonicalReference": "probe/testing!",
+      "name": "testing",
+      "preserveMemberOrder": false,
+      "members": [
+        {
+          "kind": "Class",
+          "canonicalReference": "probe/testing!TestEngine:class",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class TestEngine extends "
+            },
+            {
+              "kind": "Reference",
+              "text": "Engine",
+              "canonicalReference": "probe!Engine:class"
+            },
+            {
+              "kind": "Content",
+              "text": " "
+            }
+          ],
+          "fileUrlPath": "src/index.ts",
+          "releaseTag": "Public",
+          "isAbstract": false,
+          "name": "TestEngine",
+          "preserveMemberOrder": false,
+          "extendsTokenRange": {
+            "startIndex": 1,
+            "endIndex": 2
+          },
+          "implementsTokenRanges": [],
+          "members": []
+        },
+        {
+          "kind": "Variable",
+          "canonicalReference": "probe/testing!SIBLING_USE:var",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "SIBLING_USE: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Declared",
+              "canonicalReference": "probe!Declared:interface"
+            }
+          ],
+          "isReadonly": true,
+          "releaseTag": "Public",
+          "name": "SIBLING_USE",
+          "variableTypeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 2
+          }
+        },
+        {
+          "kind": "Variable",
+          "canonicalReference": "probe/testing!TESTING_FORGOTTEN:var",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "TESTING_FORGOTTEN: "
+            },
+            {
+              "kind": "Reference",
+              "text": "PackageJson",
+              "canonicalReference": "probe!PackageJson:interface"
+            }
+          ],
+          "isReadonly": true,
+          "releaseTag": "Public",
+          "name": "TESTING_FORGOTTEN",
+          "variableTypeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 2
+          }
         }
       ]
     }

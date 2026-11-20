@@ -4,6 +4,7 @@
 
 * Updated @tsdoctor/model
 * Added Stub undeclared references as non-exported any
+* Updated Import or stub undeclared references, never leave them dangling
 
 ## 2026-11-13
 

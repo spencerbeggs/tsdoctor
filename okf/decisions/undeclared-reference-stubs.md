@@ -1,8 +1,8 @@
 ---
 type: Decision
 status: draft
-title: Stub undeclared references as non-exported any
-description: A reconstructed entry point that references a name nothing declares or imports gets a non-exported any stub for it, so one forgotten export or unresolved dotted name does not fail the whole file under Twoslash.
+title: Import or stub undeclared references, never leave them dangling
+description: A reconstructed entry point imports a name a sibling entry exports and gives every other undeclared name a non-exported any type-and-value stub, so one forgotten export or unresolved dotted name does not fail the whole file under Twoslash.
 tags: [architecture]
 sources:
   - id: stubs
@@ -13,13 +13,13 @@ sources:
     resource: ../../packages/model/__test__/api-extracted-package.test.ts
 generated:
   by: okfit/claude-code
-  at: 2026-11-20T01:18:12Z
+  at: 2026-11-20T01:31:37Z
 integrity:
   generated:
-    body: fa31bd8f952f0d61
+    body: 7ad9140872b7e9a9
 ---
 
-# Stub undeclared references as non-exported any
+# Import or stub undeclared references, never leave them dangling
 
 ## Context
 
@@ -38,18 +38,27 @@ block touching the entry point.
 
 ## Decision
 
-After generating an entry point's declarations, `undeclaredStubs`[^stubs]
-walks every token in the entry's excerpts and declares each name that is
+Before generating an entry point's declarations, `resolveUndeclared`[^stubs]
+walks every token in the entry's excerpts and collects each name that is
 not a top-level member, not a root some external or built-in reference
 resolves (the prepender imports those, and a local stub would collide with
 the import), not a known global namespace (`Intl`, `NodeJS`, `Symbol` and
-others), and not inside a string or template literal. Each such name gets a
-`declare type X = any;` stub, nested in `declare namespace` blocks for a
-dotted path. It gets optional type parameters when it is used generically,
-so `Box<string, Declared>` does not raise `TS2315`. The stubs go before the
-trailing `export { }`[^generator] and are never exported, so the entry
-point's public surface is unchanged. Value positions (`typeof A.b`,
-`A.b(…)`) are left alone because a type stub cannot fix them.
+others), and not inside a string or template literal.
+
+A collected name that a *sibling* entry point of the same package exports
+is imported from that entry (`import { Pipeline } from "kitchensink"`) at
+the top of the file. It is a plain import, not `import type`, because a
+sibling class can sit in an `extends` clause.
+
+Every other collected name gets a stub: `declare type X = any;` plus a
+matching `declare const X: any;`, nested in `declare namespace` blocks for a
+dotted path. The value half is what lets a heritage clause
+(`class A extends Foo_base`) resolve, since a type alias alone answers a
+value position with `TS2693`. The type gets optional parameters when it is
+used generically, so `Box<string, Declared>` does not raise `TS2315`. The
+stubs go before the trailing `export { }`[^generator] and are never
+exported, so the entry point's public surface is unchanged. A dotted
+`Content` name in a value position (`typeof A.b`, `A.b(…)`) is left alone.
 
 ## Alternatives rejected
 
@@ -60,21 +69,23 @@ point's public surface is unchanged. Value positions (`typeof A.b`,
 - **Stub as `unknown`.** Member access in a type-checked example then
   raises a new error on every use, so `any` was chosen to keep examples
   quiet. The trade-off is that hovers show `any`.
-- **Import the name from the documented package.** A forgotten export is
-  by definition not importable from any entry point.
+- **Stub a sibling-exported name too.** Simpler, but it degrades a real,
+  importable type to `any`. The stored kitchensink fixture model hits this
+  case: its `testing` entry extends `Pipeline` and `DataSource`, which only
+  the main entry exports.
 
 ## Consequences
 
-- A reconstruction of a well-formed package (every fixture module and
-  every `@tsdoctor/*` package here) emits no stubs; the tests pin both the
-  stubbed and the never-stubbed cases[^tests].
-- An internal type exported only from a *sibling* entry point is also
-  stubbed rather than imported from that subpath. It is a known gap, not
-  something this decision covers.
+- The models the fixture modules build today emit neither stubs nor
+  sibling imports. The older model copies stored under the model package's
+  test fixtures do: kitchensink `testing` imports `DataSink`, `DataSource`
+  and `Pipeline` from the main entry, and effect-kit stubs
+  `AgentNotFoundError_base`. Tests pin both, alongside the stubbed and
+  never-stubbed cases of a purpose-built fixture[^tests].
 - A bare (undotted) unresolved name in a `Content` token is not
   detected, because it cannot be told apart from a keyword or a type
   parameter without a parser.
 
-[^stubs]: `packages/model/src/internal/undeclared.ts` — `undeclaredStubs`
-[^generator]: `packages/model/src/ApiExtractedPackage.ts` — `generateDeclarations`
-[^tests]: `packages/model/__test__/api-extracted-package.test.ts` — "undeclared references (issues #177, #178)"
+[^stubs]: `packages/model/src/internal/undeclared.ts` — `resolveUndeclared`
+[^generator]: `packages/model/src/ApiExtractedPackage.ts` — `generateDeclarations`, `siblingExports`
+[^tests]: `packages/model/__test__/api-extracted-package.test.ts` — "undeclared references (issues #177, #178)" and "undeclared references in the stored fixture models"

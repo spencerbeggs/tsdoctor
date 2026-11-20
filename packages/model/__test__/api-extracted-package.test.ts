@@ -5,6 +5,7 @@ import ts from "typescript";
 
 import { describe, expect, it } from "vitest";
 import { ApiExtractedPackage, TypeReferenceExtractor } from "../src/index.js";
+import { preparedVfs, vfsNameDiagnostics } from "./utils/compile-vfs.js";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "__fixtures__", "example-module");
 const API_MODEL_PATH = path.join(FIXTURES_DIR, "example-module.api.json");
@@ -457,5 +458,52 @@ describe("ApiExtractedPackage", () => {
 		it("stubs nothing that is declared, imported, global, or a string", () => {
 			expect(generated).not.toMatch(/declare (type|namespace) (Declared|SqliteMigrator|Intl|Sibling|left|up)\b/);
 		});
+
+		it("stubs a forgotten export as a value too, so a class can extend it", () => {
+			expect(generated).toMatch(/declare const Derived_base: any;/);
+			expect(generated).toMatch(/declare const Base: any;/);
+			expect(nameDiagnostics(prepended).filter((m) => /Derived_base|Base/.test(m))).toEqual([]);
+		}, 20_000);
+
+		describe("a name a sibling entry point exports", () => {
+			const files = preparedVfs(reconstructed);
+			const testing = files.get("/node_modules/probe/testing.d.ts") as string;
+
+			it("is imported from that entry, not stubbed", () => {
+				expect(testing).toContain('import { Declared, Engine } from "probe";');
+				expect(testing).not.toMatch(/declare (type|const) (Declared|Engine)\b/);
+			});
+
+			it("still stubs a name no entry point exports", () => {
+				expect(testing).toMatch(/declare type PackageJson = any;/);
+			});
+
+			it("type-checks across entry points", () => {
+				expect(vfsNameDiagnostics(files, "/node_modules/probe/testing.d.ts")).toEqual([]);
+			}, 20_000);
+		});
+	});
+
+	describe("undeclared references in the stored fixture models (PR 437 review)", () => {
+		const load = (name: string) =>
+			ApiExtractedPackage.fromApiModel(path.join(import.meta.dirname, "__fixtures__", name, `${name}.api.json`));
+		const UNDECLARED = /DataSink|DataSource|Pipeline|AgentNotFoundError_base|only refers to a type/;
+
+		it("imports kitchensink's sibling-exported bases into testing rather than stubbing them", () => {
+			const files = preparedVfs(load("kitchensink"));
+			const testing = files.get("/node_modules/kitchensink/testing.d.ts") as string;
+			expect(testing).toContain('import { DataSink, DataSource, Pipeline } from "kitchensink";');
+			expect(testing).not.toContain("// Referenced by this entry point");
+			expect(
+				vfsNameDiagnostics(files, "/node_modules/kitchensink/testing.d.ts").filter((m) => UNDECLARED.test(m)),
+			).toEqual([]);
+		}, 30_000);
+
+		it("lets effect-kit's error classes extend their forgotten _base", () => {
+			const files = preparedVfs(load("effect-kit"));
+			for (const file of [...files.keys()].filter((f) => f.endsWith(".d.ts"))) {
+				expect(vfsNameDiagnostics(files, file).filter((m) => UNDECLARED.test(m))).toEqual([]);
+			}
+		}, 30_000);
 	});
 });
