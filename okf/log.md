@@ -1,5 +1,10 @@
 # Log
 
+## 2026-11-21
+
+* Updated The tsdoctor monorepo workspace
+* Updated Vendored reference repos under .repos/
+
 ## 2026-11-20
 
 * Updated @tsdoctor/model
