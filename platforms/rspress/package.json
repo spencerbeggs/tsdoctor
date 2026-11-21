@@ -94,7 +94,7 @@
 		"@types/react-dom": "catalog:effected:build",
 		"@types/unist": "^3.0.3",
 		"mdast-util-from-markdown": "^2.1.0",
-		"mdast-util-mdx-jsx": "^3.2.1",
+		"mdast-util-mdx-jsx": "^3.2.2",
 		"react": "catalog:effected:build",
 		"react-dom": "catalog:effected:build",
 		"unified": "^11.0.5"
