@@ -1,5 +1,13 @@
 # @tsdoctor/bundle
 
+## 0.9.7
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/github | peerDependency | updated | ^0.33.0 | ^0.34.0 |
+
 ## 0.9.6
 
 ### Dependencies
