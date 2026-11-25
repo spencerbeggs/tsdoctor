@@ -1,0 +1,9 @@
+---
+"@tsdoctor/pages": patch
+---
+
+## Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/markdown | peerDependency | updated | ^0.29.0 | ^0.30.0 |
