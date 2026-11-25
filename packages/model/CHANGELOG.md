@@ -1,5 +1,13 @@
 # @tsdoctor/model
 
+## 0.10.9
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/markdown | peerDependency | updated | ^0.29.0 | ^0.30.0 |
+
 ## 0.10.8
 
 ### Bug Fixes

@@ -1,5 +1,14 @@
 # @tsdoctor/pages
 
+## 0.5.11
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/model | dependency | updated | 0.10.8 | 0.10.9 |
+| @effected/markdown | peerDependency | updated | ^0.29.0 | ^0.30.0 |
+
 ## 0.5.10
 
 ### Dependencies
