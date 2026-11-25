@@ -9,7 +9,7 @@ generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:55Z
 status: deprecated
-integrity:
+x-okfit-integrity:
   generated:
     body: 62d5e71263a643cd
 ---

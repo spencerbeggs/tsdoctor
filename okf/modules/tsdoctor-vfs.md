@@ -2,8 +2,8 @@
 type: Module
 title: "@tsdoctor/vfs"
 description: Virtual file system primitives, the compiler-options seam and the persisted Twoslash result cache both adapters share.
-kind: package
-layer: L1
+x-okfit-kind: package
+x-okfit-layer: L1
 resource: ../../packages/vfs
 status: stable
 tags: [architecture, performance, compat]
@@ -14,7 +14,7 @@ sources:
 generated:
   by: okfit/claude-code
   at: 2026-11-12T02:39:25Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 97bd1a7006c2bd8b
 ---

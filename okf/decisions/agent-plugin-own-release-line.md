@@ -4,8 +4,8 @@ title: The agent plugin versions on its own release line, built for both hosts b
 description: "plugin/ is the private workspace @tsdoctor/ai-plugins, built by pluginfinity from one source into committed Claude Code and Copilot plugins, and versioned on its own changeset line rather than in lockstep with rspress-plugin-api-extractor."
 tags: [release, dx, architecture]
 sources:
-  - id: changeset
-    resource: ../../.changeset/api-docs-plugin-pluginfinity.md
+  - id: changelog
+    resource: ../../plugin/CHANGELOG.md
   - id: changeset-config
     resource: ../../.changeset/config.json
   - id: plugin-claude-md
@@ -16,7 +16,7 @@ sources:
     resource: ../../.github/workflows/release.yml
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:10:55Z
+  at: 2026-11-25T19:01:04Z
 status: stable
 verified:
   - by: human:spencer
@@ -25,12 +25,14 @@ verified:
     at: 2026-11-02T19:11:05Z
   - by: human:spencer
     at: 2026-11-09T18:10:30Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T18:56:58Z
+x-okfit-integrity:
   generated:
-    body: f6eaa618041693d2
+    body: ad4d3da422431727
   verified:
     by: human:spencer
-    at: 2026-11-09T18:10:30Z
+    at: 2026-11-25T18:56:58Z
     content: 31f59f28ebebd64c
 ---
 
@@ -59,7 +61,7 @@ second hand-maintained tree in a different host format.
 3. **Its own changeset line.** The plugin is versioned as
    `@tsdoctor/ai-plugins`, independent of `rspress-plugin-api-extractor`;
    a change under `plugin/` gets a changeset for that
-   package[^changeset]. `plugin/package.json`'s `version` feeds every
+   package[^changelog]. `plugin/package.json`'s `version` feeds every
    manifest, and `.changeset/config.json` lists the two built manifests as
    its `versionFiles` so `changeset version` writes them
    too[^changeset-config]. After versioning, rebuild and commit
@@ -90,6 +92,6 @@ and [the plugin-vs-platforms glossary entry](../glossary/plugin-vs-platforms.md)
 
 [^pluginfinity-config]: `plugin/pluginfinity.config.ts`
 [^release-workflow]: `.github/workflows/release.yml`
-[^changeset]: `.changeset/api-docs-plugin-pluginfinity.md`
+[^changelog]: `plugin/CHANGELOG.md`, 0.20.0 (released from `.changeset/api-docs-plugin-pluginfinity.md`)
 [^changeset-config]: `.changeset/config.json`
 [^plugin-claude-md]: `plugin/CLAUDE.md`

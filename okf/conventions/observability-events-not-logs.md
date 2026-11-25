@@ -19,7 +19,7 @@ sources:
   - id: render-sink
     resource: ../../platforms/rspress/src/observability/sinks/render-sink.ts
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 4e312ed02271b672
 ---

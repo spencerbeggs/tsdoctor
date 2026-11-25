@@ -8,7 +8,7 @@ generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:55Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 4222f43a8f6a2a5b
 ---

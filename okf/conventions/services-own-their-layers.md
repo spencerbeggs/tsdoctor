@@ -13,7 +13,7 @@ sources:
   - id: services-inventory
     resource: ../modules/rspress-plugin-api-extractor.md
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 5faaf0a876a0586f
 ---

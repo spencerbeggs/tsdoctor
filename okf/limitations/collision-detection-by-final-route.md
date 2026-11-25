@@ -2,13 +2,13 @@
 type: Limitation
 title: Route collision detection sees only the final folder/name key
 description: Routes.detectCollisions groups by the lowercased folder/baseName route, so the same name in different category folders is never flagged and neither is a re-export sharing displayName::kind across entry points.
-bounds: ../modules/tsdoctor-model.md
+x-okfit-bounds: ../modules/tsdoctor-model.md
 tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 736cf28f5fd063db
 ---

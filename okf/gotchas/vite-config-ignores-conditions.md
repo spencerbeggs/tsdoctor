@@ -16,7 +16,7 @@ sources:
     resource: ../../sites/vitepress-basic/package.json
   - id: vite-config-loader
     resource: npm:vite
-integrity:
+x-okfit-integrity:
   generated:
     body: ded059370352f9a7
 ---

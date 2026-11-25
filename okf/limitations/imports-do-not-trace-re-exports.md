@@ -2,13 +2,13 @@
 type: Limitation
 title: Generated imports do not trace re-exports
 description: TypeReferenceExtractor assumes a canonical reference's own package owns the type it names, so a type re-exported through an intermediate package imports from the wrong place and Twoslash reports a false "Cannot find name."
-bounds: ../modules/tsdoctor-model.md
+x-okfit-bounds: ../modules/tsdoctor-model.md
 tags: [compat]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: a69c0e805633bd94
 ---

@@ -2,13 +2,13 @@
 type: Limitation
 title: The build heartbeat misses the render phase where Twoslash dominates
 description: The BuildProgress heartbeat is forked inside config()'s scoped program and torn down when config() returns, but RSPress's render pass — where Twoslash cost concentrates — runs afterward with no live ticks.
-bounds: ../modules/rspress-plugin-api-extractor.md
+x-okfit-bounds: ../modules/rspress-plugin-api-extractor.md
 tags: [observability, performance]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 93d169fa236e0018
 ---

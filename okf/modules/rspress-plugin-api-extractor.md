@@ -1,10 +1,10 @@
 ---
 type: Module
-kind: package
+x-okfit-kind: package
 title: rspress-plugin-api-extractor
 description: The RSPress adapter over the @tsdoctor/* core — hooks, Effect service layer, page pipeline, emitters, cross-linking, observability, and LLMs wiring.
 resource: ../../platforms/rspress
-layer: L3
+x-okfit-layer: L3
 generated:
   by: "okfit/claude-code"
   at: 2026-11-13T16:48:12Z
@@ -14,7 +14,7 @@ tags:
   - performance
   - dx
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 50f19dfbd021e4f0
 ---

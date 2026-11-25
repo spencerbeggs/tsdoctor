@@ -13,7 +13,7 @@ sources:
   - id: twoslash-timing-wrapper
     resource: ../../platforms/rspress/src/twoslash-timing-wrapper.ts
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: e3dd4b89b9f18440
 ---

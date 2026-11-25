@@ -13,7 +13,7 @@ sources:
   - id: vitepress-package-json
     resource: ../../platforms/vitepress/package.json
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 5b50f5261f1601d5
 ---

@@ -2,13 +2,13 @@
 type: Limitation
 title: The Twoslash result cache invalidates per whole VFS, not per package
 description: twoslashEnvHash keys a cache generation on the combined virtual file system plus the TypeScript version, so any documented package changing invalidates every package's cached results in one build.
-bounds: ../modules/tsdoctor-vfs.md
+x-okfit-bounds: ../modules/tsdoctor-vfs.md
 tags: [performance, compat]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 14dd6014c0e8225a
 ---

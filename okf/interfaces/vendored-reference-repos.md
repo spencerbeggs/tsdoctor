@@ -2,7 +2,7 @@
 type: Interface
 title: Vendored reference repos under .repos/
 description: Sparse, shallow, read-only git submodules pinned to the installed version of each upstream dependency.
-kind: config
+x-okfit-kind: config
 resource: ../../.repos/config.json
 tags: [dx, compat]
 generated:
@@ -14,7 +14,7 @@ sources:
   - id: gitmodules
     resource: ../../.gitmodules
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 736757c2d1554d17
 ---

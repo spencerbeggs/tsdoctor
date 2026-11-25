@@ -7,7 +7,7 @@ generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:55Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 182dcaaf5151fa3f
 ---

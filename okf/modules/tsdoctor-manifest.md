@@ -2,7 +2,7 @@
 type: Module
 title: "@tsdoctor/manifest"
 description: "Deleted: the former thin re-export of @effected/manifest; the workspace is gone and only its published versions remain on npm."
-kind: package
+x-okfit-kind: package
 resource: npm:@tsdoctor/manifest
 status: deprecated
 tags: [architecture, compat]
@@ -16,7 +16,7 @@ sources:
 generated:
   by: okfit/claude-code
   at: 2026-11-09T18:33:27Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 47ebd42235b426ce
 ---

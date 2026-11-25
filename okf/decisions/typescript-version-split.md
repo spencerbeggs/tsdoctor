@@ -19,12 +19,14 @@ sources:
 verified:
   - by: human:spencer
     at: 2026-11-09T18:10:29Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T18:56:58Z
+x-okfit-integrity:
   generated:
     body: 88634dd59c699424
   verified:
     by: human:spencer
-    at: 2026-11-09T18:10:29Z
+    at: 2026-11-25T18:56:58Z
     content: f3b2ce1dea8962f6
 ---
 

@@ -1,10 +1,10 @@
 ---
 type: Module
-kind: package
+x-okfit-kind: package
 title: "@tsdoctor/snapshot"
 description: Incremental-build snapshot store and content-hashing helpers for static documentation pipelines.
 resource: ../../packages/snapshot
-layer: L2
+x-okfit-layer: L2
 generated:
   by: "okfit/claude-code"
   at: 2026-11-12T02:39:25Z
@@ -13,7 +13,7 @@ tags:
   - observability
   - performance
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 913e1f1fc36d14c6
 ---

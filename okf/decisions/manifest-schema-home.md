@@ -3,7 +3,7 @@ type: Decision
 status: stable
 title: The bundle manifest schema ships from @effected/manifest
 description: "The spec-1 bundle.json schema lives in the kit package @effected/manifest; @tsdoctor/bundle re-exports the kit's names and the @tsdoctor/manifest workspace is deleted."
-supersedes: manifest-below-bundle.md
+x-okfit-supersedes: manifest-below-bundle.md
 tags: [architecture, compat, deps]
 generated:
   by: okfit/claude-code
@@ -28,13 +28,15 @@ verified:
     at: 2026-11-09T18:10:29Z
   - by: human:spencer
     at: 2026-11-09T18:52:17Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T18:56:58Z
+x-okfit-integrity:
   generated:
     body: 650f65becb6b0e24
   verified:
     by: human:spencer
-    at: 2026-11-09T18:52:17Z
-    content: 3b44f19f00065e37
+    at: 2026-11-25T18:56:58Z
+    content: ea01f0dd9d44c5ba
 ---
 
 # The bundle manifest schema ships from `@effected/manifest`

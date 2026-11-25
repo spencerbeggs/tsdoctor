@@ -2,13 +2,13 @@
 type: Limitation
 title: with-api scope inference never fires on any fixture site
 description: "inferApiScope's docs/en/{api}/ path pattern matches no fixture site, so a user-authored with-api fence outside a package's route always falls back to the first registered Twoslash environment."
-bounds: ../modules/rspress-plugin-api-extractor.md
+x-okfit-bounds: ../modules/rspress-plugin-api-extractor.md
 tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 635875b8da91d000
 ---

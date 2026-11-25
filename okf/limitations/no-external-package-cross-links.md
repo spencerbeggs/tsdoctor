@@ -2,13 +2,13 @@
 type: Limitation
 title: No external-package cross-links
 description: Types owned by an undocumented package never get cross-links, because the route map both linkers share is built only from the APIs a build generates.
-bounds: ../modules/tsdoctor-pages.md
+x-okfit-bounds: ../modules/tsdoctor-pages.md
 tags: [architecture]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: c5608cd0b080066b
 ---

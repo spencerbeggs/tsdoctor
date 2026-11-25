@@ -13,7 +13,7 @@ sources:
   - id: vitepress-index
     resource: ../../platforms/vitepress/src/index.ts
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 78aaf4c2a56b5b89
 ---

@@ -2,8 +2,8 @@
 type: Module
 title: "@tsdoctor/bundle"
 description: The versioned bundle spec — layered discovery, the bundle.json manifest, provenance-carrying resolution, fetchers and Open Graph asset publishing.
-kind: package
-layer: L2
+x-okfit-kind: package
+x-okfit-layer: L2
 resource: ../../packages/bundle
 status: stable
 tags: [architecture, compat]
@@ -14,7 +14,7 @@ sources:
 generated:
   by: okfit/claude-code
   at: 2026-11-12T02:39:25Z
-integrity:
+x-okfit-integrity:
   generated:
     body: afffb15f6db97a7b
 ---

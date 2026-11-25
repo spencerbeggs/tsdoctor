@@ -8,7 +8,7 @@ stale_after: 2026-12-12T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-11-09T18:33:27Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 6462d17511707147
 ---

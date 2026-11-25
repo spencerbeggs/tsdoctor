@@ -2,13 +2,13 @@
 type: Limitation
 title: The VitePress adapter is a deliberately scoped alpha
 description: platforms/vitepress ships no Vue components, no code-block cross-links, no llms.txt, no multiVersion/i18n/multi-API, no incremental writes and no serve runner, and re-spells three pieces of RSPress's neutral logic that must be kept in step by hand.
-bounds: ../modules/vitepress-plugin-api-extractor.md
+x-okfit-bounds: ../modules/vitepress-plugin-api-extractor.md
 tags: [architecture, compat]
 generated:
   by: okfit/claude-code
   at: 2026-09-13T14:07:05Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 2f832cd810af9f46
 ---

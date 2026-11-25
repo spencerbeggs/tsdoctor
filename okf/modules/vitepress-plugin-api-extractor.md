@@ -1,10 +1,10 @@
 ---
 type: Module
-kind: package
+x-okfit-kind: package
 title: vitepress-plugin-api-extractor
 description: The VitePress adapter over the @tsdoctor/* core — markdown-only alpha proving the core/adapter boundary with a second consumer of the @tsdoctor/pages IR.
 resource: ../../platforms/vitepress
-layer: L3
+x-okfit-layer: L3
 generated:
   by: "okfit/claude-code"
   at: 2026-11-13T16:48:12Z
@@ -12,7 +12,7 @@ tags:
   - architecture
   - dx
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 8186320a0d61b3b9
 ---

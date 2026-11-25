@@ -2,7 +2,7 @@
 type: Interface
 title: bundle.json manifest
 description: The spec-1 bundle.json sidecar manifest schema from @effected/manifest, its authoring shape, and who writes and reads it in this repository.
-kind: config
+x-okfit-kind: config
 resource: npm:@effected/manifest
 tags: [compat, release]
 generated:
@@ -24,7 +24,7 @@ sources:
   - id: bundler-meta
     resource: npm:@effected/bundler
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 480e8a5b18a75ed5
 ---

@@ -13,7 +13,7 @@ sources:
   - id: watch-issues-monitor
     resource: ../../plugin/monitors/watch-issues.mjs
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: e024654b90776955
 ---

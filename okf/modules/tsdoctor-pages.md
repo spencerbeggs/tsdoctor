@@ -1,10 +1,10 @@
 ---
 type: Module
-kind: package
+x-okfit-kind: package
 title: "@tsdoctor/pages"
 description: The framework-neutral documentation page IR for static TypeScript API sites — blocks, builders, navigation, and the plain-markdown emitter.
 resource: ../../packages/pages
-layer: L2
+x-okfit-layer: L2
 generated:
   by: "okfit/claude-code"
   at: 2026-11-12T02:39:25Z
@@ -12,7 +12,7 @@ tags:
   - architecture
   - dx
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 7e9426880e7c156e
 ---

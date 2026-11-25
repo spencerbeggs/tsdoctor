@@ -17,7 +17,7 @@ sources:
   - id: build-page
     resource: ../../packages/pages/src/Build.ts
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 457c9be06aed01d1
 ---

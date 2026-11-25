@@ -1,7 +1,7 @@
 ---
 type: Interface
 status: stable
-kind: api
+x-okfit-kind: api
 resource: ../../platforms/vitepress/src/ApiExtractor.ts
 title: "vitepress-plugin-api-extractor: apiExtractor()"
 description: The one awaited helper a site's docs/.vitepress/config.mts calls to generate pages and merge sidebar/codeTransformers/buildEnd into defineConfig.
@@ -9,7 +9,7 @@ tags: [compat]
 generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:55Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 3d9a0e68284773f7
 ---

@@ -17,7 +17,7 @@ sources:
   - id: rspress-compiler-seam-test
     resource: ../../platforms/rspress/__test__/compiler-options-seam.test.ts
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 6d2d88b5d4e03b7a
 ---

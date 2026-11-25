@@ -1,5 +1,102 @@
 # Log
 
+## 2026-11-25
+
+* Updated "0 tests passed" with exit 0 means a static threw at import time
+* Updated --conditions=effected-built does not reach a static import in a VitePress config
+* Updated @effected is the foundation: check before hand-rolling
+* Updated @tsdoctor/bundle
+* Updated @tsdoctor/manifest
+* Updated @tsdoctor/manifest sits below @tsdoctor/bundle
+* Updated @tsdoctor/model
+* Updated @tsdoctor/pages
+* Updated @tsdoctor/registry
+* Updated @tsdoctor/seo
+* Updated @tsdoctor/seo headTags seam
+* Updated @tsdoctor/snapshot
+* Updated @tsdoctor/vfs
+* Updated @tsdoctor/vfs sits below the registry and the model
+* Updated A behaviour change in an emitter ships as its own labelled commit
+* Updated A build summary reporting 0 typechecked means the holder never ran, not that Twoslash found nothing
+* Updated A dev session's Twoslash cache never gets saved
+* Updated A green hashing unit test can pin a shape the real pipeline never produces
+* Updated A linker is a scope — no mutable current-scope holder
+* Updated A persisted Twoslash result cache is the render-phase performance fix
+* Updated A route collision fails the build, never a synthetic suffix
+* Updated A transformer coming back proves nothing about scope routing
+* Updated A working VitePress alpha gates every core package's 1.0
+* Updated Adapters seal their kit closure at exact versions
+* Updated An undimensioned metric total outlives the build that produced it
+* Updated Bundle
+* Updated Consolidate into one monorepo
+* Updated Content hashing over mtimes
+* Updated Core @effected peers follow the public .d.ts surface
+* Updated Core packages, thin adapters
+* Updated Debug runtime component CSS in a live fixture site
+* Updated Decode compiler options at one seam, never cast
+* Updated Deprecate the model's Render module in favour of @tsdoctor/pages
+* Updated Display and source
+* Updated Do not hand-format, hand-sort, or hand-chmod what the pre-commit hook already normalizes
+* Updated Doc generation runs inside RSPress's config() hook
+* Updated Dogfood an unreleased @effected/* capability
+* Updated Effect v4 only
+* Updated Emit the runtime bundleless, per file
+* Updated Extract the page IR only once two adapters exist
+* Updated Fixture modules
+* Updated Fixture sites
+* Updated Generated imports do not trace re-exports
+* Updated Head tags are built in the generate stage
+* Updated Import or stub undeclared references, never leave them dangling
+* Updated Import the namespace root, never the leaf
+* Updated Keep every adapter's dependency closure whole
+* Updated MDX pages serialize each block node separately, joins owned by the emitter
+* Updated Measure hover parity before and after a Twoslash-path change
+* Updated Never measure a code-block span across an await
+* Updated Never set private:false in a publishable workspace's source package.json
+* Updated No external-package cross-links
+* Updated No internal barrels
+* Updated One TypeScript environment per distinct resolved compiler config
+* Updated One anchor algorithm, never a second spelling
+* Updated One layer-construction call produces both ManagedRuntimes
+* Updated One seam decides every head tag, adapters only render
+* Updated Packages and platforms stay on TypeScript 6 while the effected build chain runs TypeScript 7.1
+* Updated Page IR blocks are Schema.Class variants, not Data.TaggedEnum
+* Updated Passing the VFS as fsMap "works" and silently type-checks against nothing
+* Updated Plugin, the plugin, and platforms/
+* Updated Post-process llms.txt rather than generate it
+* Updated RSPress plugin options (PluginOptions)
+* Updated Re-pin a vendored reference repo after a dependency bump
+* Updated Report through events, not logs or direct metrics
+* Updated Route collision detection sees only the final folder/name key
+* Updated Runtime component authoring
+* Updated SEO derivation degrades, never fails the build
+* Updated Services own their layers
+* Updated Snapshot database
+* Updated Sync island
+* Updated The Twoslash result cache invalidates per whole VFS, not per package
+* Updated The VitePress adapter alpha is markdown-only, no Vue components
+* Updated The VitePress adapter is a deliberately scoped alpha
+* Updated The agent plugin versions on its own release line, built for both hosts by pluginfinity
+* Updated The build event bus fans out synchronously, in-process
+* Updated The build heartbeat misses the render phase where Twoslash dominates
+* Updated The bundle manifest schema ships from @effected/manifest
+* Updated The canonical site URL is derived, never configured
+* Updated The tsdoctor monorepo workspace
+* Updated The type and Twoslash caches degrade; the snapshot store fails
+* Updated Vendored reference repos under .repos/
+* Updated Zero Twoslash cache lookups can mean Rspack never recompiled, not that the cache is useless
+* Updated ae-missing-release-tag on a _base class names a synthesized base, not a real undocumented class
+* Updated api-docs agent plugin
+* Updated bundle.json manifest
+* Updated issues.json artifact
+* Updated pnpm --filter matches the package name, not the workspace folder
+* Updated rspress-plugin-api-extractor
+* Updated rspress-plugin-api-extractor package exports
+* Updated tsdoctor
+* Updated vitepress-plugin-api-extractor
+* Updated vitepress-plugin-api-extractor: apiExtractor()
+* Updated with-api scope inference never fires on any fixture site
+
 ## 2026-11-21
 
 * Updated The tsdoctor monorepo workspace

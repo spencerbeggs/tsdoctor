@@ -1,10 +1,10 @@
 ---
 type: Module
-kind: package
+x-okfit-kind: package
 title: "@tsdoctor/seo"
 description: Framework-neutral head metadata — canonical URLs, Open Graph, Twitter cards, attribution, and schema.org JSON-LD — for static TypeScript API documentation.
 resource: ../../packages/seo
-layer: L2
+x-okfit-layer: L2
 generated:
   by: "okfit/claude-code"
   at: 2026-11-12T02:39:25Z
@@ -12,7 +12,7 @@ tags:
   - architecture
   - dx
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 19c536c08d201f9b
 ---

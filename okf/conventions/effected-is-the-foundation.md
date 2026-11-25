@@ -13,7 +13,7 @@ sources:
   - id: workspace
     resource: ../../pnpm-workspace.yaml
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 671aa724f5f8eb1b
 ---

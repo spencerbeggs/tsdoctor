@@ -13,7 +13,7 @@ sources:
   - id: content-hash-src
     resource: ../../packages/snapshot/src/content-hash.ts
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 73f62fc38c7f025e
 ---

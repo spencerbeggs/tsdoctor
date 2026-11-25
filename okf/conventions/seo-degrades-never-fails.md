@@ -19,7 +19,7 @@ sources:
   - id: vitepress-generate
     resource: ../../platforms/vitepress/src/Generate.ts
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: 7b1ce5e4bb1db596
 ---

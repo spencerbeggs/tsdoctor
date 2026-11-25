@@ -2,8 +2,8 @@
 type: Module
 title: "@tsdoctor/registry"
 description: External package type loading — fetch, cache and resolve published npm type definitions into a Vfs for Twoslash tooling.
-kind: package
-layer: L2
+x-okfit-kind: package
+x-okfit-layer: L2
 resource: ../../packages/registry
 status: stable
 tags: [architecture, compat]
@@ -14,7 +14,7 @@ sources:
 generated:
   by: okfit/claude-code
   at: 2026-11-13T16:48:12Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 339e71bafd7d46ed
 ---

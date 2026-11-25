@@ -2,14 +2,14 @@
 type: Module
 title: The tsdoctor monorepo workspace
 description: pnpm workspace root — task orchestration, dependency catalogs, code-quality hooks, release tooling and vendored reference repos.
-kind: workspace
+x-okfit-kind: workspace
 resource: ../..
 tags: [architecture, dx, ci, release, compat]
 generated:
   by: okfit/claude-code
   at: 2026-11-21T17:42:20Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: edceb57ac3dace8a
 ---

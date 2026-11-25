@@ -2,8 +2,8 @@
 type: Module
 title: "@tsdoctor/model"
 description: Framework-neutral analysis of Microsoft API Extractor models — loading, TSDoc extraction, multi-entry resolution, routes, cross-linking, signatures and the api.json-to-TypeScript bridge.
-kind: package
-layer: L2
+x-okfit-kind: package
+x-okfit-layer: L2
 resource: ../../packages/model
 status: stable
 tags: [architecture]
@@ -14,7 +14,7 @@ sources:
 generated:
   by: okfit/claude-code
   at: 2026-11-20T01:31:37Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 4c3bc08567c9176c
 ---

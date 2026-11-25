@@ -2,7 +2,7 @@
 type: Interface
 title: "@tsdoctor/seo headTags seam"
 description: The single seam that decides which head-element tags a generated page gets.
-kind: api
+x-okfit-kind: api
 resource: ../../packages/seo/src/Seo.ts
 tags: [architecture]
 generated:
@@ -18,7 +18,7 @@ sources:
   - id: vitepress-frontmatter
     resource: ../../platforms/vitepress/src/emit/frontmatter.ts
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: d8b5f6598e54f4cf
 ---

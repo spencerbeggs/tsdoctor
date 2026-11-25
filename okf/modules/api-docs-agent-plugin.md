@@ -2,7 +2,7 @@
 type: Module
 title: api-docs agent plugin
 description: "The private pnpm workspace @tsdoctor/ai-plugins: one pluginfinity source built into a Claude Code plugin and a GitHub Copilot plugin (skills, an agent, a SessionStart hook, a Claude-only monitor) for RSPress API documentation, not the RSPress plugin."
-kind: plugin
+x-okfit-kind: plugin
 resource: ../../plugin
 tags: [dx, testing, release]
 sources:
@@ -20,7 +20,7 @@ generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:55Z
 status: draft
-integrity:
+x-okfit-integrity:
   generated:
     body: 62576c4a6fc778f3
 ---

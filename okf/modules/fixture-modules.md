@@ -2,14 +2,14 @@
 type: Module
 title: Fixture modules
 description: Private packages under modules/ built purely to produce API Extractor models (.api.json) for the adapters' test fixture sites.
-kind: harness
+x-okfit-kind: harness
 resource: ../../modules
 tags: [testing, ci]
 generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:55Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: d6a0014b2826c0b2
 ---

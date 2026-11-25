@@ -1,7 +1,7 @@
 ---
 type: Interface
 status: stable
-kind: api
+x-okfit-kind: api
 resource: ../../platforms/rspress/package.json
 title: rspress-plugin-api-extractor package exports
 description: Three entry points -- ".", "./runtime", "./tsconfig/rspress.json" -- plus the "./env" types-only export.
@@ -9,7 +9,7 @@ tags: [compat, release]
 generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:55Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 87ea99371aec49f5
 ---

@@ -1,7 +1,7 @@
 ---
 type: Interface
 status: stable
-kind: config
+x-okfit-kind: config
 resource: ../../platforms/rspress/src/schemas/config.ts
 title: RSPress plugin options (PluginOptions)
 description: The Effect Schema PluginOptions decodes into ResolvedApiConfig; consumer-facing types are the Encoded (optional-field) shapes.
@@ -9,7 +9,7 @@ tags: [dx, compat]
 generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:55Z
-integrity:
+x-okfit-integrity:
   generated:
     body: d02c044f75ef1058
 ---

@@ -2,14 +2,14 @@
 type: Module
 title: Fixture sites
 description: Private RSPress and VitePress sites under sites/ that consume the adapters via workspace:* against one or more fixture modules, exercising every plugin configuration shape.
-kind: harness
+x-okfit-kind: harness
 resource: ../../sites
 tags: [testing, ci]
 generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:55Z
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: f80f59f9341c9b1c
 ---

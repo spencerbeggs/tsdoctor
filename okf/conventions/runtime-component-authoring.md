@@ -15,7 +15,7 @@ sources:
   - id: api-example
     resource: ../../platforms/rspress/src/runtime/components/ApiExample/index.tsx
 status: stable
-integrity:
+x-okfit-integrity:
   generated:
     body: cca22c3f15228590
 ---

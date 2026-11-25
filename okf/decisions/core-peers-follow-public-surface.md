@@ -2,7 +2,7 @@
 type: Decision
 title: Core @effected peers follow the public .d.ts surface
 description: "A core @tsdoctor/* library peers on an @effected package only when its types cross the library's public .d.ts surface; everything else is a dependency, and every platforms/* adapter declares the full closure."
-supersedes: consolidate-into-one-monorepo.md
+x-okfit-supersedes: consolidate-into-one-monorepo.md
 status: stable
 tags: [deps, architecture, compat, release]
 sources:
@@ -40,13 +40,15 @@ verified:
     at: 2026-11-12T02:51:17Z
   - by: human:spencer
     at: 2026-11-12T03:00:40Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T18:56:58Z
+x-okfit-integrity:
   generated:
     body: f319a6a6b6212f7f
   verified:
     by: human:spencer
-    at: 2026-11-12T03:00:40Z
-    content: 94d524acbb8d7220
+    at: 2026-11-25T18:56:58Z
+    content: f4803a26e2dcea3a
 ---
 
 # Core `@effected` peers follow the public `.d.ts` surface
