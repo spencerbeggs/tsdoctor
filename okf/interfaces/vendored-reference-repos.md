@@ -7,7 +7,7 @@ resource: ../../.repos/config.json
 tags: [dx, compat]
 generated:
   by: okfit/claude-code
-  at: 2026-11-21T17:42:20Z
+  at: 2026-11-26T07:24:24Z
 sources:
   - id: repos-config
     resource: ../../.repos/config.json
@@ -16,7 +16,7 @@ sources:
 status: stable
 x-okfit-integrity:
   generated:
-    body: 736757c2d1554d17
+    body: 7d9d715a1f6c8a2d
 ---
 
 # Vendored reference repos under `.repos/`
@@ -58,7 +58,7 @@ read instead of training-data memory.[^gitmodules][^repos-config]
 | `rspress` | `v2.0.17` | `packages/core/src`, `website/docs/en` | `packages/core/src/index.ts` |
 | `twoslash` | `v0.3.9` | `packages/twoslash/src`, `docs` | `packages/twoslash/src/index.ts` |
 | `rsbuild` | `v2.1.5` | `packages/core/src`, `website/docs/en` | `packages/core/src/index.ts` |
-| `effect` | `effect@4.1.5` | `packages/effect/src`, `migration` | `packages/effect/src/index.ts` |
+| `effect` | `effect@4.1.6` | `packages/effect/src`, `migration` | `packages/effect/src/index.ts` |
 | `vitepress` | `v2.0.0-alpha.19` | `src/node`, `src/client`, `src/shared`, `docs/en` | `src/node/siteConfig.ts` |
 | `shiki` | `v4.4.3` | `packages/twoslash`, `packages/shiki`, `packages/vitepress-twoslash` | `packages/twoslash/src/index.ts` |
 
