@@ -1,5 +1,14 @@
 # @tsdoctor/model
 
+## 0.10.10
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @tsdoctor/vfs | dependency | updated | 0.7.7 | 0.7.8 |
+| @effected/tsconfig-json | peerDependency | updated | ^0.23.0 | ^0.24.0 |
+
 ## 0.10.9
 
 ### Dependencies
