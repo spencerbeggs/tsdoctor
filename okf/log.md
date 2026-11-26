@@ -1,5 +1,10 @@
 # Log
 
+## 2026-11-26
+
+* Updated The tsdoctor monorepo workspace
+* Updated Vendored reference repos under .repos/
+
 ## 2026-11-25
 
 * Updated "0 tests passed" with exit 0 means a static threw at import time
